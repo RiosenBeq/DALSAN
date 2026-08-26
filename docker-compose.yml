@@ -1,0 +1,45 @@
+# DALSAN İSG — fabrika sunucusu (Ubuntu + NVIDIA GPU) için.
+# Çalıştırma:  docker compose up -d
+# Günlük:      docker compose logs -f
+# Durdurma:    docker compose down
+#
+# NOT: Mac ve Windows'ta da çalışır ama GPU kullanılamaz (CIKARIM_CIHAZI=cpu).
+# Geliştirme için Docker gerekmez — Kontrol Paneli yeterlidir.
+
+services:
+  dalsan:
+    build: .
+    image: dalsan-isg:son
+    container_name: dalsan-isg
+    restart: unless-stopped          # sunucu yeniden başlarsa sistem kendiliğinden kalkar (K8)
+    ports:
+      - "8080:8080"
+    volumes:
+      # TÜM veri container dışında durur: container silinse de kaybolmaz
+      - ./veri:/uygulama/veri
+      - ./.env:/uygulama/.env:ro
+      # Model dosyaları imaja gömülüdür; dışarıdan güncellemek isterseniz açın:
+      # - ./models:/uygulama/models:ro
+    healthcheck:
+      # Giriş sayfası cevap veriyorsa süreç ayakta demektir
+      test: ["CMD", "curl", "-fs", "http://127.0.0.1:8080/giris"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+
+    # --- GPU (yalnızca Linux + NVIDIA sürücüsü + NVIDIA Container Toolkit) ---
+    # Aşağıdaki bloğu açın ve .env dosyasında CIKARIM_CIHAZI=cuda yapın.
+    # Mac ve Windows'ta bu blok ÇALIŞMAZ, kapalı bırakın.
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+
+    # --- Anons için ses kartı (yalnızca Linux) ---
+    # .env dosyasında ANONS=ses_karti ise açın:
+    # devices:
+    #   - "/dev/snd:/dev/snd"

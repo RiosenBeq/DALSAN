@@ -1,5 +1,13 @@
 # İlerleme
 
+## Platform uyumu + Docker (26.08.2026)
+
+- **Windows uyumu düzeltildi:** anons sesi (PowerShell SoundPlayer — `afplay`/`aplay` Windows'ta yok), kamera arka ucu (DirectShow), saat dilimi veritabanı (`tzdata` bağımlılığı).
+- **Docker desteği:** üç proje için de Dockerfile + docker-compose. Veri ve ayarlar container dışında (silinse de kaybolmaz), sağlık kontrolü ve otomatik yeniden başlatma var; GPU ve ses kartı blokları Linux için hazır ve yorumlu.
+- Model dosyası yoksa imaj derlemesi **anlaşılır bir mesajla durur** — modelsiz, hiçbir şey tespit etmeyen sessiz container tuzağı kapatıldı.
+- **NASIL-CALISIR.md** yazıldı: sistemin işleyişi, Mac/Windows/Docker kurulumu, hangi ortamda neyin çalıştığını gösteren dürüst tablo, sorun giderme ve yedekleme.
+- Docker bu makinede kurulu olmadığı için imaj derlemesi **denenemedi**; Dockerfile'lar statik olarak doğrulandı.
+
 ## Adım 2-7 + altyapılar — Sistem uçtan uca çalışır durumda (26.08.2026)
 
 - **Kamera katmanı:** RTSP (TCP) / video dosyası kaynağı, "son kare" deseni, üstel beklemeli otomatik yeniden bağlanma, çevrimiçi/çevrimdışı takibi ve sistem olayları. Kamera CRUD + 1 sn'de yenilenen canlı önizleme (tespit kutuları çizili).

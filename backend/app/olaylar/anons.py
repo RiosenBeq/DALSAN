@@ -12,6 +12,7 @@ from __future__ import annotations
 import json
 import shutil
 import subprocess
+import sys
 import urllib.error
 import urllib.request
 
@@ -31,33 +32,55 @@ class NullAnonscu:
         _log.info(f"Anons (kapalı, çalınmadı): {metin}")
 
 
+def _ses_komutu(ses_dosyasi: str) -> list[str] | None:
+    """İşletim sistemine göre WAV çalma komutu.
+
+    Fabrika sunucusu Linux'tur (aplay); geliştirme Mac (afplay) veya
+    Windows (PowerShell SoundPlayer) olabilir. Üçünde de EK KURULUM
+    GEREKTİRMEYEN, sistemde hazır gelen araçlar seçildi.
+    """
+    if sys.platform == "win32":
+        # Windows'ta afplay/aplay yoktur; SoundPlayer her Windows'ta hazırdır
+        return [
+            "powershell",
+            "-NoProfile",
+            "-Command",
+            f"(New-Object Media.SoundPlayer '{ses_dosyasi}').PlaySync()",
+        ]
+    calici = shutil.which("afplay") or shutil.which("aplay") or shutil.which("paplay")
+    return [calici, ses_dosyasi] if calici else None
+
+
 class SesKartiAnonscu:
     """Kayıtlı WAV dosyasını yerel ses kartından çalar → mevcut amplifikatör.
 
-    macOS: afplay, Linux: aplay. Ses dosyası tanımlı değilse yalnız log düşer.
+    macOS: afplay · Linux: aplay/paplay · Windows: PowerShell SoundPlayer.
+    Ses dosyası tanımlı değilse yalnız log düşer (sistem yine çalışır).
     """
 
     ad = "ses kartı"
 
     def __init__(self) -> None:
-        self._calici = shutil.which("afplay") or shutil.which("aplay")
-        if self._calici is None:
+        # Windows'ta komut her zaman vardır; diğerlerinde varlığı sınanır
+        self._kullanilabilir = sys.platform == "win32" or _ses_komutu("deneme") is not None
+        if not self._kullanilabilir:
             _log.error(
-                "Ses çalma komutu bulunamadı (afplay/aplay). "
-                "ANONS=ses_karti çalışmayacak; .env'de ANONS=null yapın."
+                "Ses çalma komutu bulunamadı (afplay/aplay/paplay). "
+                "Linux'ta 'sudo apt install alsa-utils' kurun ya da "
+                ".env dosyasında ANONS=null yapın."
             )
 
     def cal(self, anahtar: str, metin: str, ses_dosyasi: str | None) -> None:
-        if self._calici is None or not ses_dosyasi:
+        if not self._kullanilabilir or not ses_dosyasi:
             _log.warning(f"Anons ses dosyası yok, çalınamadı: {anahtar} — {metin}")
+            return
+        komut = _ses_komutu(ses_dosyasi)
+        if komut is None:
+            _log.error(f"Anons çalınamadı, ses komutu yok: {ses_dosyasi}")
             return
         try:
             # Bloklamasın: hoparlör çalarken analiz beklememeli
-            subprocess.Popen(
-                [self._calici, ses_dosyasi],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
+            subprocess.Popen(komut, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             _log.info(f"Anons çalınıyor: {metin}")
         except OSError as hata:
             _log.error(f"Anons çalınamadı ({ses_dosyasi}): {hata}")
