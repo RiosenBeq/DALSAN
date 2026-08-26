@@ -53,9 +53,16 @@ def test_suresi_dolan_cerez_gecersiz():
 def test_acik_yonlendirme_engellenir(ham_istemci):
     from conftest import TEST_SIFRESI
 
+    # Tarayıcının dış adrese götürdüğü TÜM biçimler site köküne düşmeli
+    for kotu in ("https://kotu-site.example", "//kotu-site.example", "/\\kotu-site.example"):
+        yanit = ham_istemci.post(
+            "/giris",
+            data={"sifre": TEST_SIFRESI, "sonra": kotu},
+            follow_redirects=False,
+        )
+        assert yanit.headers["location"] == "/", kotu
+    # Site içi normal yol korunmalı
     yanit = ham_istemci.post(
-        "/giris",
-        data={"sifre": TEST_SIFRESI, "sonra": "https://kotu-site.example"},
-        follow_redirects=False,
+        "/giris", data={"sifre": TEST_SIFRESI, "sonra": "/kameralar"}, follow_redirects=False
     )
-    assert yanit.headers["location"] == "/"
+    assert yanit.headers["location"] == "/kameralar"

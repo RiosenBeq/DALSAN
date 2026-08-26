@@ -65,8 +65,10 @@ def giris_yap(istek: Request, sifre: str = Form(...), sonra: str = Form("/")):
     ayarlar = istek.app.state.ayarlar
     if not hmac.compare_digest(sifre, ayarlar.yonetici_sifresi):
         return RedirectResponse(f"/giris?sonra={sonra}&hata=1", status_code=303)
-    if not sonra.startswith("/"):
-        sonra = "/"  # açık yönlendirme (open redirect) engeli
+    # Açık yönlendirme (open redirect) engeli: yalnızca site içi tek '/' ile
+    # başlayan yollar. '//evil.com' ve '/\evil.com' tarayıcıda dış adrese gider.
+    if not sonra.startswith("/") or sonra.startswith("//") or "\\" in sonra:
+        sonra = "/"
     yanit = RedirectResponse(sonra, status_code=303)
     yanit.set_cookie(
         _CEREZ_ADI,

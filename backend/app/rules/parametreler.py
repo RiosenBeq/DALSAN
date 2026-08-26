@@ -40,7 +40,10 @@ class KkdParams(BaseModel):
     """ppe_violation — docs/03 §3 ve docs/04 §7"""
 
     required_ppe: list[Literal["helmet", "vest"]] = ["helmet", "vest"]
+    # Baret ve yelek eşikleri AYRIDIR: baret kişi boyunun ~1/8'i olduğundan
+    # 120 px ister; yelek büyük yüzeyiyle 80 px'te güvenilirdir (docs/04 §3)
     min_person_height_px: int = Field(default=120, ge=20, le=2000)
+    min_vest_height_px: int = Field(default=80, ge=20, le=2000)
     min_confidence: float = Field(default=0.70, ge=0, le=1)
     window_size: int = Field(default=15, ge=3, le=100)
     min_valid_observations: int = Field(default=8, ge=1, le=100)

@@ -71,6 +71,67 @@ def test_fotografsiz_ihlal_yine_de_kaydedilir(test_ayarlari):
         baglanti.close()
 
 
+def test_ayni_saniyede_iki_ihlal_ayri_fotograf(test_ayarlari):
+    # Kanıt fotoğrafları birbirini EZMEMELİ (dosya adı saniye çözünürlüklü)
+    baglanti = veritabani.baglanti_ac(test_ayarlari.veritabani_yolu)
+    try:
+        veritabani.semayi_uygula(baglanti)
+        kamera_id = _kamera_olustur(baglanti)
+        id1 = ihlal_yaz(baglanti, test_ayarlari, _ornek_ihlal(kamera_id, 1), {}, b"kanit-1")
+        id2 = ihlal_yaz(baglanti, test_ayarlari, _ornek_ihlal(kamera_id, 1), {}, b"kanit-2")
+        yol1 = baglanti.execute("SELECT snapshot_path FROM events WHERE id = ?", (id1,)).fetchone()[
+            0
+        ]
+        yol2 = baglanti.execute("SELECT snapshot_path FROM events WHERE id = ?", (id2,)).fetchone()[
+            0
+        ]
+        assert yol1 != yol2
+        assert (test_ayarlari.goruntu_klasoru / yol1).read_bytes() == b"kanit-1"
+        assert (test_ayarlari.goruntu_klasoru / yol2).read_bytes() == b"kanit-2"
+    finally:
+        baglanti.close()
+
+
+def test_silinmis_kamera_olayi_dusurmez(test_ayarlari):
+    # Kamera, değerlendirme ile kayıt arasında silinirse olay FK hatasıyla
+    # KAYBOLMAMALI — kamerasız kaydedilmeli
+    baglanti = veritabani.baglanti_ac(test_ayarlari.veritabani_yolu)
+    try:
+        veritabani.semayi_uygula(baglanti)
+        olay_id = ihlal_yaz(
+            baglanti, test_ayarlari, _ornek_ihlal(kamera_id=999, kural_id=999), {}, None
+        )
+        satir = baglanti.execute("SELECT * FROM events WHERE id = ?", (olay_id,)).fetchone()
+        assert satir["camera_id"] is None
+        assert satir["rule_id"] is None
+        sistem_olayi_yaz(baglanti, "Kamera çevrimdışı", kamera_id=999)
+    finally:
+        baglanti.close()
+
+
+def test_retention_etiketli_kkd_ornegine_dokunmaz(test_ayarlari):
+    """Eğitim veri seti retention'a kurban gitmemeli (docs/06 §5)."""
+    import os
+    import time as time_mod
+
+    from app.analiz.supervizor import AnalizSupervizoru
+
+    supervizor = AnalizSupervizoru.__new__(AnalizSupervizoru)  # thread başlatmadan
+    eski_mtime = time_mod.time() - 200 * 86400  # 200 gün önce
+
+    olay_foto = test_ayarlari.goruntu_klasoru / "2026-01" / "olay.jpg"
+    kkd_foto = test_ayarlari.goruntu_klasoru / "kkd-ornekler" / "2026-01" / "ornek.jpg"
+    for dosya in (olay_foto, kkd_foto):
+        dosya.parent.mkdir(parents=True, exist_ok=True)
+        dosya.write_bytes(b"jpeg")
+        os.utime(dosya, (eski_mtime, eski_mtime))
+
+    silinen = supervizor._eski_dosyalari_sil(test_ayarlari.goruntu_klasoru, 90)
+    assert silinen == 1
+    assert not olay_foto.exists()  # eski olay fotoğrafı silindi
+    assert kkd_foto.exists()  # KKD örneği (etiketli olabilir) KORUNDU
+
+
 def test_olay_listesi_ve_durum_isaretleme(istemci, test_ayarlari):
     baglanti = veritabani.baglanti_ac(test_ayarlari.veritabani_yolu)
     try:

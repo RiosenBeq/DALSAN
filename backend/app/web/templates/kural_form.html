@@ -90,9 +90,13 @@
           <label class="yatay"><input type="checkbox" name="required_ppe" value="vest"
             {% if 'vest' in kkdler %}checked{% endif %}> Yelek</label>
         </div>
-        <label>En küçük kişi boyu (piksel) <span class="not">baret için 120, yalnız yelek için 80 önerilir</span>
+        <label>Baret için en küçük kişi boyu (piksel) <span class="not">baret küçüktür; 120 px önerilir</span>
           <input name="min_person_height_px" type="number" min="20"
                  value="{{ kural.params.get('min_person_height_px', 120) if kural else 120 }}">
+        </label>
+        <label>Yelek için en küçük kişi boyu (piksel) <span class="not">yelek büyük yüzeydir; 80 px yeterlidir</span>
+          <input name="min_vest_height_px" type="number" min="20"
+                 value="{{ kural.params.get('min_vest_height_px', 80) if kural else 80 }}">
         </label>
         <label>Güven eşiği (0-1)
           <input name="min_confidence" type="number" step="0.05" min="0" max="1"

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+import uuid
 from pathlib import Path
 
 from app import zaman
@@ -32,11 +33,13 @@ def ihlal_yaz(
     if kanit_jpeg is not None:
         foto_yolu = _fotograf_kaydet(ayarlar, ihlal.kamera_id, simdi, kanit_jpeg)
 
-    # Kural, değerlendirme ile kayıt arasında silinmiş olabilir (5 sn'lik konfig
-    # penceresi). Olay yine de kaydedilir: anlamı rule_snapshot'ta saklıdır.
+    # Kural veya kamera, değerlendirme ile kayıt arasında silinmiş olabilir
+    # (süpervizörün 5 sn'lik konfig penceresi). Olay FK hatasıyla KAYBOLMAZ:
+    # ilgili alan boş bırakılır; anlam rule_snapshot/details içinde saklıdır.
     kural_id: int | None = ihlal.kural_id
     if baglanti.execute("SELECT 1 FROM rules WHERE id = ?", (kural_id,)).fetchone() is None:
         kural_id = None
+    kamera_id = _kamera_id_dogrula(baglanti, ihlal.kamera_id)
 
     imlec = baglanti.execute(
         "INSERT INTO events (occurred_at, event_type, camera_id, rule_id, "
@@ -44,7 +47,7 @@ def ihlal_yaz(
         "VALUES (?, 'violation', ?, ?, ?, ?, ?, 'new')",
         (
             simdi,
-            ihlal.kamera_id,
+            kamera_id,
             kural_id,
             json.dumps(kural_kaydi, ensure_ascii=False),
             json.dumps(
@@ -71,21 +74,32 @@ def sistem_olayi_yaz(
         "VALUES (?, 'system', ?, ?, 'new')",
         (
             zaman.simdi_utc(),
-            kamera_id,
+            _kamera_id_dogrula(baglanti, kamera_id),
             json.dumps({"mesaj": mesaj, **(detaylar or {})}, ensure_ascii=False),
         ),
     )
     baglanti.commit()
 
 
+def _kamera_id_dogrula(baglanti: sqlite3.Connection, kamera_id: int | None) -> int | None:
+    """Silinmiş kameranın id'si yerine None döner (FK hatasıyla olay kaybolmasın)."""
+    if kamera_id is None:
+        return None
+    var = baglanti.execute("SELECT 1 FROM cameras WHERE id = ?", (kamera_id,)).fetchone()
+    return kamera_id if var is not None else None
+
+
 def _fotograf_kaydet(ayarlar: Ayarlar, kamera_id: int, zaman_utc: str, jpeg: bytes) -> str | None:
     """Kanıt fotoğrafını veri/goruntuler/YYYY-AA/ altına yazar.
 
     Dönen yol, goruntu_klasoru köküne GÖRE tutulur — klasör taşınsa da
-    kayıtlar geçerli kalır.
+    kayıtlar geçerli kalır. Dosya adındaki rastgele son ek şarttır: zaman
+    damgası saniye çözünürlüklü; aynı saniyede iki ihlal aynı ada düşüp
+    birbirinin KANITINI ezerdi.
     """
     tarih = zaman_utc[:7]  # "2026-08"
-    dosya_adi = f"{zaman_utc.replace(':', '-').replace('+', 'Z')}-k{kamera_id}.jpg"
+    tekil = uuid.uuid4().hex[:8]
+    dosya_adi = f"{zaman_utc.replace(':', '-').replace('+', 'Z')}-k{kamera_id}-{tekil}.jpg"
     goreli = str(Path(tarih) / dosya_adi)
     tam_yol = ayarlar.goruntu_klasoru / goreli
     try:

@@ -139,6 +139,49 @@ def test_cooldown():
     assert len(_seri(motor, 4, YOK, baslangic=200.0)) == 1
 
 
+def test_uretim_kadansinda_ihlal_uretilir():
+    """Pencere 'son N DEĞERLENDİRME'dir, son N kare değil (docs/04 §7.1).
+
+    Sınıflandırıcı 5 karede bir çalışır; ara karelerde gözlem yoktur. Bu
+    test, gözlemsiz karelerin pencereyi belirsizle boğmadığını korur —
+    boğsaydı KKD kuralı sahada HİÇBİR ZAMAN olay üretemezdi.
+    """
+    motor = _motor()
+    ihlaller = []
+    for i in range(60):  # 30 sn, 5 karede bir gerçek gözlem (12 değerlendirme)
+        baret = YOK if i % 5 == 0 else None
+        ihlaller.extend(_calistir(motor, i * 0.5, [_kisi(baret)]))
+    assert len(ihlaller) == 1
+
+
+def test_yelek_esigi_baretten_ayri():
+    # 100 px kişi: baret için küçük (120) ama yelek için yeterli (80) — docs/04 §3
+    motor = _motor({"required_ppe": ["vest"]})
+    ihlaller = []
+    for i in range(20):
+        kisi = tespit(
+            ayak=(0.5, 0.5),
+            takip_id=1,
+            boy_px=100,
+            kkd=KkdGozlem(
+                baret=VAR, yelek=YOK, baret_guven=0.9, yelek_guven=0.9, model_surumu="kkd-test-v1"
+            ),
+        )
+        ihlaller.extend(_calistir(motor, i * 0.5, [kisi]))
+    assert len(ihlaller) == 1
+
+
+def test_bolge_silinmis_veya_pasifse_olay_yok():
+    # Kural, silinmiş bölgeye işaret ediyorsa ya da bölge pasifse sessizce durur
+    motor = _motor()
+    hic_bolge_yok = motor.degerlendir(10.0, KARE, [_kisi(YOK)], [], None)
+    assert hic_bolge_yok == []
+    pasif = bolge(tip="ppe_required")
+    pasif.aktif = False
+    for i in range(20):
+        assert motor.degerlendir(i * 0.5, KARE, [_kisi(YOK)], [pasif], None) == []
+
+
 def test_bolge_disinda_kkd_degerlendirilmez():
     motor = _motor()
     ihlaller = []

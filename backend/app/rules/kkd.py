@@ -84,17 +84,30 @@ class KkdDegerlendirici:
         return ihlaller
 
     def _gozlem_ekle(self, tespit: Tespit, durum: dict, baglam) -> None:
-        """Bu karedeki gözlemi pencereye ekler. Şüphe = belirsiz."""
+        """DEĞERLENDİRME olan kareyi pencereye ekler. Şüphe = belirsiz.
+
+        Pencere 'son N değerlendirmenin' penceresidir, son N karenin DEĞİL
+        (docs/04 §7.1): sınıflandırıcı 5 karede bir çalışır; gözlem üretilmeyen
+        ara kareler pencereye YAZILMAZ. Aksi halde pencere belirsizle dolar ve
+        kural hiçbir zaman yeterli geçerli gözleme ulaşamazdı.
+        """
+        if tespit.kkd_gozlemi is None:
+            return  # bu karede değerlendirme yapılmadı (kadans/model yok)
+
         boy_px = tespit.kutu[3] - tespit.kutu[1]
         kesik = self._kesik_mi(tespit, baglam.kare_boyutu)
 
         for kkd in self.params.required_ppe:
             alan, guven_alani = _KKD_ALANLARI[kkd]
-            if (
-                boy_px < self.params.min_person_height_px
-                or (self.params.require_full_bbox and kesik)
-                or tespit.kkd_gozlemi is None
-            ):
+            # Baret, kişi boyunun ~1/8'i; yelek gövdenin ~1/3'ü. Bu yüzden
+            # eşikler ayrıdır: baret 120 px isterken yelek 80 px'te güvenilir
+            # (docs/04 §3 tablosu).
+            boy_esigi = (
+                self.params.min_person_height_px
+                if kkd == "helmet"
+                else self.params.min_vest_height_px
+            )
+            if boy_px < boy_esigi or (self.params.require_full_bbox and kesik):
                 durum["pencereler"][kkd].append((BELIRSIZ, 0.0))
                 continue
             deger = getattr(tespit.kkd_gozlemi, alan)

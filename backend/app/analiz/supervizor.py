@@ -113,7 +113,7 @@ class AnalizSupervizoru:
                         self._durumlari_yaz(baglanti)
                     if simdi - self._son_bakim >= _BAKIM_ARALIGI_SN:
                         self._son_bakim = simdi
-                        self._bakim_yap(baglanti)
+                        self._bakimi_baslat()
                 except Exception as hata:  # noqa: BLE001 — 7x24 döngüsü ölmemeli;
                     # hata tam ayrıntıyla loglanır, bir sonraki turda devam edilir
                     self._log.error(f"Analiz döngüsünde hata: {hata}", exc_info=hata)
@@ -344,10 +344,13 @@ class AnalizSupervizoru:
         except (OSError, cv2.error) as hata:
             self._log.error(f"KKD örneği yazılamadı ({tam_yol}): {hata}")
             return
+        # Kamera bu arada silinmiş olabilir (konfig penceresi) — FK hatası yerine
+        # örnek kamerasız kaydedilir; eğitim verisi yine de değerlidir.
+        kamera_var = baglanti.execute("SELECT 1 FROM cameras WHERE id = ?", (kamera_id,)).fetchone()
         baglanti.execute(
             "INSERT INTO ppe_samples (camera_id, captured_at, crop_path, source) "
             "VALUES (?, ?, ?, 'auto')",
-            (kamera_id, simdi_utc, goreli),
+            (kamera_id if kamera_var else None, simdi_utc, goreli),
         )
         baglanti.commit()
 
@@ -378,6 +381,25 @@ class AnalizSupervizoru:
         baglanti.commit()
 
     # ---- bakım (retention + disk) ----
+
+    def _bakimi_baslat(self) -> None:
+        """Bakımı KENDİ iş parçacığında çalıştırır: binlerce dosya silmek
+        dakikalar sürebilir; kare işleme bu sürede durmamalı."""
+        if getattr(self, "_bakim_calisiyor", False):
+            return
+        self._bakim_calisiyor = True
+
+        def _calistir() -> None:
+            bakim_baglantisi = veritabani.baglanti_ac(self.ayarlar.veritabani_yolu)
+            try:
+                self._bakim_yap(bakim_baglantisi)
+            except Exception as hata:  # noqa: BLE001 — bakım hatası sistemi durdurmaz
+                self._log.error(f"Bakım hatası: {hata}", exc_info=hata)
+            finally:
+                bakim_baglantisi.close()
+                self._bakim_calisiyor = False
+
+        threading.Thread(target=_calistir, name="bakim", daemon=True).start()
 
     def _bakim_yap(self, baglanti) -> None:
         a = self.ayarlar
@@ -411,9 +433,18 @@ class AnalizSupervizoru:
             )
 
     def _eski_dosyalari_sil(self, klasor: Path, gun: int) -> int:
+        """Eski OLAY fotoğraflarını siler.
+
+        kkd-ornekler/ alt ağacına DOKUNMAZ: etiketli örnekler eğitim veri
+        setidir ve asla silinmez; etiketsizlerin süresi _kkd_hamlarini_sil
+        tarafından ayrı (daha kısa) politika ile yönetilir (docs/06 §5).
+        """
         sinir = time.time() - gun * 86400
+        kkd_klasoru = klasor / "kkd-ornekler"
         sayi = 0
         for dosya in klasor.rglob("*.jpg"):
+            if dosya.is_relative_to(kkd_klasoru):
+                continue
             try:
                 if dosya.stat().st_mtime < sinir:
                     dosya.unlink()

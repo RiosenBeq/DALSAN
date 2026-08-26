@@ -44,6 +44,61 @@ def test_ayni_konfigurasyonda_durum_korunur():
     assert len(ihlaller) == 1  # kalış süresi baştan başlamadı
 
 
+def test_hedef_sinif_degisikligi_hemen_uygulanir():
+    """Kullanıcı hedef sınıfı değiştirince (örn. insan → forklift) kural
+    RESTART BEKLEMEDEN yeni sınıfla çalışmalı — güvenlik kuralının kayıtlı
+    yapılandırmadan farklı çalışması kabul edilemez."""
+    motor = KuralMotoru(kamera_id=1)
+    motor.kurallari_yukle(
+        [kural("zone_intrusion", hedefler=["person"], params={"min_dwell_s": 1.0})]
+    )
+    insan = [tespit(ayak=(0.5, 0.5), takip_id=1)]
+    forklift = [tespit(sinif="forklift", ayak=(0.5, 0.5), takip_id=2)]
+    motor.degerlendir(0.0, KARE, insan, [bolge()], None)
+    assert len(motor.degerlendir(1.5, KARE, insan, [bolge()], None)) == 1
+
+    # Yalnızca hedef sınıf değişti — başka hiçbir alan değişmedi
+    motor.kurallari_yukle(
+        [kural("zone_intrusion", hedefler=["forklift"], params={"min_dwell_s": 1.0})]
+    )
+    motor.degerlendir(2.0, KARE, forklift, [bolge()], None)
+    assert len(motor.degerlendir(3.5, KARE, forklift, [bolge()], None)) == 1
+    # İnsan artık hedef değil
+    motor.degerlendir(4.0, KARE, insan, [bolge()], None)
+    assert motor.degerlendir(6.0, KARE, insan, [bolge()], None) == []
+
+
+def test_uzun_cooldown_kirpilmiyor():
+    # 2 saatlik cooldown, 1 saatlik bellek temizliğine kurban gitmemeli
+    motor = KuralMotoru(kamera_id=1)
+    motor.kurallari_yukle([kural("zone_intrusion", params={"min_dwell_s": 1.0}, cooldown_s=7200.0)])
+    icerde = [tespit(ayak=(0.5, 0.5))]
+    motor.degerlendir(0.0, KARE, icerde, [bolge()], None)
+    assert len(motor.degerlendir(1.5, KARE, icerde, [bolge()], None)) == 1
+    # 1 saat sonra hâlâ bastırılıyor olmalı (eski hata: burada tekrar olay üretirdi)
+    for zaman in (3600.0, 5000.0, 7000.0):
+        assert motor.degerlendir(zaman, KARE, icerde, [bolge()], None) == []
+    # 2 saat dolunca serbest
+    assert len(motor.degerlendir(7202.0, KARE, icerde, [bolge()], None)) == 1
+
+
+def test_kural_degisince_cooldown_mirasi_kalmaz():
+    """Silinen kuralın id'sini alan YENİ kural, eskisinin bastırma geçmişini
+    devralmamalı — yoksa yeni kuralın ilk ihlali sessizce yutulur."""
+    motor = KuralMotoru(kamera_id=1)
+    motor.kurallari_yukle([kural("zone_intrusion", params={"min_dwell_s": 1.0})])
+    icerde = [tespit(ayak=(0.5, 0.5))]
+    motor.degerlendir(0.0, KARE, icerde, [bolge()], None)
+    assert len(motor.degerlendir(1.5, KARE, icerde, [bolge()], None)) == 1  # cooldown doldu
+
+    # Aynı id ile TANIMI FARKLI bir kural geldi (silinip yeniden oluşturuldu)
+    motor.kurallari_yukle(
+        [kural("zone_intrusion", params={"min_dwell_s": 1.0, "mode": "inside"}, cooldown_s=90.0)]
+    )
+    motor.degerlendir(2.0, KARE, icerde, [bolge()], None)
+    assert len(motor.degerlendir(3.5, KARE, icerde, [bolge()], None)) == 1
+
+
 def test_konfigurasyon_degisince_yeni_parametre_gecerli():
     motor = KuralMotoru(kamera_id=1)
     motor.kurallari_yukle([kural("zone_intrusion", params={"min_dwell_s": 2.0})])

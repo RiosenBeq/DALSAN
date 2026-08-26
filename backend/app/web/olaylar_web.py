@@ -223,6 +223,8 @@ def kanit_fotografi(istek: Request, yol: str):
     dışarıdan doğrudan erişime kapalıdır (docs/00 KVKK)."""
     kok = istek.app.state.ayarlar.goruntu_klasoru.resolve()
     dosya = (kok / yol).resolve()
-    if not str(dosya).startswith(str(kok)) or not dosya.is_file():
+    # is_relative_to: metin ön-eki karşılaştırması '/veri/goruntuler-x' gibi
+    # kardeş klasörleri yanlışlıkla kabul ederdi (yol kaçışı)
+    if not dosya.is_relative_to(kok) or not dosya.is_file():
         return Response(status_code=404)
     return FileResponse(dosya, media_type="image/jpeg")

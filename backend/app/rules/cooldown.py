@@ -24,3 +24,11 @@ class Cooldown:
     def temizle(self, esik_zaman_s: float) -> None:
         """Uzun süredir görülmeyen anahtarları at (bellek büyümesin)."""
         self._son = {a: z for a, z in self._son.items() if z >= esik_zaman_s}
+
+    def kural_sifirla(self, kural_id: int) -> None:
+        """Bir kuralın tüm cooldown geçmişini siler (anahtarın ilk öğesi kural id).
+
+        Kural tanımı değişince veya silinen kuralın id'si yeni bir kurala
+        verilince eski bastırma geçmişi taşınmamalı.
+        """
+        self._son = {a: z for a, z in self._son.items() if not a or a[0] != kural_id}

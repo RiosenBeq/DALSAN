@@ -77,6 +77,27 @@ def test_bolge_en_az_uc_nokta(istemci):
     assert "3 nokta" in yanit.json()["hata"]
 
 
+def test_bolge_adi_xss_kacirilir(istemci):
+    """Depolanan XSS engeli: bölge adı script bloğuna ham basılmamalı."""
+    kamera_id = _kamera_ekle(istemci)
+    zararli = "</script><img src=x onerror=alert(1)>"
+    istemci.post(
+        f"/kameralar/{kamera_id}/bolgeler",
+        data={
+            "name": zararli,
+            "zone_type": "restricted",
+            "polygon": "[[0.1,0.1],[0.9,0.1],[0.9,0.9]]",
+        },
+        follow_redirects=False,
+    )
+    detay = istemci.get(f"/kameralar/{kamera_id}").text
+    assert "</script><img" not in detay  # ham payload asla sayfada olmamalı
+    assert "\\u003c/script\\u003e" in detay  # kaçırılmış hali script verisinde
+    # Kural formundaki bölge listesi de aynı veriyi basar
+    form = istemci.get(f"/kurallar/yeni?kamera={kamera_id}").text
+    assert "</script><img" not in form
+
+
 def test_kalibrasyon_kaydi_ve_silme(istemci):
     kamera_id = _kamera_ekle(istemci)
     yanit = istemci.post(

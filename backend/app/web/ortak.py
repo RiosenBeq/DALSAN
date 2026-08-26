@@ -3,6 +3,7 @@ RTSP maskeleme ve Türkçe etiket tabloları."""
 
 from __future__ import annotations
 
+import json
 import re
 from collections.abc import Iterator
 
@@ -43,3 +44,14 @@ def baglanti_al(istek: Request) -> Iterator:
 def rtsp_maskele(url: str) -> str:
     """rtsp://kullanici:sifre@ip/... → rtsp://••••@ip/...  (docs/01 §3.6)."""
     return re.sub(r"//[^/@]+@", "//••••@", url)
+
+
+def guvenli_json(veri) -> str:
+    """<script> bloğuna gömülecek JSON — HTML'e özel karakterler kaçırılır.
+
+    json.dumps `<`, `>`, `&` karakterlerini kaçırmaz; kullanıcı verisi (örn.
+    bölge adı) `</script><img onerror=...>` içerirse depolanan XSS olurdu.
+    Unicode kaçışları JSON içinde birebir aynı metni temsil eder.
+    """
+    metin = json.dumps(veri, ensure_ascii=False)
+    return metin.replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")

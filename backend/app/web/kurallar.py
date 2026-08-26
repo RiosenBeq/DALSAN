@@ -9,12 +9,13 @@ from __future__ import annotations
 import json
 
 from fastapi import APIRouter, Depends, Request
+from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from app import zaman
 from app.hatalar import DogrulamaHatasi
 from app.rules.parametreler import params_dogrula
-from app.web.ortak import BOLGE_TIPLERI, KURAL_TIPLERI, SINIFLAR, baglanti_al
+from app.web.ortak import BOLGE_TIPLERI, KURAL_TIPLERI, SINIFLAR, baglanti_al, guvenli_json
 from app.web.rotalar import sablonlar
 
 router = APIRouter()
@@ -87,7 +88,7 @@ def _kural_formu(istek: Request, baglanti, kural: dict | None, secili_kamera: in
             "kural": kural,
             "kameralar": kameralar,
             "bolgeler": bolgeler,
-            "bolgeler_json": json.dumps(bolgeler, ensure_ascii=False),
+            "bolgeler_json": guvenli_json(bolgeler),
             "anonslar": anonslar,
             "secili_kamera": secili_kamera or (kural or {}).get("camera_id") or kameralar[0]["id"],
             "siniflar": SINIFLAR,
@@ -98,6 +99,12 @@ def _kural_formu(istek: Request, baglanti, kural: dict | None, secili_kamera: in
 @router.post("/kurallar/kaydet")
 async def kural_kaydet(istek: Request, baglanti=Depends(baglanti_al)):
     form = await istek.form()
+    # Senkron SQLite işi threadpool'da koşar: event loop'ta koşarsa, yazma
+    # kilidi beklenirken TÜM arayüz (SSE dahil) donar.
+    return await run_in_threadpool(_kural_kaydet_islemi, baglanti, form)
+
+
+def _kural_kaydet_islemi(baglanti, form):
     kural_id = int(form.get("kural_id") or 0)
     kamera_id = int(form.get("camera_id") or 0)
     kural_tipi = form.get("rule_type", "")
@@ -123,6 +130,11 @@ async def kural_kaydet(istek: Request, baglanti=Depends(baglanti_al)):
         "cooldown_s",
         {"zone_intrusion": 120, "safe_distance": 90, "ppe_violation": 180}[kural_tipi],
     )
+    if not 5 <= cooldown <= 86400:
+        raise DogrulamaHatasi(
+            "Cooldown 5 saniye ile 86400 saniye (24 saat) arasında olmalı; "
+            f"şu an {cooldown:g} yazılmış."
+        )
     anons_id = int(form.get("announcement_id") or 0) or None
     aktif = 1 if form.get("enabled") == "1" else 0
     simdi = zaman.simdi_utc()
@@ -206,6 +218,7 @@ def _formdan_params(kural_tipi: str, form) -> tuple[dict, list[str]]:
     params = {
         "required_ppe": kkdler,
         "min_person_height_px": int(_sayi(form, "min_person_height_px", 120)),
+        "min_vest_height_px": int(_sayi(form, "min_vest_height_px", 80)),
         "min_confidence": _sayi(form, "min_confidence", 0.70),
         "window_size": int(_sayi(form, "window_size", 15)),
         "min_valid_observations": int(_sayi(form, "min_valid_observations", 8)),

@@ -96,6 +96,6 @@ def ornek_goruntusu(istek: Request, ornek_id: int, baglanti=Depends(baglanti_al)
         return Response(status_code=404)
     kok = istek.app.state.ayarlar.goruntu_klasoru.resolve()
     dosya = (kok / satir["crop_path"]).resolve()
-    if not str(dosya).startswith(str(kok)) or not dosya.is_file():
+    if not dosya.is_relative_to(kok) or not dosya.is_file():
         return Response(status_code=404)
     return FileResponse(dosya, media_type="image/jpeg")

@@ -94,6 +94,10 @@ class KameraHatti:
     ) -> None:
         if not kkd.model_var:
             return  # gözlem üretilmez; kural motoru belirsiz sayar
+        # Kadans sayaçları yalnızca ekranda olan takipler için tutulur;
+        # aksi halde sözlük 7x24 çalışmada sınırsız büyürdü.
+        mevcutlar = {t.takip_id for t in tespitler}
+        self._kkd_sayac = {t: s for t, s in self._kkd_sayac.items() if t in mevcutlar}
         for tespit in tespitler:
             if tespit.sinif != SINIF_INSAN:
                 continue

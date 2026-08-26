@@ -83,6 +83,40 @@ def test_cooldown_tekrar_uyariyi_bastirir():
     assert len(_calistir(motor, 63.0, icerde)) == 1
 
 
+def test_tek_karelik_tespit_kacagi_sureyi_sifirlamaz():
+    """Tozlu sahnede dedektörün tek kare kaçırması olağandır; bölgede
+    kesintisiz duran kişinin kalış süresi bundan sıfırlanmamalı."""
+    motor = _motor(min_dwell_s=2.0)
+    ihlaller = []
+    for i in range(20):  # 0.5 sn aralık, her 4. karede tespit kaçağı
+        tespitler = [] if i % 4 == 3 else [tespit(ayak=(0.5, 0.5))]
+        ihlaller.extend(_calistir(motor, i * 0.5, tespitler))
+    assert len(ihlaller) == 1
+
+
+def test_uzun_kayipta_sure_sifirlanir():
+    # Kişi gerçekten gittiyse (uzun süre tespit yok) süre birikmeye devam etmemeli
+    motor = _motor(min_dwell_s=5.0)
+    _calistir(motor, 0.0, [tespit(ayak=(0.5, 0.5))])
+    for i in range(1, 10):  # 9 ardışık kayıp — tolerans (5) aşılır
+        _calistir(motor, i * 0.5, [])
+    # Kişi 'geri geldi': süre baştan başlamalı, hemen ihlal ÜRETMEMELİ
+    assert _calistir(motor, 5.5, [tespit(ayak=(0.5, 0.5))]) == []
+    assert _calistir(motor, 9.0, [tespit(ayak=(0.5, 0.5))]) == []
+
+
+def test_bolge_silinmis_veya_pasifse_olay_yok():
+    motor = _motor()
+    icerde = [tespit(ayak=(0.5, 0.5))]
+    # Kuralın işaret ettiği bölge listede yok (silinmiş)
+    assert motor.degerlendir(10.0, KARE, icerde, [], None) == []
+    # Bölge var ama pasif
+    pasif = bolge()
+    pasif.aktif = False
+    for zaman in (0.0, 3.0, 6.0):
+        assert motor.degerlendir(zaman, KARE, icerde, [pasif], None) == []
+
+
 def test_farkli_takipler_ayri_degerlendirilir():
     motor = _motor()
     ikili = [tespit(ayak=(0.5, 0.5), takip_id=1), tespit(ayak=(0.6, 0.6), takip_id=2)]

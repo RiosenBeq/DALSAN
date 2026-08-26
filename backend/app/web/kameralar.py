@@ -10,7 +10,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from app import zaman
 from app.hatalar import DogrulamaHatasi
 from app.rules.kalibrasyon import homografi_hesapla
-from app.web.ortak import BOLGE_TIPLERI, KURAL_TIPLERI, baglanti_al, rtsp_maskele
+from app.web.ortak import BOLGE_TIPLERI, KURAL_TIPLERI, baglanti_al, guvenli_json, rtsp_maskele
 from app.web.rotalar import sablonlar
 
 router = APIRouter()
@@ -106,7 +106,7 @@ def kamera_detay(istek: Request, kamera_id: int, baglanti=Depends(baglanti_al)):
             "aktif_sekme": "kameralar",
             "kamera": kamera,
             "bolgeler": bolgeler,
-            "bolgeler_json": json.dumps(
+            "bolgeler_json": guvenli_json(
                 [
                     {"id": b["id"], "poligon": json.loads(b["polygon"]), "ad": b["name"]}
                     for b in bolgeler

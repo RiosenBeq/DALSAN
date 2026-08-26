@@ -53,6 +53,7 @@ class KuralMotoru:
         self._cooldown = Cooldown()
         self._degerlendiriciler: list = []
         self._kural_imzasi: tuple = ()
+        self._en_uzun_cooldown: float = 0.0
         # takip_id -> (zaman_s, dünya_konumu) — hız tahmini için
         self._son_konumlar: dict[int, tuple[float, tuple[float, float]]] = {}
 
@@ -61,17 +62,38 @@ class KuralMotoru:
 
         Değişiklik yoksa mevcut durum (kalış süreleri, KKD pencereleri)
         korunur — restart'sız config yayılımının gereği (docs/02 §5).
+        İmza, davranışı etkileyen HER alanı içermelidir; eksik alan,
+        değişikliğin restart'a kadar sessizce uygulanmaması demektir.
         """
         imza = tuple(
-            (k.id, k.tip, k.bolge_id, tuple(sorted(k.params.items(), key=str)), k.cooldown_s)
+            (
+                k.id,
+                k.tip,
+                k.bolge_id,
+                tuple(sorted(k.hedef_siniflar)),
+                tuple(sorted(k.params.items(), key=str)),
+                k.cooldown_s,
+            )
             for k in sorted(kurallar, key=lambda k: k.id)
         )
         if imza == self._kural_imzasi:
             return
+        # Tanımı değişen (veya id'si yeniden kullanılan) kuralların cooldown
+        # geçmişi eskidir — yeni kural eskisinin bastırmasını miras almamalı.
+        eski = dict(self._eski_imzalar(self._kural_imzasi))
+        for kural_id, kural_imza in self._eski_imzalar(imza):
+            if eski.get(kural_id) != kural_imza:
+                self._cooldown.kural_sifirla(kural_id)
         self._kural_imzasi = imza
         self._degerlendiriciler = [
             DEGERLENDIRICILER[k.tip](k) for k in kurallar if k.tip in DEGERLENDIRICILER
         ]
+        # Cooldown temizliği, en uzun kuralın cooldown'unu asla kırpmamalı
+        self._en_uzun_cooldown = max([k.cooldown_s for k in kurallar], default=0.0)
+
+    @staticmethod
+    def _eski_imzalar(imza: tuple):
+        return [(satir[0], satir) for satir in imza]
 
     def degerlendir(
         self,
@@ -96,7 +118,9 @@ class KuralMotoru:
         for degerlendirici in self._degerlendiriciler:
             ihlaller.extend(degerlendirici.degerlendir(baglam))
 
-        self._cooldown.temizle(zaman_s - 3600)
+        # Temizlik eşiği en uzun kuralın cooldown'unun gerisinde kalmalı;
+        # aksi halde 1 saatten uzun cooldown'lar fiilen kırpılırdı.
+        self._cooldown.temizle(zaman_s - max(3600.0, self._en_uzun_cooldown * 2))
         return ihlaller
 
     def _konum_ve_hiz_hesapla(self, baglam: Baglam) -> None:

@@ -12,12 +12,20 @@ from app.rules.geometri import nokta_poligonda
 from app.rules.parametreler import BolgeIhlaliParams
 from app.rules.tipler import Ihlal, Kural
 
+# Tespit edilemeyen (dedektörün o karede kaçırdığı) takip bu kadar ardışık
+# değerlendirme boyunca tolere edilir: kalış süresi sayacı korunur. Tozlu
+# fabrika sahnesinde tek karelik tespit kaçağı OLAĞANDIR; toleranssız sayaç
+# her kaçakta sıfırlanır ve bölgede sürekli duran kişi hiç ihlal üretmezdi.
+# Bölgeden ÇIKAN (tespit edilip dışarıda görülen) kişi yine anında sıfırlanır.
+_KAYIP_TOLERANSI = 5
+
 
 class BolgeIhlaliDegerlendirici:
     def __init__(self, kural: Kural) -> None:
         self.kural = kural
         self.params = BolgeIhlaliParams(**kural.params)
         self._giris_zamani: dict[int, float] = {}  # takip_id -> koşulun başladığı an
+        self._kayip_sayaci: dict[int, int] = {}  # takip_id -> ardışık görülmeme
 
     def degerlendir(self, baglam) -> list[Ihlal]:
         bolge = baglam.bolgeler.get(self.kural.bolge_id)
@@ -38,7 +46,9 @@ class BolgeIhlaliDegerlendirici:
             kosul = icinde if self.params.mode == "inside" else not icinde
 
             if not kosul:
+                # Koşulu bozan GERÇEK gözlem: kişi bölgeden çıktı → anında sıfırla
                 self._giris_zamani.pop(tespit.takip_id, None)
+                self._kayip_sayaci.pop(tespit.takip_id, None)
                 continue
 
             baslangic = self._giris_zamani.setdefault(tespit.takip_id, baglam.zaman_s)
@@ -63,8 +73,14 @@ class BolgeIhlaliDegerlendirici:
                 )
             )
 
-        # Kareden çıkan takipler süre saymayı bırakır
+        # Bu karede hiç tespit edilemeyen takipler: kısa kaçaklar tolere edilir,
+        # uzun kayıpta süre sayacı düşer (kişi gitmiş demektir)
         for takip_id in list(self._giris_zamani):
-            if takip_id not in gorulenler:
+            if takip_id in gorulenler:
+                self._kayip_sayaci.pop(takip_id, None)
+                continue
+            self._kayip_sayaci[takip_id] = self._kayip_sayaci.get(takip_id, 0) + 1
+            if self._kayip_sayaci[takip_id] > _KAYIP_TOLERANSI:
                 del self._giris_zamani[takip_id]
+                del self._kayip_sayaci[takip_id]
         return ihlaller
