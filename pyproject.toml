@@ -1,0 +1,17 @@
+# Test ve lint ayarları. Paketleme yok — program uvicorn ile backend/ içinden çalışır.
+
+[tool.pytest.ini_options]
+pythonpath = ["backend"]
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+# masaustu/dalsan_launcher.py çalışan, dokunulmayan bir dosyadır (kullanıcı talimatı).
+exclude = ["masaustu", ".venv", "veri"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]

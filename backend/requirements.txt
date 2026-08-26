@@ -1,0 +1,10 @@
+# DALSAN İSG — gerekli paketler (Adım 1)
+# Kontrol Paneli'ndeki "İlk Kurulumu Yap" düğmesi bu dosyayı kurar.
+# Kamera/analiz paketleri (OpenCV, torch, ...) sırası gelince eklenecek.
+fastapi
+uvicorn[standard]
+jinja2
+python-dotenv
+pytest
+httpx
+ruff
