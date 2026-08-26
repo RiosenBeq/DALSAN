@@ -390,13 +390,18 @@ class AnalizSupervizoru:
         self._bakim_calisiyor = True
 
         def _calistir() -> None:
-            bakim_baglantisi = veritabani.baglanti_ac(self.ayarlar.veritabani_yolu)
+            # Bağlantı açılışı da try İÇİNDE: açılış hatası (bozuk DB, izin)
+            # yakalanmazsa bayrak True'da takılı kalır ve bakım restart'a
+            # kadar sessizce devre dışı kalırdı.
+            bakim_baglantisi = None
             try:
+                bakim_baglantisi = veritabani.baglanti_ac(self.ayarlar.veritabani_yolu)
                 self._bakim_yap(bakim_baglantisi)
             except Exception as hata:  # noqa: BLE001 — bakım hatası sistemi durdurmaz
                 self._log.error(f"Bakım hatası: {hata}", exc_info=hata)
             finally:
-                bakim_baglantisi.close()
+                if bakim_baglantisi is not None:
+                    bakim_baglantisi.close()
                 self._bakim_calisiyor = False
 
         threading.Thread(target=_calistir, name="bakim", daemon=True).start()

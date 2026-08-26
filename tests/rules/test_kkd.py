@@ -115,13 +115,23 @@ def test_kucuk_kisi_degerlendirilmez():
 
 
 def test_kesik_kutu_degerlendirilmez():
-    # Kare kenarına dayanan kutu (require_full_bbox) → belirsiz
+    # Kare kenarına dayanan kutu (require_full_bbox) → belirsiz.
+    # Ayak noktası bölgenin İÇİNDE olmalı ki testi geçiren şey bölge kapısı
+    # değil, gerçekten kesik-kutu kontrolü olsun: kutu üstten kareye taşıyor.
     motor = _motor()
     ihlaller = []
     for i in range(30):
-        kisi = tespit(ayak=(0.02, 0.5), takip_id=1, boy_px=200, kkd=_gozlem(YOK))
+        kisi = tespit(ayak=(0.5, 0.6), takip_id=1, boy_px=599, kkd=_gozlem(YOK))
+        # kutu üst kenarı: 600 - 599 = 1 px ≤ kenar payı → kesik
         ihlaller.extend(_calistir(motor, i * 0.5, [kisi]))
     assert ihlaller == []
+    # Aynı kişi kesik OLMADAN aynı gözlemlerle ihlal üretir — testin kontrolü
+    motor2 = _motor()
+    ihlaller2 = []
+    for i in range(30):
+        kisi = tespit(ayak=(0.5, 0.6), takip_id=1, boy_px=200, kkd=_gozlem(YOK))
+        ihlaller2.extend(_calistir(motor2, i * 0.5, [kisi]))
+    assert len(ihlaller2) == 1
 
 
 def test_dwell_dolmadan_olay_uretilmez():
