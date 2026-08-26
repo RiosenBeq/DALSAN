@@ -1,0 +1,42 @@
+{% extends "temel.html" %}
+{% block baslik %}Kurallar — DALSAN İSG{% endblock %}
+{% block icerik %}
+  <div class="baslik-satiri">
+    <h2>Kurallar</h2>
+    <a class="dugme" href="/kurallar/yeni">+ Yeni Kural</a>
+  </div>
+
+  {% if kurallar %}
+  <section class="kart">
+    <table class="liste">
+      <tr><th>Kamera</th><th>Tip</th><th>Bölge</th><th>Cooldown</th><th>Durum</th><th></th></tr>
+      {% for r in kurallar %}
+      <tr>
+        <td>{{ r.kamera_adi }}</td>
+        <td>{{ r.tip_adi }}</td>
+        <td>{{ r.bolge_adi or "—" }}</td>
+        <td>{{ r.cooldown_s }} sn</td>
+        <td>
+          {% if not r.enabled %}<span class="rozet gri">kapalı</span>
+          {% elif r.kalibrasyon_bekliyor %}<span class="rozet sari">kalibrasyon bekleniyor</span>
+          {% else %}<span class="rozet yesil">aktif</span>{% endif %}
+        </td>
+        <td>
+          <a href="/kurallar/{{ r.id }}/duzenle">Düzenle</a> ·
+          <form method="post" action="/kurallar/{{ r.id }}/sil" class="satir-form"
+                onsubmit="return confirm('Kural silinsin mi? Olay geçmişi korunur.')">
+            <button class="baglanti-dugme">Sil</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+    <p class="not">"Kalibrasyon bekleniyor": güvenli mesafe kuralı, kamerası kalibre edilene
+      kadar bilerek pasif kalır — yaklaşık piksel mesafesi yanıltıcı olur.</p>
+  </section>
+  {% else %}
+  <section class="kart">
+    <p class="bos">Henüz kural yok. Önce kamera ekleyip bölge çizin, sonra kural tanımlayın.</p>
+  </section>
+  {% endif %}
+{% endblock %}

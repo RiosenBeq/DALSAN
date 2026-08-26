@@ -29,18 +29,44 @@ class VeritabaniHatasi(DalsanHata):
     """SQLite bağlantısı veya şema uygulaması başarısız."""
 
 
+class DogrulamaHatasi(DalsanHata):
+    """Kullanıcı girdisi geçersiz (form/parametre) — 400 döner, mesaj yol gösterir."""
+
+    http_kodu = 400
+
+
+class YetkiHatasi(DalsanHata):
+    """Oturum yok/geçersiz. Tarayıcı isteklerinde giriş sayfasına yönlendirilir."""
+
+    http_kodu = 401
+
+    def __init__(self, sonraki_yol: str = "/") -> None:
+        super().__init__("Bu sayfa için giriş yapmanız gerekiyor.")
+        self.sonraki_yol = sonraki_yol
+
+
 def hata_yakalayicilari_kur(app) -> None:
     """Uygulamadaki TEK hata yakalama noktası.
 
     Bilinçli hatalar (DalsanHata) kullanıcı mesajıyla, beklenmeyenler
     log'a tam ayrıntıyla + ekrana genel bir Türkçe mesajla döner.
     """
+    from urllib.parse import quote
+
     from fastapi import Request
-    from fastapi.responses import JSONResponse
+    from fastapi.responses import JSONResponse, RedirectResponse
 
     from app.loglama import log_al
 
     log = log_al("hata")
+
+    @app.exception_handler(YetkiHatasi)
+    async def yetki_hatasi(istek: Request, hata: YetkiHatasi):
+        # Tarayıcıdan gelen sayfa isteği giriş ekranına yönlenir; API/JS
+        # istekleri 401 JSON alır (fetch çağrıları yönlendirmeyle bozulmasın)
+        if "text/html" in istek.headers.get("accept", ""):
+            return RedirectResponse(f"/giris?sonra={quote(hata.sonraki_yol)}", status_code=303)
+        return JSONResponse(status_code=401, content={"hata": hata.kullanici_mesaji})
 
     @app.exception_handler(DalsanHata)
     async def dalsan_hatasi(istek: Request, hata: DalsanHata) -> JSONResponse:

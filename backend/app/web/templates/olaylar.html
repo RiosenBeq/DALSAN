@@ -1,0 +1,88 @@
+{% extends "temel.html" %}
+{% block baslik %}Olaylar — DALSAN İSG{% endblock %}
+{% block icerik %}
+  <div class="baslik-satiri">
+    <h2>Olaylar</h2>
+    <a class="dugme ikincil" href="/olaylar/disa-aktar.csv?{{ istek_sorgusu | default('') }}">CSV indir</a>
+  </div>
+
+  <section class="kart canli-kutu">
+    <h3>Canlı uyarılar <span class="rozet gri" id="canli-durum">bağlanıyor…</span></h3>
+    <ul id="canli-liste" class="canli-liste"><li class="bos">Yeni olay bekleniyor…</li></ul>
+  </section>
+
+  <section class="kart">
+    <form method="get" action="/olaylar" class="filtre-formu">
+      <select name="kamera">
+        <option value="">Tüm kameralar</option>
+        {% for k in kameralar %}
+        <option value="{{ k.id }}" {% if filtre.get('kamera') == k.id | string %}selected{% endif %}>{{ k.name }}</option>
+        {% endfor %}
+      </select>
+      {% if alanlar %}
+      <select name="alan">
+        <option value="">Tüm alanlar</option>
+        {% for a in alanlar %}
+        <option value="{{ a }}" {% if filtre.get('alan') == a %}selected{% endif %}>{{ a }}</option>
+        {% endfor %}
+      </select>
+      {% endif %}
+      <select name="tip">
+        <option value="">İhlal + Sistem</option>
+        <option value="violation" {% if filtre.get('tip') == 'violation' %}selected{% endif %}>Yalnız ihlaller</option>
+        <option value="system" {% if filtre.get('tip') == 'system' %}selected{% endif %}>Yalnız sistem</option>
+      </select>
+      <select name="durum">
+        <option value="">Tüm durumlar</option>
+        {% for deger, ad in durumlar.items() %}
+        <option value="{{ deger }}" {% if filtre.get('durum') == deger %}selected{% endif %}>{{ ad }}</option>
+        {% endfor %}
+      </select>
+      <label>Başlangıç <input type="date" name="baslangic" value="{{ filtre.get('baslangic', '') }}"></label>
+      <label>Bitiş <input type="date" name="bitis" value="{{ filtre.get('bitis', '') }}"></label>
+      <button type="submit" class="dugme ikincil">Filtrele</button>
+    </form>
+
+    {% if olaylar %}
+    <table class="liste">
+      <tr><th>Zaman</th><th>Tip</th><th>Kamera</th><th>Özet</th><th>Durum</th><th>Kanıt</th></tr>
+      {% for o in olaylar %}
+      <tr class="{% if o.event_type == 'system' %}sistem-satiri{% endif %}">
+        <td><a href="/olaylar/{{ o.id }}">{{ o.yerel_zaman }}</a></td>
+        <td>{% if o.event_type == 'violation' %}<span class="rozet kirmizi">İhlal</span>
+            {% else %}<span class="rozet gri">Sistem</span>{% endif %}</td>
+        <td>{{ o.kamera_adi or "—" }}</td>
+        <td>{{ o.ozet }}</td>
+        <td>{{ o.durum_adi }}</td>
+        <td>{% if o.snapshot_path %}
+          <a href="/olaylar/{{ o.id }}"><img class="kucuk-resim" src="/goruntuler/{{ o.snapshot_path }}" alt="kanıt"></a>
+        {% else %}—{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </table>
+    <p class="not">Son 200 olay gösteriliyor. Daha fazlası için filtre daraltın veya CSV indirin.</p>
+    {% else %}
+    <p class="bos">Bu filtreyle olay bulunamadı.</p>
+    {% endif %}
+  </section>
+{% endblock %}
+{% block betikler %}
+<script>
+var kaynak = new EventSource("/olaylar/akis");
+var liste = document.getElementById("canli-liste");
+var durum = document.getElementById("canli-durum");
+kaynak.onopen = function () { durum.textContent = "canlı"; durum.className = "rozet yesil"; };
+kaynak.onerror = function () { durum.textContent = "bağlantı koptu"; durum.className = "rozet kirmizi"; };
+kaynak.onmessage = function (olay) {
+  var veri = JSON.parse(olay.data);
+  var bos = liste.querySelector(".bos");
+  if (bos) bos.remove();
+  var satir = document.createElement("li");
+  satir.className = veri.tip === "violation" ? "ihlal" : "sistem";
+  satir.innerHTML = "<b>" + veri.zaman + "</b> · " + veri.kamera + " · " + veri.ozet +
+    ' · <a href="/olaylar/' + veri.id + '">aç</a>';
+  liste.prepend(satir);
+  while (liste.children.length > 8) liste.removeChild(liste.lastChild);
+};
+</script>
+{% endblock %}

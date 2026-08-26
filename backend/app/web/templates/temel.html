@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block baslik %}DALSAN İSG{% endblock %}</title>
+  <link rel="stylesheet" href="/static/stil.css">
+</head>
+<body>
+  <header>
+    <div class="ust-cubuk">
+      <h1>DALSAN İSG</h1>
+      <nav>
+        <a href="/" {% if aktif_sekme == 'ana' %}class="aktif"{% endif %}>Ana Sayfa</a>
+        <a href="/kameralar" {% if aktif_sekme == 'kameralar' %}class="aktif"{% endif %}>Kameralar</a>
+        <a href="/kurallar" {% if aktif_sekme == 'kurallar' %}class="aktif"{% endif %}>Kurallar</a>
+        <a href="/olaylar" {% if aktif_sekme == 'olaylar' %}class="aktif"{% endif %}>Olaylar</a>
+        <a href="/kkd" {% if aktif_sekme == 'kkd' %}class="aktif"{% endif %}>KKD</a>
+      </nav>
+      <form method="post" action="/cikis" class="cikis-form">
+        <button type="submit" class="dugme ikincil kucuk">Çıkış</button>
+      </form>
+    </div>
+  </header>
+  <main>
+    {% block icerik %}{% endblock %}
+  </main>
+  {% block betikler %}{% endblock %}
+</body>
+</html>

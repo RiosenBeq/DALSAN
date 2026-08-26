@@ -28,7 +28,11 @@ def baglanti_ac(veritabani_yolu: Path | str) -> sqlite3.Connection:
     # hatası connect()'te değil ilk sorguda (ilk PRAGMA'da) çıkar. Kullanıcıya
     # ham İngilizce traceback yerine Türkçe mesaj gitmeli.
     try:
-        baglanti = sqlite3.connect(str(veritabani_yolu))
+        # check_same_thread=False: FastAPI, istek bağımlılığını threadpool'da,
+        # async gövdeyi event loop'ta çalıştırabilir — bağlantı istek boyunca
+        # SIRALI kullanılır, eşzamanlı kullanılmaz; CPython sqlite3 zaten
+        # 'serialized' derlenir. Bu bayrak olmadan async uçlar ProgrammingError verir.
+        baglanti = sqlite3.connect(str(veritabani_yolu), check_same_thread=False)
         baglanti.row_factory = sqlite3.Row
 
         # foreign_keys = ON: SQLite yabancı anahtarları VARSAYILAN OLARAK ZORLAMAZ.

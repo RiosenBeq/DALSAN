@@ -1,10 +1,18 @@
-# DALSAN İSG — gerekli paketler (Adım 1)
+# DALSAN İSG — gerekli paketler
 # Kontrol Paneli'ndeki "İlk Kurulumu Yap" düğmesi bu dosyayı kurar.
-# Kamera/analiz paketleri (OpenCV, torch, ...) sırası gelince eklenecek.
 fastapi
 uvicorn[standard]
 jinja2
 python-dotenv
+python-multipart
 pytest
 httpx
 ruff
+
+# --- Görüntü analizi ---
+# Tespit modeli ONNX Runtime ile çalışır (ADR-002: Apache-2.0 lisanslı YOLOX;
+# torch'a gerek yok). supervision, ByteTrack sürümü değiştiği için sabitlendi.
+opencv-python
+onnxruntime
+numpy
+supervision==0.25.1

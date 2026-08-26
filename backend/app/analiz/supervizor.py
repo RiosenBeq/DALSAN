@@ -1,0 +1,444 @@
+"""Analiz süpervizörü — FastAPI içinde çalışan TEK arka plan iş parçacığı.
+
+Görevleri:
+- Aktif kameraların okuma iş parçacıklarını başlatır/durdurur
+- 5 sn'de bir konfigürasyon değişikliğine bakar (MAX(updated_at)) ve
+  RESTART'SIZ uygular (docs/02 §5)
+- Her kamerayı kendi örnekleme hızında işler (tespit → takip → kural → olay)
+- Kamera çevrimiçi/çevrimdışı geçişlerini DB'ye ve olay listesine yazar
+- İhlalde anonsu tetikler, KKD bölgelerinden veri örnekler
+- Günde bir kez saklama süresi (retention) temizliği ve disk kontrolü yapar
+
+Bir kameranın hatası yalnızca o kamerayı atlatır; döngü asla ölmez —
+7x24 çalışmanın gereği. Hatalar loglanır, sessizce yutulmaz.
+"""
+
+from __future__ import annotations
+
+import json
+import threading
+import time
+from pathlib import Path
+
+from app import veritabani, zaman
+from app.analiz.boru_hatti import KameraHatti
+from app.analiz.kamera import KameraKaynagi
+from app.analiz.kkd_siniflandirici import KkdSiniflandirici, kisi_kirp
+from app.analiz.tespit import ModelHatasi, Tespitci
+from app.ayarlar import Ayarlar
+from app.loglama import log_al
+from app.olaylar.anons import AnonsYoneticisi
+from app.olaylar.yazici import ihlal_yaz, sistem_olayi_yaz
+from app.rules.parametreler import KuralParametreHatasi, params_dogrula
+from app.rules.tipler import SINIF_INSAN, Bolge, Kalibrasyon, Kural
+
+_KONFIG_KONTROL_SN = 5.0
+_DURUM_YAZMA_SN = 5.0
+_BAKIM_ARALIGI_SN = 24 * 3600.0
+
+
+class AnalizSupervizoru:
+    def __init__(self, ayarlar: Ayarlar) -> None:
+        self.ayarlar = ayarlar
+        self._log = log_al("supervizor")
+        self._dur = threading.Event()
+        self._is_parcacigi = threading.Thread(target=self._dongu, name="analiz", daemon=True)
+
+        self._kaynaklar: dict[int, KameraKaynagi] = {}
+        self._hatlar: dict[int, KameraHatti] = {}
+        self._kamera_konfig: dict[int, dict] = {}
+        self._anons_mesajlari: dict[int, dict] = {}
+        self._son_durumlar: dict[int, str] = {}
+        self._son_islenen_kare: dict[int, float] = {}
+        self._siradaki_ornek: dict[int, float] = {}
+        self._son_kkd_ornek: dict[int, float] = {}
+
+        self._son_konfig_kontrol = 0.0
+        self._son_durum_yazma = 0.0
+        self._son_bakim = 0.0
+        self._konfig_damgasi: str = ""
+
+        self.tespitci: Tespitci | None = None
+        self.tespit_hatasi: str | None = None
+        self.kkd = KkdSiniflandirici(None)  # model 9. adımda eğitilecek
+        self._anons = AnonsYoneticisi(ayarlar)
+
+    # ---- yaşam döngüsü ----
+
+    def baslat(self) -> None:
+        self._is_parcacigi.start()
+
+    def durdur(self) -> None:
+        self._dur.set()
+        self._is_parcacigi.join(timeout=10)
+        for kaynak in self._kaynaklar.values():
+            kaynak.durdur()
+
+    # ---- web'in kullandığı arayüz ----
+
+    def onizleme_jpeg(self, kamera_id: int) -> bytes | None:
+        """İşlenmiş (kutulu) son kare; yoksa ham son kare."""
+        hat = self._hatlar.get(kamera_id)
+        if hat is not None:
+            jpeg = hat.son_islenmis_jpeg()
+            if jpeg is not None:
+                return jpeg
+        kaynak = self._kaynaklar.get(kamera_id)
+        if kaynak is None:
+            return None
+        kare, _ = kaynak.son_kare()
+        if kare is None:
+            return None
+        import cv2
+
+        tamam, jpeg = cv2.imencode(".jpg", kare, [cv2.IMWRITE_JPEG_QUALITY, 80])
+        return jpeg.tobytes() if tamam else None
+
+    # ---- ana döngü ----
+
+    def _dongu(self) -> None:
+        baglanti = veritabani.baglanti_ac(self.ayarlar.veritabani_yolu)
+        self._tespitciyi_kur(baglanti)
+        self._log.info("Analiz süpervizörü başladı.")
+        try:
+            while not self._dur.is_set():
+                simdi = time.monotonic()
+                try:
+                    if simdi - self._son_konfig_kontrol >= _KONFIG_KONTROL_SN:
+                        self._son_konfig_kontrol = simdi
+                        self._konfigurasyonu_yenile(baglanti)
+                    self._kameralari_isle(baglanti, simdi)
+                    if simdi - self._son_durum_yazma >= _DURUM_YAZMA_SN:
+                        self._son_durum_yazma = simdi
+                        self._durumlari_yaz(baglanti)
+                    if simdi - self._son_bakim >= _BAKIM_ARALIGI_SN:
+                        self._son_bakim = simdi
+                        self._bakim_yap(baglanti)
+                except Exception as hata:  # noqa: BLE001 — 7x24 döngüsü ölmemeli;
+                    # hata tam ayrıntıyla loglanır, bir sonraki turda devam edilir
+                    self._log.error(f"Analiz döngüsünde hata: {hata}", exc_info=hata)
+                self._dur.wait(0.05)
+        finally:
+            baglanti.close()
+            self._log.info("Analiz süpervizörü durdu.")
+
+    def _tespitciyi_kur(self, baglanti) -> None:
+        try:
+            self.tespitci = Tespitci(self.ayarlar.model_dosyasi, self.ayarlar.cikarim_cihazi)
+            self.tespit_hatasi = None
+        except ModelHatasi as hata:
+            # Model yokken sistem ÇÖKMEZ: kameralar izlenir, tespit yapılmaz.
+            # Durum ana sayfada ve olay listesinde görünür.
+            self.tespitci = None
+            self.tespit_hatasi = hata.kullanici_mesaji
+            self._log.error(hata.kullanici_mesaji)
+            sistem_olayi_yaz(baglanti, f"Tespit modeli yüklenemedi: {hata.kullanici_mesaji}")
+
+    # ---- konfigürasyon ----
+
+    def _konfigurasyonu_yenile(self, baglanti) -> None:
+        damga_satiri = baglanti.execute(
+            "SELECT (SELECT COALESCE(MAX(updated_at), '') FROM cameras) || '|' || "
+            "(SELECT COALESCE(MAX(updated_at), '') FROM zones) || '|' || "
+            "(SELECT COALESCE(MAX(updated_at), '') FROM rules) || '|' || "
+            "(SELECT COALESCE(MAX(calibrated_at), '') FROM camera_calibrations) || '|' || "
+            "(SELECT COALESCE(COUNT(*), 0) FROM cameras) || '|' || "
+            "(SELECT COALESCE(COUNT(*), 0) FROM zones) || '|' || "
+            "(SELECT COALESCE(COUNT(*), 0) FROM rules) AS damga"
+        ).fetchone()
+        damga = damga_satiri["damga"]
+        if damga == self._konfig_damgasi:
+            return
+        self._konfig_damgasi = damga
+        self._log.info("Konfigürasyon değişti — yeniden yükleniyor (restart yok).")
+
+        kameralar = self._atanmis_kameralar(baglanti)
+        self._anons_mesajlari = {
+            satir["id"]: dict(satir)
+            for satir in baglanti.execute("SELECT * FROM announcement_messages")
+        }
+
+        aktif_idler = set()
+        for kamera in kameralar:
+            kid = kamera["id"]
+            aktif_idler.add(kid)
+            self._kamera_konfig[kid] = kamera
+
+            mevcut = self._kaynaklar.get(kid)
+            if mevcut is not None and mevcut.kaynak_url != kamera["source_url"]:
+                mevcut.durdur()
+                mevcut = None
+                del self._kaynaklar[kid]
+            if mevcut is None:
+                kaynak = KameraKaynagi(
+                    kid, kamera["name"], kamera["source_type"], kamera["source_url"]
+                )
+                kaynak.baslat()
+                self._kaynaklar[kid] = kaynak
+                self._siradaki_ornek[kid] = 0.0
+
+            hat = self._hatlar.get(kid)
+            if hat is None:
+                hat = KameraHatti(kid, int(kamera["sample_fps"]))
+                self._hatlar[kid] = hat
+            hat.yapilandir(
+                self._bolgeleri_yukle(baglanti, kid),
+                self._kurallari_yukle(baglanti, kid),
+                self._kalibrasyonu_yukle(baglanti, kid),
+            )
+
+        # Silinen/pasifleşen kameraların iş parçacıkları durdurulur
+        for kid in list(self._kaynaklar):
+            if kid not in aktif_idler:
+                self._kaynaklar.pop(kid).durdur()
+                self._hatlar.pop(kid, None)
+                self._kamera_konfig.pop(kid, None)
+
+    def _atanmis_kameralar(self, baglanti) -> list[dict]:
+        """Bu analizörün ilgilendiği kameralar (ADR-008): bugün 'tüm aktifler'.
+
+        Fabrika geneline çıkarken bölümlendirme YALNIZCA bu fonksiyonu değiştirir.
+        """
+        return [
+            dict(satir) for satir in baglanti.execute("SELECT * FROM cameras WHERE enabled = 1")
+        ]
+
+    def _bolgeleri_yukle(self, baglanti, kamera_id: int) -> list[Bolge]:
+        bolgeler = []
+        for satir in baglanti.execute("SELECT * FROM zones WHERE camera_id = ?", (kamera_id,)):
+            try:
+                poligon = [tuple(nokta) for nokta in json.loads(satir["polygon"])]
+            except (json.JSONDecodeError, TypeError) as hata:
+                self._log.error(f"Bölge poligonu bozuk (id {satir['id']}): {hata}")
+                continue
+            bolgeler.append(
+                Bolge(
+                    id=satir["id"],
+                    tip=satir["zone_type"],
+                    poligon=poligon,
+                    aktif=bool(satir["enabled"]),
+                )
+            )
+        return bolgeler
+
+    def _kurallari_yukle(self, baglanti, kamera_id: int) -> list[Kural]:
+        kurallar = []
+        for satir in baglanti.execute(
+            "SELECT * FROM rules WHERE camera_id = ? AND enabled = 1", (kamera_id,)
+        ):
+            try:
+                params = params_dogrula(satir["rule_type"], json.loads(satir["params"]))
+                hedefler = json.loads(satir["target_classes"])
+            except (KuralParametreHatasi, json.JSONDecodeError) as hata:
+                self._log.error(f"Kural {satir['id']} yüklenemedi, atlandı: {hata}")
+                continue
+            kurallar.append(
+                Kural(
+                    id=satir["id"],
+                    kamera_id=kamera_id,
+                    tip=satir["rule_type"],
+                    bolge_id=satir["zone_id"],
+                    hedef_siniflar=hedefler,
+                    params=params,
+                    cooldown_s=float(satir["cooldown_s"]),
+                    anons_id=satir["announcement_id"],
+                    siddet=satir["severity"],
+                )
+            )
+        return kurallar
+
+    def _kalibrasyonu_yukle(self, baglanti, kamera_id: int) -> Kalibrasyon | None:
+        satir = baglanti.execute(
+            "SELECT homography FROM camera_calibrations WHERE camera_id = ?", (kamera_id,)
+        ).fetchone()
+        if satir is None:
+            return None
+        try:
+            return Kalibrasyon(homografi=json.loads(satir["homography"]))
+        except (json.JSONDecodeError, TypeError) as hata:
+            self._log.error(f"Kalibrasyon bozuk (kamera {kamera_id}): {hata}")
+            return None
+
+    # ---- kare işleme ----
+
+    def _kameralari_isle(self, baglanti, simdi: float) -> None:
+        for kid, kaynak in list(self._kaynaklar.items()):
+            konfig = self._kamera_konfig.get(kid)
+            if konfig is None:
+                continue
+            fps = max(float(konfig["sample_fps"]), 0.1)
+            if simdi < self._siradaki_ornek.get(kid, 0.0):
+                continue
+            self._siradaki_ornek[kid] = simdi + 1.0 / fps
+
+            kare, kare_zamani = kaynak.son_kare()
+            if kare is None or kare_zamani <= self._son_islenen_kare.get(kid, 0.0):
+                continue  # yeni kare yok — aynı kareyi iki kez işleme
+            self._son_islenen_kare[kid] = kare_zamani
+
+            hat = self._hatlar[kid]
+            try:
+                tespitler, ihlaller = hat.isle(kare, simdi, self.tespitci, self.kkd)
+            except Exception as hata:  # noqa: BLE001 — kamera izolasyonu:
+                # bir kameranın işleme hatası diğerlerini durdurmamalı
+                self._log.error(f"Kare işlenemedi (kamera {kid}): {hata}", exc_info=hata)
+                continue
+
+            for ihlal in ihlaller:
+                self._ihlali_kaydet(baglanti, hat, ihlal, simdi)
+            self._kkd_ornekle(baglanti, kid, kare, tespitler, hat, simdi)
+
+    def _ihlali_kaydet(self, baglanti, hat: KameraHatti, ihlal, simdi: float) -> None:
+        kural_kaydi = self._kural_kaydi(baglanti, ihlal.kural_id)
+        olay_id = ihlal_yaz(baglanti, self.ayarlar, ihlal, kural_kaydi, hat.son_islenmis_jpeg())
+        self._log.info(
+            f"İhlal kaydedildi (olay {olay_id}, kamera {ihlal.kamera_id}, kural {ihlal.kural_id})"
+        )
+        anons_id = kural_kaydi.get("announcement_id")
+        if anons_id:
+            self._anons.duyur(ihlal.kamera_id, simdi, self._anons_mesajlari.get(anons_id))
+
+    def _kural_kaydi(self, baglanti, kural_id: int) -> dict:
+        satir = baglanti.execute("SELECT * FROM rules WHERE id = ?", (kural_id,)).fetchone()
+        if satir is None:
+            return {"id": kural_id}
+        kayit = dict(satir)
+        for alan in ("params", "target_classes"):
+            try:
+                kayit[alan] = json.loads(kayit[alan])
+            except (json.JSONDecodeError, TypeError):
+                pass  # ham metin kalsın — olay kaydı yine de anlamlı
+        return kayit
+
+    def _kkd_ornekle(
+        self, baglanti, kamera_id: int, kare, tespitler, hat: KameraHatti, simdi: float
+    ) -> None:
+        """KKD bölgesindeki kişilerden saatlik limitle veri örnekler (docs/04 §4.3)."""
+        en_az_aralik = 3600.0 / self.ayarlar.kkd_ornek_saat_limit
+        if simdi - self._son_kkd_ornek.get(kamera_id, 0.0) < en_az_aralik:
+            return
+        boyut = (float(kare.shape[1]), float(kare.shape[0]))
+        for tespit in tespitler:
+            if tespit.sinif != SINIF_INSAN or not hat.kkd_bolgesinde_mi(tespit, boyut):
+                continue
+            kirpik = kisi_kirp(kare, tespit.kutu)
+            if kirpik is None:
+                continue
+            self._son_kkd_ornek[kamera_id] = simdi
+            self._kkd_ornek_kaydet(baglanti, kamera_id, kirpik)
+            break  # bu turda tek örnek yeter
+
+    def _kkd_ornek_kaydet(self, baglanti, kamera_id: int, kirpik) -> None:
+        import cv2
+
+        simdi_utc = zaman.simdi_utc()
+        goreli = str(
+            Path("kkd-ornekler")
+            / simdi_utc[:7]
+            / f"{simdi_utc.replace(':', '-').replace('+', 'Z')}-k{kamera_id}.jpg"
+        )
+        tam_yol = self.ayarlar.goruntu_klasoru / goreli
+        try:
+            tam_yol.parent.mkdir(parents=True, exist_ok=True)
+            cv2.imwrite(str(tam_yol), kirpik)
+        except (OSError, cv2.error) as hata:
+            self._log.error(f"KKD örneği yazılamadı ({tam_yol}): {hata}")
+            return
+        baglanti.execute(
+            "INSERT INTO ppe_samples (camera_id, captured_at, crop_path, source) "
+            "VALUES (?, ?, ?, 'auto')",
+            (kamera_id, simdi_utc, goreli),
+        )
+        baglanti.commit()
+
+    # ---- durum yazımı ----
+
+    def _durumlari_yaz(self, baglanti) -> None:
+        for kid, kaynak in self._kaynaklar.items():
+            durum = "online" if kaynak.cevrimici_mi() else "offline"
+            if durum != self._son_durumlar.get(kid):
+                onceki = self._son_durumlar.get(kid)
+                self._son_durumlar[kid] = durum
+                ad = self._kamera_konfig.get(kid, {}).get("name", kid)
+                if durum == "offline":
+                    self._log.warning(f"Kamera çevrimdışı: {ad}")
+                    sistem_olayi_yaz(baglanti, f"Kamera çevrimdışı: {ad}", kamera_id=kid)
+                elif onceki is not None:  # ilk online geçişi olay değil
+                    self._log.info(f"Kamera tekrar çevrimiçi: {ad}")
+                    sistem_olayi_yaz(baglanti, f"Kamera tekrar çevrimiçi: {ad}", kamera_id=kid)
+            baglanti.execute(
+                "UPDATE cameras SET status = ?, last_frame_at = ?, measured_fps = ? WHERE id = ?",
+                (
+                    durum,
+                    zaman.simdi_utc() if durum == "online" else None,
+                    round(kaynak.olculen_fps, 1),
+                    kid,
+                ),
+            )
+        baglanti.commit()
+
+    # ---- bakım (retention + disk) ----
+
+    def _bakim_yap(self, baglanti) -> None:
+        a = self.ayarlar
+        sinir = zaman.gun_once_utc(a.olay_saklama_gun)
+        silinen_olay = baglanti.execute(
+            "DELETE FROM events WHERE event_type = 'violation' AND occurred_at < ?",
+            (sinir,),
+        ).rowcount
+        silinen_sistem = baglanti.execute(
+            "DELETE FROM events WHERE event_type = 'system' AND occurred_at < ?",
+            (zaman.gun_once_utc(a.sistem_olay_saklama_gun),),
+        ).rowcount
+        baglanti.commit()
+
+        silinen_foto = self._eski_dosyalari_sil(a.goruntu_klasoru, a.goruntu_saklama_gun)
+        silinen_kkd = self._kkd_hamlarini_sil(baglanti)
+
+        import shutil as _shutil
+
+        bos_gb = _shutil.disk_usage(a.veri_dizini).free / (1024**3)
+        self._log.info(
+            f"Bakım: {silinen_olay} olay, {silinen_sistem} sistem olayı, "
+            f"{silinen_foto} fotoğraf, {silinen_kkd} KKD örneği silindi; "
+            f"boş disk {bos_gb:.1f} GB"
+        )
+        if bos_gb < a.disk_uyari_gb:
+            sistem_olayi_yaz(
+                baglanti,
+                f"Disk azalıyor: {bos_gb:.1f} GB kaldı (uyarı eşiği {a.disk_uyari_gb} GB). "
+                "Saklama sürelerini kısaltmayı veya disk açmayı değerlendirin.",
+            )
+
+    def _eski_dosyalari_sil(self, klasor: Path, gun: int) -> int:
+        sinir = time.time() - gun * 86400
+        sayi = 0
+        for dosya in klasor.rglob("*.jpg"):
+            try:
+                if dosya.stat().st_mtime < sinir:
+                    dosya.unlink()
+                    sayi += 1
+            except FileNotFoundError:
+                continue
+        return sayi
+
+    def _kkd_hamlarini_sil(self, baglanti) -> int:
+        """Etiketlenmemiş KKD örnekleri süre dolunca dosyasıyla birlikte silinir.
+        Etiketlenenler veri setidir; retention onlara dokunmaz (docs/06 §5)."""
+        sinir = zaman.gun_once_utc(self.ayarlar.kkd_ham_veri_saklama_gun)
+        satirlar = baglanti.execute(
+            "SELECT id, crop_path FROM ppe_samples WHERE labeled_at IS NULL AND captured_at < ?",
+            (sinir,),
+        ).fetchall()
+        for satir in satirlar:
+            dosya = self.ayarlar.goruntu_klasoru / satir["crop_path"]
+            try:
+                dosya.unlink(missing_ok=True)
+            except OSError as hata:
+                self._log.error(f"KKD örneği silinemedi ({dosya}): {hata}")
+        baglanti.execute(
+            "DELETE FROM ppe_samples WHERE labeled_at IS NULL AND captured_at < ?",
+            (sinir,),
+        )
+        baglanti.commit()
+        return len(satirlar)

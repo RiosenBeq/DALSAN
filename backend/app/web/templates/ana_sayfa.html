@@ -1,55 +1,60 @@
-<!doctype html>
-<html lang="tr">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>DALSAN İSG — Sistem Durumu</title>
-  <link rel="stylesheet" href="/static/stil.css">
-</head>
-<body>
-  <header>
-    <h1>DALSAN İSG Görüntü Analiz Sistemi</h1>
-    <p class="alt-baslik">Teşhis ekranı · Sunucu saati: {{ sunucu_saati }} (Türkiye)</p>
-  </header>
+{% extends "temel.html" %}
+{% block baslik %}DALSAN İSG — Sistem Durumu{% endblock %}
+{% block icerik %}
+  <p class="alt-baslik">Teşhis ekranı · Sunucu saati: {{ sunucu_saati }} (Türkiye)</p>
 
-  <main>
-    <section class="kart">
-      <h2>Veritabanı</h2>
-      <table>
-        <tr><th>Şema sürümü</th><td>{{ sema_surumu }}</td></tr>
-        <tr><th>Tablo sayısı</th><td>{{ tablo_sayisi }}</td></tr>
-        <tr><th>Tablolar</th><td>{{ tablolar }}</td></tr>
-        <tr><th>Dosya</th><td>{{ veritabani_yolu }}</td></tr>
-      </table>
-    </section>
+  <section class="kart">
+    <h2>Sistem</h2>
+    <table>
+      <tr><th>Tespit modeli</th>
+        <td>{% if model_durumu == 'hazir' %}<span class="rozet yesil">Hazır — {{ model_adi }}</span>
+            {% else %}<span class="rozet kirmizi">Yüklenemedi</span> {{ model_hatasi }}{% endif %}</td></tr>
+      <tr><th>KKD modeli</th>
+        <td><span class="rozet gri">Henüz eğitilmedi</span> — veri toplandıktan sonra eğitilecek (KKD sekmesi)</td></tr>
+      <tr><th>Anons</th><td>{{ anons_durumu }}</td></tr>
+    </table>
+  </section>
 
-    <section class="kart">
-      <h2>Kameralar</h2>
-      {% if kamera_sayisi == 0 %}
-        <p class="bos">Henüz kamera eklenmedi.</p>
-      {% else %}
-        <p>{{ kamera_sayisi }} kamera tanımlı.</p>
-      {% endif %}
-    </section>
+  <section class="kart">
+    <h2>Veritabanı</h2>
+    <table>
+      <tr><th>Şema sürümü</th><td>{{ sema_surumu }}</td></tr>
+      <tr><th>Tablo sayısı</th><td>{{ tablo_sayisi }}</td></tr>
+      <tr><th>Dosya</th><td>{{ veritabani_yolu }}</td></tr>
+    </table>
+  </section>
 
-    <section class="kart">
-      <h2>Aktif ayarlar</h2>
-      <table>
-        {% for ad, deger in ayar_satirlari %}
-        <tr><th>{{ ad }}</th><td>{{ deger }}</td></tr>
-        {% endfor %}
-      </table>
-      <p class="not">Şifre ve RTSP bağlantı bilgileri güvenlik gereği maskeli gösterilir.
-        Değiştirmek için kök klasördeki .env dosyasını düzenleyip sistemi yeniden başlatın.</p>
-    </section>
+  <section class="kart">
+    <h2>Kameralar</h2>
+    {% if kamera_sayisi == 0 %}
+      <p class="bos">Henüz kamera eklenmedi. <a href="/kameralar/yeni">İlk kamerayı ekle →</a></p>
+    {% else %}
+      <p><a href="/kameralar">{{ kamera_sayisi }} kamera tanımlı →</a></p>
+    {% endif %}
+  </section>
 
-    <section class="kart">
-      <h2>Disk</h2>
-      <table>
-        <tr><th>veri/ klasörü</th><td>{{ veri_boyutu }}</td></tr>
-        <tr><th>Boş alan</th><td>{{ disk_bos }} (toplam {{ disk_toplam }})</td></tr>
-      </table>
-    </section>
-  </main>
-</body>
-</html>
+  <section class="kart">
+    <h2>Aktif ayarlar</h2>
+    <table>
+      {% for ad, deger in ayar_satirlari %}
+      <tr><th>{{ ad }}</th><td>{{ deger }}</td></tr>
+      {% endfor %}
+    </table>
+    <p class="not">Şifre ve RTSP bağlantı bilgileri güvenlik gereği maskeli gösterilir.
+      Değiştirmek için kök klasördeki .env dosyasını düzenleyip sistemi yeniden başlatın.</p>
+  </section>
+
+  <section class="kart">
+    <h2>Disk ve yedek</h2>
+    <table>
+      <tr><th>veri/ klasörü</th><td>{{ veri_boyutu }}</td></tr>
+      <tr><th>Boş alan</th><td>{{ disk_bos }} (toplam {{ disk_toplam }})</td></tr>
+      <tr><th>Son yedek</th><td>{{ son_yedek }}</td></tr>
+    </table>
+    <form method="post" action="/yedekle" class="satir-form">
+      <button type="submit" class="dugme ikincil">Veritabanını Yedekle</button>
+      <span class="not">Tam yedek = veri/ klasörünü harici diske kopyalamak (haftada bir).</span>
+    </form>
+    {% if yedek_sonucu %}<p class="basari-mesaji">{{ yedek_sonucu }}</p>{% endif %}
+  </section>
+{% endblock %}

@@ -24,6 +24,10 @@ RULES_DIZINI = KOK / "backend" / "app" / "rules"
 # yasaklı modüllerin "tembel yükleme" ile arka kapıdan girmesini önler.
 YASAKLI_MODULLER = {"cv2", "torch", "torchvision", "ultralytics", "sqlite3", "fastapi", "importlib"}
 
+# app.hatalar İZİNLİ: modül seviyesinde hiçbir şey import etmez (FastAPI importu
+# bilerek fonksiyon içindedir) — hata sınıflarının ortak olması için gerekli.
+IZINLI_APP_MODULLERI = ("app.rules", "app.hatalar")
+
 
 def _kaynak_ihlalleri(kaynak: str) -> set[str]:
     """Verilen Python kaynağındaki saflık ihlallerini döndürür."""
@@ -34,8 +38,9 @@ def _kaynak_ihlalleri(kaynak: str) -> set[str]:
         kok_ad = modul_adi.split(".")[0]
         if kok_ad in YASAKLI_MODULLER:
             ihlaller.add(kok_ad)
-        # Dolaylı sızma: app.rules dışındaki her app modülü yasak.
-        if kok_ad == "app" and not modul_adi.startswith("app.rules"):
+        # Dolaylı sızma: izinli listede olmayan her app modülü yasak
+        # (app.veritabani sqlite3'ü, app.web fastapi'yi içeri taşırdı).
+        if kok_ad == "app" and not modul_adi.startswith(IZINLI_APP_MODULLERI):
             ihlaller.add(modul_adi)
 
     for dugum in ast.walk(agac):
@@ -90,7 +95,10 @@ def test_bekci_dinamik_importu_yakaliyor():
 def test_bekci_dolayli_app_importunu_yakaliyor():
     # app.veritabani sqlite3'ü içeri taşırdı — rules/ yalnız kendi paketini kullanabilir
     assert "app.veritabani" in _kaynak_ihlalleri("from app.veritabani import baglanti_ac")
+    assert "app.web.rotalar" in _kaynak_ihlalleri("from app.web.rotalar import router")
     assert not _kaynak_ihlalleri("from app.rules.geometri import nokta_iceride_mi")
+    # app.hatalar izinlidir: modül seviyesinde framework importu yoktur
+    assert not _kaynak_ihlalleri("from app.hatalar import DalsanHata")
 
 
 def test_bekci_izinli_modullere_ses_cikarmiyor():

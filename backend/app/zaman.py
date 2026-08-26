@@ -31,6 +31,11 @@ def simdi_utc() -> str:
     return datetime.now(UTC).isoformat(timespec="seconds")
 
 
+def gun_once_utc(gun: int) -> str:
+    """Bugünden `gun` gün öncesi, ISO-8601 UTC metni (saklama süresi sınırı)."""
+    return (datetime.now(UTC) - timedelta(days=gun)).isoformat(timespec="seconds")
+
+
 def ekranda_goster(utc_metni: str) -> str:
     """UTC metnini Türkiye saatine çevirip 'GG.AA.YYYY SS:DD:SS' döndürür."""
     try:

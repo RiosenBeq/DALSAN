@@ -38,10 +38,15 @@ class Ayarlar:
     olay_saklama_gun: int
     goruntu_saklama_gun: int
     kkd_ham_veri_saklama_gun: int
+    sistem_olay_saklama_gun: int
+    kkd_ornek_saat_limit: int
+    disk_uyari_gb: int
     cikarim_cihazi: str
     kare_ornekleme_fps: int
     anons: str
     anons_http_adresi: str
+    anons_bekleme_sn: int
+    model_dosyasi: Path
 
 
 def ayarlari_yukle(kok_dizin: Path | None = None) -> Ayarlar:
@@ -98,10 +103,20 @@ def ayarlari_yukle(kok_dizin: Path | None = None) -> Ayarlar:
         olay_saklama_gun=_tam_sayi(degerler, "OLAY_SAKLAMA_GUN", 180, 1, 3650),
         goruntu_saklama_gun=_tam_sayi(degerler, "GORUNTU_SAKLAMA_GUN", 90, 1, 3650),
         kkd_ham_veri_saklama_gun=_tam_sayi(degerler, "KKD_HAM_VERI_SAKLAMA_GUN", 30, 1, 3650),
+        sistem_olay_saklama_gun=_tam_sayi(degerler, "SISTEM_OLAY_SAKLAMA_GUN", 90, 1, 3650),
+        # KKD veri toplama: kamera başına saatte en çok kaç kişi görüntüsü
+        # örneklenir (docs/04 §4.3 — aynı kişinin 200 ardışık karesi değil)
+        kkd_ornek_saat_limit=_tam_sayi(degerler, "KKD_ORNEK_SAAT_LIMIT", 60, 1, 3600),
+        # Boş disk bu değerin altına inince sistem olayı üretilir (docs/08 R8)
+        disk_uyari_gb=_tam_sayi(degerler, "DISK_UYARI_GB", 5, 1, 1000),
         cikarim_cihazi=_secenek(degerler, "CIKARIM_CIHAZI", "cpu", _CIHAZ_SECENEKLERI),
         kare_ornekleme_fps=_tam_sayi(degerler, "KARE_ORNEKLEME_FPS", 6, 1, 30),
         anons=anons,
         anons_http_adresi=anons_http_adresi,
+        # Anons, ekran uyarısından bağımsız ve daha seyrek çalar (docs/02 §7):
+        # hoparlör aynı kamera+mesaj için bu süre dolmadan tekrar bağırmaz.
+        anons_bekleme_sn=_tam_sayi(degerler, "ANONS_BEKLEME_SN", 30, 5, 3600),
+        model_dosyasi=kok / _metin(degerler, "MODEL_DOSYASI", "models/yolox_tiny.onnx"),
     )
 
 

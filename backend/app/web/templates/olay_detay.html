@@ -1,0 +1,46 @@
+{% extends "temel.html" %}
+{% block baslik %}Olay {{ olay.id }} — DALSAN İSG{% endblock %}
+{% block icerik %}
+  <div class="baslik-satiri">
+    <h2>Olay #{{ olay.id }} — {{ olay.ozet }}</h2>
+    <a href="/olaylar">← Olaylar</a>
+  </div>
+
+  <section class="kart">
+    <table>
+      <tr><th>Zaman</th><td>{{ olay.yerel_zaman }} (Türkiye)</td></tr>
+      <tr><th>Tip</th><td>{{ "İhlal" if olay.event_type == "violation" else "Sistem" }}</td></tr>
+      <tr><th>Kamera</th><td>{{ olay.kamera_adi or "—" }} {{ "(" + olay.kamera_alani + ")" if olay.kamera_alani }}</td></tr>
+      <tr><th>Durum</th><td>{{ olay.durum_adi }}{% if olay.note %} — Not: {{ olay.note }}{% endif %}</td></tr>
+    </table>
+  </section>
+
+  {% if olay.snapshot_path %}
+  <section class="kart">
+    <h3>Kanıt görüntüsü</h3>
+    <img class="kanit-resim" src="/goruntuler/{{ olay.snapshot_path }}" alt="kanıt görüntüsü">
+  </section>
+  {% endif %}
+
+  {% if olay.event_type == 'violation' %}
+  <section class="kart">
+    <h3>Olay durumu</h3>
+    <p class="not">Her uyarıyı inceleyip işaretleyin — "Yanlış alarm" işaretleri, sistemin
+      isabetinin ölçülmesini ve KKD modelinin iyileşmesini sağlar (7. hafta ölçümü).</p>
+    <form method="post" action="/olaylar/{{ olay.id }}/durum" class="satir-form">
+      <select name="durum">
+        {% for deger, ad in durumlar.items() %}
+        <option value="{{ deger }}" {% if olay.status == deger %}selected{% endif %}>{{ ad }}</option>
+        {% endfor %}
+      </select>
+      <input name="not_metni" placeholder="Not (isteğe bağlı)" value="{{ olay.note or '' }}">
+      <button type="submit" class="dugme">Kaydet</button>
+    </form>
+  </section>
+  {% endif %}
+
+  <section class="kart">
+    <h3>Teknik ayrıntı</h3>
+    <pre class="detay-json">{{ olay.detay_metni }}</pre>
+  </section>
+{% endblock %}

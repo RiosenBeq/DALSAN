@@ -1,0 +1,73 @@
+{% extends "temel.html" %}
+{% block baslik %}KKD Verisi — DALSAN İSG{% endblock %}
+{% block icerik %}
+  <h2>KKD (Baret / Yelek) Verisi</h2>
+
+  <section class="kart">
+    <h3>Durum</h3>
+    <table>
+      <tr><th>Toplanan örnek</th><td>{{ sayilar.toplam or 0 }}</td></tr>
+      <tr><th>Etiketlenen</th><td>{{ sayilar.etiketli or 0 }}</td></tr>
+      <tr><th>"Baret yok" örneği</th><td>{{ sayilar.baret_yok or 0 }} <span class="not">(hedef: en az 500 — docs/04)</span></td></tr>
+      <tr><th>"Yelek yok" örneği</th><td>{{ sayilar.yelek_yok or 0 }}</td></tr>
+    </table>
+    <p class="not">Sistem, KKD zorunlu alan bölgesi çizilmiş kameralardan otomatik örnek toplar.
+      Yeterli etiketli veri birikince model eğitilecek (9. adım) ve KKD kuralı gölge modda
+      devreye alınacak. <b>Şüphede kaldığınız görüntüye her zaman "Belirsiz" deyin</b> —
+      emin olmadan "Yok" demek modeli bozar.</p>
+  </section>
+
+  <section class="kart">
+    <h3>Etiketlenecek örnekler</h3>
+    {% if ornekler %}
+    <div class="kkd-izgara">
+      {% for o in ornekler %}
+      <div class="kkd-kart" id="ornek-{{ o.id }}">
+        <img src="/kkd/ornek/{{ o.id }}.jpg" alt="kişi görüntüsü">
+        <div class="kucuk-metin">{{ o.kamera_adi or "—" }} · {{ o.yerel_zaman }}</div>
+        <div class="etiket-grubu" data-ornek="{{ o.id }}" data-alan="helmet">
+          <span>Baret:</span>
+          <button data-deger="yes">Var</button>
+          <button data-deger="no">Yok</button>
+          <button data-deger="unknown">Belirsiz</button>
+        </div>
+        <div class="etiket-grubu" data-ornek="{{ o.id }}" data-alan="vest">
+          <span>Yelek:</span>
+          <button data-deger="yes">Var</button>
+          <button data-deger="no">Yok</button>
+          <button data-deger="unknown">Belirsiz</button>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="bos">Etiketlenecek örnek yok. Örnek birikmesi için: bir kameraya
+      "KKD zorunlu alan" tipinde bölge çizin; insanlar o bölgeden geçtikçe örnekler
+      burada birikecek.</p>
+    {% endif %}
+  </section>
+{% endblock %}
+{% block betikler %}
+<script>
+document.querySelectorAll(".etiket-grubu button").forEach(function (dugme) {
+  dugme.addEventListener("click", function () {
+    var grup = dugme.parentElement;
+    var veri = new FormData();
+    veri.append("alan", grup.dataset.alan);
+    veri.append("deger", dugme.dataset.deger);
+    fetch("/kkd/" + grup.dataset.ornek + "/etiket", { method: "POST", body: veri })
+      .then(function (yanit) {
+        if (!yanit.ok) { alert("Etiket kaydedilemedi. Sayfayı yenileyin."); return; }
+        grup.querySelectorAll("button").forEach(function (b) { b.classList.remove("secili"); });
+        dugme.classList.add("secili");
+        grup.dataset.etiketlendi = "1";
+        var kart = document.getElementById("ornek-" + grup.dataset.ornek);
+        var gruplar = kart.querySelectorAll(".etiket-grubu");
+        if (Array.from(gruplar).every(function (g) { return g.dataset.etiketlendi === "1"; })) {
+          setTimeout(function () { kart.remove(); }, 400);
+        }
+      });
+  });
+});
+</script>
+{% endblock %}

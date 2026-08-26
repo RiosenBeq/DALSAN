@@ -1,0 +1,41 @@
+{% extends "temel.html" %}
+{% block baslik %}Yeni Kamera — DALSAN İSG{% endblock %}
+{% block icerik %}
+  <h2>Yeni Kamera</h2>
+  <section class="kart dar">
+    <form method="post" action="/kameralar/yeni" class="dikey-form">
+      <label>Kamera adı
+        <input name="name" required placeholder="örn. Sevkiyat Rampası">
+      </label>
+      <label>Alan / bölüm <span class="not">(olay filtrelemede kullanılır)</span>
+        <input name="area" placeholder="örn. Sevkiyat">
+      </label>
+      <label>Kaynak tipi
+        <select name="source_type" id="source_type">
+          <option value="rtsp">RTSP (gerçek kamera / NVR)</option>
+          <option value="file">Video dosyası (test)</option>
+        </select>
+      </label>
+      <label>Kaynak adresi
+        <input name="source_url" required
+               placeholder="rtsp://kullanici:sifre@192.168.1.64:554/...">
+        <span class="not" id="kaynak-ipucu">RTSP adresini kamera/NVR arayüzünden veya
+          kurulumu yapan firmadan öğrenebilirsiniz.</span>
+      </label>
+      <label>Örnekleme hızı (fps)
+        <input name="sample_fps" type="number" step="0.5" min="0.5" max="30" value="6">
+        <span class="not">Saniyede kaç kare analiz edilsin. 6 iyi bir başlangıç.</span>
+      </label>
+      <button type="submit" class="dugme">Kamerayı Ekle</button>
+    </form>
+  </section>
+{% endblock %}
+{% block betikler %}
+<script>
+document.getElementById("source_type").addEventListener("change", function () {
+  document.getElementById("kaynak-ipucu").textContent = this.value === "file"
+    ? "Video dosyasının tam yolunu yazın, örn: /Users/adiniz/Desktop/test.mp4"
+    : "RTSP adresini kamera/NVR arayüzünden veya kurulumu yapan firmadan öğrenebilirsiniz.";
+});
+</script>
+{% endblock %}

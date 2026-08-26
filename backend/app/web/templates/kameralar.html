@@ -1,0 +1,49 @@
+{% extends "temel.html" %}
+{% block baslik %}Kameralar — DALSAN İSG{% endblock %}
+{% block icerik %}
+  <div class="baslik-satiri">
+    <h2>Kameralar</h2>
+    <a class="dugme" href="/kameralar/yeni">+ Yeni Kamera</a>
+  </div>
+
+  {% if kameralar %}
+  <section class="kart">
+    <table class="liste">
+      <tr><th>Ad</th><th>Alan</th><th>Kaynak</th><th>Durum</th><th>Ölçülen fps</th><th>Son kare</th><th></th></tr>
+      {% for k in kameralar %}
+      <tr>
+        <td><a href="/kameralar/{{ k.id }}">{{ k.name }}</a>
+            {% if not k.enabled %}<span class="rozet gri">pasif</span>{% endif %}</td>
+        <td>{{ k.area or "—" }}</td>
+        <td class="kucuk-metin">{{ k.maskeli_url }}</td>
+        <td>{% if k.status == 'online' %}<span class="rozet yesil">çevrimiçi</span>
+            {% else %}<span class="rozet kirmizi">çevrimdışı</span>{% endif %}</td>
+        <td>{{ k.measured_fps or "—" }}</td>
+        <td>{{ k.son_kare }}</td>
+        <td><a href="/kameralar/{{ k.id }}">Aç →</a></td>
+      </tr>
+      {% endfor %}
+    </table>
+  </section>
+  <section class="kart onizleme-izgara">
+    {% for k in kameralar if k.enabled %}
+      <div class="onizleme-hucre">
+        <a href="/kameralar/{{ k.id }}"><img class="canli-onizleme" data-kamera="{{ k.id }}"
+             src="/kameralar/{{ k.id }}/onizleme.jpg" alt="{{ k.name }}"></a>
+        <span>{{ k.name }}</span>
+      </div>
+    {% endfor %}
+  </section>
+  {% else %}
+  <section class="kart">
+    <p class="bos">Henüz kamera eklenmedi.</p>
+    <p>Fabrika kamerası için RTSP adresi gerekir (örnek:
+      <code>rtsp://kullanici:sifre@192.168.1.64:554/Streaming/Channels/102</code>).<br>
+      Kamerasız denemek için kaynak tipi <b>Video dosyası</b> seçip bilgisayardaki
+      bir .mp4 dosyasının yolunu yazabilirsiniz — sistem onu kamera gibi izler.</p>
+  </section>
+  {% endif %}
+{% endblock %}
+{% block betikler %}
+<script src="/static/onizleme.js"></script>
+{% endblock %}

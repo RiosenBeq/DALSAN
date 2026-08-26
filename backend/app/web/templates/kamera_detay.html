@@ -1,0 +1,138 @@
+{% extends "temel.html" %}
+{% block baslik %}{{ kamera.name }} — DALSAN İSG{% endblock %}
+{% block icerik %}
+  <div class="baslik-satiri">
+    <h2>{{ kamera.name }}
+      {% if kamera.status == 'online' %}<span class="rozet yesil">çevrimiçi</span>
+      {% else %}<span class="rozet kirmizi">çevrimdışı</span>{% endif %}
+    </h2>
+    <a href="/kameralar">← Kameralar</a>
+  </div>
+
+  <section class="kart">
+    <h3>Canlı görüntü <span class="not">(1 sn'de bir yenilenir; kutular tespitleri gösterir)</span></h3>
+    <div class="cizim-alani">
+      <img id="onizleme" class="canli-onizleme buyuk" data-kamera="{{ kamera.id }}"
+           src="/kameralar/{{ kamera.id }}/onizleme.jpg" alt="önizleme">
+      <canvas id="cizim"></canvas>
+    </div>
+    <p id="kare-durumu" class="not"></p>
+  </section>
+
+  <section class="kart">
+    <h3>Bölgeler</h3>
+    {% if bolgeler %}
+    <table class="liste">
+      <tr><th>Ad</th><th>Tip</th><th>Nokta</th><th></th></tr>
+      {% for b in bolgeler %}
+      <tr>
+        <td>{{ b.name }}</td>
+        <td>{{ b.tip_adi }}</td>
+        <td>{{ b.polygon | length }}</td>
+        <td>
+          <form method="post" action="/bolgeler/{{ b.id }}/sil" class="satir-form"
+                onsubmit="return confirm('{{ b.name }} bölgesi silinsin mi? Bu bölgeye bağlı kurallar da silinir.')">
+            <button class="dugme ikincil kucuk">Sil</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% else %}
+    <p class="bos">Bu kamerada bölge yok. Kurallar bölge üstünde çalışır — önce bölge çizin.</p>
+    {% endif %}
+
+    <div class="bolge-cizim-kutusu">
+      <h4>Yeni bölge çiz</h4>
+      <p class="not">1) "Çizime başla"ya basın · 2) Yukarıdaki görüntüye tıklayarak köşeleri
+        işaretleyin (en az 3) · 3) Ad ve tip seçip kaydedin.</p>
+      <form method="post" action="/kameralar/{{ kamera.id }}/bolgeler" class="satir-form" id="bolge-formu">
+        <button type="button" class="dugme ikincil" id="cizim-baslat">Çizime başla</button>
+        <input name="name" placeholder="Bölge adı" required>
+        <select name="zone_type">
+          {% for deger, ad in bolge_tipleri.items() %}
+          <option value="{{ deger }}">{{ ad }}</option>
+          {% endfor %}
+        </select>
+        <input type="hidden" name="polygon" id="polygon-alani">
+        <button type="submit" class="dugme" id="bolge-kaydet" disabled>Bölgeyi Kaydet</button>
+        <button type="button" class="dugme ikincil" id="cizim-temizle">Temizle</button>
+      </form>
+    </div>
+  </section>
+
+  <section class="kart">
+    <h3>Mesafe kalibrasyonu
+      {% if kalibrasyon_var %}<span class="rozet yesil">kalibre — {{ kalibrasyon_zamani }}</span>
+      {% else %}<span class="rozet gri">kalibre değil</span>{% endif %}
+    </h3>
+    <p class="not">Güvenli mesafe kuralının çalışması için gereklidir. Zeminde gerçek
+      ölçüsünü bildiğiniz 4 nokta seçin (örn. 5x8 metrelik bir alanın köşeleri):
+      "Nokta seçimine başla"ya basıp görüntüde 4 noktaya sırayla tıklayın,
+      her noktanın gerçek dünyadaki metre karşılığını girin.</p>
+    <form method="post" action="/kameralar/{{ kamera.id }}/kalibrasyon" id="kalibrasyon-formu" class="dikey-form">
+      <button type="button" class="dugme ikincil" id="kalibrasyon-baslat">Nokta seçimine başla</button>
+      <div id="kalibrasyon-noktalar" class="kalibrasyon-izgara"></div>
+      <input type="hidden" name="image_points" id="image-points">
+      <input type="hidden" name="world_points" id="world-points">
+      <button type="submit" class="dugme" id="kalibrasyon-kaydet" disabled>Kalibrasyonu Kaydet</button>
+    </form>
+    {% if kalibrasyon_var %}
+    <form method="post" action="/kameralar/{{ kamera.id }}/kalibrasyon/sil" class="satir-form">
+      <button class="dugme ikincil kucuk">Kalibrasyonu Sil</button>
+    </form>
+    {% endif %}
+  </section>
+
+  <section class="kart">
+    <h3>Bu kameranın kuralları</h3>
+    {% if kurallar %}
+    <table class="liste">
+      <tr><th>Tip</th><th>Aktif</th><th></th></tr>
+      {% for r in kurallar %}
+      <tr>
+        <td>{{ r.tip_adi }}</td>
+        <td>{{ "Evet" if r.enabled else "Hayır" }}</td>
+        <td><a href="/kurallar/{{ r.id }}/duzenle">Düzenle →</a></td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% else %}
+    <p class="bos">Kural yok.</p>
+    {% endif %}
+    <a class="dugme ikincil" href="/kurallar/yeni?kamera={{ kamera.id }}">+ Bu kameraya kural ekle</a>
+  </section>
+
+  <section class="kart">
+    <h3>Kamera ayarları</h3>
+    <form method="post" action="/kameralar/{{ kamera.id }}/duzenle" class="dikey-form dar">
+      <label>Ad <input name="name" value="{{ kamera.name }}" required></label>
+      <label>Alan <input name="area" value="{{ kamera.area }}"></label>
+      <label>Kaynak tipi
+        <select name="source_type">
+          <option value="rtsp" {% if kamera.source_type == 'rtsp' %}selected{% endif %}>RTSP</option>
+          <option value="file" {% if kamera.source_type == 'file' %}selected{% endif %}>Video dosyası</option>
+        </select>
+      </label>
+      <label>Kaynak adresi
+        <input name="source_url" value="{{ kamera.source_url }}">
+        <span class="not">Görünen adres tam adres — yalnızca listelerde maskelenir.</span>
+      </label>
+      <label>Örnekleme (fps)
+        <input name="sample_fps" type="number" step="0.5" min="0.5" max="30" value="{{ kamera.sample_fps }}">
+      </label>
+      <label class="yatay"><input type="checkbox" name="enabled" value="1"
+        {% if kamera.enabled %}checked{% endif %}> Kamera aktif</label>
+      <button type="submit" class="dugme">Kaydet</button>
+    </form>
+    <form method="post" action="/kameralar/{{ kamera.id }}/sil" class="satir-form"
+          onsubmit="return confirm('{{ kamera.name }} kamerası silinsin mi? Bölgeleri ve kuralları da silinir; olay geçmişi korunur.')">
+      <button class="dugme tehlike">Kamerayı Sil</button>
+    </form>
+  </section>
+{% endblock %}
+{% block betikler %}
+<script>window.MEVCUT_BOLGELER = {{ bolgeler_json | safe }};</script>
+<script src="/static/onizleme.js"></script>
+<script src="/static/kamera_detay.js"></script>
+{% endblock %}
