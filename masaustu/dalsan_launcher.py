@@ -120,6 +120,17 @@ def arayuzu_baslat():
     durum = {"surec": None, "calisiyor": False, "mesgul": False}
     log_kuyrugu: "queue.Queue[str]" = queue.Queue()
 
+    # paketler_hazir() bir alt surec calistirir (yavas). Ana pencere donmasin
+    # diye kontrol ARKA PLANDA yapilir, sonucu burada saklanir.
+    paket_durumu = {"hazir": None}  # None = henuz kontrol edilmedi
+
+    def paketleri_arkada_kontrol_et():
+        def kontrol():
+            paket_durumu["hazir"] = paketler_hazir()
+        threading.Thread(target=kontrol, daemon=True).start()
+
+    paketleri_arkada_kontrol_et()
+
     # ---- ust baslik ----
     ust = tk.Frame(kok, bg=BG)
     ust.pack(fill="x", padx=24, pady=(20, 8))
@@ -211,7 +222,10 @@ def arayuzu_baslat():
         else:
             ayarla("python", "Python 3.10 veya üstü gerekiyor", ERR)
 
-        if paketler_hazir():
+        paket_hazir = paket_durumu["hazir"]
+        if paket_hazir is None:
+            ayarla("paket", "kontrol ediliyor…", MUTED)
+        elif paket_hazir:
             ayarla("paket", "Kurulu", OK)
         elif venv_hazir():
             ayarla("paket", "Eksik — 'İlk Kurulumu Yap'a basın", WARN)
@@ -230,7 +244,7 @@ def arayuzu_baslat():
         else:
             ayarla("sunucu", "Durdu", MUTED)
 
-        baslat_btn.configure(state="normal" if (paketler_hazir() and kod_hazir() and not ayakta) else "disabled")
+        baslat_btn.configure(state="normal" if (paket_hazir and kod_hazir() and not ayakta) else "disabled")
         durdur_btn.configure(state="normal" if ayakta else "disabled")
         ekran_btn.configure(state="normal" if ayakta else "disabled")
         kurulum_btn.configure(state="disabled" if durum["mesgul"] else "normal")
@@ -263,17 +277,38 @@ def arayuzu_baslat():
             text=True, bufsize=1,
             creationflags=subprocess.CREATE_NO_WINDOW if IS_WINDOWS else 0,
         )
-        for satir in surec.stdout:
-            log("   " + satir.rstrip())
-        surec.wait()
+
+        # Uzun indirmelerde ekran sessiz kalmasin: 20 sn'de bir yasam isareti.
+        bitti = threading.Event()
+
+        def yasam_isareti():
+            gecen = 0
+            while not bitti.wait(20):
+                gecen += 20
+                log(f"   … sürüyor ({gecen} sn geçti) — indirme devam ediyor, pencereyi kapatmayın.")
+
+        threading.Thread(target=yasam_isareti, daemon=True).start()
+        try:
+            for satir in surec.stdout:
+                log("   " + satir.rstrip())
+            surec.wait()
+        finally:
+            bitti.set()
         if surec.returncode != 0:
             raise RuntimeError(f"{aciklama} başarısız oldu (kod {surec.returncode})")
         log(f"✓ {aciklama} tamam")
 
     # ---- ilk kurulum ----
     def kurulumu_yap():
+        if not python_ok():
+            log("[HATA] Bu bilgisayardaki Python sürümü çok eski (3.10+ gerekiyor).")
+            log("       https://www.python.org/downloads/ adresinden Python 3.12 kurun,")
+            log("       sonra bu paneli kapatıp yeniden açın.")
+            return
         log("=" * 60)
-        log("İLK KURULUM BAŞLIYOR — birkaç dakika sürebilir, pencereyi kapatmayın.")
+        log("İLK KURULUM BAŞLIYOR — internet hızına göre 2-10 dakika sürer.")
+        log("Aşağıya indirme satırları düşecek; ekran arada sessiz kalsa da")
+        log("kurulum sürüyor demektir. PENCEREYİ KAPATMAYIN.")
         klasorleri_hazirla()
         log("✓ Klasörler hazırlandı")
 
@@ -283,16 +318,20 @@ def arayuzu_baslat():
         else:
             log("✓ Python ortamı zaten var")
 
-        komut_calistir([str(venv_python()), "-m", "pip", "install", "--upgrade", "pip"],
+        komut_calistir([str(venv_python()), "-m", "pip", "install", "--upgrade", "pip",
+                        "--progress-bar", "off"],
                        "pip güncelleniyor")
 
         if REQUIREMENTS.exists():
-            komut_calistir([str(venv_python()), "-m", "pip", "install", "-r", str(REQUIREMENTS)],
-                           "Gerekli paketler kuruluyor")
+            komut_calistir([str(venv_python()), "-m", "pip", "install", "-r", str(REQUIREMENTS),
+                            "--progress-bar", "off"],
+                           "Gerekli paketler kuruluyor (en uzun adım bu)")
         else:
             log("[!] backend/requirements.txt bulunamadı — bu dosya Claude Code ile üretilecek.")
 
+        paketleri_arkada_kontrol_et()
         log("\n✓ KURULUM TAMAMLANDI")
+        log("Şimdi 'Sistemi Başlat' düğmesine basabilirsiniz.")
         log("=" * 60)
 
     # ---- sistemi baslat ----
