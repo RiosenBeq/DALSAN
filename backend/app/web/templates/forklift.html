@@ -1,0 +1,95 @@
+{% extends "temel.html" %}
+{% block baslik %}Forklift Verisi — DALSAN İSG{% endblock %}
+{% block icerik %}
+  <h2>Forklift Verisi</h2>
+
+  <section class="kart">
+    <h3>Durum</h3>
+    <table>
+      <tr><th>Toplanan kare</th><td>{{ sayilar.toplam or 0 }}</td></tr>
+      <tr><th>Etiketlenen</th><td>{{ sayilar.etiketli or 0 }} <span class="not">(hedef: {{ hedef_en_az }}–{{ hedef_en_cok }} — docs/08 R1)</span></td></tr>
+      <tr><th>"Forklift" kareleri</th><td>{{ sayilar.forklift or 0 }}</td></tr>
+      <tr><th>"Değil" kareleri</th><td>{{ sayilar.degil or 0 }}</td></tr>
+      <tr><th>"Belirsiz" kareleri</th><td>{{ sayilar.belirsiz or 0 }}</td></tr>
+      <tr><th>Devredeki model</th><td>
+        {% if aktif_model %}
+          {{ aktif_model.surum }} — isabet %{{ "%.1f"|format(aktif_model.yeni_isabet * 100) }}
+          <span class="not">(eski sistem: %{{ "%.1f"|format(aktif_model.eski_isabet * 100) }}, {{ aktif_model.test_sayisi }} test karesi)</span>
+        {% else %}
+          Yok — araçlar şimdilik "tır" olarak görünür
+        {% endif %}
+      </td></tr>
+    </table>
+    <div class="ilerleme"><div class="ilerleme-dolgu" style="width:{{ ilerleme_yuzde }}%"></div></div>
+    <p class="not">Etiketli kare {{ hedef_en_az }} olunca modele forklift ince ayarı yapılabilir;
+      {{ hedef_en_cok }} kare daha da iyidir. Hazır model forklifti çoğu zaman "tır" olarak
+      görür; bu yüzden sistem araç gördüğü karelerden otomatik örnek biriktirir.
+      Sarı kutu, modelin araç sandığı bölgedir: içindeki araç forklift ise
+      <b>Forklift</b>, başka bir araçsa (tır, kamyon, otomobil) <b>Değil</b> deyin.
+      <b>Şüphede kaldığınız kareye her zaman "Belirsiz" deyin</b> — emin olmadan
+      verilen etiket modeli bozar.</p>
+  </section>
+
+  <section class="kart">
+    <h3>Model eğitimi</h3>
+    {% if egitim_hazir %}
+    <p class="not">Yeterli etiketli kare birikti. Eğitim birkaç saniye sürer; eski ve yeni
+      model aynı test kareleri üzerinde karşılaştırılır ve yeni model yalnızca ölçülebilir
+      şekilde daha iyiyse devreye alınır.</p>
+    {% else %}
+    <p class="not">Eğitim için en az {{ egitim_en_az_pozitif }} "Forklift" ve
+      {{ egitim_en_az_negatif }} "Değil" etiketli kare gerekir
+      (şu an {{ sayilar.forklift or 0 }} / {{ sayilar.degil or 0 }}).
+      Etiketlemeye devam edin; düğme her zaman denenebilir, veri yetersizse eğitim
+      çalışmaz ve nedenini söyler.</p>
+    {% endif %}
+    <form method="post" action="/forklift/egit">
+      <button type="submit" class="dugme">Eğitimi çalıştır</button>
+    </form>
+  </section>
+
+  <section class="kart">
+    <h3>Etiketlenecek kareler</h3>
+    {% if ornekler %}
+    <div class="kkd-izgara forklift-izgara">
+      {% for o in ornekler %}
+      <div class="kkd-kart" id="ornek-{{ o.id }}">
+        <div class="kare-sarici">
+          <img src="/forklift/ornek/{{ o.id }}.jpg" alt="kamera karesi">
+          {% if o.kutu_stili %}<div class="aday-kutu" style="{{ o.kutu_stili }}"></div>{% endif %}
+        </div>
+        <div class="kucuk-metin">{{ o.kamera_adi or "—" }} · {{ o.yerel_zaman }}</div>
+        <div class="etiket-grubu" data-ornek="{{ o.id }}">
+          <button data-deger="yes">Forklift</button>
+          <button data-deger="no">Değil</button>
+          <button data-deger="unknown">Belirsiz</button>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="bos">Etiketlenecek kare yok. Kareler, kameralarda araç (forklift/tır)
+      tespit edildikçe otomatik birikir — kameraların çevrimiçi ve tespit modelinin
+      yüklü olduğundan emin olun (Ana Sayfa'daki "Model durumu" kutusu).</p>
+    {% endif %}
+  </section>
+{% endblock %}
+{% block betikler %}
+<script>
+document.querySelectorAll(".etiket-grubu button").forEach(function (dugme) {
+  dugme.addEventListener("click", function () {
+    var grup = dugme.parentElement;
+    var veri = new FormData();
+    veri.append("deger", dugme.dataset.deger);
+    fetch("/forklift/" + grup.dataset.ornek + "/etiket", { method: "POST", body: veri })
+      .then(function (yanit) {
+        if (!yanit.ok) { alert("Etiket kaydedilemedi. Sayfayı yenileyin."); return; }
+        grup.querySelectorAll("button").forEach(function (b) { b.classList.remove("secili"); });
+        dugme.classList.add("secili");
+        var kart = document.getElementById("ornek-" + grup.dataset.ornek);
+        setTimeout(function () { kart.remove(); }, 400);
+      });
+  });
+});
+</script>
+{% endblock %}

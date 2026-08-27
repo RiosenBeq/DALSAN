@@ -107,7 +107,7 @@ def _ayar_satirlari(ayarlar) -> list[tuple[str, str]]:
         ("Log dosyası", _kokten_yol(ayarlar.log_dosyasi, kok)),
         ("Olay saklama", f"{ayarlar.olay_saklama_gun} gün"),
         ("Görüntü saklama", f"{ayarlar.goruntu_saklama_gun} gün"),
-        ("KKD ham veri saklama", f"{ayarlar.kkd_ham_veri_saklama_gun} gün"),
+        ("Ham eğitim verisi saklama (KKD/forklift)", f"{ayarlar.kkd_ham_veri_saklama_gun} gün"),
         ("Çıkarım cihazı", ayarlar.cikarim_cihazi),
         ("Kare örnekleme", f"{ayarlar.kare_ornekleme_fps} fps"),
         ("Tespit modeli", ayarlar.model_dosyasi.name),

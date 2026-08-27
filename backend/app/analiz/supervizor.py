@@ -22,6 +22,7 @@ from pathlib import Path
 
 from app import veritabani, zaman
 from app.analiz.boru_hatti import KameraHatti
+from app.analiz.forklift_siniflandirici import ForkliftSiniflandirici
 from app.analiz.kamera import KameraKaynagi
 from app.analiz.kkd_siniflandirici import KkdSiniflandirici, kisi_kirp
 from app.analiz.tespit import ModelHatasi, Tespitci
@@ -30,7 +31,7 @@ from app.loglama import log_al
 from app.olaylar.anons import AnonsYoneticisi
 from app.olaylar.yazici import ihlal_yaz, sistem_olayi_yaz
 from app.rules.parametreler import KuralParametreHatasi, params_dogrula
-from app.rules.tipler import SINIF_INSAN, Bolge, Kalibrasyon, Kural
+from app.rules.tipler import SINIF_FORKLIFT, SINIF_INSAN, SINIF_TIR, Bolge, Kalibrasyon, Kural
 
 _KONFIG_KONTROL_SN = 5.0
 _DURUM_YAZMA_SN = 5.0
@@ -52,6 +53,7 @@ class AnalizSupervizoru:
         self._son_islenen_kare: dict[int, float] = {}
         self._siradaki_ornek: dict[int, float] = {}
         self._son_kkd_ornek: dict[int, float] = {}
+        self._son_forklift_ornek: dict[int, float] = {}
 
         self._son_konfig_kontrol = 0.0
         self._son_durum_yazma = 0.0
@@ -61,6 +63,7 @@ class AnalizSupervizoru:
         self.tespitci: Tespitci | None = None
         self.tespit_hatasi: str | None = None
         self.kkd = KkdSiniflandirici(None)  # model 9. adımda eğitilecek
+        self.forklift = ForkliftSiniflandirici(ayarlar.forklift_model_klasoru)
         self._anons = AnonsYoneticisi(ayarlar)
 
     # ---- yaşam döngüsü ----
@@ -107,6 +110,8 @@ class AnalizSupervizoru:
                     if simdi - self._son_konfig_kontrol >= _KONFIG_KONTROL_SN:
                         self._son_konfig_kontrol = simdi
                         self._konfigurasyonu_yenile(baglanti)
+                        # Yeni forklift modeli devreye alındıysa restart'sız yüklenir
+                        self.forklift.gerekirse_yenile()
                     self._kameralari_isle(baglanti, simdi)
                     if simdi - self._son_durum_yazma >= _DURUM_YAZMA_SN:
                         self._son_durum_yazma = simdi
@@ -278,7 +283,7 @@ class AnalizSupervizoru:
 
             hat = self._hatlar[kid]
             try:
-                tespitler, ihlaller = hat.isle(kare, simdi, self.tespitci, self.kkd)
+                tespitler, ihlaller = hat.isle(kare, simdi, self.tespitci, self.kkd, self.forklift)
             except Exception as hata:  # noqa: BLE001 — kamera izolasyonu:
                 # bir kameranın işleme hatası diğerlerini durdurmamalı
                 self._log.error(f"Kare işlenemedi (kamera {kid}): {hata}", exc_info=hata)
@@ -287,6 +292,7 @@ class AnalizSupervizoru:
             for ihlal in ihlaller:
                 self._ihlali_kaydet(baglanti, hat, ihlal, simdi)
             self._kkd_ornekle(baglanti, kid, kare, tespitler, hat, simdi)
+            self._forklift_ornekle(baglanti, kid, kare, tespitler, simdi)
 
     def _ihlali_kaydet(self, baglanti, hat: KameraHatti, ihlal, simdi: float) -> None:
         kural_kaydi = self._kural_kaydi(baglanti, ihlal.kural_id)
@@ -351,6 +357,59 @@ class AnalizSupervizoru:
             "INSERT INTO ppe_samples (camera_id, captured_at, crop_path, source) "
             "VALUES (?, ?, ?, 'auto')",
             (kamera_id if kamera_var else None, simdi_utc, goreli),
+        )
+        baglanti.commit()
+
+    def _forklift_ornekle(self, baglanti, kamera_id: int, kare, tespitler, simdi: float) -> None:
+        """Araç görülen karelerden saatlik limitle TAM kare örnekler (docs/08 R1).
+
+        Hazır modelde forklift 'truck'/'car' görünür; bu yüzden her araç tespiti
+        adaydır. Kullanıcı /forklift sayfasında kutuyu Forklift / Değil / Belirsiz
+        olarak etiketler; ince ayar bu etiketli karelerle yapılır.
+        """
+        en_az_aralik = 3600.0 / self.ayarlar.forklift_ornek_saat_limit
+        if simdi - self._son_forklift_ornek.get(kamera_id, 0.0) < en_az_aralik:
+            return
+        genislik = float(kare.shape[1])
+        yukseklik = float(kare.shape[0])
+        for tespit in tespitler:
+            if tespit.sinif not in (SINIF_TIR, SINIF_FORKLIFT):
+                continue
+            x1, y1, x2, y2 = tespit.kutu
+            bbox = [
+                round(x1 / genislik, 4),
+                round(y1 / yukseklik, 4),
+                round(x2 / genislik, 4),
+                round(y2 / yukseklik, 4),
+            ]
+            self._son_forklift_ornek[kamera_id] = simdi
+            self._forklift_ornek_kaydet(baglanti, kamera_id, kare, bbox)
+            break  # bu turda tek örnek yeter
+
+    def _forklift_ornek_kaydet(self, baglanti, kamera_id: int, kare, bbox: list[float]) -> None:
+        import cv2
+
+        simdi_utc = zaman.simdi_utc()
+        goreli = str(
+            Path("forklift-ornekler")
+            / simdi_utc[:7]
+            / f"{simdi_utc.replace(':', '-').replace('+', 'Z')}-k{kamera_id}.jpg"
+        )
+        tam_yol = self.ayarlar.goruntu_klasoru / goreli
+        try:
+            tam_yol.parent.mkdir(parents=True, exist_ok=True)
+            # Overlay'siz temiz kare: eğitim verisine kutu/etiket çizilmez
+            cv2.imwrite(str(tam_yol), kare, [cv2.IMWRITE_JPEG_QUALITY, 85])
+        except (OSError, cv2.error) as hata:
+            self._log.error(f"Forklift örneği yazılamadı ({tam_yol}): {hata}")
+            return
+        # Kamera bu arada silinmiş olabilir (konfig penceresi) — FK hatası yerine
+        # örnek kamerasız kaydedilir; eğitim verisi yine de değerlidir.
+        kamera_var = baglanti.execute("SELECT 1 FROM cameras WHERE id = ?", (kamera_id,)).fetchone()
+        baglanti.execute(
+            "INSERT INTO forklift_samples (camera_id, captured_at, frame_path, bbox, source) "
+            "VALUES (?, ?, ?, ?, 'auto')",
+            (kamera_id if kamera_var else None, simdi_utc, goreli, json.dumps(bbox)),
         )
         baglanti.commit()
 
@@ -421,14 +480,15 @@ class AnalizSupervizoru:
 
         silinen_foto = self._eski_dosyalari_sil(a.goruntu_klasoru, a.goruntu_saklama_gun)
         silinen_kkd = self._kkd_hamlarini_sil(baglanti)
+        silinen_forklift = self._forklift_hamlarini_sil(baglanti)
 
         import shutil as _shutil
 
         bos_gb = _shutil.disk_usage(a.veri_dizini).free / (1024**3)
         self._log.info(
             f"Bakım: {silinen_olay} olay, {silinen_sistem} sistem olayı, "
-            f"{silinen_foto} fotoğraf, {silinen_kkd} KKD örneği silindi; "
-            f"boş disk {bos_gb:.1f} GB"
+            f"{silinen_foto} fotoğraf, {silinen_kkd} KKD örneği, "
+            f"{silinen_forklift} forklift örneği silindi; boş disk {bos_gb:.1f} GB"
         )
         if bos_gb < a.disk_uyari_gb:
             sistem_olayi_yaz(
@@ -440,15 +500,16 @@ class AnalizSupervizoru:
     def _eski_dosyalari_sil(self, klasor: Path, gun: int) -> int:
         """Eski OLAY fotoğraflarını siler.
 
-        kkd-ornekler/ alt ağacına DOKUNMAZ: etiketli örnekler eğitim veri
-        setidir ve asla silinmez; etiketsizlerin süresi _kkd_hamlarini_sil
-        tarafından ayrı (daha kısa) politika ile yönetilir (docs/06 §5).
+        kkd-ornekler/ ve forklift-ornekler/ alt ağaçlarına DOKUNMAZ: etiketli
+        örnekler eğitim veri setidir ve asla silinmez; etiketsizlerin süresi
+        _kkd_hamlarini_sil / _forklift_hamlarini_sil tarafından ayrı (daha
+        kısa) politika ile yönetilir (docs/06 §5).
         """
         sinir = time.time() - gun * 86400
-        kkd_klasoru = klasor / "kkd-ornekler"
+        korunanlar = (klasor / "kkd-ornekler", klasor / "forklift-ornekler")
         sayi = 0
         for dosya in klasor.rglob("*.jpg"):
-            if dosya.is_relative_to(kkd_klasoru):
+            if any(dosya.is_relative_to(k) for k in korunanlar):
                 continue
             try:
                 if dosya.stat().st_mtime < sinir:
@@ -474,6 +535,29 @@ class AnalizSupervizoru:
                 self._log.error(f"KKD örneği silinemedi ({dosya}): {hata}")
         baglanti.execute(
             "DELETE FROM ppe_samples WHERE labeled_at IS NULL AND captured_at < ?",
+            (sinir,),
+        )
+        baglanti.commit()
+        return len(satirlar)
+
+    def _forklift_hamlarini_sil(self, baglanti) -> int:
+        """Etiketlenmemiş forklift kareleri süre dolunca dosyasıyla birlikte silinir.
+        KKD ham verisiyle aynı saklama süresine tabidir (tek 'ham eğitim verisi'
+        politikası — ayrı bir ayar öğrenilmesin)."""
+        sinir = zaman.gun_once_utc(self.ayarlar.kkd_ham_veri_saklama_gun)
+        satirlar = baglanti.execute(
+            "SELECT id, frame_path FROM forklift_samples "
+            "WHERE labeled_at IS NULL AND captured_at < ?",
+            (sinir,),
+        ).fetchall()
+        for satir in satirlar:
+            dosya = self.ayarlar.goruntu_klasoru / satir["frame_path"]
+            try:
+                dosya.unlink(missing_ok=True)
+            except OSError as hata:
+                self._log.error(f"Forklift örneği silinemedi ({dosya}): {hata}")
+        baglanti.execute(
+            "DELETE FROM forklift_samples WHERE labeled_at IS NULL AND captured_at < ?",
             (sinir,),
         )
         baglanti.commit()

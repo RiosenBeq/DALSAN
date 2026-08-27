@@ -10,7 +10,7 @@ def test_ana_sayfa_200_donuyor(istemci):
 def test_ana_sayfa_beklenen_bilgileri_gosteriyor(istemci):
     metin = istemci.get("/").text
     assert "Henüz kamera eklenmedi" in metin
-    assert "001_ilk.sql" in metin  # şema sürümü
+    assert "002_forklift_ornekleri.sql" in metin  # en son şema sürümü
     assert "Aktif ayarlar" in metin
     assert "Disk" in metin
 

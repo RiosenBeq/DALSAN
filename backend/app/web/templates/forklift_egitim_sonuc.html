@@ -1,0 +1,39 @@
+{% extends "temel.html" %}
+{% block baslik %}Forklift Eğitim Sonucu — DALSAN İSG{% endblock %}
+{% block icerik %}
+  <h2>Forklift Eğitim Sonucu</h2>
+
+  {% if sonuc.hata %}
+  <section class="kart">
+    <h3>Eğitim çalıştırılamadı</h3>
+    <p>{{ sonuc.hata }}</p>
+    <p><a href="/forklift">← Forklift sayfasına dön</a></p>
+  </section>
+  {% else %}
+  <section class="kart">
+    <h3>{{ "Yeni model devreye alındı" if sonuc.devreye_alindi else "Yeni model devreye ALINMADI" }}</h3>
+    <p>{{ sonuc.sebep }}</p>
+    <table>
+      <tr><th>Model sürümü</th><td>{{ sonuc.surum }}{% if sonuc.devreye_alindi %} <b>(devrede)</b>{% endif %}</td></tr>
+      <tr><th>Eğitim karesi</th><td>{{ sonuc.egitim_sayisi }}</td></tr>
+      <tr><th>Test karesi</th><td>{{ sonuc.test_sayisi }} <span class="not">(zamana göre ayrılmış — eğitimde hiç görülmemiş kareler)</span></td></tr>
+      <tr><th>Eskinin isabeti</th><td>%{{ "%.1f"|format(sonuc.eski_isabet * 100) }} <span class="not">({{ sonuc.eski_ad }})</span></td></tr>
+      <tr><th>Yeni modelin isabeti</th><td><b>%{{ "%.1f"|format(sonuc.yeni_isabet * 100) }}</b></td></tr>
+      <tr><th>Kesinlik</th><td>%{{ "%.1f"|format(sonuc.kesinlik * 100) }} <span class="not">("forklift" dediklerinin ne kadarı gerçekten forklift)</span></td></tr>
+      <tr><th>Duyarlılık</th><td>%{{ "%.1f"|format(sonuc.duyarlilik * 100) }} <span class="not">(gerçek forkliftlerin ne kadarını yakaladı)</span></td></tr>
+      {% if sonuc.atlanan_sayisi %}<tr><th>Okunamayan kare</th><td>{{ sonuc.atlanan_sayisi }}</td></tr>{% endif %}
+    </table>
+    {% if sonuc.devreye_alindi %}
+    <p class="not">Sistem yeni modeli en geç 5 saniye içinde, yeniden başlatmadan kullanmaya
+      başlar. Kamera önizlemelerinde forkliftler artık "forklift" etiketiyle görünür ve
+      forklift hedefli kurallar çalışır. Her eğitim sürümlü kaydedilir; bir sonraki
+      eğitim, devredeki {{ sonuc.surum }} ile aynı test kareleri üzerinde karşılaştırılır
+      ve yine yalnızca daha iyiyse devreye alınır.</p>
+    {% else %}
+    <p class="not">Bu sürüm kayıt altına alındı ama sistemin davranışı DEĞİŞMEDİ.
+      Daha fazla ve daha çeşitli kare etiketleyip (farklı günler, farklı ışık) yeniden deneyin.</p>
+    {% endif %}
+    <p><a href="/forklift">← Forklift sayfasına dön</a></p>
+  </section>
+  {% endif %}
+{% endblock %}

@@ -254,3 +254,35 @@ legend { font-size: 0.88rem; color: var(--metin-3); padding: 0 6px; }
   background: var(--vurgu); color: #fff; border-color: var(--vurgu);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
 }
+
+/* Forklift etiketleme — KKD düzeni + tam kare üstünde aday araç kutusu */
+.forklift-izgara { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+.kare-sarici { position: relative; line-height: 0; }
+.kare-sarici img { width: 100%; border-radius: 7px; background: #181a20; }
+.aday-kutu {
+  position: absolute; pointer-events: none;
+  border: 2px solid #eab308; border-radius: 3px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.45);
+}
+.ilerleme {
+  height: 8px; border-radius: 999px; overflow: hidden; margin-top: 10px;
+  background: rgba(20, 22, 28, 0.10); border: 1px solid var(--cizgi-soluk);
+}
+.ilerleme-dolgu { height: 100%; background: var(--vurgu); border-radius: 999px; }
+
+/* Anons paneli */
+.anons-mesaj {
+  border: 1px solid var(--cizgi-soluk); border-radius: var(--radius-kucuk);
+  padding: 12px; margin-top: 12px; background: rgba(255, 255, 255, 0.45);
+  display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end;
+}
+.anons-form { display: grid; gap: 8px; flex: 1; min-width: 320px; }
+.anons-baslik { display: flex; gap: 10px; align-items: center; }
+.anons-deneme { display: flex; gap: 8px; align-items: center; }
+.satir-ici { display: flex; gap: 6px; align-items: center; }
+.rozet {
+  font-size: 0.75rem; padding: 1px 8px; border-radius: 999px;
+  background: var(--vurgu-halka); color: var(--vurgu-koyu);
+}
+.sonuc-basarili { border-left: 4px solid #15803d; }
+.sonuc-basarisiz { border-left: 4px solid #b45309; }

@@ -17,7 +17,16 @@ from fastapi.staticfiles import StaticFiles
 from app import loglama, veritabani
 from app.ayarlar import Ayarlar
 from app.hatalar import VeritabaniHatasi, hata_yakalayicilari_kur
-from app.web import giris, kameralar, kkd_web, kurallar, olaylar_web, rotalar
+from app.web import (
+    anons_web,
+    forklift_web,
+    giris,
+    kameralar,
+    kkd_web,
+    kurallar,
+    olaylar_web,
+    rotalar,
+)
 
 STATIK_DIZINI = Path(__file__).resolve().parent / "web" / "static"
 
@@ -72,6 +81,8 @@ def uygulama_olustur(ayarlar: Ayarlar, analiz: bool = True) -> FastAPI:
     uygulama.include_router(kurallar.router, dependencies=korumali)
     uygulama.include_router(olaylar_web.router, dependencies=korumali)
     uygulama.include_router(kkd_web.router, dependencies=korumali)
+    uygulama.include_router(forklift_web.router, dependencies=korumali)
+    uygulama.include_router(anons_web.router, dependencies=korumali)
 
     uygulama.mount("/static", StaticFiles(directory=str(STATIK_DIZINI)), name="static")
     return uygulama

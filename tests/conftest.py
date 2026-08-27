@@ -38,6 +38,7 @@ def test_ayarlari(tmp_path: Path):
         kkd_ham_veri_saklama_gun=30,
         sistem_olay_saklama_gun=90,
         kkd_ornek_saat_limit=60,
+        forklift_ornek_saat_limit=30,
         disk_uyari_gb=5,
         cikarim_cihazi="cpu",
         kare_ornekleme_fps=6,
@@ -45,6 +46,7 @@ def test_ayarlari(tmp_path: Path):
         anons_http_adresi="",
         anons_bekleme_sn=30,
         model_dosyasi=tmp_path / "models" / "olmayan-model.onnx",
+        forklift_model_klasoru=tmp_path / "models" / "forklift",
     )
 
 

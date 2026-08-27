@@ -1,0 +1,83 @@
+{% extends "temel.html" %}
+{% block baslik %}Anons — DALSAN İSG{% endblock %}
+{% block icerik %}
+  <h2>Anons</h2>
+
+  {% if sonuc %}
+  <section class="kart {{ 'sonuc-basarili' if basarili else 'sonuc-basarisiz' }}">
+    <p>{{ sonuc }}</p>
+  </section>
+  {% endif %}
+
+  <section class="kart">
+    <h3>Anons yöntemi</h3>
+    <table>
+      <tr><th>Şu anki yöntem</th><td><b>{{ anons_adi }}</b> <span class="not">(.env: ANONS={{ anons_turu }})</span></td></tr>
+      {% if anons_turu == 'http' %}
+      <tr><th>Hoparlör adresi</th><td>{{ http_adresi or "— tanımlı değil" }}</td></tr>
+      {% endif %}
+      <tr><th>Tekrar bekleme</th><td>{{ bekleme_sn }} saniye <span class="not">(aynı kamera ve mesaj için hoparlör bu süre dolmadan tekrar bağırmaz)</span></td></tr>
+    </table>
+    <p class="not">{{ tur_aciklamasi }}</p>
+  </section>
+
+  <section class="kart">
+    <h3>Fabrikadaki anons sistemi öğrenilince ne yapılacak</h3>
+    <p class="not">Sistem üç olasılığın üçüne de hazır. DALSAN'dan cevap gelince
+      <b>.env</b> dosyasındaki <b>ANONS</b> satırı değiştirilip sistem yeniden başlatılır;
+      başka hiçbir şey değişmez.</p>
+    <table>
+      <tr>
+        <th>Amfiye ses kablosuyla bağlanabiliyorsak</th>
+        <td><code>ANONS=ses_karti</code> — sunucunun ses çıkışı amfiye bağlanır, her mesaja
+          bir WAV dosyası tanımlanır.</td>
+      </tr>
+      <tr>
+        <th>IP hoparlör / anons sunucusu varsa</th>
+        <td><code>ANONS=http</code> ve <code>ANONS_HTTP_ADRESI=http://...</code> — sistem
+          ihlal anında bu adrese mesajı gönderir.</td>
+      </tr>
+      <tr>
+        <th>Kapalı sistem, erişim yoksa</th>
+        <td><code>ANONS=null</code> kalır — sistem yalnızca ekrana uyarı düşer.
+          Bu durum MVP için kabul edilmiştir; anons kapsam dışı yazılır.</td>
+      </tr>
+    </table>
+  </section>
+
+  <section class="kart">
+    <h3>Anons mesajları</h3>
+    <p class="not">"Deneme anonsu çal" düğmesi mesajı <b>hemen</b> çalar — bekleme süresi
+      uygulanmaz, mesaj kapalı olsa bile çalar. Kurulumu doğrulamak içindir.
+      Bir mesajın ihlalde otomatik duyurulması için, Kurallar sayfasında ilgili kurala
+      bağlanmış olması gerekir.</p>
+    {% for m in mesajlar %}
+    <div class="anons-mesaj">
+      <form method="post" action="/anons/{{ m.id }}/kaydet" class="anons-form">
+        <div class="anons-baslik">
+          <b>{{ m.key }}</b>
+          {% if m.kural_sayisi %}
+            <span class="rozet">{{ m.kural_sayisi }} kurala bağlı</span>
+          {% else %}
+            <span class="not">hiçbir kurala bağlı değil — ihlalde çalmaz</span>
+          {% endif %}
+        </div>
+        <label>Anons metni
+          <input type="text" name="metin" value="{{ m.text }}" required>
+        </label>
+        <label>Ses dosyası <span class="not">(ANONS=ses_karti için; proje klasörüne göre yol)</span>
+          <input type="text" name="ses_dosyasi" value="{{ m.audio_file or '' }}" placeholder="veri/sesler/baret.wav">
+        </label>
+        <label class="satir-ici">
+          <input type="checkbox" name="acik" value="1" {% if m.enabled %}checked{% endif %}> Açık
+        </label>
+        <button type="submit" class="dugme ikincil kucuk">Kaydet</button>
+      </form>
+      <form method="post" action="/anons/{{ m.id }}/deneme" class="anons-deneme">
+        <button type="submit" class="dugme kucuk">Deneme anonsu çal</button>
+        <span class="not">kayıtlı metni çalar</span>
+      </form>
+    </div>
+    {% endfor %}
+  </section>
+{% endblock %}

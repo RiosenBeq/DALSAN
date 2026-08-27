@@ -10,12 +10,22 @@ import threading
 import cv2
 import numpy as np
 
+from app.analiz.forklift_siniflandirici import ForkliftSiniflandirici, arac_kirp
 from app.analiz.kkd_siniflandirici import KkdSiniflandirici, kisi_kirp
 from app.analiz.takip import Takipci
 from app.analiz.tespit import SINIF_TR, Tespitci
 from app.rules.geometri import nokta_poligonda
 from app.rules.motor import KuralMotoru
-from app.rules.tipler import SINIF_INSAN, Bolge, Ihlal, Kalibrasyon, Kural, Tespit
+from app.rules.tipler import (
+    SINIF_FORKLIFT,
+    SINIF_INSAN,
+    SINIF_TIR,
+    Bolge,
+    Ihlal,
+    Kalibrasyon,
+    Kural,
+    Tespit,
+)
 
 # KKD çağrısı seyrek: kişi track'i başına her 5. işlenen karede bir (docs/02 §6)
 _KKD_KARE_ARALIGI = 5
@@ -49,6 +59,7 @@ class KameraHatti:
         zaman_s: float,
         tespitci: Tespitci | None,
         kkd: KkdSiniflandirici,
+        forklift: ForkliftSiniflandirici | None = None,
     ) -> tuple[list[Tespit], list[Ihlal]]:
         yukseklik, genislik = kare.shape[:2]
 
@@ -58,6 +69,7 @@ class KameraHatti:
             kutular, guvenler, siniflar = tespitci.tespit_et(kare)
             tespitler = self._takipci.guncelle(kutular, guvenler, siniflar)
 
+        self._forklift_siniflandir(kare, tespitler, forklift)
         self._kkd_degerlendir(kare, tespitler, (genislik, yukseklik), kkd)
 
         ihlaller = self._motor.degerlendir(
@@ -84,6 +96,26 @@ class KameraHatti:
         )
 
     # ---- iç ----
+
+    def _forklift_siniflandir(
+        self,
+        kare: np.ndarray,
+        tespitler: list[Tespit],
+        forklift: ForkliftSiniflandirici | None,
+    ) -> None:
+        """Devrede eğitilmiş model varsa araç kutularını forklift/tır ayırır.
+
+        Model yoksa sınıf DEĞİŞMEZ (docs/08 R1): araç 'tır' kalır, sahte
+        karar üretilmez.
+        """
+        if forklift is None or not forklift.model_var:
+            return
+        for tespit in tespitler:
+            if tespit.sinif != SINIF_TIR:
+                continue
+            kirpik = arac_kirp(kare, tespit.kutu)
+            if kirpik is not None and forklift.forklift_mi(kirpik):
+                tespit.sinif = SINIF_FORKLIFT
 
     def _kkd_degerlendir(
         self,

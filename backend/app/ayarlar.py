@@ -40,6 +40,7 @@ class Ayarlar:
     kkd_ham_veri_saklama_gun: int
     sistem_olay_saklama_gun: int
     kkd_ornek_saat_limit: int
+    forklift_ornek_saat_limit: int
     disk_uyari_gb: int
     cikarim_cihazi: str
     kare_ornekleme_fps: int
@@ -47,6 +48,7 @@ class Ayarlar:
     anons_http_adresi: str
     anons_bekleme_sn: int
     model_dosyasi: Path
+    forklift_model_klasoru: Path
 
 
 def ayarlari_yukle(kok_dizin: Path | None = None) -> Ayarlar:
@@ -107,6 +109,9 @@ def ayarlari_yukle(kok_dizin: Path | None = None) -> Ayarlar:
         # KKD veri toplama: kamera başına saatte en çok kaç kişi görüntüsü
         # örneklenir (docs/04 §4.3 — aynı kişinin 200 ardışık karesi değil)
         kkd_ornek_saat_limit=_tam_sayi(degerler, "KKD_ORNEK_SAAT_LIMIT", 60, 1, 3600),
+        # Forklift veri toplama (docs/08 R1): araç görülen karelerden kamera
+        # başına saatte en çok kaç TAM kare örneklenir
+        forklift_ornek_saat_limit=_tam_sayi(degerler, "FORKLIFT_ORNEK_SAAT_LIMIT", 30, 1, 3600),
         # Boş disk bu değerin altına inince sistem olayı üretilir (docs/08 R8)
         disk_uyari_gb=_tam_sayi(degerler, "DISK_UYARI_GB", 5, 1, 1000),
         cikarim_cihazi=_secenek(degerler, "CIKARIM_CIHAZI", "cpu", _CIHAZ_SECENEKLERI),
@@ -117,6 +122,8 @@ def ayarlari_yukle(kok_dizin: Path | None = None) -> Ayarlar:
         # hoparlör aynı kamera+mesaj için bu süre dolmadan tekrar bağırmaz.
         anons_bekleme_sn=_tam_sayi(degerler, "ANONS_BEKLEME_SN", 30, 5, 3600),
         model_dosyasi=kok / _metin(degerler, "MODEL_DOSYASI", "models/yolox_tiny.onnx"),
+        # Forklift sınıflandırıcısının sürümlü model klasörü (docs/08 R1)
+        forklift_model_klasoru=kok / _metin(degerler, "FORKLIFT_MODEL_KLASORU", "models/forklift"),
     )
 
 

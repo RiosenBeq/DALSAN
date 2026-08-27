@@ -4,9 +4,9 @@
 
 | # | Risk | Etki | Yaklaşım |
 |---|---|---|---|
-| **R1** | **Forklift sınıfı hazır modellerde yok.** COCO'da forklift yok; "truck" olarak yanlış sınıflanır. | Yüksek | 1. haftada saha kameralarından 300-800 kare toplanıp etiketlenir; hazır ağırlıklar üzerine fine-tuning (3-4. hafta). Kamu setleri başlangıç noktası, **saha görüntüsü şart**. Bu, teklifin "kapsam dışı: yeni senaryolar" maddesine girmez — taahhüt edilen sınıfın kendisidir. |
+| **R1** | **Forklift sınıfı hazır modellerde yok.** COCO'da forklift yok; "truck" olarak yanlış sınıflanır. | Yüksek | 1. haftada saha kameralarından 300-800 kare toplanıp etiketlenir; hazır ağırlıklar üzerine fine-tuning (3-4. hafta). Kamu setleri başlangıç noktası, **saha görüntüsü şart**. Bu, teklifin "kapsam dışı: yeni senaryolar" maddesine girmez — taahhüt edilen sınıfın kendisidir. **Durum: altyapı hazır** — sistem araç görülen karelerden otomatik örnek biriktirir, `/forklift` sayfasında tek tıkla etiketlenir, "Eğitimi çalıştır" düğmesi modeli eğitip eski/yeni isabeti aynı test kareleri üzerinde karşılaştırır ve **yalnızca daha iyiyse** devreye alır (bkz. §4). |
 | **R2** | **Dedektör lisansı** (ADR-002). Ultralytics AGPL-3.0. | Orta-yüksek | 1. haftada karar. Öneri: Apache-2.0 alternatif. `Detector` arayüzü arkasında izole. |
-| **R3** | **Anons altyapısı entegre edilemeyebilir.** Teklif koşula bağlamış. | Orta | 1. haftada tespit: analog amplifikatör (ses kartı) / IP hoparlör (HTTP) / kapalı sistem (kapsam dışı, yazılı mutabakat). MVP anonssuz da kabul edilebilir (K6). |
+| **R3** | **Anons altyapısı entegre edilemeyebilir.** Teklif koşula bağlamış. | Orta | 1. haftada tespit: analog amplifikatör (ses kartı) / IP hoparlör (HTTP) / kapalı sistem (kapsam dışı, yazılı mutabakat). MVP anonssuz da kabul edilebilir (K6). **Durum: üç olasılığın üçü de hazır** — `/anons` sayfasında yöntem görünür, mesajlar düzenlenir ve deneme anonsu çalınır. Tür öğrenilince yalnızca `.env` içindeki `ANONS` satırı değişir; kod değişmez (bkz. §5). |
 | **R4** | **Yanlış alarm yükü.** Sistem gereğinden hassassa güven kaybeder. | Yüksek | Tasarımda: kalış süresi, ardışık kare, cooldown, "araç hareketliyken", KKD zamansal oylaması. Süreçte: 7. hafta ölçüme dayalı ayarlama; olay durumu alanı oranı ölçülebilir kılar. |
 | **R5** | **Kamera açıları analiz için elverişsiz olabilir.** Mevcut kameralar güvenlik için konumlandırılmış. | Yüksek | 1. hafta keşfinin birincil çıktısı kamera-bölge uygunluk tablosudur. Mesafe kuralı zemin görünürlüğü ister; **KKD piksel eşiği ister** (R9). Uygun olmayan kamera yazılı olarak kapsam dışı bırakılır. |
 | **R6** | **Sunucu donanımı kapsam dışı.** GPU'lu sunucu yoksa proje başlayamaz. | Yüksek | Gereksinim 1. haftada yazılı iletilir; tedarik DALSAN'da; termin bu koşula bağlı (teklifin varsayımlar bölümü bunu zaten kapsıyor). |
@@ -47,3 +47,54 @@ bu şekilde anlatılır:
 - Track ID değişirse aynı kişi için tekrar uyarı üretilebilir
 - Ham video **saklanmaz** — yalnızca olay anı görüntüsü
 - Sistem kesin tespit taahhüdü içermez; İSG prosedürlerinin yerine geçmez
+
+## 4. Forklift veri toplama ve ince ayar (R1'in uygulaması)
+
+**Toplama.** Analiz süpervizörü, araç (`truck`/`forklift`) tespit edilen karelerden
+kamera başına saatte en çok `FORKLIFT_ORNEK_SAAT_LIMIT` (varsayılan 30) adet **tam
+kare** yazar. Kırpık değil tam kare saklanır; dedektör ince ayarı kutu konumunu ister.
+Aday araç kutusu normalize koordinatla `forklift_samples.bbox` içine yazılır.
+
+**Etiketleme.** `/forklift` sayfası KKD sayfasıyla aynı düzendedir: her kart bir kare,
+üzerinde sarı aday kutusu, altında üç düğme — **Forklift / Değil / Belirsiz**.
+Etiketlenen kart listeden düşer. Hedef 300-800 etiketli kare.
+
+**Eğitim.** "Eğitimi çalıştır" düğmesi `app/egitim/forklift_egitim.py` çağırır:
+
+- Veri **zamana göre** bölünür (son %20 test) — rastgele bölme yasağı KKD ile aynıdır
+  (`04-KKD` §5.4); aksi halde aynı aracın ardışık kareleri hem eğitime hem teste düşer
+- `belirsiz` etiketli kareler eğitime **girmez**
+- Eski ve yeni model **aynı test kareleri** üzerinde karşılaştırılır. "Eski" = devrede
+  bir sürüm varsa o, yoksa bugünkü davranış (hiçbir araç forklift sayılmaz)
+- Sonuç her koşulda `models/forklift/vNNN.npz` + `vNNN.json` olarak **sürümlü** kaydedilir
+- Yeni model **yalnızca isabeti eskiyi geçerse** devreye alınır (`aktif.json` güncellenir);
+  geçemezse sistemin davranışı değişmez ve sebebi ekranda yazar
+- Devreye alınan model, süpervizörün 5 sn'lik konfig turunda **yeniden başlatmadan** yüklenir
+
+**Model yoksa sınıf değişmez:** araç `tır` olarak kalır. Uydurma karar üretilmez —
+`04-KKD` §1'deki "kanıtın yokluğu, ihlalin varlığı değildir" ilkesinin aynısı.
+
+**Saklama.** Etiketlenmemiş kareler `KKD_HAM_VERI_SAKLAMA_GUN` sonunda silinir;
+**etiketlenenler eğitim veri setidir ve retention'a tabi değildir.**
+
+## 5. Anons altyapısı (R3'ün uygulaması)
+
+Üç yöntem de kodda hazırdır ve `.env` içindeki tek satırla seçilir:
+
+| `ANONS` değeri | Karşılığı | Ek ayar |
+|---|---|---|
+| `null` | Anons yok; yalnız ekran uyarısı (MVP'de kabul — K6) | — |
+| `ses_karti` | Sunucunun ses çıkışı amfiye kabloyla bağlı | Her mesaja bir WAV dosyası |
+| `http` | IP hoparlör / anons sunucusu | `ANONS_HTTP_ADRESI` |
+
+`/anons` sayfası: yürürlükteki yöntemi, bekleme süresini ve her mesajın hangi kurallara
+bağlı olduğunu gösterir; mesaj metni ve ses dosyası düzenlenir; **"Deneme anonsu çal"**
+düğmesi mesajı anında çalar (bekleme uygulanmaz, kapalı mesaj da çalar — kurulum
+doğrulamak içindir) ve sonucu Türkçe olarak ekrana yazar.
+
+İhlalde otomatik anons, kurala bağlanmış mesaj üzerinden verilir. Anons cooldown'u
+ekran uyarısından **bağımsızdır** (`ANONS_BEKLEME_SN`, varsayılan 30 sn): ekranda
+yüzlerce olay görünse de hoparlör aynı kamera+mesaj için 30 saniyede bir konuşur.
+
+DALSAN'dan anons sisteminin türü öğrenilince **yalnızca `.env` satırı değişir**; kod,
+kurallar ve mesajlar aynı kalır.
