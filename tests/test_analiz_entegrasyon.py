@@ -5,6 +5,7 @@ kaynağı regresyon testi içindir).
 
 from __future__ import annotations
 
+import json
 import time
 
 import cv2
@@ -49,9 +50,6 @@ def analizli_istemci(test_ayarlari, tmp_path):
 
     uygulama = uygulama_olustur(test_ayarlari, analiz=True)
     with TestClient(uygulama) as istemci:
-        from conftest import TEST_SIFRESI
-
-        istemci.post("/giris", data={"sifre": TEST_SIFRESI, "sonra": "/"})
         yield istemci
 
 
@@ -79,3 +77,27 @@ def test_video_kaynagi_cevrimici_olur_ve_onizleme_gelir(analizli_istemci, test_a
     # Ana sayfada model durumu dürüstçe raporlanıyor (model yok → 'Yüklenemedi')
     ana = analizli_istemci.get("/").text
     assert "Yüklenemedi" in ana
+
+
+def test_yeni_kamera_cevrimdisi_olayi_uretmez(analizli_istemci, test_ayarlari):
+    """Kamera eklenir eklenmez 'Kamera çevrimdışı' olayı düşmemeli (ilk bağlantı
+    süresi 'bağlanıyor' sayılır); durum satırı da bunu söylemeli."""
+    for _ in range(40):
+        veri = analizli_istemci.get("/kameralar/1/durum.json").json()
+        if veri["durum"] == "online":
+            break
+        assert veri["durum"] == "connecting", veri
+        time.sleep(0.5)
+    else:
+        pytest.fail(f"Kamera çevrimiçi olmadı: {veri}")
+    assert "Görüntü akıyor" in veri["mesaj"]
+
+    baglanti = veritabani.baglanti_ac(test_ayarlari.veritabani_yolu)
+    try:
+        olaylar = [
+            json.loads(s["details"])["mesaj"]
+            for s in baglanti.execute("SELECT details FROM events WHERE event_type = 'system'")
+        ]
+    finally:
+        baglanti.close()
+    assert not any("çevrimdışı" in m for m in olaylar), olaylar

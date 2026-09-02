@@ -105,6 +105,8 @@ def olay_listesi(istek: Request, baglanti=Depends(baglanti_al)):
             "alanlar": alanlar,
             "durumlar": OLAY_DURUMLARI,
             "filtre": dict(istek.query_params),
+            # CSV bağlantısı ekrandaki filtreyi aynen taşısın
+            "istek_sorgusu": istek.url.query,
         },
     )
 

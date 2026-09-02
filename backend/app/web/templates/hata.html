@@ -1,0 +1,12 @@
+{% extends "temel.html" %}
+{% block baslik %}{{ baslik }} — DALSAN İSG{% endblock %}
+{% block icerik %}
+  <section class="kart dar hata-karti">
+    <h2>{{ baslik }}</h2>
+    <p class="hata-mesaji buyuk">{{ mesaj }}</p>
+    <div class="satir-form">
+      <a class="dugme" href="javascript:history.back()">← Geri dön ve düzelt</a>
+      <a class="dugme ikincil" href="/">Ana sayfa</a>
+    </div>
+  </section>
+{% endblock %}

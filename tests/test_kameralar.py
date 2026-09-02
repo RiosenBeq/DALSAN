@@ -125,3 +125,107 @@ def test_dogru_uzerindeki_kalibrasyon_noktalari_reddedilir(istemci):
         follow_redirects=False,
     )
     assert yanit.status_code == 400
+
+
+# ---- kamera ekleme: dosya yolu ve hata sayfası ----
+
+
+def test_olmayan_video_dosyasi_reddedilir(istemci):
+    yanit = istemci.post(
+        "/kameralar/yeni",
+        data={
+            "name": "Yok",
+            "source_type": "file",
+            "source_url": "/olmayan/klasor/video.mp4",
+            "sample_fps": "6",
+        },
+        follow_redirects=False,
+    )
+    assert yanit.status_code == 400
+    assert "bulunamadı" in yanit.json()["hata"]
+
+
+def test_dosya_yolu_temizlenir(istemci, test_ayarlari):
+    """Tırnak, file:// ve ~ ile yapıştırılan yol OpenCV'nin açacağı düz yola döner."""
+    from app.web.kameralar import dosya_yolu_duzelt
+
+    video = test_ayarlari.kok_dizin / "ornek video.mp4"
+    video.write_bytes(b"sahte")
+    assert dosya_yolu_duzelt(f'"{video}"') == str(video)
+    assert dosya_yolu_duzelt(f"file://{video}".replace(" ", "%20")) == str(video)
+    assert dosya_yolu_duzelt(str(video).replace(" ", "\\ ")) == str(video)
+    assert dosya_yolu_duzelt("file:///C:/Users/ali/test.mp4") == "C:/Users/ali/test.mp4"
+    assert dosya_yolu_duzelt("~/test.mp4").startswith("/") or ":" in dosya_yolu_duzelt("~/test.mp4")
+
+    yanit = istemci.post(
+        "/kameralar/yeni",
+        data={"name": "T", "source_type": "file", "source_url": f'"{video}"', "sample_fps": "6"},
+        follow_redirects=False,
+    )
+    assert yanit.status_code == 303
+    detay = istemci.get(yanit.headers["location"]).text
+    assert str(video) in detay  # temizlenmiş yol kaydedildi
+
+
+def test_tarayici_icin_hata_sayfasi_json_degil(istemci):
+    """Tarayıcıdan gelen form hatası ham JSON değil, Türkçe hata sayfası görür."""
+    yanit = istemci.post(
+        "/kameralar/yeni",
+        data={"name": "X", "source_type": "rtsp", "source_url": "http://x", "sample_fps": "6"},
+        headers={"accept": "text/html"},
+        follow_redirects=False,
+    )
+    assert yanit.status_code == 400
+    assert "text/html" in yanit.headers["content-type"]
+    assert "rtsp://" in yanit.text
+    assert "Geri dön" in yanit.text
+
+
+def test_eksik_form_alani_turkce_mesaj(istemci):
+    """FastAPI'nin İngilizce 422'si yerine hangi alanın hatalı olduğu Türkçe söylenir."""
+    yanit = istemci.post(
+        "/kameralar/yeni",
+        data={
+            "name": "X",
+            "source_type": "rtsp",
+            "source_url": "rtsp://1.2.3.4",
+            "sample_fps": "abc",
+        },
+        follow_redirects=False,
+    )
+    assert yanit.status_code == 400
+    assert "Örnekleme hızı" in yanit.json()["hata"]
+
+
+def test_rtsp_adresinde_ip_yoksa_reddedilir(istemci):
+    yanit = istemci.post(
+        "/kameralar/yeni",
+        data={"name": "X", "source_type": "rtsp", "source_url": "rtsp://", "sample_fps": "6"},
+        follow_redirects=False,
+    )
+    assert yanit.status_code == 400
+    assert "IP" in yanit.json()["hata"]
+
+
+def test_pasif_kamera_durumu(istemci):
+    kamera_id = _kamera_ekle(istemci)
+    istemci.post(
+        f"/kameralar/{kamera_id}/duzenle",
+        data={
+            "name": "Test Kamera",
+            "source_type": "rtsp",
+            "source_url": "rtsp://admin:gizli123@10.0.0.5:554/ana",
+            "sample_fps": "6",
+            "enabled": "0",
+        },
+        follow_redirects=False,
+    )
+    assert istemci.get(f"/kameralar/{kamera_id}/durum.json").json()["durum"] == "pasif"
+    assert "pasif" in istemci.get("/kameralar").text
+
+
+def test_analiz_kapaliyken_durum_json(istemci):
+    kamera_id = _kamera_ekle(istemci)
+    veri = istemci.get(f"/kameralar/{kamera_id}/durum.json").json()
+    assert veri["durum"] == "kapali"
+    assert istemci.get("/kameralar/999/durum.json").status_code == 404

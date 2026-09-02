@@ -15,8 +15,6 @@ from pathlib import Path
 
 import pytest
 
-TEST_SIFRESI = "cok-gizli-test-sifresi"
-
 
 @pytest.fixture
 def test_ayarlari(tmp_path: Path):
@@ -28,7 +26,6 @@ def test_ayarlari(tmp_path: Path):
     (veri / "goruntuler").mkdir()
     return Ayarlar(
         kok_dizin=tmp_path,
-        yonetici_sifresi=TEST_SIFRESI,
         veri_dizini=veri,
         veritabani_yolu=veri / "dalsan.db",
         goruntu_klasoru=veri / "goruntuler",
@@ -49,8 +46,8 @@ def test_ayarlari(tmp_path: Path):
 
 
 @pytest.fixture
-def ham_istemci(test_ayarlari):
-    """Oturum AÇILMAMIŞ istemci — giriş zorunluluğu testleri için."""
+def istemci(test_ayarlari):
+    """Analizsiz (kamera iş parçacığı başlamayan) web istemcisi."""
     from fastapi.testclient import TestClient
 
     from app.uygulama import uygulama_olustur
@@ -58,13 +55,3 @@ def ham_istemci(test_ayarlari):
     uygulama = uygulama_olustur(test_ayarlari, analiz=False)
     with TestClient(uygulama) as istemci:
         yield istemci
-
-
-@pytest.fixture
-def istemci(ham_istemci):
-    """Oturum açılmış istemci (çerez TestClient içinde taşınır)."""
-    yanit = ham_istemci.post(
-        "/giris", data={"sifre": TEST_SIFRESI, "sonra": "/"}, follow_redirects=False
-    )
-    assert yanit.status_code == 303, "test girişi başarısız — giriş akışı bozulmuş"
-    return ham_istemci

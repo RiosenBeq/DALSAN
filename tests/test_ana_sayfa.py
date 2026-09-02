@@ -15,8 +15,8 @@ def test_ana_sayfa_beklenen_bilgileri_gosteriyor(istemci):
     assert "Disk" in metin
 
 
-def test_sifre_sayfada_asla_gorunmuyor(istemci):
-    # conftest'teki test şifresi sayfada geçmemeli — maskeleme kuralı (docs/01 §3.6)
-    metin = istemci.get("/").text
-    assert "cok-gizli-test-sifresi" not in metin
-    assert "maskeli" in metin
+def test_giris_sayfasi_yok_dogrudan_acilir(istemci):
+    # Giriş/şifre bilerek kaldırıldı (docs/07 #0): her sayfa doğrudan açılır
+    for yol in ("/", "/kameralar", "/kurallar", "/olaylar", "/kkd"):
+        assert istemci.get(yol).status_code == 200, yol
+    assert istemci.get("/giris").status_code == 404

@@ -1,5 +1,31 @@
 # İlerleme
 
+## Kamera ekleme hataları + şifresiz giriş (02.09.2026)
+
+- **Giriş/şifre kaldırıldı** (kullanıcı kararı, geliştirme aşaması): giriş sayfası,
+  oturum çerezi, `YONETICI_SIFRESI` ayarı ve Çıkış düğmesi gitti; her sayfa doğrudan
+  açılır. Fabrika sunucusuna çıkmadan önce geri eklenecek → `docs/07` #0.
+- **Kamera eklenince düşen sahte "Kamera çevrimdışı" olayı giderildi:** yeni ya da
+  yeniden başlatılan kamera ilk 60 sn **"bağlanıyor"** sayılır (sarı rozet); olay
+  yalnızca gerçek geçişlerde üretilir. Sistem her açılışta tüm kameralar için
+  "çevrimdışı → tekrar çevrimiçi" olay çifti üretmiyor artık.
+- **Bağlanamama SEBEBİ kamera sayfasında:** "Video dosyası bulunamadı: …",
+  "Kameraya ağ üzerinden ulaşılamıyor (IP:port)", "ulaşıldı ama akış açılamadı —
+  kullanıcı adı/şifre veya yol yanlış olabilir". Ulaşılamayan adreste OpenCV'nin
+  uzun beklemesi yerine 3 sn'lik ağ ön kontrolü.
+- **Form hataları tarayıcıda ham JSON yerine Türkçe hata sayfası** ("Geri dön ve
+  düzelt"); FastAPI'nin İngilizce 422'si de Türkçeye çevrildi (hangi alan hatalı).
+- **Video dosyası yolu temizlenir** (tırnak, `file://`, `\ ` kaçışı, `~`) ve dosya
+  yoksa kayıt anında anlaşılır mesajla reddedilir (Mac/Windows yol kopyalama tarifi).
+- **Tespit modeli otomatik indirilir:** dosya yoksa ilk açılışta bir kez (ana sayfada
+  "İndiriliyor…" rozeti). Terminalde `models/indir.sh` çalıştırmak gerekmez.
+- Küçükler: önizlemede kırık resim simgesi yerine "görüntü bekleniyor…" kutusu;
+  pasif kamera listede "çevrimiçi" görünmüyor; bölge nokta sayısı doğru;
+  CSV indirme ekrandaki filtreyi taşıyor; analiz iş parçacığı model kurulamazsa
+  (ör. eksik paket) sessizce ölmüyor, sebebi ana sayfada yazıyor.
+- 112 test yeşil, ruff temiz; gerçek sunucuda modelsiz açılış → otomatik indirme →
+  video kaynağıyla tespit uçtan uca doğrulandı.
+
 ## Platform uyumu + Docker (26.08.2026)
 
 - **Windows uyumu düzeltildi:** anons sesi (PowerShell SoundPlayer — `afplay`/`aplay` Windows'ta yok), kamera arka ucu (DirectShow), saat dilimi veritabanı (`tzdata` bağımlılığı).

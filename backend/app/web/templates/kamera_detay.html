@@ -3,20 +3,21 @@
 {% block icerik %}
   <div class="baslik-satiri">
     <h2>{{ kamera.name }}
-      {% if kamera.status == 'online' %}<span class="rozet yesil">çevrimiçi</span>
-      {% else %}<span class="rozet kirmizi">çevrimdışı</span>{% endif %}
+      <span class="rozet {{ kamera.rozet_rengi }}" id="durum-rozeti">{{ kamera.rozet }}</span>
     </h2>
     <a href="/kameralar">← Kameralar</a>
   </div>
 
   <section class="kart">
     <h3>Canlı görüntü <span class="not">(1 sn'de bir yenilenir; kutular tespitleri gösterir)</span></h3>
-    <div class="cizim-alani">
-      <img id="onizleme" class="canli-onizleme buyuk" data-kamera="{{ kamera.id }}"
-           src="/kameralar/{{ kamera.id }}/onizleme.jpg" alt="önizleme">
+    <div class="cizim-alani onizleme-kutu">
+      <img id="onizleme" class="canli-onizleme buyuk" data-kamera="{{ kamera.id }}" alt="">
+      <span class="onizleme-yazi">görüntü bekleniyor…</span>
       <canvas id="cizim"></canvas>
     </div>
-    <p id="kare-durumu" class="not"></p>
+    <p id="kare-durumu" class="not" data-kamera="{{ kamera.id }}">
+      {% if kamera.enabled %}Durum alınıyor…{% else %}Kamera pasif — izlenmiyor.{% endif %}
+    </p>
   </section>
 
   <section class="kart">
@@ -28,7 +29,7 @@
       <tr>
         <td>{{ b.name }}</td>
         <td>{{ b.tip_adi }}</td>
-        <td>{{ b.polygon | length }}</td>
+        <td>{{ b.noktalar | length }}</td>
         <td>
           <form method="post" action="/bolgeler/{{ b.id }}/sil" class="satir-form"
                 onsubmit="return confirm('{{ b.name }} bölgesi silinsin mi? Bu bölgeye bağlı kurallar da silinir.')">
@@ -115,8 +116,10 @@
         </select>
       </label>
       <label>Kaynak adresi
-        <input name="source_url" value="{{ kamera.source_url }}">
-        <span class="not">Görünen adres tam adres — yalnızca listelerde maskelenir.</span>
+        <input name="source_url" value="{{ kamera.source_url }}" required>
+        <span class="not">Görünen adres tam adres — yalnızca listelerde maskelenir.
+          Video dosyası için tam yol (Mac: Option+Command+C ile kopyalanır;
+          Windows: Shift + sağ tık → "Yol olarak kopyala").</span>
       </label>
       <label>Örnekleme (fps)
         <input name="sample_fps" type="number" step="0.5" min="0.5" max="30" value="{{ kamera.sample_fps }}">

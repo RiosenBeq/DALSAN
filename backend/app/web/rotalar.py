@@ -33,11 +33,9 @@ def ana_sayfa(istek: Request, yedek: str = "", baglanti=Depends(baglanti_al)):
     if supervizor is None:
         model_durumu, model_hatasi = "kapali", "analiz başlatılmadı"
         anons_durumu = "—"
-    elif supervizor.tespitci is not None:
-        model_durumu, model_hatasi = "hazir", ""
-        anons_durumu = supervizor._anons.ad
     else:
-        model_durumu = "hata"
+        # yukleniyor | indiriliyor | hazir | hata (supervizor.model_durumu)
+        model_durumu = supervizor.model_durumu
         model_hatasi = supervizor.tespit_hatasi or ""
         anons_durumu = supervizor._anons.ad
 
@@ -98,10 +96,9 @@ def _son_yedek(ayarlar) -> str:
 
 
 def _ayar_satirlari(ayarlar) -> list[tuple[str, str]]:
-    """Ana sayfada gösterilecek aktif ayarlar. Şifre MASKELİ (docs/01 §3.6)."""
+    """Ana sayfada gösterilecek aktif ayarlar."""
     kok = ayarlar.kok_dizin
     return [
-        ("Yönetici şifresi", "••••••••  (maskeli)"),
         ("Veritabanı dosyası", _kokten_yol(ayarlar.veritabani_yolu, kok)),
         ("Görüntü klasörü", _kokten_yol(ayarlar.goruntu_klasoru, kok)),
         ("Log dosyası", _kokten_yol(ayarlar.log_dosyasi, kok)),

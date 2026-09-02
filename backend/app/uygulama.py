@@ -11,13 +11,13 @@ from __future__ import annotations
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import Depends, FastAPI
+from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
 from app import loglama, veritabani
 from app.ayarlar import Ayarlar
 from app.hatalar import VeritabaniHatasi, hata_yakalayicilari_kur
-from app.web import giris, kameralar, kkd_web, kurallar, olaylar_web, rotalar
+from app.web import kameralar, kkd_web, kurallar, olaylar_web, rotalar
 
 STATIK_DIZINI = Path(__file__).resolve().parent / "web" / "static"
 
@@ -64,14 +64,13 @@ def uygulama_olustur(ayarlar: Ayarlar, analiz: bool = True) -> FastAPI:
     uygulama.state.ayarlar = ayarlar
     hata_yakalayicilari_kur(uygulama)
 
-    # Giriş sayfası korumasız; diğer her rota tek yetki kapısından geçer
-    uygulama.include_router(giris.router)
-    korumali = [Depends(giris.oturum_gerekli)]
-    uygulama.include_router(rotalar.router, dependencies=korumali)
-    uygulama.include_router(kameralar.router, dependencies=korumali)
-    uygulama.include_router(kurallar.router, dependencies=korumali)
-    uygulama.include_router(olaylar_web.router, dependencies=korumali)
-    uygulama.include_router(kkd_web.router, dependencies=korumali)
+    # Giriş/şifre bilerek yok (docs/07 #0): sistem tek makinede 127.0.0.1'e
+    # bağlı çalışır. Fabrika sunucusuna çıkmadan önce tek yetki kapısı geri eklenir.
+    uygulama.include_router(rotalar.router)
+    uygulama.include_router(kameralar.router)
+    uygulama.include_router(kurallar.router)
+    uygulama.include_router(olaylar_web.router)
+    uygulama.include_router(kkd_web.router)
 
     uygulama.mount("/static", StaticFiles(directory=str(STATIK_DIZINI)), name="static")
     return uygulama

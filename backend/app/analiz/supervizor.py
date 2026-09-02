@@ -22,8 +22,9 @@ from pathlib import Path
 
 from app import veritabani, zaman
 from app.analiz.boru_hatti import KameraHatti
-from app.analiz.kamera import KameraKaynagi
+from app.analiz.kamera import DURUM_BAGLANIYOR, DURUM_OFFLINE, DURUM_ONLINE, KameraKaynagi
 from app.analiz.kkd_siniflandirici import KkdSiniflandirici, kisi_kirp
+from app.analiz.model_indir import ModelIndirmeHatasi, indirilebilir_mi, modeli_indir
 from app.analiz.tespit import ModelHatasi, Tespitci
 from app.ayarlar import Ayarlar
 from app.loglama import log_al
@@ -60,6 +61,8 @@ class AnalizSupervizoru:
 
         self.tespitci: Tespitci | None = None
         self.tespit_hatasi: str | None = None
+        # yukleniyor | indiriliyor | hazir | hata — ana sayfa bunu gösterir
+        self.model_durumu: str = "yukleniyor"
         self.kkd = KkdSiniflandirici(None)  # model 9. adımda eğitilecek
         self._anons = AnonsYoneticisi(ayarlar)
 
@@ -75,6 +78,37 @@ class AnalizSupervizoru:
             kaynak.durdur()
 
     # ---- web'in kullandığı arayüz ----
+
+    def kamera_durumu(self, kamera_id: int) -> dict:
+        """Kamera sayfasının 2 sn'de bir sorduğu canlı durum: online /
+        connecting / offline + kullanıcının anlayacağı Türkçe açıklama."""
+        kaynak = self._kaynaklar.get(kamera_id)
+        if kaynak is None:
+            return {
+                "durum": DURUM_BAGLANIYOR,
+                "mesaj": "Kamera birkaç saniye içinde başlatılacak…",
+            }
+        durum = kaynak.durum()
+        son_hata = kaynak.son_hata
+        if durum == DURUM_ONLINE:
+            fps = round(kaynak.olculen_fps, 1)
+            mesaj = "Görüntü akıyor" + (f" — ölçülen {fps:g} fps" if fps else "")
+        elif durum == DURUM_BAGLANIYOR:
+            mesaj = "Bağlanılıyor… (ilk bağlantı 30 sn sürebilir)"
+            if son_hata:
+                mesaj += f" Son deneme başarısız: {son_hata}"
+        else:
+            mesaj = "Bağlantı yok."
+            if son_hata:
+                mesaj += f" {son_hata}"
+            mesaj += " Sistem otomatik olarak yeniden denemeye devam ediyor."
+        return {
+            "durum": durum,
+            "mesaj": mesaj,
+            "son_deneme": zaman.ekranda_goster(kaynak.son_deneme_utc)
+            if kaynak.son_deneme_utc
+            else "",
+        }
 
     def onizleme_jpeg(self, kamera_id: int) -> bytes | None:
         """İşlenmiş (kutulu) son kare; yoksa ham son kare."""
@@ -97,8 +131,20 @@ class AnalizSupervizoru:
     # ---- ana döngü ----
 
     def _dongu(self) -> None:
-        baglanti = veritabani.baglanti_ac(self.ayarlar.veritabani_yolu)
-        self._tespitciyi_kur(baglanti)
+        try:
+            baglanti = veritabani.baglanti_ac(self.ayarlar.veritabani_yolu)
+        except Exception as hata:  # noqa: BLE001 — iş parçacığı SESSİZCE ölmesin
+            self.model_durumu = "hata"
+            self.tespit_hatasi = f"Analiz başlatılamadı: {hata}"
+            self._log.error(self.tespit_hatasi, exc_info=hata)
+            return
+        try:
+            self._tespitciyi_kur(baglanti)
+        except Exception as hata:  # noqa: BLE001 — model kurulamadı diye kameralar durmaz
+            self.tespitci = None
+            self.model_durumu = "hata"
+            self.tespit_hatasi = f"Tespit modeli kurulamadı: {hata}"
+            self._log.error(self.tespit_hatasi, exc_info=hata)
         self._log.info("Analiz süpervizörü başladı.")
         try:
             while not self._dur.is_set():
@@ -124,15 +170,42 @@ class AnalizSupervizoru:
 
     def _tespitciyi_kur(self, baglanti) -> None:
         try:
+            self._modeli_hazirla()
             self.tespitci = Tespitci(self.ayarlar.model_dosyasi, self.ayarlar.cikarim_cihazi)
             self.tespit_hatasi = None
-        except ModelHatasi as hata:
+            self.model_durumu = "hazir"
+        except (ModelHatasi, ModelIndirmeHatasi) as hata:
             # Model yokken sistem ÇÖKMEZ: kameralar izlenir, tespit yapılmaz.
             # Durum ana sayfada ve olay listesinde görünür.
             self.tespitci = None
             self.tespit_hatasi = hata.kullanici_mesaji
+            self.model_durumu = "hata"
             self._log.error(hata.kullanici_mesaji)
             sistem_olayi_yaz(baglanti, f"Tespit modeli yüklenemedi: {hata.kullanici_mesaji}")
+
+    def _modeli_hazirla(self) -> None:
+        """Model dosyası yoksa ve bilinen bir YOLOX modeliyse bir kez indirir.
+        Kullanıcı terminalde betik çalıştırmak zorunda kalmaz (CLAUDE.md §8)."""
+        dosya = self.ayarlar.model_dosyasi
+        if dosya.exists() or not indirilebilir_mi(dosya):
+            return
+        self.model_durumu = "indiriliyor"
+        self._log.info(
+            f"Tespit modeli bulunamadı, indiriliyor (bir kez, ~20-35 MB): {dosya.name} …"
+        )
+        son_yuzde = -1
+
+        def ilerleme(inen: int, toplam: int) -> None:
+            nonlocal son_yuzde
+            if toplam <= 0:
+                return
+            yuzde = inen * 100 // toplam
+            if yuzde // 25 != son_yuzde // 25:  # her %25'te bir satır, günlük şişmesin
+                son_yuzde = yuzde
+                self._log.info(f"Model indiriliyor: %{yuzde}")
+
+        modeli_indir(dosya, ilerleme)
+        self._log.info(f"Tespit modeli indirildi: {dosya}")
 
     # ---- konfigürasyon ----
 
@@ -187,12 +260,19 @@ class AnalizSupervizoru:
                 self._kalibrasyonu_yukle(baglanti, kid),
             )
 
-        # Silinen/pasifleşen kameraların iş parçacıkları durdurulur
+        # Silinen/pasifleşen kameraların iş parçacıkları durdurulur; pasif
+        # kamera listede 'çevrimiçi' görünmeye devam etmesin diye durumu sıfırlanır
         for kid in list(self._kaynaklar):
             if kid not in aktif_idler:
                 self._kaynaklar.pop(kid).durdur()
                 self._hatlar.pop(kid, None)
                 self._kamera_konfig.pop(kid, None)
+                self._son_durumlar.pop(kid, None)
+                baglanti.execute(
+                    "UPDATE cameras SET status = ?, measured_fps = NULL WHERE id = ?",
+                    (DURUM_OFFLINE, kid),
+                )
+        baglanti.commit()
 
     def _atanmis_kameralar(self, baglanti) -> list[dict]:
         """Bu analizörün ilgilendiği kameralar (ADR-008): bugün 'tüm aktifler'.
@@ -357,24 +437,36 @@ class AnalizSupervizoru:
     # ---- durum yazımı ----
 
     def _durumlari_yaz(self, baglanti) -> None:
+        """Üç durum: connecting (ilk 60 sn, olay yok) / online / offline.
+
+        Olay yalnızca GERÇEK geçişlerde üretilir: 'çevrimdışı' ilk bağlantı
+        süresi dolunca ya da akan görüntü kesilince; 'tekrar çevrimiçi' yalnız
+        çevrimdışından dönüşte. Yeni eklenen ya da yeniden başlatılan sistemde
+        henüz bağlanmakta olan kamera olay üretmez.
+        """
         for kid, kaynak in self._kaynaklar.items():
-            durum = "online" if kaynak.cevrimici_mi() else "offline"
-            if durum != self._son_durumlar.get(kid):
-                onceki = self._son_durumlar.get(kid)
+            durum = kaynak.durum()
+            onceki = self._son_durumlar.get(kid)
+            if durum != onceki:
                 self._son_durumlar[kid] = durum
                 ad = self._kamera_konfig.get(kid, {}).get("name", kid)
-                if durum == "offline":
-                    self._log.warning(f"Kamera çevrimdışı: {ad}")
-                    sistem_olayi_yaz(baglanti, f"Kamera çevrimdışı: {ad}", kamera_id=kid)
-                elif onceki is not None:  # ilk online geçişi olay değil
+                if durum == DURUM_OFFLINE:
+                    sebep = f" — {kaynak.son_hata}" if kaynak.son_hata else ""
+                    self._log.warning(f"Kamera çevrimdışı: {ad}{sebep}")
+                    sistem_olayi_yaz(
+                        baglanti,
+                        f"Kamera çevrimdışı: {ad}{sebep}",
+                        kamera_id=kid,
+                    )
+                elif durum == DURUM_ONLINE and onceki == DURUM_OFFLINE:
                     self._log.info(f"Kamera tekrar çevrimiçi: {ad}")
                     sistem_olayi_yaz(baglanti, f"Kamera tekrar çevrimiçi: {ad}", kamera_id=kid)
             baglanti.execute(
                 "UPDATE cameras SET status = ?, last_frame_at = ?, measured_fps = ? WHERE id = ?",
                 (
                     durum,
-                    zaman.simdi_utc() if durum == "online" else None,
-                    round(kaynak.olculen_fps, 1),
+                    zaman.simdi_utc() if durum == DURUM_ONLINE else None,
+                    round(kaynak.olculen_fps, 1) if durum == DURUM_ONLINE else None,
                     kid,
                 ),
             )
