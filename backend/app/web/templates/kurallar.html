@@ -24,7 +24,7 @@
         <td>
           <a href="/kurallar/{{ r.id }}/duzenle">Düzenle</a> ·
           <form method="post" action="/kurallar/{{ r.id }}/sil" class="satir-form"
-                onsubmit="return confirm('Kural silinsin mi? Olay geçmişi korunur.')">
+                data-onay="Kural silinsin mi? Olay geçmişi korunur.">
             <button class="baglanti-dugme">Sil</button>
           </form>
         </td>

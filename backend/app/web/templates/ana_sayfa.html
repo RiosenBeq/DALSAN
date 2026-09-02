@@ -3,6 +3,24 @@
 {% block icerik %}
   <p class="alt-baslik">Teşhis ekranı · Sunucu saati: {{ sunucu_saati }} (Türkiye)</p>
 
+  <section class="kart canli-kutu">
+    <h2>Canlı durum <span class="rozet gri" id="canli-durum">bağlanıyor…</span></h2>
+    <div class="sayim-izgara">
+      {% for ad, adet in canli_sayim %}
+        <div class="sayim-kutu"><span class="sayi">{{ adet }}</span><span>{{ ad }}</span></div>
+      {% else %}
+        <div class="sayim-kutu bos-sayim"><span class="sayi">—</span><span>şu an görünen nesne yok</span></div>
+      {% endfor %}
+      <div class="sayim-kutu"><span class="sayi">{{ ihlal_24s }}</span><span>son 24 saatte ihlal</span></div>
+      <div class="sayim-kutu {% if yeni_ihlal %}dikkat{% endif %}">
+        <span class="sayi">{{ yeni_ihlal }}</span><span>incelenmemiş ihlal</span></div>
+    </div>
+    <h3>Son uyarılar</h3>
+    <ul id="canli-liste" class="canli-liste"><li class="bos">Yeni olay bekleniyor…</li></ul>
+    <p class="not">Sayılar kameraların o anda gördüğü, takip edilen nesnelerdir
+      (tek karelik parlamalar sayılmaz). Sesli uyarı için <a href="/anons">Anons</a> sayfası.</p>
+  </section>
+
   <section class="kart">
     <h2>Sistem</h2>
     <table>
@@ -14,7 +32,11 @@
             {% else %}<span class="rozet kirmizi">Yüklenemedi</span> {{ model_hatasi }}{% endif %}</td></tr>
       <tr><th>KKD modeli</th>
         <td><span class="rozet gri">Henüz eğitilmedi</span> — veri toplandıktan sonra eğitilecek (KKD sekmesi)</td></tr>
-      <tr><th>Anons</th><td>{{ anons_durumu }}</td></tr>
+      <tr><th>Anons</th><td>{{ anons_durumu }} — <a href="/anons">ayarla ve dene →</a></td></tr>
+      {% if cihaz_uyarisi %}
+      <tr><th>Çıkarım cihazı</th>
+        <td><span class="rozet sari">dikkat</span> {{ cihaz_uyarisi }}</td></tr>
+      {% endif %}
     </table>
   </section>
 
@@ -60,4 +82,8 @@
     </form>
     {% if yedek_sonucu %}<p class="basari-mesaji">{{ yedek_sonucu }}</p>{% endif %}
   </section>
+{% endblock %}
+{% block betikler %}
+<script src="/static/uyari.js"></script>
+<script src="/static/canli.js"></script>
 {% endblock %}

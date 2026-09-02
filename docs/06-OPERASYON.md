@@ -1,110 +1,179 @@
 # 06 — Operasyon
 
-## 1. Kurulum (fabrika sunucusu)
+> Bu doküman **çalışan sistemi** anlatır. Mimari `docs/09-BASITLESTIRME-KARARLARI.md`
+> ile sadeleştirildi: tek program, tek SQLite dosyası, tek container. Eski
+> PostgreSQL + Alembic + üç servis kurgusu **artık yoktur**.
+
+---
+
+## 1. Kurulum
+
+### 1.1 Günlük kullanım / geliştirme (Mac, Windows)
+
+Docker gerekmez. Kontrol Paneli yeter:
+
+| Mac | Windows |
+|---|---|
+| `Baslat-Mac.command` → çift tık | `Baslat-Windows.bat` → çift tık |
+
+**İlk Kurulumu Yap** → **Sistemi Başlat**. Tarayıcı `http://127.0.0.1:8080`
+adresinde açılır. Tespit modeli yoksa sistem ilk açılışta **kendisi indirir**
+(internet gerekir); ana sayfadaki "Tespit modeli" satırı "Hazır" olana kadar bekleyin.
+
+Ayrıntı: `NASIL-CALISIR.md`.
+
+### 1.2 Fabrika sunucusu (Linux + Docker)
 
 ```bash
-git clone <repo> && cd dalsan-isg
-cp .env.example .env          # doldur: ANONS, saklama süreleri (giriş şifresi: docs/07 #0)
-bash models/download.sh       # model ağırlıkları (repoda yok)
+git clone <depo-adresi> && cd DALSAN
+cp .env.example .env       # saklama süreleri, ANONS, tespit eşikleri
+bash models/indir.sh       # model ağırlıkları repoda yoktur
 docker compose up -d
-docker compose exec api alembic upgrade head
-docker compose ps             # üç servis de healthy olmalı
+docker compose ps          # tek servis: dalsan — durum "healthy" olmalı
 ```
 
-Erişim: `http://<sunucu-ip>:8080`
+Erişim: `http://127.0.0.1:8080` (compose varsayılanı sunucunun kendisine açar).
 
-## 2. Servisler
+> **Ağa açmadan önce:** giriş şifresi şu an bilerek kapalıdır (`docs/07` #0).
+> `docker-compose.yml` içindeki port satırını `"8080:8080"` yapmadan ÖNCE şifre
+> geri eklenmelidir; aksi halde ağdaki herkes kural değiştirebilir.
 
-| Servis | Görev | Restart | Healthcheck |
-|---|---|---|---|
-| `db` | PostgreSQL 16 | unless-stopped | `pg_isready` |
-| `api` | FastAPI + frontend | unless-stopped | `GET /health` |
-| `analyzer` | Görüntü alma + çıkarım + kural | unless-stopped | `GET /health` (iç port) + son kare zamanı |
+Şema **otomatik** uygulanır: açılışta `backend/sema/*.sql` sırayla çalışır ve
+uygulananlar `sema_surumu` tablosuna yazılır. Ayrı migrasyon komutu yoktur.
 
-Sunucu yeniden başladığında üçü de otomatik ayağa kalkar (K8). Hiçbiri manuel
-başlatma gerektirmez.
+---
+
+## 2. Servis
+
+Tek servis: `dalsan` (FastAPI + arka planda analiz iş parçacığı).
+
+| Özellik | Değer |
+|---|---|
+| Restart | `unless-stopped` — sunucu yeniden başlarsa sistem kendiliğinden kalkar (K8) |
+| Healthcheck | `GET /saglik` (30 sn arayla) |
+| Veri | `./veri` container dışında bağlı — container silinse de kaybolmaz |
+| Ayarlar | `./.env` salt okunur bağlanır |
+
+`/saglik` ucu bilerek ucuzdur (JSON: çalışıyor mu, analiz açık mı, model durumu).
+Ana sayfa `veri/` klasörünün tamamını tarayıp boyut hesapladığı için sağlık
+kontrolünde kullanılmaz.
+
+---
 
 ## 3. Güncelleme
 
 ```bash
 git pull
 docker compose build
-docker compose exec api alembic upgrade head   # ÖNCE migrasyon
 docker compose up -d
 docker compose logs -f --tail=100
 ```
 
-Geri alma: `git checkout <önceki-tag>` → build → `alembic downgrade -1` → up.
-Her migrasyonun `downgrade()` fonksiyonu **yazılmış ve denenmiş** olmalıdır.
+Şema değişikliği varsa açılışta kendiliğinden uygulanır. Geri alma:
+`git checkout <önceki-sürüm>` → `docker compose build` → `up -d`.
+
+> Şema betikleri **geri alınamaz** (Alembic yoktur — `docs/09` kararı). Geri
+> dönüş yolu yedektir: sürüm yükseltmeden ÖNCE `veri/` klasörünü kopyalayın.
+
+---
 
 ## 4. Yedekleme
 
-`deploy/backup.sh`:
-- `pg_dump` → tarihli sıkıştırılmış dosya
-- snapshot dizini arşivi
-- son N kopya saklanır, eskiler silinir
-
-Kurulum: sunucuda günlük zamanlanmış görev (cron / systemd timer). Runbook'ta adımlar var.
-
-**Geri yükleme provası — devreye alma öncesi zorunlu (K7):**
+**Tam yedek = `veri/` klasörünü ve `.env` dosyasını kopyalamak.** Hepsi bu.
 
 ```bash
-bash deploy/restore.sh <yedek-dosyasi>
+cp -R veri/ /yedek/dalsan-$(date +%Y-%m-%d)/
+cp .env    /yedek/dalsan-$(date +%Y-%m-%d)/
+```
+
+Sistem çalışırken güvenli veritabanı kopyası için: ana sayfadaki
+**"Veritabanını Yedekle"** düğmesi (`veri/yedekler/` içine SQLite backup API ile
+yazar, WAL uyumludur). Fotoğrafları kapsamaz — haftalık tam yedeği ihmal etmeyin.
+
+**Geri yükleme provası — devreye almadan önce zorunlu (K7):**
+
+```bash
+docker compose down
+mv veri veri-eski && cp -R /yedek/dalsan-YYYY-AA-GG/veri veri
+docker compose up -d          # olaylar ve fotoğraflar yerinde mi, ekrandan bakın
 ```
 
 Test edilmemiş yedek yedek sayılmaz. 7. haftada bir kez tam prova yapılır ve
 sonucu kabul tutanağına yazılır.
 
+---
+
 ## 5. Retention (saklama süreleri)
 
-Zamanlanmış görev günlük çalışır:
+Bakım, analiz süreci içinde **uygulama açıldıktan hemen sonra bir kez** ve sonra
+her 24 saatlik çalışma süresinde bir çalışır. Ayrı zamanlanmış görev yoktur.
 
-| Veri | Varsayılan | Not |
-|---|---|---|
-| Olay kaydı (DB) | 180 gün | KVKK politikasıyla uyumlu olmalı |
-| Snapshot dosyaları | 90 gün | Disk büyümesinin ana kalemi |
-| KKD ham crop'ları (`ppe_samples`) | 30 gün (etiketlenmemiş) | Etiketlenenler veri setine taşınır |
-| Sistem olayları | 90 gün | |
+| Veri | Ayar | Varsayılan | Not |
+|---|---|---|---|
+| İhlal olayları (DB) | `OLAY_SAKLAMA_GUN` | 180 gün | KVKK politikasıyla uyumlu olmalı |
+| Kanıt fotoğrafları | `GORUNTU_SAKLAMA_GUN` | 90 gün | Disk büyümesinin ana kalemi |
+| Etiketlenmemiş KKD kırpıkları | `KKD_HAM_VERI_SAKLAMA_GUN` | 30 gün | **Etiketlenenler silinmez** — eğitim veri setidir |
+| Sistem olayları | `SISTEM_OLAY_SAKLAMA_GUN` | 90 gün | |
 
-Süreler `.env`'den ayarlanır. **DALSAN'ın KVKK saklama politikasıyla uyumu
-1. haftada teyit edilir** — sistem politikayı teknik olarak zorlar, politikayı belirlemez.
+Fotoğrafı silinen olayın kaydı korunur, yalnızca fotoğraf bağlantısı temizlenir
+(olay ekranında kırık resim çıkmaz).
 
-Disk kullanımı günlük loglanır; eşik altına inince `system` tipi olay üretilir.
+Boş disk `DISK_UYARI_GB` altına inince Olaylar listesine `Sistem` tipi bir uyarı
+düşer. **DALSAN'ın KVKK saklama politikasıyla uyum 1. haftada teyit edilir** —
+sistem politikayı teknik olarak zorlar, politikayı belirlemez.
+
+---
 
 ## 6. Log okuma
 
+Günlük dosyası: `veri/loglar/sistem.log` (5 MB'ta döner, son 3 kopya saklanır).
+Kontrol Paneli aynı satırları penceresinde gösterir.
+
 ```bash
-docker compose logs -f analyzer                      # canlı
-docker compose logs analyzer | grep '"level":"ERROR"'
-docker compose logs analyzer | grep '"camera_id":3'
+tail -f veri/loglar/sistem.log
+grep '"level": "ERROR"' veri/loglar/sistem.log
+grep '"bilesen": "kamera"' veri/loglar/sistem.log
+docker compose logs -f            # Docker kurulumunda
 ```
 
-Log formatı: JSON satır — `ts, level, component, camera_id, event, msg`.
+Biçim: her satır tek bir JSON nesnesi — `ts, level, bilesen, mesaj`.
+Sorun bildirirken kırmızı/`ERROR` satırlarını **olduğu gibi** kopyalayın.
+
+---
 
 ## 7. Sorun giderme
 
 | Belirti | Bakılacak yer |
 |---|---|
-| Kamera "offline" | `analyzer` logunda o `camera_id`; RTSP URL; ağ erişimi; NVR eşzamanlı bağlantı limiti |
-| Olay üretilmiyor | Kural `enabled` mı; bölge doğru mu; mesafe kuralında kalibrasyon var mı |
-| KKD hiç olay üretmiyor | `min_person_height_px` çok yüksek olabilir; olay detayındaki `unknown` oranına bak |
+| Kamera "bağlanıyor"da kalıyor | Kamera sayfasındaki durum satırı sebebi yazar (ulaşılamıyor / şifre / dosya yok). İlk bağlantı 30 sn sürebilir |
+| Kamera "çevrimdışı" | Aynı durum satırı + `veri/loglar/sistem.log` içinde `"bilesen": "kamera"`; NVR eşzamanlı bağlantı limiti sık sebeptir |
+| "Tespit modeli: Yüklenemedi" | İnternet yoksa `bash models/indir.sh` ile elle indirin; dosya bozuksa silip tekrar indirin |
+| Kutular çıkmıyor / nesne kaçıyor | `.env` içinde `TESPIT_GUVEN_ESIGI` ve `TESPIT_INSAN_GUVEN_ESIGI` değerlerini kademeli düşürün (0,05'lik adımlarla). Uzak nesnede `TESPIT_EN_KUCUK_KENAR_PX` düşürülür |
+| Çok fazla yanlış tespit | Aynı eşikleri yükseltin; `MODEL_DOSYASI=models/yolox_s.onnx` daha isabetlidir (daha yavaş) |
+| Olay üretilmiyor | Kural açık mı; bölge doğru tipte mi; mesafe kuralında kalibrasyon var mı (Kurallar sayfasındaki rozet söyler) |
+| KKD hiç olay üretmiyor | Model henüz eğitilmedi — bu **beklenen** davranıştır (docs/04). Veri toplanıyor mu: KKD sekmesi |
 | KKD çok fazla yanlış alarm | `04-KKD-BARET-YELEK.md` §8.3 tablosu |
-| Uyarılar gecikiyor | GPU doluluğu; `sample_fps` düşür; substream kullan |
-| Anons çalmıyor | `ANNOUNCER` ayarı; ses cihazı container'a bağlı mı; anons cooldown'u aktif olabilir |
-| Disk doluyor | Retention görevi çalışıyor mu; snapshot dizini boyutu |
-| Ekran boş / SSE kopuk | `api` logu; tarayıcı konsolu; oturum süresi dolmuş olabilir |
+| Uyarılar gecikiyor | Kamera `sample_fps` değerini düşürün; substream kullanın; `CIKARIM_CIHAZI=cuda` (yalnız NVIDIA'lı Linux) |
+| "cuda seçili ama CPU ile çalışıyor" | Ana sayfada uyarı olarak görünür: NVIDIA sürücüsü + `onnxruntime-gpu` gerekir, ya da `.env`'de `cpu` yapın |
+| Anons çalmıyor | **Anons** sayfası → "Anonsu Dene". Sonuç satırı sebebi yazar (ses dosyası yok / adres yanlış / komut bulunamadı) |
+| Ekranda uyarı sesi gelmiyor | Tarayıcı kuralı: sayfaya bir kez tıklayın. Anons sayfasındaki kutuyu işaretleyin |
+| Disk doluyor | Ana sayfadaki "Boş alan"; saklama sürelerini kısaltın; `veri/goruntuler` en büyük kalemdir |
+| Canlı uyarı paneli "bağlantı koptu" | Sunucu durmuş olabilir; Kontrol Paneli'nden yeniden başlatın |
+
+---
 
 ## 8. Devreye alma kontrol listesi (8. hafta)
 
-- [ ] Üç servis de sunucu yeniden başlatma sonrası otomatik ayakta (K8)
-- [ ] 3-4 kameranın tamamı ≥ 24 saat kesintisiz `online` (K1)
+- [ ] Sistem, sunucu yeniden başlatma sonrası kendiliğinden ayakta (K8)
+- [ ] 3-4 kameranın tamamı ≥ 24 saat kesintisiz `çevrimiçi` (K1)
 - [ ] Bölge ve kurallar arayüzden değiştirilebiliyor, restart gerekmiyor (K3)
 - [ ] Test ihlali ≤ 2 sn içinde ekrana düşüyor (K4)
-- [ ] Olay kaydı + snapshot doğru, filtre çalışıyor (K5)
-- [ ] Anons: çalışıyor veya "altyapı uygun değil" olarak **yazılı** kayıt altında (K6)
+- [ ] Olay kaydı + kanıt fotoğrafı doğru, filtre çalışıyor (K5)
+- [ ] Anons: **Anons sayfasından denendi**, çalışıyor veya "altyapı uygun değil" olarak yazılı kayıt altında (K6)
 - [ ] Yedek alındı, **geri yükleme prova edildi** (K7)
 - [ ] KKD gölge modda ≥ 3 gün çalıştı, precision ölçüldü, eşikler ayarlandı (K10, K11)
 - [ ] KKD anonsu ancak precision kabul edildikten **sonra** açıldı
-- [ ] Retention görevi çalışıyor, KVKK süreleriyle uyumlu
+- [ ] Bakım (retention) çalıştığı günlükten doğrulandı, KVKK süreleriyle uyumlu
+- [ ] **Giriş şifresi geri eklendi** (`docs/07` #0) — ağa açık kurulumda zorunlu
 - [ ] Kullanım dokümanı teslim edildi, kullanıcı eğitimi yapıldı (K9)
 - [ ] Kabul tutanağı: K1-K11 madde madde işaretlendi

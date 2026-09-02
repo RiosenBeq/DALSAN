@@ -13,6 +13,7 @@ import json
 import shutil
 import subprocess
 import sys
+import threading
 import urllib.error
 import urllib.request
 
@@ -106,7 +107,10 @@ class HttpAnonscu:
         try:
             with urllib.request.urlopen(istek, timeout=5) as yanit:
                 _log.info(f"Anons HTTP gönderildi ({yanit.status}): {metin}")
-        except (urllib.error.URLError, TimeoutError) as hata:
+        except (urllib.error.URLError, TimeoutError, ValueError) as hata:
+            # ValueError: adres biçimi bozuksa urllib bunu fırlatır; ayarlar.py
+            # açılışta engelliyor ama burada da yutulmalı — anons hatası
+            # yüzünden analiz durmaz.
             _log.error(f"Anons HTTP gönderilemedi ({self._adres}): {hata}")
 
 
@@ -119,13 +123,20 @@ def anonscu_kur(ayarlar: Ayarlar):
 
 
 class AnonsYoneticisi:
-    """Anons cooldown'unu uygular ve mesajı adaptöre iletir."""
+    """Anons cooldown'unu uygular ve mesajı adaptöre iletir.
+
+    Anons çağrısı HER ZAMAN ayrı bir iş parçacığında yapılır: HTTP anons
+    sunucusu kapalıysa urlopen 5 saniye bekler ve o süre boyunca TEK analiz
+    iş parçacığı durduğu için TÜM kameralar kör kalırdı. Bir hoparlörün
+    gecikmesi, fabrikanın izlenmemesine yol açmamalı.
+    """
 
     def __init__(self, ayarlar: Ayarlar) -> None:
         self._anonscu = anonscu_kur(ayarlar)
         self._bekleme_sn = ayarlar.anons_bekleme_sn
         self._goruntu_koku = ayarlar.kok_dizin
         self._cooldown = Cooldown()
+        self.son_sonuc: str = "Henüz anons denenmedi."
 
     @property
     def ad(self) -> str:
@@ -138,6 +149,23 @@ class AnonsYoneticisi:
         anahtar = ("anons", kamera_id, mesaj["id"])
         if not self._cooldown.izinli_mi(anahtar, zaman_s, float(self._bekleme_sn)):
             return
+        self.hemen_cal(mesaj)
+
+    def hemen_cal(self, mesaj: dict) -> None:
+        """Cooldown'suz çalar (arayüzdeki 'Anonsu Dene' düğmesi bunu kullanır)."""
         ses = mesaj.get("audio_file")
         ses_yolu = str(self._goruntu_koku / ses) if ses else None
-        self._anonscu.cal(mesaj["key"], mesaj["text"], ses_yolu)
+        threading.Thread(
+            target=self._cal_ve_kaydet,
+            args=(mesaj.get("key", ""), mesaj.get("text", ""), ses_yolu),
+            name="anons",
+            daemon=True,
+        ).start()
+
+    def _cal_ve_kaydet(self, anahtar: str, metin: str, ses_yolu: str | None) -> None:
+        try:
+            self._anonscu.cal(anahtar, metin, ses_yolu)
+            self.son_sonuc = f"Son anons gönderildi: {metin}"
+        except Exception as hata:  # noqa: BLE001 — anons hatası sistemi durdurmaz
+            self.son_sonuc = f"Son anons başarısız: {hata}"
+            _log.error(f"Anons çalınamadı: {hata}", exc_info=hata)

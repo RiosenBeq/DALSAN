@@ -67,22 +67,6 @@
   </section>
 {% endblock %}
 {% block betikler %}
-<script>
-var kaynak = new EventSource("/olaylar/akis");
-var liste = document.getElementById("canli-liste");
-var durum = document.getElementById("canli-durum");
-kaynak.onopen = function () { durum.textContent = "canlı"; durum.className = "rozet yesil"; };
-kaynak.onerror = function () { durum.textContent = "bağlantı koptu"; durum.className = "rozet kirmizi"; };
-kaynak.onmessage = function (olay) {
-  var veri = JSON.parse(olay.data);
-  var bos = liste.querySelector(".bos");
-  if (bos) bos.remove();
-  var satir = document.createElement("li");
-  satir.className = veri.tip === "violation" ? "ihlal" : "sistem";
-  satir.innerHTML = "<b>" + veri.zaman + "</b> · " + veri.kamera + " · " + veri.ozet +
-    ' · <a href="/olaylar/' + veri.id + '">aç</a>';
-  liste.prepend(satir);
-  while (liste.children.length > 8) liste.removeChild(liste.lastChild);
-};
-</script>
+<script src="/static/uyari.js"></script>
+<script src="/static/canli.js"></script>
 {% endblock %}

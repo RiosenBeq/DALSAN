@@ -28,6 +28,10 @@ _BOLGE_RENGI = (200, 120, 40)
 class KameraHatti:
     def __init__(self, kamera_id: int, fps: int) -> None:
         self.kamera_id = kamera_id
+        # Süpervizör, örnekleme hızı değişince hattı yeniden kurmak için okur:
+        # ByteTrack'in kare hızı yanlış kalırsa takip hafızası saniye cinsinden
+        # kayar ve aynı kişiye ikinci kez uyarı üretilir.
+        self.fps = fps
         self._takipci = Takipci(fps)
         self._motor = KuralMotoru(kamera_id)
         self._bolgeler: list[Bolge] = []

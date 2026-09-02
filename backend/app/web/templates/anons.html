@@ -1,0 +1,90 @@
+{% extends "temel.html" %}
+{% block baslik %}Anons — DALSAN İSG{% endblock %}
+{% block icerik %}
+  <h2>Anons (Sesli Uyarı)</h2>
+
+  <section class="kart">
+    <h3>Durum</h3>
+    <table>
+      <tr><th>Anons yolu</th>
+        <td><b>{{ anons_yolu }}</b> — {{ anons_aciklamasi }}</td></tr>
+      {% if anons_yolu == 'http' %}
+      <tr><th>Anons sunucusu</th><td>{{ anons_adresi }}</td></tr>
+      {% endif %}
+      <tr><th>Aynı uyarının tekrarı</th>
+        <td>En az {{ bekleme_sn }} saniye arayla çalar
+          <span class="not">(ekran uyarısından bağımsızdır; hoparlör üst üste bağırmaz)</span></td></tr>
+      <tr><th>Son deneme</th>
+        <td>{% if analiz_calisiyor %}{{ son_sonuc }}{% else %}
+          <span class="rozet gri">analiz kapalı</span> Sistemi başlatın{% endif %}</td></tr>
+    </table>
+    {% if sonuc_mesaji == 'denendi' %}
+      <p class="basari-mesaji">Anons gönderildi. Hoparlörden ses gelmediyse yukarıdaki
+        "Son deneme" satırına bakın.</p>
+    {% elif sonuc_mesaji == 'kaydedildi' %}
+      <p class="basari-mesaji">Mesaj kaydedildi.</p>
+    {% endif %}
+    <p class="not">Anons yolunu değiştirmek için kök klasördeki .env dosyasında
+      <code>ANONS</code> satırını düzenleyip sistemi yeniden başlatın:
+      <code>null</code> (kapalı), <code>ses_karti</code>, <code>http</code>.</p>
+  </section>
+
+  <section class="kart">
+    <h3>Anons mesajları</h3>
+    <p class="not">Her kural, Kurallar sayfasında bu mesajlardan birine bağlanır.
+      Ses dosyası verilmezse yalnızca ekran uyarısı verilir (ses kartı yolunda).
+      Ses dosyası yolu proje klasörüne göredir, örn: <code>veri/sesler/baret.wav</code>.</p>
+
+    {% for m in mesajlar %}
+    <div class="anons-satiri">
+      <form method="post" action="/anons/{{ m.id }}/kaydet" class="satir-form">
+        <input name="text" value="{{ m.text }}" size="46" required>
+        <input name="audio_file" value="{{ m.audio_file or '' }}" size="24"
+               placeholder="veri/sesler/dosya.wav">
+        <label class="yatay"><input type="checkbox" name="enabled" value="1"
+          {% if m.enabled %}checked{% endif %}> Açık</label>
+        <button class="dugme ikincil kucuk">Kaydet</button>
+      </form>
+      <form method="post" action="/anons/{{ m.id }}/dene" class="satir-form">
+        <button class="dugme kucuk">▶ Anonsu Dene</button>
+        {% if m.audio_file and not m.ses_var %}
+          <span class="rozet kirmizi">ses dosyası bulunamadı</span>
+        {% endif %}
+      </form>
+    </div>
+    {% endfor %}
+  </section>
+
+  <section class="kart">
+    <h3>Tarayıcı uyarısı</h3>
+    <p class="not">Anons sistemi bağlı olmasa bile, bu bilgisayarda açık duran ekran
+      ihlalde sesli uyarı verebilir. Ses, tarayıcı kuralları gereği yalnızca bir kez
+      tıkladıktan sonra çalışır.</p>
+    <label class="yatay"><input type="checkbox" id="uyari-sesi"> İhlalde bu bilgisayarda sesli uyar</label>
+    <label class="yatay"><input type="checkbox" id="uyari-konusma"> İhlali sesli oku (Türkçe)</label>
+    <div class="satir-form">
+      <button type="button" class="dugme ikincil" id="uyari-dene">Ekran uyarısını dene</button>
+      <span class="not" id="uyari-durum"></span>
+    </div>
+  </section>
+{% endblock %}
+{% block betikler %}
+<script src="/static/uyari.js"></script>
+<script>
+(function () {
+  var ses = document.getElementById("uyari-sesi");
+  var konusma = document.getElementById("uyari-konusma");
+  var durum = document.getElementById("uyari-durum");
+  ses.checked = Uyari.sesAcikMi();
+  konusma.checked = Uyari.konusmaAcikMi();
+  ses.addEventListener("change", function () { Uyari.sesAyarla(ses.checked); });
+  konusma.addEventListener("change", function () { Uyari.konusmaAyarla(konusma.checked); });
+  document.getElementById("uyari-dene").addEventListener("click", function () {
+    Uyari.duyur({ kamera: "Deneme kamerası", ozet: "Deneme uyarısı", tip: "violation" });
+    durum.textContent = Uyari.sesAcikMi()
+      ? "Uyarı gösterildi. Ses gelmediyse bilgisayarın sesini açın."
+      : "Uyarı gösterildi (ses kapalı).";
+  });
+})();
+</script>
+{% endblock %}

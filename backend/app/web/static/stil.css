@@ -248,3 +248,36 @@ legend { font-size: 0.88rem; color: var(--metin-3); padding: 0 6px; }
   background: var(--vurgu); color: #fff; border-color: var(--vurgu);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
 }
+
+/* canlı sayım kutuları */
+.sayim-izgara { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+.sayim-kutu {
+  display: grid; gap: 2px; justify-items: center; min-width: 108px;
+  padding: 10px 14px; border-radius: var(--radius-kucuk);
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid var(--cam-sinir);
+  box-shadow: var(--cam-ic-isik);
+  font-size: 0.8rem; color: var(--metin-2); text-align: center;
+}
+.sayim-kutu .sayi { font-size: 1.5rem; font-weight: 700; color: var(--metin); line-height: 1.1; }
+.sayim-kutu.bos-sayim .sayi { color: var(--metin-3); }
+.sayim-kutu.dikkat { background: rgba(254, 243, 199, 0.85); border-color: rgba(252, 211, 77, 0.9); }
+.sayim-kutu.dikkat .sayi { color: #b45309; }
+.kucuk-sayim .sayim-kutu { min-width: 90px; padding: 7px 11px; }
+.kucuk-sayim .sayim-kutu .sayi { font-size: 1.15rem; }
+
+/* ihlal bandı (ekran uyarısı) */
+.uyari-bandi {
+  position: fixed; left: 50%; transform: translateX(-50%); bottom: 22px; z-index: 60;
+  background: rgba(185, 28, 28, 0.95); color: #fff;
+  padding: 12px 22px; border-radius: 999px;
+  font-size: 0.95rem; font-weight: 650;
+  box-shadow: 0 8px 28px rgba(185, 28, 28, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+/* anons sayfası */
+.anons-satiri {
+  display: flex; gap: 14px; align-items: center; flex-wrap: wrap;
+  padding: 8px 0; border-bottom: 1px solid var(--cizgi-soluk);
+}
+.anons-satiri .satir-form { margin: 0; }

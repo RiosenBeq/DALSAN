@@ -1,5 +1,66 @@
 # İlerleme
 
+## Tanıma / sayma / uyarı turu + derin hata taraması (02.09.2026)
+
+**Tespit isabeti (kullanıcı önceliği):**
+- Sınıf seçimi artık **sınıf farkındalıklı**: 80 COCO sınıfı üzerinde argmax alınıyordu;
+  bir insanı 0.35 ile "insan", 0.40 ile "sırt çantası" bulduğunda insan TAMAMEN
+  düşüyordu. Artık yalnızca ilgilendiğimiz sınıflara bakılıyor.
+- **İnsan için ayrı, daha düşük eşik** (kaçırılan insan, kaçırılan araçtan risklidir).
+- **NMS sınıf farkındalıklı**: forkliftin yanındaki insan artık aracın kutusu
+  tarafından yutulmuyor — tam da uyarı üretmesi gereken durum.
+- Çok küçük kutular eleniyor (uzaktaki gürültü yanlış alarm üretmesin).
+- Tüm eşikler `.env`'e taşındı (CLAUDE.md §7: koda gömülü eşik yasak):
+  `TESPIT_GUVEN_ESIGI`, `TESPIT_INSAN_GUVEN_ESIGI`, `TESPIT_NMS_ESIGI`,
+  `TESPIT_EN_KUCUK_KENAR_PX`.
+- `CIKARIM_CIHAZI=cuda` seçilip CUDA yoksa sistem sessizce CPU'ya düşüyordu;
+  artık ana sayfada Türkçe uyarı çıkıyor.
+
+**Sayım (kullanıcı önceliği):** Ana sayfada ve kamera sayfasında **canlı sayım**
+kutuları: o anda görünen insan / tır / forklift sayısı (takip bazlı, tek karelik
+parlamalar sayılmaz), son 24 saatteki ihlal ve incelenmemiş ihlal sayısı.
+
+**Uyarı (kullanıcı önceliği):** İhlalde ekranın altında kırmızı **uyarı bandı**,
+isteğe bağlı **sesli uyarı** ve **Türkçe seslendirme**. Ses, tarayıcı kuralları
+gereği ilk tıklamada uyandırılıyor (eskiden her uyarıda yeni ses bağlamı açan kod
+sessizce çalışmazdı). Yeni **Anons sayfası**: mesaj metinleri düzenlenir, ses
+dosyası bağlanır ve **"Anonsu Dene"** ile saha kurulumu sistemi kurmadan denenir.
+Anons artık analiz iş parçacığını **bloklamıyor** — anons sunucusu kapalıyken tüm
+kameralar 5 saniye kör kalıyordu.
+
+**Derin tarama (36 ajanlı çapraz doğrulama) ile bulunup giderilen hatalar:**
+- **Bakım hiç çalışmıyordu:** 24 saatlik sayaç makinenin AÇIK KALMA süresine
+  bağlıydı; her akşam kapatılan bilgisayarda saklama süresi temizliği ve disk
+  uyarısı hiç devreye girmiyordu (KVKK + disk dolması riski).
+- **Kamera iş parçacığı sessizce ölüyordu:** bozuk port ("554a") gibi bir adreste
+  yakalanmayan hata iş parçacığını öldürüyor, kamera sonsuza dek "çevrimdışı"
+  kalıyordu. Artık hiçbir hata iş parçacığını sonlandırmıyor.
+- **Bağlanıp kare vermeyen akış CPU'yu %100 döndürüyordu** (NVR bağlantı limiti,
+  desteklenmeyen H.265): artık üstel bekleme burada da uygulanıyor.
+- **Kural formunda iki alan aynı adı taşıyordu:** "Bölgede en az kalış" değeri
+  sessizce yok sayılıyordu. Görünmeyen alanlar artık gönderilmiyor.
+- **Olay tarih filtresi UTC gününe göre çalışıyordu:** Türkiye saatiyle gece
+  00:00-03:00 arası olaylar yanlış güne düşüyordu.
+- **Adında kesme işareti olan kamera onay sorulmadan siliniyordu** (onay metni JS
+  içine gömülüydü). Onay artık tek merkezden, veri özniteliğiyle kuruluyor.
+- Kamera adresi değişince eski kameranın karesi önizlemede kalıyordu; örnekleme
+  hızı değişince takip hafızası yanlış kalıyordu — ikisi de düzeltildi.
+- Konfigürasyon damgası uygulamadan önce yazılıyordu: yarıda kalan yenileme
+  değişikliği kalıcı olarak yutuyordu.
+- Çevrimdışı kamerada "son kare" zamanı siliniyordu — en çok gereken bilgi.
+- Saklama süresi fotoğrafı siliyor ama kaydı temizlemiyordu (kırık resim).
+- KKD kuralı yanlış tipte bir bölgeye bağlanabiliyor ve sessizce hiç çalışmıyordu.
+- Anons adresi şemasız yazılırsa her ihlalde hata veriyordu — açılışta engellendi.
+- Canlı uyarı listesi kamera adını HTML olarak yorumluyordu.
+- Olay filtresinde sayısal olmayan değer 500 veriyordu.
+- Docker sağlık kontrolü ana sayfayı çağırıyor, 30 saniyede bir tüm `veri/`
+  klasörünü tarıyordu → hafif `/saglik` ucu eklendi.
+- `docs/06-OPERASYON.md` terk edilmiş PostgreSQL + Alembic + 3 servis mimarisini
+  anlatıyordu; içindeki her komut hatalıydı — baştan yazıldı.
+
+141 test yeşil (29 yeni), ruff temiz. Gerçek görüntüyle uçtan uca doğrulandı:
+3 insan + 1 araç tespiti, canlı sayım, kutulu önizleme, anons denemesi.
+
 ## Kamera ekleme hataları + şifresiz giriş (02.09.2026)
 
 - **Giriş/şifre kaldırıldı** (kullanıcı kararı, geliştirme aşaması): giriş sayfası,

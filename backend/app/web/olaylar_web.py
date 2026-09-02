@@ -28,24 +28,41 @@ def _filtre_sorgusu(istek: Request) -> tuple[str, list]:
     kosullar, degerler = [], []
     p = istek.query_params
     if p.get("kamera"):
+        try:
+            degerler.append(int(p["kamera"]))
+        except ValueError:
+            raise DogrulamaHatasi(
+                f"Kamera filtresi sayı olmalı; '{p['kamera']}' yazılmış. Filtreyi listeden seçin."
+            ) from None
         kosullar.append("e.camera_id = ?")
-        degerler.append(int(p["kamera"]))
     if p.get("tip") in ("violation", "system"):
         kosullar.append("e.event_type = ?")
         degerler.append(p["tip"])
     if p.get("durum") in OLAY_DURUMLARI:
         kosullar.append("e.status = ?")
         degerler.append(p["durum"])
+    # Tarihler ekranda TÜRKİYE saatiyle gösterilir; sınırlar da Türkiye gününe
+    # göre kurulmalı. UTC sanılırsa gece 00:00-03:00 arası olaylar bir önceki
+    # güne düşer ve kullanıcı "olay kayboldu" der (docs/08 R7).
     if p.get("baslangic"):
         kosullar.append("e.occurred_at >= ?")
-        degerler.append(p["baslangic"] + "T00:00:00+00:00")
+        degerler.append(_tarih_siniri(p["baslangic"], gun_sonu=False))
     if p.get("bitis"):
-        kosullar.append("e.occurred_at <= ?")
-        degerler.append(p["bitis"] + "T23:59:59+00:00")
+        kosullar.append("e.occurred_at < ?")
+        degerler.append(_tarih_siniri(p["bitis"], gun_sonu=True))
     if p.get("alan"):
         kosullar.append("c.area = ?")
         degerler.append(p["alan"])
     return (" WHERE " + " AND ".join(kosullar)) if kosullar else "", degerler
+
+
+def _tarih_siniri(tarih: str, gun_sonu: bool) -> str:
+    try:
+        return (
+            zaman.yerel_gun_sonu_utc(tarih) if gun_sonu else zaman.yerel_gun_baslangici_utc(tarih)
+        )
+    except ValueError as hata:
+        raise DogrulamaHatasi(f"Tarih okunamadı: {hata}") from hata
 
 
 _OLAY_SORGUSU = (
@@ -137,6 +154,7 @@ async def olay_akisi(istek: Request):
                             "kamera": olay["kamera_adi"] or "—",
                             "ozet": olay["ozet"],
                             "tip": olay["event_type"],
+                            "kural": olay["kural_tipi_adi"],
                         },
                         ensure_ascii=False,
                     )

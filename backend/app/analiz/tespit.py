@@ -34,6 +34,9 @@ MODEL_SINIF_ESLEME: dict[int, str] = {
     7: SINIF_TIR,
 }
 
+# İnsan sınıfının model içindeki indeksi — ayrı eşik ve NMS bandı için
+_INSAN_MODEL_ID = 0
+
 # Kullanıcıya görünen Türkçe adlar (arayüz bu tabloyu kullanır)
 SINIF_TR = {"person": "insan", "truck": "tır", "forklift": "forklift"}
 
@@ -46,7 +49,20 @@ class Tespitci:
     """YOLOX ONNX modeli. Tek örnek, tüm kameralar paylaşır; oturum çağrısı
     kilitle sıralanır (CPU'da paralel çıkarım zaten hız kazandırmaz)."""
 
-    def __init__(self, model_dosyasi: Path, cihaz: str, guven_esigi: float = 0.35) -> None:
+    def __init__(
+        self,
+        model_dosyasi: Path,
+        cihaz: str,
+        guven_esigi: float = 0.35,
+        insan_guven_esigi: float | None = None,
+        nms_esigi: float = 0.45,
+        en_kucuk_kenar_px: int = 12,
+    ) -> None:
+        """Eşikler .env'den gelir (CLAUDE.md §7: koda gömülü eşik yasak).
+
+        İnsan eşiği ayrı tutulur: kaçırılan insan, kaçırılan araçtan daha
+        risklidir (docs/00), bu yüzden insanda biraz daha cömert davranılır.
+        """
         import onnxruntime  # importu geciktir: model yoksa paket yüklenmesin
 
         if not model_dosyasi.exists():
@@ -67,15 +83,48 @@ class Tespitci:
                 f"Tespit modeli yüklenemedi: {model_dosyasi} — {hata}\n"
                 "Dosya bozuk olabilir; models/indir.sh ile yeniden indirin."
             ) from hata
+
+        # CUDA istendi ama sağlayıcı yoksa onnxruntime SESSİZCE CPU'ya düşer.
+        # Ana sayfada "cuda" yazarken CPU'da sürünen sistem, teşhis edilemez
+        # bir yavaşlık demektir — durumu dürüstçe sakla (docs/05 ADR-002).
+        self.istenen_cihaz = cihaz
+        self.etkin_cihaz = (
+            "cuda" if "CUDAExecutionProvider" in self._oturum.get_providers() else "cpu"
+        )
+        self.cihaz_uyarisi = ""
+        if cihaz == "cuda" and self.etkin_cihaz != "cuda":
+            self.cihaz_uyarisi = (
+                "CIKARIM_CIHAZI=cuda seçili ama bu bilgisayarda CUDA çalıştırıcısı yok; "
+                "sistem CPU ile çalışıyor (daha yavaş). GPU için NVIDIA sürücüsü ve "
+                "onnxruntime-gpu paketi gerekir; ya da .env'de CIKARIM_CIHAZI=cpu yapın."
+            )
+            log_al("tespit").warning(self.cihaz_uyarisi)
+
         girdi = self._oturum.get_inputs()[0]
         self._girdi_adi = girdi.name
-        # Model girdisinden boyutu oku (tiny: 416, s: 640) — sabit kodlama yok
-        self._girdi_boyu = int(girdi.shape[2])
+        # Model girdisinden boyutu oku (tiny: 416, s: 640) — sabit kodlama yok.
+        # Dinamik eksenli ('height' gibi) bir dışa aktarımda int() ValueError
+        # verirdi; bu ModelHatasi'na çevrilmezse analiz iş parçacığı sessizce ölür.
+        try:
+            self._girdi_boyu = int(girdi.shape[2])
+        except (TypeError, ValueError) as hata:
+            raise ModelHatasi(
+                f"Model girdi boyutu okunamadı ({model_dosyasi.name}: {girdi.shape}). "
+                "Sabit boyutlu bir YOLOX dışa aktarımı gerekir; models/indir.sh ile "
+                "resmi model dosyasını indirin."
+            ) from hata
         self.guven_esigi = guven_esigi
+        # İnsan için ayrı (daha düşük) eşik; verilmezse genel eşik kullanılır
+        self.insan_guven_esigi = (
+            guven_esigi if insan_guven_esigi is None else min(insan_guven_esigi, guven_esigi)
+        )
+        self.nms_esigi = nms_esigi
+        self.en_kucuk_kenar_px = en_kucuk_kenar_px
         self._kilit = threading.Lock()
         log_al("tespit").info(
             f"Tespit modeli yüklendi: {model_dosyasi.name} "
-            f"(girdi {self._girdi_boyu}px, cihaz: {cihaz})"
+            f"(girdi {self._girdi_boyu}px, cihaz: {self.etkin_cihaz}, "
+            f"eşik {self.guven_esigi:g}/insan {self.insan_guven_esigi:g})"
         )
 
     def tespit_et(self, kare: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -120,12 +169,21 @@ class Tespitci:
         cikti[:, 2:4] = np.exp(cikti[:, 2:4]) * adim_dizisi
 
         skorlar = cikti[:, 4:5] * cikti[:, 5:]
-        sinif_idler = skorlar.argmax(1)
-        guvenler = skorlar[np.arange(len(skorlar)), sinif_idler]
 
-        maske = guvenler >= self.guven_esigi
-        # Yalnızca ilgilendiğimiz sınıflar
-        maske &= np.isin(sinif_idler, list(MODEL_SINIF_ESLEME.keys()))
+        # SINIF SEÇİMİ: 80 sınıfın tümü üzerinde argmax almak yerine YALNIZCA
+        # ilgilendiğimiz sınıflara bakılır. Argmax, bir insanı 0.30 ile 'insan',
+        # 0.31 ile 'sırt çantası' bulduğunda insanı tamamen düşürürdü — sahada
+        # kaçırılan insan demektir. Sınıf-farkındalıklı seçim, YOLOX'un kendi
+        # class-aware yolu ve tespit isabetindeki en büyük kazanç (docs/08 R1).
+        ilgi_idler = np.array(sorted(MODEL_SINIF_ESLEME.keys()))
+        ilgi_skorlari = skorlar[:, ilgi_idler]
+        yerel = ilgi_skorlari.argmax(1)
+        sinif_idler = ilgi_idler[yerel]
+        guvenler = ilgi_skorlari[np.arange(len(ilgi_skorlari)), yerel]
+
+        # Sınıf başına eşik: insan için daha cömert
+        esikler = np.where(sinif_idler == _INSAN_MODEL_ID, self.insan_guven_esigi, self.guven_esigi)
+        maske = guvenler >= esikler
         if not maske.any():
             bos = np.empty((0,))
             return np.empty((0, 4)), bos, bos.astype(str)
@@ -142,11 +200,32 @@ class Tespitci:
         kutular[:, [0, 2]] = kutular[:, [0, 2]].clip(0, kare_g)
         kutular[:, [1, 3]] = kutular[:, [1, 3]].clip(0, kare_y)
 
+        # Çok küçük kutular elenir: uzaktaki birkaç piksellik gürültü insan
+        # sanılıp yanlış alarm üretmesin (yanlış alarm, kaçırmadan kötüdür).
+        kenarlar = np.minimum(kutular[:, 2] - kutular[:, 0], kutular[:, 3] - kutular[:, 1])
+        yeterli = kenarlar >= self.en_kucuk_kenar_px
+        if not yeterli.any():
+            bos = np.empty((0,))
+            return np.empty((0, 4)), bos, bos.astype(str)
+        kutular, guvenler, sinif_idler = kutular[yeterli], guvenler[yeterli], sinif_idler[yeterli]
+
+        # NMS SINIF FARKINDALIKLI: aynı noktadaki insan ile aracın kutuları
+        # birbirini bastırmasın diye sınıflar ayrı koordinat bandına kaydırılır
+        # (forklift'in yanındaki insan tam da uyarı üretmesi gereken durumdur).
+        kayma = (max(kare_g, kare_y) + 1) * np.array(
+            [0 if s == _INSAN_MODEL_ID else 1 for s in sinif_idler], dtype=float
+        )
+        nms_kutulari = [
+            (x1 + k, y1 + k, x2 - x1, y2 - y1)
+            for (x1, y1, x2, y2), k in zip(kutular.tolist(), kayma.tolist(), strict=True)
+        ]
         secilenler = cv2.dnn.NMSBoxes(
-            [(x1, y1, x2 - x1, y2 - y1) for x1, y1, x2, y2 in kutular.tolist()],
+            nms_kutulari,
             guvenler.tolist(),
-            self.guven_esigi,
-            0.45,  # NMS IoU eşiği — YOLOX demosunun varsayılanı
+            # En düşük sınıf eşiğinin biraz altı: NMS'in kendi süzgeci, yukarıda
+            # zaten uygulanmış sınıf eşiklerini ikinci kez daraltmasın
+            float(min(self.guven_esigi, self.insan_guven_esigi)) * 0.9,
+            self.nms_esigi,
         )
         if len(secilenler) == 0:
             bos = np.empty((0,))

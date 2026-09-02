@@ -42,6 +42,10 @@ class Ayarlar:
     disk_uyari_gb: int
     cikarim_cihazi: str
     kare_ornekleme_fps: int
+    tespit_guven_esigi: float
+    tespit_insan_guven_esigi: float
+    tespit_nms_esigi: float
+    tespit_en_kucuk_kenar_px: int
     anons: str
     anons_http_adresi: str
     anons_bekleme_sn: int
@@ -82,11 +86,19 @@ def ayarlari_yukle(kok_dizin: Path | None = None) -> Ayarlar:
 
     anons = _secenek(degerler, "ANONS", varsayilan="null", secenekler=_ANONS_SECENEKLERI)
     anons_http_adresi = degerler.get("ANONS_HTTP_ADRESI", "")
-    if anons == "http" and not anons_http_adresi:
-        raise AyarHatasi(
-            ".env dosyasında ANONS=http seçilmiş ama ANONS_HTTP_ADRESI boş. "
-            "Anons sunucusunun adresini yazın veya ANONS=null yapın."
-        )
+    if anons == "http":
+        if not anons_http_adresi:
+            raise AyarHatasi(
+                ".env dosyasında ANONS=http seçilmiş ama ANONS_HTTP_ADRESI boş. "
+                "Anons sunucusunun adresini yazın veya ANONS=null yapın."
+            )
+        # Şemasız adres (ör. '10.0.0.5/anons') urllib'de her ihlalde ValueError
+        # fırlatırdı; hatayı açılışta ve anlaşılır biçimde ver.
+        if not anons_http_adresi.startswith(("http://", "https://")):
+            raise AyarHatasi(
+                ".env dosyasında ANONS_HTTP_ADRESI http:// veya https:// ile başlamalı; "
+                f"şu an '{anons_http_adresi}' yazıyor. Örnek: http://10.0.0.9:8080/anons"
+            )
 
     return Ayarlar(
         kok_dizin=kok,
@@ -104,7 +116,17 @@ def ayarlari_yukle(kok_dizin: Path | None = None) -> Ayarlar:
         # Boş disk bu değerin altına inince sistem olayı üretilir (docs/08 R8)
         disk_uyari_gb=_tam_sayi(degerler, "DISK_UYARI_GB", 5, 1, 1000),
         cikarim_cihazi=_secenek(degerler, "CIKARIM_CIHAZI", "cpu", _CIHAZ_SECENEKLERI),
+        # Yeni kameranın varsayılan örnekleme hızı (kamera formunda değiştirilebilir)
         kare_ornekleme_fps=_tam_sayi(degerler, "KARE_ORNEKLEME_FPS", 6, 1, 30),
+        # Tespit eşikleri: sahaya göre ayarlanır, koda gömülmez (CLAUDE.md §7).
+        # Düşük eşik = daha çok tespit + daha çok yanlış alarm. İnsan eşiği ayrı
+        # tutulur: kaçırılan insan, kaçırılan araçtan daha risklidir (docs/00).
+        tespit_guven_esigi=_ondalik(degerler, "TESPIT_GUVEN_ESIGI", 0.35, 0.05, 0.95),
+        tespit_insan_guven_esigi=_ondalik(degerler, "TESPIT_INSAN_GUVEN_ESIGI", 0.28, 0.05, 0.95),
+        tespit_nms_esigi=_ondalik(degerler, "TESPIT_NMS_ESIGI", 0.45, 0.1, 0.9),
+        # Bu kenar uzunluğundan küçük kutular atılır: uzaktaki birkaç piksellik
+        # gürültü insan sanılıp yanlış alarm üretmesin
+        tespit_en_kucuk_kenar_px=_tam_sayi(degerler, "TESPIT_EN_KUCUK_KENAR_PX", 12, 2, 500),
         anons=anons,
         anons_http_adresi=anons_http_adresi,
         # Anons, ekran uyarısından bağımsız ve daha seyrek çalar (docs/02 §7):
@@ -117,6 +139,24 @@ def ayarlari_yukle(kok_dizin: Path | None = None) -> Ayarlar:
 def _metin(degerler: dict, anahtar: str, varsayilan: str) -> str:
     """Boş bırakılan anahtar da varsayılana düşer ('VERITABANI_YOLU=' gibi)."""
     return degerler.get(anahtar, "") or varsayilan
+
+
+def _ondalik(degerler: dict, anahtar: str, varsayilan: float, en_az: float, en_cok: float) -> float:
+    """Ondalık ayar. Virgül de kabul edilir: kullanıcı '0,35' yazabilir."""
+    ham = (degerler.get(anahtar, "") or "").replace(",", ".")
+    if not ham:
+        return varsayilan
+    try:
+        sayi = float(ham)
+    except ValueError:
+        raise AyarHatasi(
+            f".env dosyasında {anahtar} bir ondalık sayı olmalı; şu an '{ham}' yazıyor."
+        ) from None
+    if not en_az <= sayi <= en_cok:
+        raise AyarHatasi(
+            f".env dosyasında {anahtar} {en_az} ile {en_cok} arasında olmalı; şu an {sayi} yazıyor."
+        )
+    return sayi
 
 
 def _tam_sayi(degerler: dict, anahtar: str, varsayilan: int, en_az: int, en_cok: int) -> int:

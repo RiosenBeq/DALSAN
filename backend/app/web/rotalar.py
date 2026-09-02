@@ -12,7 +12,7 @@ from fastapi.templating import Jinja2Templates
 
 from app import veritabani, zaman
 from app.hatalar import VeritabaniHatasi
-from app.web.ortak import baglanti_al
+from app.web.ortak import SINIFLAR, baglanti_al
 
 router = APIRouter()
 
@@ -29,6 +29,17 @@ def ana_sayfa(istek: Request, yedek: str = "", baglanti=Depends(baglanti_al)):
 
     disk = shutil.disk_usage(ayarlar.veri_dizini)
 
+    # Son 24 saatin olay sayıları — "sistem gerçekten çalışıyor mu" sorusunun
+    # ekrandaki tek cevabı (docs/01 §3.5)
+    gun_siniri = zaman.gun_once_utc(1)
+    ihlal_24s = baglanti.execute(
+        "SELECT COUNT(*) AS n FROM events WHERE event_type = 'violation' AND occurred_at >= ?",
+        (gun_siniri,),
+    ).fetchone()["n"]
+    yeni_ihlal = baglanti.execute(
+        "SELECT COUNT(*) AS n FROM events WHERE event_type = 'violation' AND status = 'new'"
+    ).fetchone()["n"]
+
     supervizor = getattr(istek.app.state, "supervizor", None)
     if supervizor is None:
         model_durumu, model_hatasi = "kapali", "analiz başlatılmadı"
@@ -38,6 +49,8 @@ def ana_sayfa(istek: Request, yedek: str = "", baglanti=Depends(baglanti_al)):
         model_durumu = supervizor.model_durumu
         model_hatasi = supervizor.tespit_hatasi or ""
         anons_durumu = supervizor._anons.ad
+
+    canli_sayim = supervizor.toplam_canli_sayim() if supervizor is not None else {}
 
     return sablonlar.TemplateResponse(
         istek,
@@ -55,6 +68,12 @@ def ana_sayfa(istek: Request, yedek: str = "", baglanti=Depends(baglanti_al)):
             "disk_toplam": _okunur_boyut(disk.total),
             "model_durumu": model_durumu,
             "model_hatasi": model_hatasi,
+            "cihaz_uyarisi": getattr(supervizor, "cihaz_uyarisi", "") if supervizor else "",
+            "canli_sayim": [
+                (SINIFLAR.get(sinif, sinif), adet) for sinif, adet in sorted(canli_sayim.items())
+            ],
+            "ihlal_24s": ihlal_24s,
+            "yeni_ihlal": yeni_ihlal,
             "model_adi": ayarlar.model_dosyasi.name,
             "anons_durumu": anons_durumu,
             "son_yedek": _son_yedek(ayarlar),
@@ -63,6 +82,21 @@ def ana_sayfa(istek: Request, yedek: str = "", baglanti=Depends(baglanti_al)):
             else "",
         },
     )
+
+
+@router.get("/saglik")
+def saglik(istek: Request):
+    """Docker healthcheck ve Kontrol Paneli için UCUZ canlılık kontrolü.
+
+    Ana sayfa veri/ klasörünün tamamını tarayıp boyut hesaplar; 30 saniyede bir
+    onu çağırmak, olay fotoğrafları biriktikçe diski gereksiz yere okur.
+    """
+    supervizor = getattr(istek.app.state, "supervizor", None)
+    return {
+        "durum": "calisiyor",
+        "analiz": supervizor is not None,
+        "model": getattr(supervizor, "model_durumu", "kapali") if supervizor else "kapali",
+    }
 
 
 @router.post("/yedekle")

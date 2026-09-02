@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block baslik %}DALSAN İSG{% endblock %}</title>
-  <link rel="stylesheet" href="/static/stil.css?v=4">
+  <link rel="stylesheet" href="/static/stil.css?v=5">
 </head>
 <body>
   <header>
@@ -16,12 +16,22 @@
         <a href="/kurallar" {% if aktif_sekme == 'kurallar' %}class="aktif"{% endif %}>Kurallar</a>
         <a href="/olaylar" {% if aktif_sekme == 'olaylar' %}class="aktif"{% endif %}>Olaylar</a>
         <a href="/kkd" {% if aktif_sekme == 'kkd' %}class="aktif"{% endif %}>KKD</a>
+        <a href="/anons" {% if aktif_sekme == 'anons' %}class="aktif"{% endif %}>Anons</a>
       </nav>
     </div>
   </header>
   <main>
     {% block icerik %}{% endblock %}
   </main>
+  <script>
+  // Silme onayı TEK yerde. Onay metni data-onay özniteliğinden okunur; JS
+  // kaynağına gömülmez. Aksi halde adında kesme işareti olan bir kamera
+  // ("Rampa 1'in önü") onay penceresini bozar ve kayıt SORULMADAN silinirdi.
+  document.addEventListener("submit", function (olay) {
+    var metin = olay.target.getAttribute && olay.target.getAttribute("data-onay");
+    if (metin && !window.confirm(metin)) olay.preventDefault();
+  });
+  </script>
   {% block betikler %}{% endblock %}
 </body>
 </html>

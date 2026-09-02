@@ -36,6 +36,7 @@
   var durumSatiri = document.getElementById("kare-durumu");
   if (!durumSatiri || !durumSatiri.dataset.kamera) return;
   var rozet = document.getElementById("durum-rozeti");
+  var sayimKutusu = document.getElementById("canli-sayim");
   var ROZETLER = {
     online: ["çevrimiçi", "yesil"],
     connecting: ["bağlanıyor", "sari"],
@@ -55,9 +56,33 @@
         durumSatiri.className = veri.durum === "offline" ? "hata-mesaji" : "not";
         var r = ROZETLER[veri.durum];
         if (rozet && r) { rozet.textContent = r[0]; rozet.className = "rozet " + r[1]; }
+        if (sayimKutusu) sayimiYaz(veri.sayim_tr || {});
       })
       .catch(function () { /* bir sonraki tur */ });
   }
+  function sayimiYaz(sayim) {
+    var adlar = Object.keys(sayim);
+    sayimKutusu.textContent = "";
+    if (adlar.length === 0) {
+      var bos = document.createElement("div");
+      bos.className = "sayim-kutu bos-sayim";
+      bos.appendChild(Object.assign(document.createElement("span"), {
+        className: "sayi", textContent: "—" }));
+      bos.appendChild(Object.assign(document.createElement("span"), {
+        textContent: "şu an görünen nesne yok" }));
+      sayimKutusu.appendChild(bos);
+      return;
+    }
+    adlar.sort().forEach(function (ad) {
+      var kutu = document.createElement("div");
+      kutu.className = "sayim-kutu";
+      kutu.appendChild(Object.assign(document.createElement("span"), {
+        className: "sayi", textContent: String(sayim[ad]) }));
+      kutu.appendChild(Object.assign(document.createElement("span"), { textContent: ad }));
+      sayimKutusu.appendChild(kutu);
+    });
+  }
+
   durumuGuncelle();
   setInterval(durumuGuncelle, 2000);
 })();

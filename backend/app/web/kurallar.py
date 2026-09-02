@@ -118,9 +118,19 @@ def _kural_kaydet_islemi(baglanti, form):
             "Önce kamera sayfasında bölge çizin, sonra burada seçin."
         )
     if zone_id is not None:
-        bolge = baglanti.execute("SELECT camera_id FROM zones WHERE id = ?", (zone_id,)).fetchone()
+        bolge = baglanti.execute(
+            "SELECT camera_id, zone_type FROM zones WHERE id = ?", (zone_id,)
+        ).fetchone()
         if bolge is None or bolge["camera_id"] != kamera_id:
             raise DogrulamaHatasi("Seçilen bölge bu kameraya ait değil.")
+        # KKD kuralı yalnızca 'KKD zorunlu alan' bölgesinde çalışır: veri toplama
+        # ve değerlendirme bu tipe bakar. Başka tipte bölge seçilirse kural
+        # kaydedilir ama HİÇBİR ZAMAN çalışmazdı — sessiz başarısızlık.
+        if kural_tipi == "ppe_violation" and bolge["zone_type"] != "ppe_required":
+            raise DogrulamaHatasi(
+                "KKD kuralı yalnızca 'KKD zorunlu alan' tipindeki bir bölgeye bağlanabilir. "
+                "Kamera sayfasında bu tipte bir bölge çizip burada onu seçin."
+            )
 
     params, hedefler = _formdan_params(kural_tipi, form)
     params = params_dogrula(kural_tipi, params)  # Türkçe hatayla reddeder

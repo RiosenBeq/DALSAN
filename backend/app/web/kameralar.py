@@ -14,7 +14,14 @@ from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from app import zaman
 from app.hatalar import DogrulamaHatasi
 from app.rules.kalibrasyon import homografi_hesapla
-from app.web.ortak import BOLGE_TIPLERI, KURAL_TIPLERI, baglanti_al, guvenli_json, rtsp_maskele
+from app.web.ortak import (
+    BOLGE_TIPLERI,
+    KURAL_TIPLERI,
+    SINIFLAR,
+    baglanti_al,
+    guvenli_json,
+    rtsp_maskele,
+)
 from app.web.rotalar import sablonlar
 
 router = APIRouter()
@@ -194,8 +201,10 @@ def kamera_durumu(istek: Request, kamera_id: int, baglanti=Depends(baglanti_al))
         }
     supervizor = getattr(istek.app.state, "supervizor", None)
     if supervizor is None:
-        return {"durum": "kapali", "mesaj": "Analiz başlatılmadı."}
-    return supervizor.kamera_durumu(kamera_id)
+        return {"durum": "kapali", "mesaj": "Analiz başlatılmadı.", "sayim": {}}
+    durum = supervizor.kamera_durumu(kamera_id)
+    durum["sayim_tr"] = {SINIFLAR.get(s, s): n for s, n in durum.get("sayim", {}).items()}
+    return durum
 
 
 @router.get("/kameralar/{kamera_id}/onizleme.jpg")

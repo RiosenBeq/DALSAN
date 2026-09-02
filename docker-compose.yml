@@ -13,7 +13,10 @@ services:
     container_name: dalsan-isg
     restart: unless-stopped          # sunucu yeniden başlarsa sistem kendiliğinden kalkar (K8)
     ports:
-      - "8080:8080"
+      # Yalnızca sunucunun kendisine açık. Ağdaki diğer bilgisayarlardan
+      # erişilmesi gerekiyorsa "8080:8080" yapın — ama giriş şifresi henüz
+      # yok (docs/07 #0), o yüzden önce şifreyi geri ekleyin.
+      - "127.0.0.1:8080:8080"
     volumes:
       # TÜM veri container dışında durur: container silinse de kaybolmaz
       - ./veri:/uygulama/veri
@@ -21,8 +24,9 @@ services:
       # Model dosyaları imaja gömülüdür; dışarıdan güncellemek isterseniz açın:
       # - ./models:/uygulama/models:ro
     healthcheck:
-      # Ana sayfa cevap veriyorsa süreç ayakta demektir
-      test: ["CMD", "curl", "-fs", "http://127.0.0.1:8080/"]
+      # Hafif sağlık ucu: ana sayfa veri/ klasörünün tamamını tarar, 30 saniyede
+      # bir onu çağırmak diski gereksiz meşgul ederdi
+      test: ["CMD", "curl", "-fs", "http://127.0.0.1:8080/saglik"]
       interval: 30s
       timeout: 5s
       retries: 3

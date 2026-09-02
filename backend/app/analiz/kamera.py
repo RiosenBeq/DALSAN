@@ -113,31 +113,71 @@ class KameraKaynagi:
     # ---- iç döngü ----
 
     def _dongu(self) -> None:
+        """İş parçacığının gövdesi. ASLA istisnayla sonlanmaz.
+
+        Sessizce ölen bir kamera iş parçacığı, sonsuza kadar 'çevrimdışı'
+        görünen ama kimsenin sebebini bilmediği bir kamera demektir; süpervizör
+        de bunu fark edemez. Bu yüzden beklenmeyen hata da yakalanır, kullanıcıya
+        Türkçe olarak gösterilir ve döngü beklemeyle devam eder.
+        """
         bekleme = _BEKLEME_ILK
         while not self._dur.is_set():
-            yakalayici = self._ac()
-            if yakalayici is None:
-                self._log.warning(
-                    f"Kamera bağlantısı kurulamadı: {self.ad} — {self.son_hata} "
-                    f"({bekleme:.0f} sn sonra yeniden denenecek)"
+            try:
+                bekleme = self._bir_tur(bekleme)
+            except Exception as hata:  # noqa: BLE001 — iş parçacığı ölmemeli
+                self.son_hata = (
+                    f"Kamera okunurken beklenmeyen hata: {hata}. Kaynak adresini kontrol edin; "
+                    "ayrıntı veri/loglar/sistem.log dosyasında."
+                )
+                self.son_deneme_utc = zaman.simdi_utc()
+                self._log.error(
+                    f"Kamera iş parçacığında beklenmeyen hata ({self.ad}): {hata}", exc_info=hata
                 )
                 if self._dur.wait(bekleme):
                     return
                 bekleme = min(bekleme * 2, _BEKLEME_EN_COK)
-                continue
 
-            bekleme = _BEKLEME_ILK  # bağlantı kuruldu, sayaç sıfırlanır
-            self.son_hata = ""
-            self._log.info(f"Kamera bağlandı: {self.ad}")
-            dosya_fps = yakalayici.get(cv2.CAP_PROP_FPS) or 0
-            try:
-                self._okuma_dongusu(yakalayici, dosya_fps)
-            finally:
-                yakalayici.release()
-            if not self._dur.is_set():
-                self.son_hata = "Görüntü akışı koptu; yeniden bağlanılıyor."
-                self.son_deneme_utc = zaman.simdi_utc()
-                self._log.warning(f"Kamera akışı koptu: {self.ad} — yeniden bağlanılıyor")
+    def _bir_tur(self, bekleme: float) -> float:
+        """Tek bağlan-oku turu; bir sonraki turun bekleme süresini döndürür."""
+        yakalayici = self._ac()
+        if yakalayici is None:
+            self._log.warning(
+                f"Kamera bağlantısı kurulamadı: {self.ad} — {self.son_hata} "
+                f"({bekleme:.0f} sn sonra yeniden denenecek)"
+            )
+            if self._dur.wait(bekleme):
+                return bekleme
+            return min(bekleme * 2, _BEKLEME_EN_COK)
+
+        self._log.info(f"Kamera bağlandı: {self.ad}")
+        dosya_fps = yakalayici.get(cv2.CAP_PROP_FPS) or 0
+        try:
+            kare_geldi = self._okuma_dongusu(yakalayici, dosya_fps)
+        finally:
+            yakalayici.release()
+        if self._dur.is_set():
+            return bekleme
+
+        if kare_geldi:
+            # Gerçekten görüntü aktı: bekleme sayacı ancak burada sıfırlanır.
+            self.son_hata = "Görüntü akışı koptu; yeniden bağlanılıyor."
+            self._log.warning(f"Kamera akışı koptu: {self.ad} — yeniden bağlanılıyor")
+            bekleme = _BEKLEME_ILK
+        else:
+            # Bağlantı açıldı ama TEK kare gelmedi (NVR bağlantı limiti, çözülemeyen
+            # H.265 akışı, bozuk dosya). Beklemeden yeniden denemek işlemciyi
+            # %100'de döndürür ve günlüğü saniyede yüzlerce satırla doldururdu.
+            self.son_hata = (
+                "Kameraya bağlanıldı ama görüntü gelmedi. Akış biçimi desteklenmiyor "
+                "olabilir ya da kameranın eşzamanlı bağlantı sınırı dolmuş olabilir."
+            )
+            self._log.warning(
+                f"Kameradan kare gelmedi: {self.ad} — {bekleme:.0f} sn sonra yeniden denenecek"
+            )
+        self.son_deneme_utc = zaman.simdi_utc()
+        if self._dur.wait(bekleme):
+            return bekleme
+        return _BEKLEME_ILK if kare_geldi else min(bekleme * 2, _BEKLEME_EN_COK)
 
     def _ac(self) -> cv2.VideoCapture | None:
         """Kaynağı açar; açılamazsa `son_hata`ya Türkçe sebebi yazıp None döner.
@@ -167,8 +207,16 @@ class KameraKaynagi:
                     "Kamera ayarlarından dosyanın tam yolunu düzeltin."
                 )
             return ""
-        parca = urlsplit(self.kaynak_url)
-        host, port = parca.hostname, parca.port or _RTSP_VARSAYILAN_PORT
+        try:
+            parca = urlsplit(self.kaynak_url)
+            # .port bir property'dir: '554a' ya da '99999' yazılmışsa ValueError
+            # fırlatır. Yakalanmazsa iş parçacığı ölür ve kamera sessizce kör kalır.
+            host, port = parca.hostname, parca.port or _RTSP_VARSAYILAN_PORT
+        except ValueError:
+            return (
+                "RTSP adresindeki port numarası okunamadı. Doğru biçim: "
+                "rtsp://kullanici:sifre@192.168.1.64:554/yol"
+            )
         if not host:
             return "RTSP adresi çözümlenemedi. Biçim: rtsp://kullanici:sifre@IP:554/yol"
         try:
@@ -194,8 +242,10 @@ class KameraKaynagi:
             "%40 %3A %2F %23 biçiminde yazın."
         )
 
-    def _okuma_dongusu(self, yakalayici: cv2.VideoCapture, dosya_fps: float) -> None:
+    def _okuma_dongusu(self, yakalayici: cv2.VideoCapture, dosya_fps: float) -> bool:
+        """Kare okur. Dönüş: bu bağlantıda EN AZ BİR kare gelip gelmediği."""
         ardisik_basarisiz = 0
+        kare_geldi = False
         while not self._dur.is_set():
             tamam, kare = yakalayici.read()
             if not tamam:
@@ -205,13 +255,16 @@ class KameraKaynagi:
                     # döndürmek yerine çık, dış döngü yeniden açmayı dener.
                     ardisik_basarisiz += 1
                     if ardisik_basarisiz > 3:
-                        return
+                        return kare_geldi
                     yakalayici.set(cv2.CAP_PROP_POS_FRAMES, 0)
                     if self._dur.wait(0.05):
-                        return
+                        return kare_geldi
                     continue
-                return  # RTSP koptu → dış döngü yeniden bağlanır
+                return kare_geldi  # RTSP koptu → dış döngü yeniden bağlanır
             ardisik_basarisiz = 0
+            if not kare_geldi:
+                kare_geldi = True
+                self.son_hata = ""  # ilk kare geldi: önceki hata artık geçersiz
 
             simdi = time.monotonic()
             with self._kilit:
@@ -228,4 +281,5 @@ class KameraKaynagi:
             if self.kaynak_tipi == "file" and dosya_fps > 0:
                 # Dosyayı gerçek hızında oynat; yoksa saniyede yüzlerce kare döner
                 if self._dur.wait(1.0 / dosya_fps):
-                    return
+                    return kare_geldi
+        return kare_geldi

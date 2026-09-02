@@ -56,11 +56,20 @@ class AnalizSupervizoru:
 
         self._son_konfig_kontrol = 0.0
         self._son_durum_yazma = 0.0
+        # Bakım zamanlayıcısı _dongu() başında tohumlanır. 0.0 bırakılırsa koşul
+        # `time.monotonic() >= 86400` olur; monotonic MAKİNENİN AÇIK KALMA
+        # SÜRESİDİR, uygulamanınki değil. Her vardiya sonunda kapatılan bir
+        # bilgisayarda 86400'e hiç ulaşılmaz → saklama süresi temizliği ve disk
+        # uyarısı HİÇ çalışmaz, disk sessizce dolardı.
         self._son_bakim = 0.0
         self._konfig_damgasi: str = ""
+        # Kamera başına canlı sayım: {kamera_id: {"person": 2, "truck": 1}}
+        self._canli_sayim: dict[int, dict[str, int]] = {}
 
         self.tespitci: Tespitci | None = None
         self.tespit_hatasi: str | None = None
+        # CIKARIM_CIHAZI=cuda istenip CPU'ya düşüldüyse Türkçe uyarı (ana sayfa)
+        self.cihaz_uyarisi: str = ""
         # yukleniyor | indiriliyor | hazir | hata — ana sayfa bunu gösterir
         self.model_durumu: str = "yukleniyor"
         self.kkd = KkdSiniflandirici(None)  # model 9. adımda eğitilecek
@@ -78,6 +87,18 @@ class AnalizSupervizoru:
             kaynak.durdur()
 
     # ---- web'in kullandığı arayüz ----
+
+    def canli_sayim(self, kamera_id: int) -> dict[str, int]:
+        """Kameranın o anda gördüğü nesne sayıları (takip bazlı, kare değil)."""
+        return dict(self._canli_sayim.get(kamera_id, {}))
+
+    def toplam_canli_sayim(self) -> dict[str, int]:
+        """Tüm kameraların toplamı — ana sayfadaki özet."""
+        toplam: dict[str, int] = {}
+        for sayim in self._canli_sayim.values():
+            for sinif, adet in sayim.items():
+                toplam[sinif] = toplam.get(sinif, 0) + adet
+        return toplam
 
     def kamera_durumu(self, kamera_id: int) -> dict:
         """Kamera sayfasının 2 sn'de bir sorduğu canlı durum: online /
@@ -108,6 +129,7 @@ class AnalizSupervizoru:
             "son_deneme": zaman.ekranda_goster(kaynak.son_deneme_utc)
             if kaynak.son_deneme_utc
             else "",
+            "sayim": self.canli_sayim(kamera_id),
         }
 
     def onizleme_jpeg(self, kamera_id: int) -> bytes | None:
@@ -145,6 +167,9 @@ class AnalizSupervizoru:
             self.model_durumu = "hata"
             self.tespit_hatasi = f"Tespit modeli kurulamadı: {hata}"
             self._log.error(self.tespit_hatasi, exc_info=hata)
+        # Bakım açılıştan hemen sonra bir kez, sonra her 24 saatlik UYGULAMA
+        # çalışma süresinde bir çalışsın (makinenin uptime'ından bağımsız).
+        self._son_bakim = time.monotonic() - _BAKIM_ARALIGI_SN
         self._log.info("Analiz süpervizörü başladı.")
         try:
             while not self._dur.is_set():
@@ -171,9 +196,20 @@ class AnalizSupervizoru:
     def _tespitciyi_kur(self, baglanti) -> None:
         try:
             self._modeli_hazirla()
-            self.tespitci = Tespitci(self.ayarlar.model_dosyasi, self.ayarlar.cikarim_cihazi)
+            self.tespitci = Tespitci(
+                self.ayarlar.model_dosyasi,
+                self.ayarlar.cikarim_cihazi,
+                guven_esigi=self.ayarlar.tespit_guven_esigi,
+                insan_guven_esigi=self.ayarlar.tespit_insan_guven_esigi,
+                nms_esigi=self.ayarlar.tespit_nms_esigi,
+                en_kucuk_kenar_px=self.ayarlar.tespit_en_kucuk_kenar_px,
+            )
             self.tespit_hatasi = None
             self.model_durumu = "hazir"
+            if self.tespitci.cihaz_uyarisi:
+                # GPU istenip CPU'ya düşülmüşse kullanıcı bunu bilmeli
+                self.cihaz_uyarisi = self.tespitci.cihaz_uyarisi
+                sistem_olayi_yaz(baglanti, self.tespitci.cihaz_uyarisi)
         except (ModelHatasi, ModelIndirmeHatasi) as hata:
             # Model yokken sistem ÇÖKMEZ: kameralar izlenir, tespit yapılmaz.
             # Durum ana sayfada ve olay listesinde görünür.
@@ -222,7 +258,6 @@ class AnalizSupervizoru:
         damga = damga_satiri["damga"]
         if damga == self._konfig_damgasi:
             return
-        self._konfig_damgasi = damga
         self._log.info("Konfigürasyon değişti — yeniden yükleniyor (restart yok).")
 
         kameralar = self._atanmis_kameralar(baglanti)
@@ -238,10 +273,17 @@ class AnalizSupervizoru:
             self._kamera_konfig[kid] = kamera
 
             mevcut = self._kaynaklar.get(kid)
-            if mevcut is not None and mevcut.kaynak_url != kamera["source_url"]:
+            adres_degisti = mevcut is not None and mevcut.kaynak_url != kamera["source_url"]
+            if adres_degisti:
                 mevcut.durdur()
                 mevcut = None
                 del self._kaynaklar[kid]
+                # Adres değiştiyse ESKİ kameranın son karesi ve takip durumu
+                # yeni kameraya ait değildir: hat da sıfırlanmalı, yoksa
+                # önizlemede eski görüntü ve yanlış takip id'leri sürerdi.
+                self._hatlar.pop(kid, None)
+                self._son_islenen_kare.pop(kid, None)
+                self._canli_sayim.pop(kid, None)
             if mevcut is None:
                 kaynak = KameraKaynagi(
                     kid, kamera["name"], kamera["source_type"], kamera["source_url"]
@@ -249,8 +291,13 @@ class AnalizSupervizoru:
                 kaynak.baslat()
                 self._kaynaklar[kid] = kaynak
                 self._siradaki_ornek[kid] = 0.0
+                self._son_durumlar.pop(kid, None)
 
             hat = self._hatlar.get(kid)
+            # Örnekleme hızı değiştiyse takipçinin kare hızı da değişmeli
+            if hat is not None and hat.fps != int(kamera["sample_fps"]):
+                hat = None
+                self._hatlar.pop(kid, None)
             if hat is None:
                 hat = KameraHatti(kid, int(kamera["sample_fps"]))
                 self._hatlar[kid] = hat
@@ -268,11 +315,16 @@ class AnalizSupervizoru:
                 self._hatlar.pop(kid, None)
                 self._kamera_konfig.pop(kid, None)
                 self._son_durumlar.pop(kid, None)
+                self._canli_sayim.pop(kid, None)
                 baglanti.execute(
                     "UPDATE cameras SET status = ?, measured_fps = NULL WHERE id = ?",
                     (DURUM_OFFLINE, kid),
                 )
         baglanti.commit()
+        # Damga ancak yenileme BAŞARIYLA bittikten sonra yazılır: ortada bir
+        # hata olursa bir sonraki turda aynı değişiklik tekrar denenir, sessizce
+        # yutulmaz.
+        self._konfig_damgasi = damga
 
     def _atanmis_kameralar(self, baglanti) -> list[dict]:
         """Bu analizörün ilgilendiği kameralar (ADR-008): bugün 'tüm aktifler'.
@@ -363,6 +415,12 @@ class AnalizSupervizoru:
                 # bir kameranın işleme hatası diğerlerini durdurmamalı
                 self._log.error(f"Kare işlenemedi (kamera {kid}): {hata}", exc_info=hata)
                 continue
+
+            # Canlı sayım: takip edilen nesneler (kare başına ham tespit değil)
+            sayim: dict[str, int] = {}
+            for tespit in tespitler:
+                sayim[tespit.sinif] = sayim.get(tespit.sinif, 0) + 1
+            self._canli_sayim[kid] = sayim
 
             for ihlal in ihlaller:
                 self._ihlali_kaydet(baglanti, hat, ihlal, simdi)
@@ -461,15 +519,19 @@ class AnalizSupervizoru:
                 elif durum == DURUM_ONLINE and onceki == DURUM_OFFLINE:
                     self._log.info(f"Kamera tekrar çevrimiçi: {ad}")
                     sistem_olayi_yaz(baglanti, f"Kamera tekrar çevrimiçi: {ad}", kamera_id=kid)
-            baglanti.execute(
-                "UPDATE cameras SET status = ?, last_frame_at = ?, measured_fps = ? WHERE id = ?",
-                (
-                    durum,
-                    zaman.simdi_utc() if durum == DURUM_ONLINE else None,
-                    round(kaynak.olculen_fps, 1) if durum == DURUM_ONLINE else None,
-                    kid,
-                ),
-            )
+            if durum == DURUM_ONLINE:
+                baglanti.execute(
+                    "UPDATE cameras SET status = ?, last_frame_at = ?, measured_fps = ? "
+                    "WHERE id = ?",
+                    (durum, zaman.simdi_utc(), round(kaynak.olculen_fps, 1), kid),
+                )
+            else:
+                # last_frame_at KORUNUR: "en son ne zaman görüntü geldi" bilgisi
+                # kamera koptuğunda en çok ihtiyaç duyulan bilgidir; silinmez.
+                baglanti.execute(
+                    "UPDATE cameras SET status = ?, measured_fps = NULL WHERE id = ?",
+                    (durum, kid),
+                )
         baglanti.commit()
 
     # ---- bakım (retention + disk) ----
@@ -512,6 +574,14 @@ class AnalizSupervizoru:
         baglanti.commit()
 
         silinen_foto = self._eski_dosyalari_sil(a.goruntu_klasoru, a.goruntu_saklama_gun)
+        # Dosya silindiği halde events.snapshot_path dolu kalırsa olay ekranında
+        # kırık resim görünür; kaydı da temizle (olayın kendisi korunur).
+        baglanti.execute(
+            "UPDATE events SET snapshot_path = NULL "
+            "WHERE snapshot_path IS NOT NULL AND occurred_at < ?",
+            (zaman.gun_once_utc(a.goruntu_saklama_gun),),
+        )
+        baglanti.commit()
         silinen_kkd = self._kkd_hamlarini_sil(baglanti)
 
         import shutil as _shutil

@@ -18,6 +18,7 @@
     <p id="kare-durumu" class="not" data-kamera="{{ kamera.id }}">
       {% if kamera.enabled %}Durum alınıyor…{% else %}Kamera pasif — izlenmiyor.{% endif %}
     </p>
+    <div class="sayim-izgara kucuk-sayim" id="canli-sayim"></div>
   </section>
 
   <section class="kart">
@@ -32,7 +33,7 @@
         <td>{{ b.noktalar | length }}</td>
         <td>
           <form method="post" action="/bolgeler/{{ b.id }}/sil" class="satir-form"
-                onsubmit="return confirm('{{ b.name }} bölgesi silinsin mi? Bu bölgeye bağlı kurallar da silinir.')">
+                data-onay="{{ b.name }} bölgesi silinsin mi? Bu bölgeye bağlı kurallar da silinir.">
             <button class="dugme ikincil kucuk">Sil</button>
           </form>
         </td>
@@ -129,7 +130,7 @@
       <button type="submit" class="dugme">Kaydet</button>
     </form>
     <form method="post" action="/kameralar/{{ kamera.id }}/sil" class="satir-form"
-          onsubmit="return confirm('{{ kamera.name }} kamerası silinsin mi? Bölgeleri ve kuralları da silinir; olay geçmişi korunur.')">
+          data-onay="{{ kamera.name }} kamerası silinsin mi? Bölgeleri ve kuralları da silinir; olay geçmişi korunur.">
       <button class="dugme tehlike">Kamerayı Sil</button>
     </form>
   </section>

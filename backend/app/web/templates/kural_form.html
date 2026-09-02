@@ -174,7 +174,13 @@ function bolgeleriDoldur() {
 function alanlariGoster() {
   var tip = document.getElementById("rule_type").value;
   ["zone_intrusion", "safe_distance", "ppe_violation"].forEach(function (t) {
-    document.getElementById("alanlar-" + t).style.display = (t === tip) ? "" : "none";
+    var kutu = document.getElementById("alanlar-" + t);
+    var secili = (t === tip);
+    kutu.style.display = secili ? "" : "none";
+    // disabled fieldset'in İÇİNDEKİ HİÇBİR ALAN gönderilmez. Yalnızca gizlemek
+    // yetmez: iki fieldset'te aynı adı taşıyan alanlar (ör. min_dwell_s) varsa
+    // gizli olanın değeri görünen olanınkini eziyordu.
+    kutu.disabled = !secili;
   });
   bolgeleriDoldur();
 }

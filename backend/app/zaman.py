@@ -36,6 +36,33 @@ def gun_once_utc(gun: int) -> str:
     return (datetime.now(UTC) - timedelta(days=gun)).isoformat(timespec="seconds")
 
 
+def yerel_gun_baslangici_utc(tarih: str) -> str:
+    """'2026-09-02' (Türkiye tarihi) → o günün 00:00'ının UTC karşılığı.
+
+    Olay filtresi ekranda Türkiye saati gösterirken sınırları UTC sanırsa,
+    gece 00:00-03:00 arası olaylar yanlış güne düşer (ya da hiç görünmez).
+    """
+    return _yerel_an_utc(tarih, 0)
+
+
+def yerel_gun_sonu_utc(tarih: str) -> str:
+    """'2026-09-02' → ERTESİ günün 00:00'ının UTC karşılığı (üst sınır, hariç).
+
+    Gün sonunu 23:59:59 yerine ertesi günün başlangıcı olarak vermek, saniyenin
+    altındaki damgaların da kapsanmasını garanti eder.
+    """
+    return _yerel_an_utc(tarih, 1)
+
+
+def _yerel_an_utc(tarih: str, gun_ekle: int) -> str:
+    try:
+        gun = datetime.strptime(tarih, "%Y-%m-%d")
+    except ValueError as hata:
+        raise ValueError(f"Geçersiz tarih: {tarih!r} (beklenen biçim: YYYY-AA-GG)") from hata
+    yerel = (gun + timedelta(days=gun_ekle)).replace(tzinfo=_ISTANBUL)
+    return yerel.astimezone(UTC).isoformat(timespec="seconds")
+
+
 def ekranda_goster(utc_metni: str) -> str:
     """UTC metnini Türkiye saatine çevirip 'GG.AA.YYYY SS:DD:SS' döndürür."""
     try:
