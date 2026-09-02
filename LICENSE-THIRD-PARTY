@@ -1,0 +1,43 @@
+ÜÇÜNCÜ TARAF YAZILIM LİSANSLARI
+DALSAN İSG Görüntü Analiz Sistemi
+
+Bu sistemin arayüzünde tespit motoru "NextGen AI" adıyla görünür. Bu ad,
+DALSAN kurulumunun ürün adıdır; altta çalışan açık kaynak bileşenler ve
+lisans atıfları aşağıdadır. Ad değişikliği, bu bileşenlerin lisanslarını
+veya atıf yükümlülüğünü ORTADAN KALDIRMAZ.
+
+Dosya adları, indirme adresleri ve `.env` içindeki ayar anahtarları özgün
+hâlleriyle kalır — sistem modeli onlarla bulur (bkz. models/indir.sh,
+backend/app/analiz/model_indir.py).
+
+--------------------------------------------------------------------------
+1) YOLOX — nesne tespit modeli ve ONNX ağırlıkları
+--------------------------------------------------------------------------
+Telif hakkı: Copyright (c) 2021-2022 Megvii Inc. (Megvii-BaseDetection)
+Lisans:      Apache License 2.0
+Kaynak:      https://github.com/Megvii-BaseDetection/YOLOX
+Lisans metni: https://github.com/Megvii-BaseDetection/YOLOX/blob/main/LICENSE
+Apache-2.0:   https://www.apache.org/licenses/LICENSE-2.0
+
+Kullanım: `models/` klasörüne indirilen ONNX ağırlıkları ve
+backend/app/analiz/tespit.py içindeki ön/son işleme adımları, YOLOX'un resmi
+ONNX Runtime örneğiyle aynı davranışı izler.
+
+Seçim gerekçesi (docs/05-TEKNOLOJI-KARARLARI.md, ADR-002): AGPL lisanslı
+Ultralytics YOLO yerine, ticari kurulumda kısıt yaratmayan Apache-2.0
+lisanslı YOLOX tercih edilmiştir.
+
+--------------------------------------------------------------------------
+2) ONNX Runtime — modeli çalıştıran çıkarım motoru
+--------------------------------------------------------------------------
+Telif hakkı: Copyright (c) Microsoft Corporation
+Lisans:      MIT License
+Kaynak:      https://github.com/microsoft/onnxruntime
+Lisans metni: https://github.com/microsoft/onnxruntime/blob/main/LICENSE
+
+--------------------------------------------------------------------------
+Diğer bileşenler
+--------------------------------------------------------------------------
+Python bağımlılıklarının tam listesi ve sürümleri
+backend/requirements.txt dosyasındadır; her paketin lisansı kendi deposunda
+yayımlanmıştır.

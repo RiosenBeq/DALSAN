@@ -24,7 +24,13 @@ from app import veritabani, zaman
 from app.analiz.boru_hatti import KameraHatti
 from app.analiz.kamera import DURUM_BAGLANIYOR, DURUM_OFFLINE, DURUM_ONLINE, KameraKaynagi
 from app.analiz.kkd_siniflandirici import KkdSiniflandirici, kisi_kirp
-from app.analiz.model_indir import ModelIndirmeHatasi, indirilebilir_mi, modeli_indir
+from app.analiz.model_adi import gorunen_model_adi
+from app.analiz.model_indir import (
+    ModelIndirmeHatasi,
+    indirilebilir_mi,
+    modeli_indir,
+    ozel_model_hatasi,
+)
 from app.analiz.tespit import ModelHatasi, Tespitci
 from app.ayarlar import Ayarlar
 from app.loglama import log_al
@@ -137,11 +143,15 @@ class AnalizSupervizoru:
         hat = self._hatlar.get(kamera_id)
         return hat.kalite() if hat is not None else {"sorun": "yok", "mesaj": ""}
 
-    def onizleme_jpeg(self, kamera_id: int) -> bytes | None:
-        """İşlenmiş (kutulu) son kare; yoksa ham son kare."""
+    def onizleme_jpeg(self, kamera_id: int, bolgeler_dahil: bool = True) -> bytes | None:
+        """İşlenmiş (kutulu) son kare; yoksa ham son kare.
+
+        bolgeler_dahil=False → bölgeler görüntüye çizilmez. Bölge çizim sayfası
+        bölgeleri kendi tuvaline çizdiği için oraya bu sürüm gider.
+        """
         hat = self._hatlar.get(kamera_id)
         if hat is not None:
-            jpeg = hat.son_islenmis_jpeg()
+            jpeg = hat.son_islenmis_jpeg(bolgeler_dahil)
             if jpeg is not None:
                 return jpeg
         kaynak = self._kaynaklar.get(kamera_id)
@@ -162,16 +172,26 @@ class AnalizSupervizoru:
             baglanti = veritabani.baglanti_ac(self.ayarlar.veritabani_yolu)
         except Exception as hata:  # noqa: BLE001 — iş parçacığı SESSİZCE ölmesin
             self.model_durumu = "hata"
-            self.tespit_hatasi = f"Analiz başlatılamadı: {hata}"
-            self._log.error(self.tespit_hatasi, exc_info=hata)
+            # Ekranda sade Türkçe; özgün hata metni yalnızca günlüğe yazılır.
+            self.tespit_hatasi = (
+                "Analiz başlatılamadı. Kontrol Paneli'nde Durdur'a, sonra Sistemi Başlat'a "
+                "basın. Sorun sürerse program klasöründeki veri/loglar/sistem.log dosyasını "
+                "destek ekibine iletin."
+            )
+            self._log.error(f"Analiz başlatılamadı: {hata}", exc_info=hata)
             return
         try:
             self._tespitciyi_kur(baglanti)
         except Exception as hata:  # noqa: BLE001 — model kurulamadı diye kameralar durmaz
             self.tespitci = None
             self.model_durumu = "hata"
-            self.tespit_hatasi = f"Tespit modeli kurulamadı: {hata}"
-            self._log.error(self.tespit_hatasi, exc_info=hata)
+            # Ekranda ürün adı + yapılabilir adım; ham hata metni günlüğe gider.
+            self.tespit_hatasi = (
+                f"{gorunen_model_adi(self.ayarlar.model_dosyasi.name)} başlatılamadı. "
+                "Kontrol Paneli'nde Durdur'a, sonra Sistemi Başlat'a basın. Sorun sürerse "
+                "program klasöründeki veri/loglar/sistem.log dosyasını destek ekibine iletin."
+            )
+            self._log.error(f"Tespit modeli kurulamadı: {hata}", exc_info=hata)
         # Bakım açılıştan hemen sonra bir kez, sonra her 24 saatlik UYGULAMA
         # çalışma süresinde bir çalışsın (makinenin uptime'ından bağımsız).
         self._son_bakim = time.monotonic() - _BAKIM_ARALIGI_SN
@@ -221,15 +241,20 @@ class AnalizSupervizoru:
             self.tespitci = None
             self.tespit_hatasi = hata.kullanici_mesaji
             self.model_durumu = "hata"
-            self._log.error(hata.kullanici_mesaji)
+            # Ekranda sade mesaj, günlükte tam ayrıntı (indirme adresi, özgün hata)
+            self._log.error(hata.teknik_ayrinti, exc_info=hata)
             sistem_olayi_yaz(baglanti, f"Tespit modeli yüklenemedi: {hata.kullanici_mesaji}")
 
     def _modeli_hazirla(self) -> None:
         """Model dosyası yoksa ve bilinen bir YOLOX modeliyse bir kez indirir.
         Kullanıcı terminalde betik çalıştırmak zorunda kalmaz (CLAUDE.md §8)."""
         dosya = self.ayarlar.model_dosyasi
-        if dosya.exists() or not indirilebilir_mi(dosya):
+        if dosya.exists():
             return
+        if not indirilebilir_mi(dosya):
+            # Kendi modelini koyan kullanıcı "dosya bulunamadı" yerine NE YAPACAĞINI
+            # söyleyen markalı açıklamayı görsün; metin tek yerde durur.
+            raise ozel_model_hatasi(dosya)
         self.model_durumu = "indiriliyor"
         self._log.info(
             f"Tespit modeli bulunamadı, indiriliyor (bir kez, ~20-35 MB): {dosya.name} …"

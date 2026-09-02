@@ -25,11 +25,47 @@
     <h2>Sistem</h2>
     <table>
       <tr><th>Tespit modeli</th>
-        <td>{% if model_durumu == 'hazir' %}<span class="rozet yesil">Hazır — {{ model_adi }}</span>
-            {% elif model_durumu == 'indiriliyor' %}<span class="rozet sari">İndiriliyor…</span>
-              {{ model_adi }} bir kez indiriliyor (internet gerekir); bitince bu satır yeşile döner.
-            {% elif model_durumu == 'yukleniyor' %}<span class="rozet sari">Yükleniyor…</span> {{ model_adi }}
-            {% else %}<span class="rozet kirmizi">Yüklenemedi</span> {{ model_hatasi }}{% endif %}</td></tr>
+        <td>
+          {# Motor rozeti: logo + ürün adı + durum noktası (yeşil/turuncu/kırmızı).
+             Ayrıntı açıklaması rozetin ALTINDA, sade Türkçe cümleyle verilir. #}
+          {% if model_durumu == 'hazir' %}
+            <span class="motor-rozeti hazir">
+              <img class="motor-logo" src="/static/logo.svg?v=11" alt="" width="20" height="20">
+              <span class="motor-ad">{{ model_adi }}</span>
+              <span class="motor-ayirac" aria-hidden="true"></span>
+              <span class="motor-nokta" aria-hidden="true"></span>
+              <span class="motor-durum">Hazır</span>
+            </span>
+          {% elif model_durumu == 'indiriliyor' %}
+            <span class="motor-rozeti calisiyor">
+              <img class="motor-logo" src="/static/logo.svg?v=11" alt="" width="20" height="20">
+              <span class="motor-ad">{{ model_adi }}</span>
+              <span class="motor-ayirac" aria-hidden="true"></span>
+              <span class="motor-nokta" aria-hidden="true"></span>
+              <span class="motor-durum">İndiriliyor…</span>
+            </span>
+            <span class="motor-aciklama">Bir kez indiriliyor (internet gerekir);
+              bitince bu satırdaki nokta yeşile döner.</span>
+          {% elif model_durumu == 'yukleniyor' %}
+            <span class="motor-rozeti calisiyor">
+              <img class="motor-logo" src="/static/logo.svg?v=11" alt="" width="20" height="20">
+              <span class="motor-ad">{{ model_adi }}</span>
+              <span class="motor-ayirac" aria-hidden="true"></span>
+              <span class="motor-nokta" aria-hidden="true"></span>
+              <span class="motor-durum">Yükleniyor…</span>
+            </span>
+            <span class="motor-aciklama">Hazırlanıyor, birkaç saniye sürebilir.</span>
+          {% else %}
+            <span class="motor-rozeti hatali">
+              <img class="motor-logo" src="/static/logo.svg?v=11" alt="" width="20" height="20">
+              <span class="motor-ad">{{ model_adi }}</span>
+              <span class="motor-ayirac" aria-hidden="true"></span>
+              <span class="motor-nokta" aria-hidden="true"></span>
+              <span class="motor-durum">Yüklenemedi</span>
+            </span>
+            <span class="motor-aciklama">{{ model_hatasi }}</span>
+          {% endif %}
+        </td></tr>
       <tr><th>KKD modeli</th>
         <td><span class="rozet gri">Henüz eğitilmedi</span> — veri toplandıktan sonra eğitilecek (KKD sekmesi)</td></tr>
       <tr><th>Anons</th><td>{{ anons_durumu }} — <a href="/anons">ayarla ve dene →</a></td></tr>
@@ -84,6 +120,6 @@
   </section>
 {% endblock %}
 {% block betikler %}
-<script src="/static/uyari.js"></script>
-<script src="/static/canli.js"></script>
+<script src="/static/uyari.js?v=11"></script>
+<script src="/static/canli.js?v=11"></script>
 {% endblock %}

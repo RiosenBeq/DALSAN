@@ -16,10 +16,12 @@ from app.hatalar import DogrulamaHatasi
 from app.rules.kalibrasyon import homografi_hesapla
 from app.web.ortak import (
     BOLGE_TIPLERI,
+    HAZIR_KURALLAR,
     KURAL_TIPLERI,
     SINIFLAR,
     baglanti_al,
     guvenli_json,
+    hazir_kural_aciklamasi,
     rtsp_maskele,
 )
 from app.web.rotalar import sablonlar
@@ -28,6 +30,10 @@ router = APIRouter()
 
 
 class KameraBulunamadi(DogrulamaHatasi):
+    http_kodu = 404
+
+
+class BolgeBulunamadi(DogrulamaHatasi):
     http_kodu = 404
 
 
@@ -101,7 +107,9 @@ def kamera_ekle(
 
 
 @router.get("/kameralar/{kamera_id}", response_class=HTMLResponse)
-def kamera_detay(istek: Request, kamera_id: int, baglanti=Depends(baglanti_al)):
+def kamera_detay(istek: Request, kamera_id: int, duzenle: int = 0, baglanti=Depends(baglanti_al)):
+    """Kamera sayfası. `?duzenle=<bölge id>` çizim kutusunu DÜZENLEME kipinde açar:
+    bölgenin adı/tipi forma, poligonu da tuvale yüklenir."""
     kamera = _kamera_getir(baglanti, kamera_id)
     kamera["maskeli_url"] = rtsp_maskele(kamera["source_url"])
     kamera["rozet"], kamera["rozet_rengi"] = _rozet(kamera)
@@ -117,7 +125,16 @@ def kamera_detay(istek: Request, kamera_id: int, baglanti=Depends(baglanti_al)):
             baglanti.execute("SELECT 1 FROM rules WHERE zone_id = ?", (bolge["id"],)).fetchone()
             is not None
         )
+        # Bölge tipinin tek tıkla kurulabilen kural karşılığı (docs/03 eşlemesi)
+        hazir = HAZIR_KURALLAR.get(bolge["zone_type"])
+        bolge["hazir_kisa_ad"] = hazir.kisa_ad if hazir else ""
+        bolge["hazir_aciklama"] = hazir_kural_aciklamasi(hazir) if hazir else ""
+        bolge["hazir_kural_tipi"] = hazir.kural_tipi if hazir else ""
         bolgeler.append(bolge)
+
+    # Düzenlenen bölge tuvale "çizilmekte olan bölge" olarak yüklenir; kayıtlı
+    # bölgeler listesinden ÇIKARILIR, yoksa aynı bölge iki kez çizilir.
+    duzenlenen = next((b for b in bolgeler if b["id"] == duzenle), None)
 
     kurallar = []
     for satir in baglanti.execute(
@@ -139,7 +156,29 @@ def kamera_detay(istek: Request, kamera_id: int, baglanti=Depends(baglanti_al)):
             "kamera": kamera,
             "bolgeler": bolgeler,
             "bolgeler_json": guvenli_json(
-                [{"id": b["id"], "poligon": b["noktalar"], "ad": b["name"]} for b in bolgeler]
+                [
+                    {
+                        "id": b["id"],
+                        "poligon": b["noktalar"],
+                        "ad": b["name"],
+                        "aktif": bool(b["enabled"]),
+                    }
+                    for b in bolgeler
+                    if duzenlenen is None or b["id"] != duzenlenen["id"]
+                ]
+            ),
+            "duzenlenen": duzenlenen,
+            "duzenlenen_json": (
+                guvenli_json(
+                    {
+                        "id": duzenlenen["id"],
+                        "ad": duzenlenen["name"],
+                        "tip": duzenlenen["zone_type"],
+                        "poligon": duzenlenen["noktalar"],
+                    }
+                )
+                if duzenlenen
+                else "null"
             ),
             "kurallar": kurallar,
             "bolge_tipleri": BOLGE_TIPLERI,
@@ -212,9 +251,15 @@ def kamera_durumu(istek: Request, kamera_id: int, baglanti=Depends(baglanti_al))
 
 
 @router.get("/kameralar/{kamera_id}/onizleme.jpg")
-def kamera_onizleme(istek: Request, kamera_id: int):
+def kamera_onizleme(istek: Request, kamera_id: int, bolgesiz: bool = False):
+    """Canlı önizleme karesi.
+
+    bolgesiz=1 → kayıtlı bölgeler görüntünün İÇİNE çizilmez. Bölge çizim
+    sayfası bölgeleri kendi tuvaline çizer; sunucu da çizerse tek bölgenin iki
+    ayrı çizgisi görünür ve kullanıcı sistemin bölgeyi yanlış gördüğünü sanır.
+    """
     supervizor = getattr(istek.app.state, "supervizor", None)
-    jpeg = supervizor.onizleme_jpeg(kamera_id) if supervizor else None
+    jpeg = supervizor.onizleme_jpeg(kamera_id, bolgeler_dahil=not bolgesiz) if supervizor else None
     if jpeg is None:
         # 1x1 gri piksel yerine anlaşılır durum: 204 → JS 'henüz kare yok' yazar
         return Response(status_code=204)
@@ -233,16 +278,82 @@ def bolge_ekle(
     baglanti=Depends(baglanti_al),
 ):
     _kamera_getir(baglanti, kamera_id)
+    ad = _bolge_adi_dogrula(name)
+    _bolge_tipi_dogrula(zone_type)
     noktalar = _poligon_dogrula(polygon)
-    if zone_type not in BOLGE_TIPLERI:
-        raise DogrulamaHatasi(f"Geçersiz bölge tipi: {zone_type}")
     baglanti.execute(
         "INSERT INTO zones (camera_id, name, zone_type, polygon, updated_at) "
         "VALUES (?, ?, ?, ?, ?)",
-        (kamera_id, name.strip(), zone_type, json.dumps(noktalar), zaman.simdi_utc()),
+        (kamera_id, ad, zone_type, json.dumps(noktalar), zaman.simdi_utc()),
     )
     baglanti.commit()
     return RedirectResponse(f"/kameralar/{kamera_id}", status_code=303)
+
+
+@router.post("/bolgeler/{bolge_id}/duzenle")
+def bolge_guncelle(
+    bolge_id: int,
+    name: str = Form(...),
+    zone_type: str = Form(...),
+    polygon: str = Form(""),  # boş → mevcut çizim korunur (yalnız ad/tip değişir)
+    baglanti=Depends(baglanti_al),
+):
+    """Bölgenin adını, tipini ve çizimini DEĞİŞTİRİR — silmeden.
+
+    Bu uç nokta olmadan, adını düzeltmek isteyen kullanıcının tek yolu bölgeyi
+    silmekti; silme ise (şemadaki ON DELETE CASCADE yüzünden) o bölgeye bağlı
+    KURALLARI da götürüyordu. Güncelleme kuralların hiçbirine dokunmaz.
+    """
+    bolge = _bolge_getir(baglanti, bolge_id)
+    ad = _bolge_adi_dogrula(name)
+    _bolge_tipi_dogrula(zone_type)
+    # Boş poligon "çizimi değiştirmedim" demektir: kayıtlı çizim korunur.
+    # Kayıtlı çizim de aynı doğrulamadan geçer; bozuksa Türkçe hata verir.
+    noktalar = _poligon_dogrula(polygon if polygon.strip() else bolge["polygon"])
+
+    # KKD kuralı YALNIZCA 'KKD zorunlu alan' bölgesinde çalışır. Tip değişirse
+    # kural kayıtta kalır ama hiçbir zaman uyarı üretmezdi — sessiz başarısızlık.
+    if zone_type != "ppe_required" and bolge["zone_type"] == "ppe_required":
+        kkd_kurali = baglanti.execute(
+            "SELECT 1 FROM rules WHERE zone_id = ? AND rule_type = 'ppe_violation'",
+            (bolge_id,),
+        ).fetchone()
+        if kkd_kurali is not None:
+            raise DogrulamaHatasi(
+                f"'{bolge['name']}' bölgesine bağlı bir KKD (baret/yelek) kuralı var; bu yüzden "
+                "tipi 'KKD zorunlu alan' dışına çevrilemez. Önce Kurallar sayfasından o kuralı "
+                "silin, sonra tipi değiştirin."
+            )
+
+    baglanti.execute(
+        "UPDATE zones SET name = ?, zone_type = ?, polygon = ?, updated_at = ? WHERE id = ?",
+        (ad, zone_type, json.dumps(noktalar), zaman.simdi_utc(), bolge_id),
+    )
+    _kamera_damgasi_tazele(baglanti, bolge["camera_id"])
+    baglanti.commit()
+    return RedirectResponse(f"/kameralar/{bolge['camera_id']}", status_code=303)
+
+
+@router.post("/bolgeler/{bolge_id}/durum")
+def bolge_durumu_degistir(
+    bolge_id: int,
+    enabled: str = Form(...),  # "1" = aç, "0" = kapat
+    baglanti=Depends(baglanti_al),
+):
+    """Bölgeyi SİLMEDEN geçici olarak kapatır/açar.
+
+    Bakım, tadilat ya da yanlış alarm avı sırasında bölgeyi kapatmak gerekir;
+    silmek gerekmez. Kapalı bölge görüntüde çizilmez ve bölge kuralları
+    çalışmaz. Bölgeye bağlı kurallar tanımlı kalır, açınca aynen döner.
+    """
+    bolge = _bolge_getir(baglanti, bolge_id)
+    baglanti.execute(
+        "UPDATE zones SET enabled = ?, updated_at = ? WHERE id = ?",
+        (1 if enabled == "1" else 0, zaman.simdi_utc(), bolge_id),
+    )
+    _kamera_damgasi_tazele(baglanti, bolge["camera_id"])
+    baglanti.commit()
+    return RedirectResponse(f"/kameralar/{bolge['camera_id']}", status_code=303)
 
 
 @router.post("/bolgeler/{bolge_id}/sil")
@@ -251,12 +362,7 @@ def bolge_sil(bolge_id: int, baglanti=Depends(baglanti_al)):
     if satir is None:
         return RedirectResponse("/kameralar", status_code=303)
     baglanti.execute("DELETE FROM zones WHERE id = ?", (bolge_id,))
-    # zones.updated_at MAX'ı değişmeyebilir; kameranın damgasını tazele ki
-    # süpervizör değişikliği restart'sız görsün
-    baglanti.execute(
-        "UPDATE cameras SET updated_at = ? WHERE id = ?",
-        (zaman.simdi_utc(), satir["camera_id"]),
-    )
+    _kamera_damgasi_tazele(baglanti, satir["camera_id"])
     baglanti.commit()
     return RedirectResponse(f"/kameralar/{satir['camera_id']}", status_code=303)
 
@@ -360,6 +466,37 @@ def _kamera_dogrula(name: str, source_type: str, source_url: str, sample_fps: fl
             "Windows'ta: dosyaya Shift + sağ tık → 'Yol olarak kopyala'."
         )
     return yol
+
+
+def _bolge_getir(baglanti, bolge_id: int) -> dict:
+    satir = baglanti.execute("SELECT * FROM zones WHERE id = ?", (bolge_id,)).fetchone()
+    if satir is None:
+        raise BolgeBulunamadi(f"Bölge bulunamadı (id {bolge_id}). Silinmiş olabilir.")
+    return dict(satir)
+
+
+def _kamera_damgasi_tazele(baglanti, kamera_id: int) -> None:
+    """Kameranın updated_at damgasını tazeler.
+
+    Süpervizör konfigürasyonu damgaya bakarak yeniden yükler; bölge silinince
+    zones tablosunun MAX(updated_at) değeri değişmeyebilir. Damga tazelenmezse
+    değişiklik program yeniden başlatılana kadar görülmez.
+    """
+    baglanti.execute(
+        "UPDATE cameras SET updated_at = ? WHERE id = ?", (zaman.simdi_utc(), kamera_id)
+    )
+
+
+def _bolge_adi_dogrula(name: str) -> str:
+    ad = name.strip()
+    if not ad:
+        raise DogrulamaHatasi("Bölge adı boş olamaz. Örnek: 'Ana yaya yolu'.")
+    return ad
+
+
+def _bolge_tipi_dogrula(zone_type: str) -> None:
+    if zone_type not in BOLGE_TIPLERI:
+        raise DogrulamaHatasi(f"Geçersiz bölge tipi: {zone_type}")
 
 
 def _poligon_dogrula(polygon: str) -> list[list[float]]:

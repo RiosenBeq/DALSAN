@@ -68,6 +68,7 @@ için zayıf, **KKD için yetersiz** (zamansal oylama yeterli gözlem bulamaz). 
 **Seçenekler:** (A) Enterprise lisans (B) Apache-2.0 alternatif: RF-DETR, YOLOX, D-FINE
 **Öneri:** **(B)** — ek maliyet ve müzakere getirmez.
 **Etki izolasyonu:** Karar `Detector` arayüzü arkasında; kodun geri kalanını etkilemez.
+**Not (ürün adı):** Seçilen dedektör kullanıcı arayüzünde **NextGen AI** adıyla görünür (Hızlı / İsabetli). Bu yalnızca EKRAN metnidir: dosya adları, indirme adresleri ve `.env` anahtarları değişmez. Görünen adı üreten tek yer `backend/app/analiz/model_adi.py`, Apache-2.0 atfı ise depo kökündeki `LICENSE-THIRD-PARTY` dosyasıdır.
 
 ### ADR-003 — İki aşamalı KKD (dedektör yerine sınıflandırıcı)
 **Durum:** Kabul

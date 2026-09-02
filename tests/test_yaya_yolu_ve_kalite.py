@@ -54,9 +54,7 @@ def test_yaya_yolu_kurali_tek_tikla_kurulur(istemci, test_ayarlari):
     kamera_id, bolge_id = _kamera_ve_bolge(
         istemci, test_ayarlari, "pedestrian_path", "Yürüyüş yolu"
     )
-    yanit = istemci.post(
-        "/kurallar/yaya-yolu", data={"zone_id": str(bolge_id)}, follow_redirects=False
-    )
+    yanit = istemci.post("/kurallar/hazir", data={"zone_id": str(bolge_id)}, follow_redirects=False)
     assert yanit.status_code == 303
     baglanti = veritabani.baglanti_ac(test_ayarlari.veritabani_yolu)
     try:
@@ -73,21 +71,28 @@ def test_yaya_yolu_kurali_tek_tikla_kurulur(istemci, test_ayarlari):
     assert kural["announcement_id"] is not None, "yaya yolu anonsuna bağlanmalı"
 
 
-def test_yaya_yolu_kurali_yanlis_bolge_tipinde_reddedilir(istemci, test_ayarlari):
+def test_yukleme_alanina_yaya_yolu_kurali_kurulmaz(istemci, test_ayarlari):
+    """Hazır kural, bölgenin TİPİNE bakar: yükleme alanına yaya yolu kuralı
+    (yolun dışında kalan kişi) kurulursa alan sürekli ihlal üretirdi."""
     _, bolge_id = _kamera_ve_bolge(istemci, test_ayarlari, "loading_area", "Rampa")
-    yanit = istemci.post(
-        "/kurallar/yaya-yolu", data={"zone_id": str(bolge_id)}, follow_redirects=False
-    )
-    assert yanit.status_code == 400
-    assert "Yaya yolu" in yanit.json()["hata"]
+    yanit = istemci.post("/kurallar/hazir", data={"zone_id": str(bolge_id)}, follow_redirects=False)
+    assert yanit.status_code == 303
+    baglanti = veritabani.baglanti_ac(test_ayarlari.veritabani_yolu)
+    try:
+        kural = baglanti.execute("SELECT * FROM rules").fetchone()
+        yaya_anonsu = baglanti.execute(
+            "SELECT id FROM announcement_messages WHERE key = 'pedestrian_path'"
+        ).fetchone()["id"]
+    finally:
+        baglanti.close()
+    assert json.loads(kural["params"])["mode"] == "inside", "yükleme alanında OLMAK ihlaldir"
+    assert kural["announcement_id"] != yaya_anonsu, "yükleme alanı için yaya yolu anonsu geçilmez"
 
 
 def test_ayni_bolgeye_ikinci_kural_engellenir(istemci, test_ayarlari):
     _, bolge_id = _kamera_ve_bolge(istemci, test_ayarlari, "pedestrian_path", "Yol")
-    istemci.post("/kurallar/yaya-yolu", data={"zone_id": str(bolge_id)}, follow_redirects=False)
-    yanit = istemci.post(
-        "/kurallar/yaya-yolu", data={"zone_id": str(bolge_id)}, follow_redirects=False
-    )
+    istemci.post("/kurallar/hazir", data={"zone_id": str(bolge_id)}, follow_redirects=False)
+    yanit = istemci.post("/kurallar/hazir", data={"zone_id": str(bolge_id)}, follow_redirects=False)
     assert yanit.status_code == 400
     assert "zaten bir kural var" in yanit.json()["hata"]
 
@@ -99,7 +104,7 @@ def test_yaya_yolu_dugmesi_kamera_sayfasinda_gorunur(istemci, test_ayarlari):
     detay = istemci.get(f"/kameralar/{kamera_id}").text
     assert "yaya yolu kuralı ekle" in detay
     # Kural kurulunca düğme kaybolmalı
-    istemci.post("/kurallar/yaya-yolu", data={"zone_id": str(bolge_id)}, follow_redirects=False)
+    istemci.post("/kurallar/hazir", data={"zone_id": str(bolge_id)}, follow_redirects=False)
     detay = istemci.get(f"/kameralar/{kamera_id}").text
     assert "yaya yolu kuralı ekle" not in detay
 

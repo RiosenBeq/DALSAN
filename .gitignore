@@ -10,3 +10,7 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 models/*.part
+
+# Claude Design tuvali (yerel tasarim calismasi, depoya girmez)
+DALSAN İleri Fabrika Tasarımı/
+*.dc.html

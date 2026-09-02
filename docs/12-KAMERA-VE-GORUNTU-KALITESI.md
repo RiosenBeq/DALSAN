@@ -83,7 +83,8 @@ TESPIT_EN_KUCUK_KENAR_PX=12      # bundan küçük kutular atılır
 1. Önce kamera sayfasındaki kalite uyarısına bakın — sorun genelde oradadır.
 2. `TESPIT_INSAN_GUVEN_ESIGI` değerini **0,05'lik adımlarla** düşürün (0,28 → 0,23 → 0,18).
 3. Uzaktaki küçük nesne için `TESPIT_EN_KUCUK_KENAR_PX` değerini düşürün (12 → 8).
-4. Hâlâ olmuyorsa daha isabetli modele geçin: `MODEL_DOSYASI=models/yolox_s.onnx`
+4. Hâlâ olmuyorsa daha isabetli modele geçin — **NextGen AI İsabetli**:
+   `MODEL_DOSYASI=models/yolox_s.onnx`
    (daha yavaş ama küçük nesnelerde belirgin daha iyi; ilk açılışta kendisi iner).
 
 **Yanlış tespit çoksa** (olmayan nesneye kutu):

@@ -36,7 +36,7 @@ onu kamera gibi izler. Kamera sayfasındaki durum satırı bağlanamama sebebini
 | Canlı sayım (insan/araç), ekranda renk anahtarı, görüntü kalitesi teşhisi | ✅ |
 | Yaya yolu kuralı (tek tıkla) — insanların yürüyüş yolunu kullanması | ✅ |
 | İhlalde ekran bandı + sesli uyarı + Türkçe seslendirme, anons deneme düğmesi | ✅ |
-| İnsan / araç tespiti (YOLOX, Apache-2.0) + ByteTrack takip | ✅ |
+| İnsan / araç tespiti (**NextGen AI** tespit motoru) + ByteTrack takip | ✅ |
 | Bölge çizimi (tarayıcıda poligon) ve bölge ihlali kuralı | ✅ |
 | Güvenli mesafe kuralı (4 nokta zemin kalibrasyonu, metre cinsinden) | ✅ |
 | Olay kaydı + kanıt fotoğrafı + canlı uyarı ekranı (SSE) + CSV | ✅ |
@@ -53,7 +53,7 @@ onu kamera gibi izler. Kamera sayfasındaki durum satırı bağlanamama sebebini
 klasörünü kopyalamak. Gerekçeler: `docs/09-BASITLESTIRME-KARARLARI.md`.
 
 ```
-Kamera (RTSP) → son-kare deseni → YOLOX tespit → ByteTrack takip
+Kamera (RTSP) → son-kare deseni → NextGen AI tespit → ByteTrack takip
    → KURAL MOTORU (saf, kamerasız test edilir: backend/app/rules/)
    → olay + kanıt fotoğrafı → SQLite → canlı ekran (SSE) + anons
 ```
@@ -69,6 +69,17 @@ içinde test edilir; bu kural `tests/rules/test_saflik.py` ile korunur.
 .venv/bin/python -m pytest tests/rules -q   # kural motoru (hızlı, kamerasız)
 .venv/bin/ruff check .
 ```
+
+## Tespit motoru ve lisanslar
+
+Arayüzde tespit motoru **NextGen AI** adıyla görünür (Hızlı / İsabetli). Bu ad
+kurulumun ürün adıdır; ekrandaki adı üreten tek yer
+`backend/app/analiz/model_adi.py`'dir. Dosya adları, indirme adresleri ve
+`.env` içindeki `MODEL_DOSYASI` anahtarı özgün hâliyle kalır — sistem modeli
+onlarla bulur.
+
+Altta çalışan açık kaynak bileşenlerin telif ve lisans atfı depo kökündeki
+`LICENSE-THIRD-PARTY` dosyasındadır.
 
 ## Doküman haritası
 

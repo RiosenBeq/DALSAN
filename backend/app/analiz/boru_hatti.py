@@ -61,6 +61,8 @@ _BOLGE_RENGI = (200, 60, 160)  # mor — araç mavisiyle karışmasın
 _BARET_RENGI = (255, 200, 60)
 _YELEK_RENGI = (0, 220, 245)
 _KKD_YOK_RENGI = (0, 0, 220)
+# Önizleme JPEG kalitesi: ağ trafiği ile okunabilirlik arasında denge
+_JPEG_KALITE = [int(cv2.IMWRITE_JPEG_QUALITY), 80]
 
 
 class KameraHatti:
@@ -81,6 +83,10 @@ class KameraHatti:
         self._kkd_sayac: dict[int, int] = {}  # takip_id -> işlenen kare sayısı
         self._kilit = threading.Lock()
         self._son_jpeg: bytes | None = None
+        # Bölgeleri ÇİZİLMEMİŞ son kare. Bölge çizim sayfası bölgeleri kendi
+        # tuvaline çizer; oraya bölgesi çizili kare giderse aynı bölge ekranda
+        # iki kez görünür. None = bölge yok, iki sürüm zaten aynı.
+        self._son_kare_bolgesiz: np.ndarray | None = None
 
     def yapilandir(
         self, bolgeler: list[Bolge], kurallar: list[Kural], kalibrasyon: Kalibrasyon | None
@@ -131,9 +137,24 @@ class KameraHatti:
         """Son ölçülen görüntü kalitesi (kamera sayfasında gösterilir)."""
         return dict(self._kalite)
 
-    def son_islenmis_jpeg(self) -> bytes | None:
+    def son_islenmis_jpeg(self, bolgeler_dahil: bool = True) -> bytes | None:
+        """Son işlenmiş kare (JPEG).
+
+        bolgeler_dahil=False → kayıtlı bölgelerin ÇİZİLMEDİĞİ sürüm. Bölge
+        çizim sayfası bölgeleri kendi tuvaline çizdiği için oraya bu sürüm
+        gider; aksi halde tek bölgenin iki ayrı çizgisi görünür.
+
+        Bölgesiz sürüm ancak İSTENDİĞİNDE kodlanır: her kare için ikinci bir
+        JPEG üretmek, sayfa açık değilken boşa harcanan işlemci demektir.
+        """
         with self._kilit:
-            return self._son_jpeg
+            if bolgeler_dahil:
+                return self._son_jpeg
+            kare = self._son_kare_bolgesiz
+            if kare is None:
+                return self._son_jpeg  # çizili bölge yok → iki sürüm aynı
+        tamam, jpeg = cv2.imencode(".jpg", kare, _JPEG_KALITE)
+        return jpeg.tobytes() if tamam else None
 
     def kkd_bolgesinde_mi(self, tespit: Tespit, kare_boyutu: tuple[float, float]) -> bool:
         ayak = tespit.ayak_noktasi()
@@ -177,12 +198,6 @@ class KameraHatti:
         gorsel = kare.copy()
         yukseklik, genislik = gorsel.shape[:2]
 
-        for bolge in self._bolgeler:
-            if not bolge.aktif:
-                continue
-            noktalar = np.array([(int(x * genislik), int(y * yukseklik)) for x, y in bolge.poligon])
-            cv2.polylines(gorsel, [noktalar], True, _BOLGE_RENGI, 2)
-
         ihlal_takipleri = {t for ihlal in ihlaller for t in ihlal.takip_idler}
         for tespit in tespitler:
             x1, y1, x2, y2 = (int(v) for v in tespit.kutu)
@@ -194,10 +209,25 @@ class KameraHatti:
             if tespit.sinif == SINIF_INSAN:
                 self._kkd_isaretle(gorsel, tespit, (x1, y1, x2, y2))
 
-        tamam, jpeg = cv2.imencode(".jpg", gorsel, [cv2.IMWRITE_JPEG_QUALITY, 80])
+        # Bölgeler EN SON ve AYRI bir kopyaya çizilir: böylece elimizde hem
+        # bölgeli (izleme ekranları) hem bölgesiz (bölge çizim sayfası) kare olur.
+        bolgeli = gorsel
+        aktif_bolgeler = [b for b in self._bolgeler if b.aktif]
+        if aktif_bolgeler:
+            bolgeli = gorsel.copy()
+            for bolge in aktif_bolgeler:
+                noktalar = np.array(
+                    [(int(x * genislik), int(y * yukseklik)) for x, y in bolge.poligon]
+                )
+                cv2.polylines(bolgeli, [noktalar], True, _BOLGE_RENGI, 2)
+
+        tamam, jpeg = cv2.imencode(".jpg", bolgeli, _JPEG_KALITE)
         if tamam:
             with self._kilit:
                 self._son_jpeg = jpeg.tobytes()
+                # gorsel bir daha DEĞİŞTİRİLMEZ (sonraki kare yeni kopya açar),
+                # bu yüzden kilit dışında güvenle kodlanabilir.
+                self._son_kare_bolgesiz = gorsel if aktif_bolgeler else None
 
     def _kkd_isaretle(
         self, gorsel: np.ndarray, tespit: Tespit, kutu: tuple[int, int, int, int]

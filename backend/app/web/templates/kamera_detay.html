@@ -10,10 +10,30 @@
 
   <section class="kart">
     <h3>Canlı görüntü <span class="not">(1 sn'de bir yenilenir; kutular tespitleri gösterir)</span></h3>
-    <div class="cizim-alani onizleme-kutu">
-      <img id="onizleme" class="canli-onizleme buyuk" data-kamera="{{ kamera.id }}" alt="">
-      <span class="onizleme-yazi">görüntü bekleniyor…</span>
-      <canvas id="cizim"></canvas>
+    {# Sarmal: kılavuz balonu .cizim-alani'nın DIŞINDA durmalı. İçinde olsaydı
+       dar ekranda (balon görüntünün altına inerken) kutuyu uzatır, inset:0 olan
+       tuval de görüntüden taşardı — tıkladığınız yer ile çizilen nokta kayardı. #}
+    <div class="cizim-sarmal">
+      <div class="cizim-alani onizleme-kutu">
+        {# data-bolgesiz: bölgeler görüntünün içine ÇİZİLMEZ; bu sayfada onları
+           üstteki tuval çizer (kamera_detay.js). İkisi birden çizerse tek bölge
+           iki ayrı çizgi hâlinde görünür. #}
+        <img id="onizleme" class="canli-onizleme buyuk" data-kamera="{{ kamera.id }}"
+             data-bolgesiz="1" alt="">
+        <span class="onizleme-yazi">görüntü bekleniyor…</span>
+        <canvas id="cizim"></canvas>
+      </div>
+      {# Adım adım kılavuz: yalnızca çizim/nokta seçimi sürerken görünür.
+         Geniş ekranda görüntünün üstünde durur ki kullanıcı tıklarken gözünü
+         ayırmasın; dar ekranda görüntünün altına iner. #}
+      <div class="cizim-balonu" id="cizim-balonu" hidden>
+        <span class="balon-tip" id="balon-tip">
+          <span class="tip-noktasi" id="balon-noktasi"></span>
+          <span id="balon-tip-adi"></span>
+        </span>
+        <span class="balon-adim" id="balon-adim"></span>
+        <span class="balon-sayac" id="balon-sayac"></span>
+      </div>
     </div>
     <p id="kare-durumu" class="not" data-kamera="{{ kamera.id }}">
       {% if kamera.enabled %}Durum alınıyor…{% else %}Kamera pasif — izlenmiyor.{% endif %}
@@ -27,58 +47,115 @@
     <h3>Bölgeler</h3>
     {% if bolgeler %}
     <table class="liste">
-      <tr><th>Ad</th><th>Tip</th><th>Nokta</th><th></th></tr>
+      <tr><th>Ad</th><th>Tip</th><th>Nokta</th><th>İşlem</th></tr>
       {% for b in bolgeler %}
-      <tr>
-        <td>{{ b.name }}</td>
+      <tr{% if not b.enabled %} class="pasif"{% endif %}>
+        <td>{{ b.name }}
+          {% if not b.enabled %}<span class="rozet gri">kapalı</span>{% endif %}
+        </td>
         <td>{{ b.tip_adi }}</td>
         <td>{{ b.noktalar | length }}</td>
-        <td>
+        <td class="islem-hucresi">
+          <a class="dugme ikincil kucuk" href="/kameralar/{{ kamera.id }}?duzenle={{ b.id }}">Düzenle</a>
+          {# Silmeden geçici kapatma: bakım/tadilat sırasında bölge sussun ama
+             kuralları kaybolmasın. zones.enabled sütunu analizde okunuyor. #}
+          <form method="post" action="/bolgeler/{{ b.id }}/durum" class="satir-form">
+            <input type="hidden" name="enabled" value="{{ 0 if b.enabled else 1 }}">
+            <button class="dugme ikincil kucuk">{% if b.enabled %}Kapat{% else %}Aç{% endif %}</button>
+          </form>
           <form method="post" action="/bolgeler/{{ b.id }}/sil" class="satir-form"
-                data-onay="{{ b.name }} bölgesi silinsin mi? Bu bölgeye bağlı kurallar da silinir.">
+                data-onay="{{ b.name }} bölgesi silinsin mi? Bu bölgeye bağlı kurallar da silinir. Adını veya çizimini değiştirmek için Sil değil, Düzenle'yi kullanın.">
             <button class="dugme ikincil kucuk">Sil</button>
           </form>
         </td>
       </tr>
       {% endfor %}
     </table>
+    <p class="not">Kapalı bölge görüntüde çizilmez ve bölge kuralları çalışmaz; kuralları
+      silinmez, "Aç"a basınca aynen döner. Ad, tip veya çizim değiştirmek için
+      <b>Düzenle</b>'yi kullanın — <b>Sil</b>, bölgeye bağlı kuralları da siler.</p>
     {% else %}
     <p class="bos">Bu kamerada bölge yok. Kurallar bölge üstünde çalışır — önce bölge çizin.</p>
     {% endif %}
 
-    {% set yaya_yollari = bolgeler | selectattr("zone_type", "equalto", "pedestrian_path")
-                                   | rejectattr("kurali_var") | list %}
-    {% if yaya_yollari %}
+    {# Her bölge tipinin tek tıkla kurulan bir kural karşılığı var (docs/03).
+       Kural kurulunca bölge bu listeden düşer. #}
+    {% set kuralsiz = bolgeler | rejectattr("kurali_var") | selectattr("hazir_kisa_ad") | list %}
+    {% if kuralsiz %}
     <div class="hazir-kural">
-      <h4>Yaya yolu kuralı</h4>
-      <p class="not">Fabrikada çizili yürüyüş yolu varsa, insanların oradan yürümesi beklenir.
-        Bu kural yaya yolunun <b>dışında</b> {{ 5 }} saniyeden uzun kalan kişiyi uyarır;
-        yolun kenarına bir adım atan kişi uyarı üretmez.</p>
-      {% for b in yaya_yollari %}
-      <form method="post" action="/kurallar/yaya-yolu" class="satir-form">
-        <input type="hidden" name="zone_id" value="{{ b.id }}">
-        <button class="dugme">"{{ b.name }}" için yaya yolu kuralı ekle</button>
-      </form>
+      <h4>Hazır kurallar</h4>
+      <p class="not">Çizilen bölge tek başına uyarı üretmez; bir kurala bağlanması gerekir.
+        Aşağıdaki düğme, bölge tipine uyan kuralı hazır değerlerle kurar.
+        Sonradan Kurallar sayfasından değiştirebilirsiniz.</p>
+      {% for b in kuralsiz %}
+      <div class="hazir-satir">
+        <p class="not"><b>{{ b.name }}</b> ({{ b.tip_adi }}): {{ b.hazir_aciklama }}
+          {% if b.hazir_kural_tipi == 'safe_distance' and not kalibrasyon_var %}
+          <b>Bu kamera henüz kalibre edilmedi — kural kurulur ama kalibrasyon yapılana
+            kadar çalışmaz (aşağıdaki "Mesafe kalibrasyonu" bölümü).</b>
+          {% endif %}
+        </p>
+        <form method="post" action="/kurallar/hazir" class="satir-form">
+          <input type="hidden" name="zone_id" value="{{ b.id }}">
+          <button class="dugme">"{{ b.name }}" için {{ b.hazir_kisa_ad }} ekle</button>
+        </form>
+      </div>
       {% endfor %}
     </div>
     {% endif %}
 
-    <div class="bolge-cizim-kutusu">
+    <div class="bolge-cizim-kutusu{% if duzenlenen %} duzenleme{% endif %}">
+      {% if duzenlenen %}
+      <h4>Bölgeyi düzenle: {{ duzenlenen.name }}</h4>
+      <p class="not">Ad ve tipi buradan değiştirin, <b>Değişikliği Kaydet</b>'e basın.
+        Çizimi değiştirmek için <b>Yeniden çiz</b>'e basıp yukarıdaki görüntüde köşelere
+        tıklayın; dokunmazsanız mevcut çizim korunur. <b>Bu işlem bölgenin kurallarını
+        silmez.</b> Yeniden çizerken vazgeçmek için <b>Esc</b> (kayıtlı çizim geri gelir);
+        düzenlemeyi bırakmak için "Vazgeç".
+        {% if duzenlenen.kurali_var %}<br><b>Bu bölgeye bağlı bir kural var:</b> tipini
+        değiştirirseniz kuralı Kurallar sayfasından gözden geçirin — kural silinmez.{% endif %}</p>
+      {% else %}
       <h4>Yeni bölge çiz</h4>
-      <p class="not">1) "Çizime başla"ya basın · 2) Yukarıdaki görüntüye tıklayarak köşeleri
-        işaretleyin (en az 3) · 3) Ad ve tip seçip kaydedin.</p>
-      <form method="post" action="/kameralar/{{ kamera.id }}/bolgeler" class="satir-form" id="bolge-formu">
-        <button type="button" class="dugme ikincil" id="cizim-baslat">Çizime başla</button>
-        <input name="name" placeholder="Bölge adı" required>
-        <select name="zone_type">
-          {% for deger, ad in bolge_tipleri.items() %}
-          <option value="{{ deger }}">{{ ad }}</option>
-          {% endfor %}
-        </select>
-        <input type="hidden" name="polygon" id="polygon-alani">
-        <button type="submit" class="dugme" id="bolge-kaydet" disabled>Bölgeyi Kaydet</button>
-        <button type="button" class="dugme ikincil" id="cizim-temizle">Temizle</button>
+      <p class="not">1) Ad yazıp tip seçin · 2) "Çizime başla"ya basın ·
+        3) Yukarıdaki görüntüde köşelere sırayla tıklayın (en az 3) ·
+        4) Bitirmek için ilk (büyük) noktaya tıklayın · 5) "Bölgeyi Kaydet".
+        Vazgeçmek için <b>Esc</b>.</p>
+      {% endif %}
+      <form method="post" class="bolge-formu" id="bolge-formu"
+            action="{% if duzenlenen %}/bolgeler/{{ duzenlenen.id }}/duzenle{% else %}/kameralar/{{ kamera.id }}/bolgeler{% endif %}">
+        <div class="alan-satiri">
+          <label>Bölge adı
+            <input name="name" placeholder="örn. Ana yaya yolu" required
+                   value="{{ duzenlenen.name if duzenlenen else '' }}">
+          </label>
+          <label>Bölge tipi
+            <span class="tip-secim">
+              {# Renk kutusu: çizerken görüntüde göreceğiniz renk. #}
+              <span class="tip-rengi" id="tip-rengi" aria-hidden="true"></span>
+              <select name="zone_type" id="bolge-tipi">
+                {% for deger, ad in bolge_tipleri.items() %}
+                <option value="{{ deger }}"
+                  {% if duzenlenen and duzenlenen.zone_type == deger %}selected{% endif %}>{{ ad }}</option>
+                {% endfor %}
+              </select>
+            </span>
+          </label>
+        </div>
+        <div class="dugme-satiri">
+          <button type="button" class="dugme ikincil" id="cizim-baslat">
+            {% if duzenlenen %}Yeniden çiz{% else %}Çizime başla{% endif %}</button>
+          <button type="button" class="dugme ikincil" id="cizim-geri" disabled>Son köşeyi geri al</button>
+          <button type="button" class="dugme ikincil" id="cizim-temizle" disabled>Temizle</button>
+          <button type="submit" class="dugme" id="bolge-kaydet" disabled>
+            {% if duzenlenen %}Değişikliği Kaydet{% else %}Bölgeyi Kaydet{% endif %}</button>
+          {% if duzenlenen %}<a class="dugme ikincil" href="/kameralar/{{ kamera.id }}">Vazgeç</a>{% endif %}
+          <span class="kose-sayaci" id="kose-sayaci">0 köşe</span>
+        </div>
+        <input type="hidden" name="polygon" id="polygon-alani"
+               value="{{ duzenlenen.polygon if duzenlenen else '' }}">
       </form>
+      <p class="not">Çizerken görülen renk seçtiğiniz tipi gösterir. Kaydedilen bölgeler,
+        her ekranda aynı görünsün diye tek renkle (mor) çizilir.</p>
     </div>
   </section>
 
@@ -155,7 +232,8 @@
   </section>
 {% endblock %}
 {% block betikler %}
-<script>window.MEVCUT_BOLGELER = {{ bolgeler_json | safe }};</script>
-<script src="/static/onizleme.js"></script>
-<script src="/static/kamera_detay.js"></script>
+<script>window.MEVCUT_BOLGELER = {{ bolgeler_json | safe }};
+window.DUZENLENEN_BOLGE = {{ duzenlenen_json | safe }};</script>
+<script src="/static/onizleme.js?v=11"></script>
+<script src="/static/kamera_detay.js?v=11"></script>
 {% endblock %}

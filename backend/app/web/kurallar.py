@@ -15,7 +15,17 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from app import zaman
 from app.hatalar import DogrulamaHatasi
 from app.rules.parametreler import params_dogrula
-from app.web.ortak import BOLGE_TIPLERI, KURAL_TIPLERI, SINIFLAR, baglanti_al, guvenli_json
+from app.web.ortak import (
+    BOLGE_TIPLERI,
+    HAZIR_KURALLAR,
+    KURAL_TIPLERI,
+    SINIFLAR,
+    VARSAYILAN_COOLDOWN_SN,
+    baglanti_al,
+    guvenli_json,
+    hazir_kural_cooldown,
+    hazir_kural_params,
+)
 from app.web.rotalar import sablonlar
 
 router = APIRouter()
@@ -135,11 +145,7 @@ def _kural_kaydet_islemi(baglanti, form):
     params, hedefler = _formdan_params(kural_tipi, form)
     params = params_dogrula(kural_tipi, params)  # Türkçe hatayla reddeder
 
-    cooldown = _sayi(
-        form,
-        "cooldown_s",
-        {"zone_intrusion": 120, "safe_distance": 90, "ppe_violation": 180}[kural_tipi],
-    )
+    cooldown = _sayi(form, "cooldown_s", VARSAYILAN_COOLDOWN_SN[kural_tipi])
     if not 5 <= cooldown <= 86400:
         raise DogrulamaHatasi(
             "Cooldown 5 saniye ile 86400 saniye (24 saat) arasında olmalı; "
@@ -186,57 +192,57 @@ def _kural_kaydet_islemi(baglanti, form):
     return RedirectResponse("/kurallar", status_code=303)
 
 
-# Yaya yolu kuralının varsayılanları (docs/03 §1). Kısa süreli sapmalar ihlal
-# sayılmasın diye kalış süresi bilerek uzun: yolun kenarına bir adım atan kişi
-# değil, yolu KULLANMAYAN kişi uyarı üretmeli.
-YAYA_YOLU_VARSAYILANLARI = {"mode": "outside", "min_dwell_s": 5.0}
-YAYA_YOLU_COOLDOWN_SN = 180
-
-
-@router.post("/kurallar/yaya-yolu")
-def yaya_yolu_kurali(
+@router.post("/kurallar/hazir")
+def hazir_kural_ekle(
     zone_id: int = Form(...),
     baglanti=Depends(baglanti_al),
 ):
-    """Tek tıkla 'yaya yolunu kullanmayan kişi' kuralı.
+    """Tek tıkla, bölge tipine uygun kuralı kurar (docs/03 eşlemesi).
 
-    Fabrikada çizili yürüyüş yolu vardır ve insanların oradan yürümesi beklenir.
-    Bu kural, yaya yolu bölgesinin DIŞINDA belirli süreden uzun kalan kişiyi
-    uyarır. Elle kurmak için Kurallar sayfasında 'Bölge DIŞINDA olmak ihlal'
-    seçeneği de vardır; bu düğme aynı kuralı doğru varsayılanlarla kurar.
+    Kullanıcı bölgeyi çizip "hiçbir şey olmuyor" durumunda kalmasın diye HER
+    bölge tipinin bir karşılığı vardır: yaya yolu → yolun DIŞINDA kalan kişi,
+    yasak bölge / yükleme alanı → bölgede kalan kişi, tır park alanı → alanın
+    dışında duran tır, araç sahası → güvenli mesafe, KKD alanı → baret/yelek.
+    Eşleme app/web/ortak.py'deki HAZIR_KURALLAR tablosunda; eşikler
+    app/rules/parametreler.py'den gelir (docs/03 tabloları, tek kaynak).
+
+    Kurulan kural sıradan bir kuraldır: Kurallar sayfasından düzenlenebilir.
     """
     bolge = baglanti.execute(
         "SELECT id, camera_id, zone_type, name FROM zones WHERE id = ?", (zone_id,)
     ).fetchone()
     if bolge is None:
-        raise DogrulamaHatasi("Bölge bulunamadı.")
-    if bolge["zone_type"] != "pedestrian_path":
+        raise DogrulamaHatasi("Bölge bulunamadı. Silinmiş olabilir; sayfayı yenileyin.")
+    hazir = HAZIR_KURALLAR.get(bolge["zone_type"])
+    if hazir is None:
         raise DogrulamaHatasi(
-            "Yaya yolu kuralı yalnızca 'Yaya yolu' tipindeki bir bölgeye kurulabilir. "
-            "Kamera sayfasında bölgeyi bu tiple çizin."
+            f"'{BOLGE_TIPLERI.get(bolge['zone_type'], bolge['zone_type'])}' tipindeki bölge "
+            "için hazır kural yok. Kurallar sayfasından elle tanımlayabilirsiniz."
         )
-    mevcut = baglanti.execute(
-        "SELECT 1 FROM rules WHERE zone_id = ? AND rule_type = 'zone_intrusion'", (zone_id,)
-    ).fetchone()
+    mevcut = baglanti.execute("SELECT 1 FROM rules WHERE zone_id = ?", (zone_id,)).fetchone()
     if mevcut is not None:
         raise DogrulamaHatasi(
             f"'{bolge['name']}' bölgesinde zaten bir kural var. Kurallar sayfasından düzenleyin."
         )
 
-    anons = baglanti.execute(
-        "SELECT id FROM announcement_messages WHERE key = 'pedestrian_path'"
-    ).fetchone()
+    anons_id = None
+    if hazir.anons_anahtari:
+        anons = baglanti.execute(
+            "SELECT id FROM announcement_messages WHERE key = ?", (hazir.anons_anahtari,)
+        ).fetchone()
+        anons_id = anons["id"] if anons else None
+
     baglanti.execute(
         "INSERT INTO rules (camera_id, rule_type, zone_id, target_classes, params, "
         "cooldown_s, announcement_id, enabled, updated_at) VALUES (?,?,?,?,?,?,?,1,?)",
         (
             bolge["camera_id"],
-            "zone_intrusion",
+            hazir.kural_tipi,
             zone_id,
-            json.dumps(["person"]),
-            json.dumps(params_dogrula("zone_intrusion", dict(YAYA_YOLU_VARSAYILANLARI))),
-            YAYA_YOLU_COOLDOWN_SN,
-            anons["id"] if anons else None,
+            json.dumps(list(hazir.hedef_siniflar)),
+            json.dumps(hazir_kural_params(hazir)),
+            hazir_kural_cooldown(hazir),
+            anons_id,
             zaman.simdi_utc(),
         ),
     )

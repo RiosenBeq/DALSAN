@@ -11,6 +11,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from app import veritabani, zaman
+from app.analiz.model_adi import gorunen_model_adi
 from app.hatalar import VeritabaniHatasi
 from app.web.ortak import SINIFLAR, baglanti_al
 
@@ -74,7 +75,7 @@ def ana_sayfa(istek: Request, yedek: str = "", baglanti=Depends(baglanti_al)):
             ],
             "ihlal_24s": ihlal_24s,
             "yeni_ihlal": yeni_ihlal,
-            "model_adi": ayarlar.model_dosyasi.name,
+            "model_adi": gorunen_model_adi(ayarlar.model_dosyasi.name),
             "anons_durumu": anons_durumu,
             "son_yedek": _son_yedek(ayarlar),
             "yedek_sonucu": "Yedek alındı: veri/yedekler/ klasörüne kaydedildi."
@@ -141,7 +142,7 @@ def _ayar_satirlari(ayarlar) -> list[tuple[str, str]]:
         ("KKD ham veri saklama", f"{ayarlar.kkd_ham_veri_saklama_gun} gün"),
         ("Çıkarım cihazı", ayarlar.cikarim_cihazi),
         ("Kare örnekleme", f"{ayarlar.kare_ornekleme_fps} fps"),
-        ("Tespit modeli", ayarlar.model_dosyasi.name),
+        ("Tespit modeli", gorunen_model_adi(ayarlar.model_dosyasi.name)),
         ("Anons", ayarlar.anons),
     ]
 

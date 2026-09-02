@@ -18,6 +18,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 
+from app.analiz.model_adi import MARKA, gorunen_model_adi
 from app.hatalar import DalsanHata
 from app.loglama import log_al
 from app.rules.tipler import SINIF_INSAN, SINIF_TIR
@@ -72,10 +73,14 @@ class Tespitci:
         import onnxruntime  # importu geciktir: model yoksa paket yüklenmesin
 
         if not model_dosyasi.exists():
+            # Ekranda ürün adı ve YAPILABİLİR bir adım; tam dosya yolu günlüğe
+            # gider (CLAUDE.md §8 — kullanıcıya terminal komutu verilmez).
             raise ModelHatasi(
-                f"Tespit modeli bulunamadı: {model_dosyasi}\n"
-                "Çözüm: proje klasöründe models/indir.sh betiğini çalıştırın "
-                "(Ana sayfadaki 'Model durumu' kutusunda da yazıyor)."
+                f"{gorunen_model_adi(model_dosyasi.name)} kurulu değil. Kontrol Paneli'nde "
+                f"Durdur'a, sonra Sistemi Başlat'a basın — {MARKA} ilk açılışta kendiliğinden "
+                "iner. Sorun sürerse program klasöründeki veri/loglar/sistem.log dosyasını "
+                "destek ekibine iletin.",
+                f"Tespit modeli bulunamadı: {model_dosyasi}",
             )
         saglayicilar = (
             ["CUDAExecutionProvider", "CPUExecutionProvider"]
@@ -85,9 +90,15 @@ class Tespitci:
         try:
             self._oturum = onnxruntime.InferenceSession(str(model_dosyasi), providers=saglayicilar)
         except Exception as hata:  # onnxruntime kendi hata tipini garanti etmiyor
+            # Bozuk dosya yerinde DURDUĞU için yeniden başlatmak tek başına
+            # yetmeyebilir (dosya varsa indirme atlanır). Mesaj bunu saklamaz:
+            # önce ucuz olanı söyler, sonra kesin çözüm yolunu gösterir.
             raise ModelHatasi(
-                f"Tespit modeli yüklenemedi: {model_dosyasi} — {hata}\n"
-                "Dosya bozuk olabilir; models/indir.sh ile yeniden indirin."
+                f"{gorunen_model_adi(model_dosyasi.name)} açılamadı: dosyası bozuk. "
+                "Kontrol Paneli'nde Durdur'a, sonra Sistemi Başlat'a basın. Düzelmezse "
+                "bozuk dosyanın değiştirilmesi gerekir: program klasöründeki "
+                "veri/loglar/sistem.log dosyasını destek ekibine iletin.",
+                f"Tespit modeli yüklenemedi: {model_dosyasi} — {hata!r}",
             ) from hata
 
         # CUDA istendi ama sağlayıcı yoksa onnxruntime SESSİZCE CPU'ya düşer.
@@ -115,9 +126,14 @@ class Tespitci:
             self._girdi_boyu = int(girdi.shape[2])
         except (TypeError, ValueError) as hata:
             raise ModelHatasi(
-                f"Model girdi boyutu okunamadı ({model_dosyasi.name}: {girdi.shape}). "
-                "Sabit boyutlu bir YOLOX dışa aktarımı gerekir; models/indir.sh ile "
-                "resmi model dosyasını indirin."
+                f"{gorunen_model_adi(model_dosyasi.name)} bu sistemle uyumlu değil. Hazır "
+                "modele dönmek için: program klasöründeki .env dosyasını bir metin "
+                "düzenleyiciyle açın, MODEL_DOSYASI ile başlayan satırı yanındaki "
+                ".env.example dosyasında yazdığı gibi düzeltip kaydedin, sonra Kontrol "
+                "Paneli'nde Durdur'a ve Sistemi Başlat'a basın. Kendi eğittiğiniz modeli "
+                "kullanmak istiyorsanız program klasöründeki veri/loglar/sistem.log "
+                "dosyasını destek ekibine iletin.",
+                f"Model girdi boyutu okunamadı ({model_dosyasi}: girdi biçimi {girdi.shape}).",
             ) from hata
         self.guven_esigi = guven_esigi
         # İnsan için ayrı (daha düşük) eşik; verilmezse genel eşik kullanılır

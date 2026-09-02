@@ -22,7 +22,7 @@ diğerleri etkilenmez.
 Kamera (RTSP / USB / video dosyası)
         │  saniyede 3-6 kare örneklenir (hepsi değil — işlemci boğulmasın)
         ▼
-   TESPİT       Görüntüde ne var? (insan, araç, bardak…)  → YOLOX modeli
+   TESPİT       Görüntüde ne var? (insan, araç, bardak…)  → NextGen AI
         ▼
    TAKİP        Aynı nesne mi, yeni nesne mi? → her nesneye bir takip numarası
         ▼

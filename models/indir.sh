@@ -21,5 +21,5 @@ indir yolox_tiny.onnx "https://github.com/Megvii-BaseDetection/YOLOX/releases/do
 indir yolox_s.onnx    "https://github.com/Megvii-BaseDetection/YOLOX/releases/download/0.1.1rc0/yolox_s.onnx"
 
 echo ""
-echo "Tamam. Geliştirmede yolox_tiny (hızlı), fabrikada yolox_s (isabetli) kullanılır."
+echo "Tamam. Geliştirmede NextGen AI Hızlı, fabrikada NextGen AI İsabetli kullanılır."
 echo "Seçim .env dosyasındaki MODEL_DOSYASI ayarıyla yapılır."

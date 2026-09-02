@@ -38,6 +38,11 @@ def _ana_uygulama() -> FastAPI:
         # Windows konsolu cp1254 olabilir: Türkçe karakter yüzünden bu mesajın
         # kendisi çökmemeli, yoksa kullanıcı sebebi HİÇ göremez.
         _guvenli_yaz(f"\n[AYAR HATASI] {hata.kullanici_mesaji}\n")
+        if hata.teknik_ayrinti != hata.kullanici_mesaji:
+            # Log dosyası henüz kurulmadı (klasörü kurulamamış olabilir); teknik
+            # ayrıntı bu yüzden Kontrol Paneli'nin "Sistem günlüğü" panelinde
+            # kalır — destek akışı oradan kopyalanıyor, hiçbir bilgi kaybolmaz.
+            _guvenli_yaz(f"[AYRINTI] {hata.teknik_ayrinti}\n")
         raise SystemExit(1) from hata
     loglama.kur(ayarlar)
     return uygulama_olustur(ayarlar)

@@ -7,9 +7,16 @@
 (function () {
   var resimler = document.querySelectorAll("img.canli-onizleme[data-kamera]");
 
+  // data-bolgesiz taşıyan görüntüye bölgeleri ÇİZİLMEMİŞ kare istenir: bölge
+  // çizim sayfası bölgeleri kendi tuvaline çizer, sunucu da çizerse aynı bölge
+  // ekranda iki kez (iki ayrı çizgi hâlinde) görünür.
+  function adres(resim) {
+    var yol = "/kameralar/" + resim.dataset.kamera + "/onizleme.jpg";
+    return resim.dataset.bolgesiz === "1" ? yol + "?bolgesiz=1" : yol;
+  }
+
   function yenile(resim) {
-    var kamera = resim.dataset.kamera;
-    fetch("/kameralar/" + kamera + "/onizleme.jpg", { cache: "no-store" })
+    fetch(adres(resim), { cache: "no-store" })
       .then(function (yanit) {
         if (yanit.status !== 200) return null;
         return yanit.blob();

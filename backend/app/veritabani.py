@@ -50,9 +50,15 @@ def baglanti_ac(veritabani_yolu: Path | str) -> sqlite3.Connection:
         baglanti.execute("PRAGMA busy_timeout = 5000")
     except sqlite3.Error as hata:
         raise VeritabaniHatasi(
-            f"Veritabanı açılamadı: {veritabani_yolu} — {hata}. "
-            "Dosya bozuk olabilir; veri/yedekler/ içindeki son yedeği geri yükleyin "
-            "veya dosyayı taşıyıp sistemi yeniden başlatın (boş veritabanı kurulur)."
+            # "Yedeği geri yükleyin" tek başına bir talimat değil: kullanıcı
+            # yazılımcı değil, HANGİ dosyayı NEREYE koyacağını bilmiyor.
+            "Kayıt dosyası açılamadı; bozulmuş olabilir. Kontrol Paneli'nde Durdur'a "
+            "basın. Program klasöründeki veri/yedekler/ klasöründe duran en yeni "
+            "dalsan-... dosyasını veri klasörüne kopyalayıp adını dalsan.db yapın, "
+            "sonra Sistemi Başlat'a basın. Yedek yoksa bozuk dalsan.db dosyasının "
+            "adını dalsan-bozuk.db yapın — sistem boş bir kayıt dosyasıyla açılır, "
+            "eski olay kayıtları geri gelmez.",
+            f"Veritabanı açılamadı: {veritabani_yolu} — {hata!r}",
         ) from hata
 
     return baglanti
@@ -76,7 +82,12 @@ def semayi_uygula(baglanti: sqlite3.Connection, sema_dizini: Path = SEMA_DIZINI)
 
     betikler = sorted(sema_dizini.glob("*.sql"))
     if not betikler:
-        raise VeritabaniHatasi(f"Şema betiği bulunamadı: {sema_dizini} klasörü boş.")
+        raise VeritabaniHatasi(
+            "Sistem dosyaları eksik görünüyor: veritabanı kurulum dosyaları bulunamadı. "
+            "Program klasörünü eksiksiz kopyalayıp yeniden deneyin; sorun sürerse "
+            "program klasöründeki veri/loglar/sistem.log dosyasını destek ekibine iletin.",
+            f"Şema betiği bulunamadı: {sema_dizini} klasörü boş.",
+        )
 
     for betik in betikler:
         if betik.name in uygulananlar:
@@ -100,7 +111,12 @@ def semayi_uygula(baglanti: sqlite3.Connection, sema_dizini: Path = SEMA_DIZINI)
             baglanti.executescript(tam_sql)
         except sqlite3.Error as hata:
             baglanti.rollback()
-            raise VeritabaniHatasi(f"Şema betiği uygulanamadı: {betik.name} — {hata}") from hata
+            raise VeritabaniHatasi(
+                "Veritabanı güncellemesi tamamlanamadı; hiçbir değişiklik yazılmadı. "
+                "Kontrol Paneli'nde Durdur'a, sonra Sistemi Başlat'a basın. Sorun sürerse "
+                "program klasöründeki veri/loglar/sistem.log dosyasını destek ekibine iletin.",
+                f"Şema betiği uygulanamadı: {betik.name} — {hata!r}",
+            ) from hata
 
 
 def mevcut_surum(baglanti: sqlite3.Connection) -> str | None:

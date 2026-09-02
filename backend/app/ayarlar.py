@@ -203,4 +203,8 @@ def _klasor_olustur(klasor: Path) -> None:
             errno.EROFS: "disk salt okunur",
             errno.ENOSPC: "disk dolu",
         }.get(hata.errno, hata.strerror or str(hata))
-        raise AyarHatasi(f"{klasor} klasörü oluşturulamadı: {sebep}") from hata
+        # Ekranda yalnızca klasör adı ve sade sebep; tam yol günlüğe gider.
+        raise AyarHatasi(
+            f"'{klasor.name}' klasörü oluşturulamadı: {sebep}.",
+            f"{klasor} klasörü oluşturulamadı: {hata!r}",
+        ) from hata

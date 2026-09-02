@@ -12,13 +12,20 @@ from __future__ import annotations
 
 
 class DalsanHata(Exception):
-    """Tüm bilinçli hataların atası. Mesajı kullanıcıya gösterilir."""
+    """Tüm bilinçli hataların atası. Mesajı kullanıcıya gösterilir.
+
+    `kullanici_mesaji` EKRANA çıkar: kısa, sade Türkçe; adres/yığın izi içermez.
+    `teknik_ayrinti` yalnızca veri/loglar/sistem.log'a yazılır — destek akışı
+    oradan kopyalandığı için tam adres ve özgün hata metni orada durur.
+    Verilmezse kullanıcı mesajının aynısıdır (eski davranış korunur).
+    """
 
     http_kodu = 500
 
-    def __init__(self, kullanici_mesaji: str) -> None:
+    def __init__(self, kullanici_mesaji: str, teknik_ayrinti: str | None = None) -> None:
         super().__init__(kullanici_mesaji)
         self.kullanici_mesaji = kullanici_mesaji
+        self.teknik_ayrinti = teknik_ayrinti or kullanici_mesaji
 
 
 class AyarHatasi(DalsanHata):
@@ -43,7 +50,9 @@ _ALAN_ADLARI = {
     "source_url": "Kaynak adresi",
     "sample_fps": "Örnekleme hızı (fps)",
     "zone_type": "Bölge tipi",
+    "zone_id": "Bölge",
     "polygon": "Bölge çizimi",
+    "enabled": "Açık/kapalı",
     "image_points": "Kalibrasyon noktaları",
     "world_points": "Metre karşılıkları",
     "durum": "Olay durumu",
@@ -93,7 +102,8 @@ def hata_yakalayicilari_kur(app) -> None:
 
     @app.exception_handler(DalsanHata)
     async def dalsan_hatasi(istek: Request, hata: DalsanHata):
-        log.error(hata.kullanici_mesaji)
+        # Günlüğe TAM ayrıntı, ekrana sade mesaj
+        log.error(hata.teknik_ayrinti)
         baslik = "Girdi hatası" if hata.http_kodu == 400 else "Hata"
         return _yanit(istek, hata.http_kodu, hata.kullanici_mesaji, baslik)
 
