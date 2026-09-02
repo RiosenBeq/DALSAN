@@ -399,7 +399,11 @@ def test_son_kare_insan_diliyle(istemci, test_ayarlari):
     _kamera_durumu(test_ayarlari, hic, status="offline")
 
     metin = istemci.get("/komuta/saglik").text
-    assert "3 sn önce" in metin
+    # Saniye satırında TAM sayı aranmaz: sayfa isteği bir saniye sürerse "3 sn"
+    # "4 sn" olur ve test sebepsiz kırılırdı. Burada korunan şey BİÇİM — tam
+    # sayının doğruluğunu aşağıdaki birim testi sabit saatle çiviliyor.
+    assert re.search(r"\b[1-9]\d? sn önce\b", metin), "Saniye biçimi görünmüyor"
+    # 200 saniye -> "3 dk önce"; bu eşik 40 saniye pay bırakır, kararlıdır.
     assert "3 dk önce" in metin
     # Hiç kare gelmemiş kameraya uydurma bir süre yazılmaz
     assert metin.count("—") >= 1
@@ -474,7 +478,11 @@ def test_saglikta_tasarimin_ornek_verisi_yok(istemci, test_ayarlari):
     ],
 )
 def test_ne_kadar_once_biçimi(saniye, beklenen):
-    assert zaman.ne_kadar_once(_once(saniye)) == beklenen
+    # Sabit bir "şimdi" veriliyor: gerçek saatle ölçülseydi makine bir saniye
+    # yavaşladığında "48 sn önce" beklentisi "49 sn önce" görüp kırılırdı.
+    simdi = datetime(2026, 9, 2, 12, 0, 0, tzinfo=UTC)
+    damga = (simdi - timedelta(seconds=saniye)).isoformat(timespec="seconds")
+    assert zaman.ne_kadar_once(damga, simdi=simdi) == beklenen
 
 
 def test_ileri_tarihli_damga_negatif_sure_yazmaz():

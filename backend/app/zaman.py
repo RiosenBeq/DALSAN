@@ -101,15 +101,21 @@ def ekranda_saat(utc_metni: str) -> str:
     return _yerel(utc_metni).strftime("%H:%M")
 
 
-def ne_kadar_once(utc_metni: str) -> str:
+def ne_kadar_once(utc_metni: str, simdi: datetime | None = None) -> str:
     """Geçen süreyi insan diliyle söyler: '1 sn önce', '48 sn önce', '3 dk önce'.
 
     Kamera sağlığı ekranında "son kare ne zaman geldi" sorusunun cevabıdır.
     Tam saat yazmak burada işe yaramaz: kullanıcı "14:37" ile "şimdi" arasını
     kafasında çıkarmak zorunda kalır. Biçim ve hesap tek yerde durur ki
     ekranın başka köşesinde farklı bir "önce" yazımı doğmasın.
+
+    `simdi` yalnızca test içindir. Verilmezse gerçek saat kullanılır — çağıran
+    üretim kodunun hiçbir yeri bunu geçmez. Test edilebilir olması şart:
+    "48 sn önce" beklentisini gerçek saate bırakırsak, makine bir saniye
+    yavaşladığında test "49 sn önce" görüp sebepsiz kırılır. Böyle bir test
+    zamanla güvenilmez sayılıp görmezden gelinir ve asıl koruduğu şeyi kaybeder.
     """
-    saniye = (datetime.now(UTC) - _yerel(utc_metni)).total_seconds()
+    saniye = ((simdi or datetime.now(UTC)) - _yerel(utc_metni)).total_seconds()
     if saniye < 0:
         # İleri tarihli damga: sunucu saati geri alınmış olabilir. Negatif
         # süre ("−3 sn önce") yazmak yerine nötr bir ifade kullanılır.
