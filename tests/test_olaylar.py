@@ -126,7 +126,9 @@ def test_retention_etiketli_kkd_ornegine_dokunmaz(test_ayarlari):
         dosya.write_bytes(b"jpeg")
         os.utime(dosya, (eski_mtime, eski_mtime))
 
-    silinen = supervizor._eski_dosyalari_sil(test_ayarlari.goruntu_klasoru, 90)
+    silinen = supervizor._eski_dosyalari_sil(
+        test_ayarlari.goruntu_klasoru, 90, test_ayarlari.nesne_klasoru
+    )
     assert silinen == 1
     assert not olay_foto.exists()  # eski olay fotoğrafı silindi
     assert kkd_foto.exists()  # KKD örneği (etiketli olabilir) KORUNDU

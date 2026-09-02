@@ -86,6 +86,31 @@ EKRAN_ACIKLAMALARI: dict[str, dict[str, str]] = {
             "sınayın; ses gelmiyorsa hoparlör adresini kontrol edin."
         ),
     },
+    "nesneler": {
+        # Kapsam sınırını ("canlı kameraları etkilemez") bu şerit TEKRARLAMAZ:
+        # onu sayfanın kendi KAPATILAMAZ bandı söyler. Aynı cümleyi iki kutuda
+        # üst üste yazmak, ikisini de okunmaz yapardı.
+        "ne": (
+            "Sistemin tanımadığı kendi nesnenizi (pano, tüp, kalıp…) fotoğrafla tanıtırsınız; "
+            "sonra bir fotoğraf yükleyip o nesnenin karede olup olmadığını sordurursunuz."
+        ),
+        "yap": (
+            "Nesnenin farklı açılardan 3-8 fotoğrafını yükleyip ad verin; sonra alttaki "
+            "“Fotoğrafta ara” bölümünden bir kare yükleyip deneyin."
+        ),
+    },
+    "ayarlar": {
+        # "Yeniden başlatmadan geçerli olmaz" cümlesi bu şeritte YOKTUR:
+        # onu sayfanın kendi kapatılamaz bandı söyler (komuta_ayarlar.html).
+        "ne": (
+            "Anons yolu, tespit hassasiyeti ve kayıtların saklanma süresi gibi "
+            "sistem geneli ayarların tek yeri."
+        ),
+        "yap": (
+            "Bir eşiği değiştirdikten sonra sistemi yeniden başlatın ve kamera "
+            "sayfasındaki canlı görüntüde kutulara bakarak sonucu görün."
+        ),
+    },
 }
 
 

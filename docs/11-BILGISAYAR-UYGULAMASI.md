@@ -98,13 +98,40 @@ Fabrikadaki sunucuda bu pencere **kullanılmaz.** Orada sistem:
 Kontrol Paneli, **senin geliştirme ve test bilgisayarın** içindir. Fabrika kurulumu
 8. haftada bir kez yapılır ve Claude Code adım adım yönlendirir.
 
-## 7. Bu uygulama nasıl geliştirilebilir (ileride)
+## 7. Teslim edilen uygulamanın farkı
+
+Sistemi **başka birine teslim ederken** ondan Python kurmasını, "İlk Kurulumu
+Yap"a basmasını istemeyin. Tek bir uygulama üretilir; karşı taraf ona çift
+tıklar, hepsi bu.
+
+> **Nasıl üretilir:** Mac ve Windows için adım adım anlatım, üretilen
+> uygulamanın veriyi nereye yazdığı, güncelleme ve sorun giderme
+> **`docs/13-UYGULAMA-PAKETLEME.md`** içindedir. Burada yalnızca panelin
+> davranış farkı yazılı.
+
+Teslim edilen uygulamanın penceresi, bu bilgisayardaki panelden **iki noktada**
+ayrılır:
+
+| | Bu bilgisayarda (geliştirme) | Teslim edilen uygulama |
+|---|---|---|
+| "İlk Kurulumu Yap" | Var — Python ortamı kurulur | **Yok** — her şey içinde gelir |
+| Başlama | "Sistemi Başlat"a basılır | **Kendiliğinden başlar** (pencere açıkken sistem çalışır) |
+
+Geri kalan her şey aynıdır: Durdur, İzleme Ekranını Aç, sistem günlüğü ve
+"pencereyi kapatırsanız sistem durur" kuralı değişmez.
+
+Kayıtlar da farklı yerde durur — teslim edilen uygulama kendi içine yazamaz,
+kullanıcının kendi klasörüne yazar. Bu bilgisayardaki geliştirme kurulumunun
+veri yolu **değişmedi**: o hâlâ proje klasöründeki `veri/` klasörünü kullanır.
+Yerlerin tam listesi `docs/13` §4'te.
+
+## 8. Bu uygulama nasıl geliştirilebilir (ileride)
 
 Bugün gerekmeyen ama sonradan eklenebilecekler:
 
 | Özellik | Ne zaman gerekir |
 |---|---|
-| Tek dosyaya paketleme (`.app` / `.exe`) — Python kurulumu bile gerekmez | Sistemi başka birine teslim edeceğinde |
+| Uygulamayı imzalama (Apple / Windows sertifikası) | "Doğrulanamadı" ve "bilinmeyen yayıncı" uyarıları rahatsız etmeye başladığında |
 | Fabrika sunucusuna uzaktan bağlanıp durumunu gösterme | Uzaktan bakım yapmaya başladığında |
 | Kamera bağlantısı koptuğunda masaüstü bildirimi | Sisteme günlük bağımlılık arttığında |
 | Tek düğmeyle yedek alma | Yedeği elle kopyalamak zahmetli gelmeye başladığında |

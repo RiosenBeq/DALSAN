@@ -1030,3 +1030,71 @@
   .kilavuz-duzen { grid-template-columns: minmax(0, 1fr); }
   .kilavuz-icindekiler { position: static; }
 }
+
+/* ===================================================== NESNELER EKRANI */
+/* Kullanıcının kendi eşyasını fotoğrafla tanıttığı sayfa (/nesneler).
+
+   Sayfanın en üstündeki sınır şeridi, ekranların kapatılabilir kılavuz
+   şeridinden BİLEREK ayrı bir sınıftır: kapatılamaz, gizlenemez. "Tanıttım
+   ama kamera görmüyor" yanlış anlaşılmasının önündeki tek engel odur. */
+/* Aynı şerit Ayarlar sayfasında da kullanılır (.uyari-serit): orada da
+   kapatılamaz ve "yeniden başlatmadan geçerli olmaz" uyarısını taşır.
+   İki ad tek kural: görünüm iki sayfada birbirinden ayrılmasın. */
+.uyari-serit,
+.nesne-sinir {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 13px 16px;
+  border-radius: var(--radius-orta);
+  background: var(--uyari-zemin);
+  border: 1px solid var(--uyari-cizgi);
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--metin);
+}
+.uyari-serit-ikon,
+.nesne-sinir-ikon { flex: none; display: inline-flex; color: var(--uyari-metin); }
+
+/* Kayıt/silme geri bildirimi, hata tonunda. */
+.komuta-sonuc.uyari-tonu {
+  background: var(--tehlike-zemin);
+  border-color: var(--tehlike-cizgi);
+  color: var(--tehlike-metin);
+}
+
+/* Referans fotoğraflar: küçük kareler, altında tarih ve "Kaldır". */
+.nesne-izgara {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 12px;
+}
+.nesne-foto { margin: 0; display: grid; gap: 6px; justify-items: stretch; }
+.nesne-foto img {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 1px solid var(--cizgi);
+  background: var(--cam-orta);
+}
+.nesne-foto figcaption { font-size: 11px; color: var(--metin-3); }
+.nesne-foto form { margin: 0; }
+.nesne-foto .dugme { width: 100%; }
+
+/* Tarama sonucu görüntüsü: taşmasın, büyük ekranda da okunur kalsın. */
+.nesne-sonuc-gorsel img {
+  width: 100%;
+  max-width: 720px;
+  height: auto;
+  border-radius: 12px;
+  border: 1px solid var(--cizgi);
+}
+
+/* Bulgu tablosu: numara · nesne · benzerlik */
+.nesne-tablo .komuta-tablo-basligi,
+.nesne-tablo .komuta-tablo-satiri { grid-template-columns: 48px 1fr 110px; }
+
+@media (max-width: 900px) {
+  .nesne-izgara { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); }
+}

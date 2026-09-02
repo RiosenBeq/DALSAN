@@ -20,6 +20,9 @@ BEKLENEN_TABLOLAR = {
     "ppe_samples",
     # 002 — hoparlör bölgeleri: anonsun hangi adrese gideceği
     "speaker_zones",
+    # 003 — nesne kütüphanesi: kullanıcının fotoğrafla tanıttığı kendi nesneleri
+    "library_objects",
+    "library_object_photos",
 }
 
 

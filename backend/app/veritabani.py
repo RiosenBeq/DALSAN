@@ -10,11 +10,13 @@ from __future__ import annotations
 import sqlite3
 from pathlib import Path
 
-from app import zaman
+from app import kaynaklar, zaman
 from app.hatalar import VeritabaniHatasi
 
-# Şema betikleri: backend/sema/001_ilk.sql, 002_... (isim sırasına göre uygulanır)
-SEMA_DIZINI = Path(__file__).resolve().parents[1] / "sema"
+# Şema betikleri: backend/sema/001_ilk.sql, 002_... (isim sırasına göre uygulanır).
+# Yol app/kaynaklar.py'den çözülür: paketlenmiş programda bu dosyalar depoda
+# değil, paketin açıldığı geçici klasörde durur.
+SEMA_DIZINI = kaynaklar.kaynak_yolu("backend", "sema")
 
 
 def baglanti_ac(veritabani_yolu: Path | str) -> sqlite3.Connection:

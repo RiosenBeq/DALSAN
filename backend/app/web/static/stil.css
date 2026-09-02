@@ -324,6 +324,22 @@ table.liste th {
 .dikey-form { display: grid; gap: 12px; }
 .dikey-form label { display: grid; gap: 4px; font-size: 0.9rem; font-weight: 600; color: var(--metin-2); }
 .dikey-form.dar { max-width: 460px; }
+/* TELEFONDA YATAY KAYMAYI ÖNLER — silmeyin.
+   Izgara/esnek kutu gözlerinin varsayılan en az genişliği "min-width: auto"dur:
+   göz, İÇİNDEKİ EN GENİŞ SATIR kadar yer ister. Uzun seçenekli bir <select>
+   (ör. "Bölge DIŞINDA olmak ihlal (örn. yaya yolunu kullanmamak)") bu yolla
+   formu, formu saran kartı ve sayfayı birlikte genişletiyordu: 375 px'lik
+   ekranda sayfa 139 px yana kayıyordu. min-width: 0 gözü serbest bırakır,
+   alanlar kutunun içinde kalır. Geniş ekranda görünüm DEĞİŞMEZ: ızgara zaten
+   kartın tamamına yayıldığı için alanlar yine tam genişlikte durur.
+   tests/test_dar_ekran_tasmasi.py bu kuralı bekliyor. */
+.dikey-form, .dikey-form *,
+.yatay-grup, .yatay-grup * { min-width: 0; }
+/* Kendi genişliğini dayatan bir alan (uzun seçenekli select, geniş number
+   girişi) kutuyu yine de aşamasın. */
+.dikey-form input,
+.dikey-form select,
+.dikey-form textarea { max-width: 100%; }
 .dikey-form label.yatay, .yatay-grup label.yatay {
   display: flex; align-items: center; gap: 8px;
 }

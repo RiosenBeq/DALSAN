@@ -1,4 +1,4 @@
-"""Ayarların TEK kaynağı — kök dizindeki .env dosyasını okur.
+"""Ayarların TEK kaynağı — yazılabilir kökteki .env dosyasını okur.
 
 Başka hiçbir dosya os.environ'a veya .env'e bakmaz; ayar gereken her yer
 buradan bir `Ayarlar` nesnesi alır (CLAUDE.md §7: sabit kodlanmış eşik,
@@ -11,17 +11,19 @@ ile durdurur — sistem yarım ayarla ÇALIŞMAZ.
 from __future__ import annotations
 
 import errno
+import re
+import shutil
 from dataclasses import dataclass
 from pathlib import Path
 
 from dotenv import dotenv_values
 
+from app import kaynaklar
 from app.hatalar import AyarHatasi
 
-# Bu dosya backend/app/ içinde; iki üst klasör depo köküdür. Kontrol Paneli
-# uvicorn'u backend/ içinden başlattığı için yollar çalışma dizinine göre
-# DEĞİL, her zaman depo köküne göre çözülür.
-_VARSAYILAN_KOK = Path(__file__).resolve().parents[2]
+# Yolların nerede çözüldüğü: app/kaynaklar.py. Bu dosya çalışma dizinine ASLA
+# güvenmez (Kontrol Paneli uvicorn'u backend/ içinden başlatır) ve paketlenmiş
+# çalışmada veri klasörünün nereye taşındığını da bilmek zorunda değildir.
 
 _ANONS_SECENEKLERI = ("null", "ses_karti", "http")
 _CIHAZ_SECENEKLERI = ("cpu", "cuda")
@@ -34,6 +36,8 @@ class Ayarlar:
     veri_dizini: Path
     veritabani_yolu: Path
     goruntu_klasoru: Path
+    nesne_klasoru: Path
+    nesne_tarama_klasoru: Path
     log_dosyasi: Path
     olay_saklama_gun: int
     goruntu_saklama_gun: int
@@ -53,23 +57,81 @@ class Ayarlar:
     anons_http_adresi: str
     anons_bekleme_sn: int
     model_dosyasi: Path
+    nesne_izinli_uzantilar: tuple[str, ...]
+    nesne_foto_en_buyuk_mb: int
+    nesne_tarama_en_cok_dosya: int
+    nesne_eslesme_esigi: float
+    # Ayarların yazıldığı dosya. Ayarlar sayfası (web/ayar_rotalari.py) buraya
+    # yazar; yolun kendisi ekranda GÖSTERİLMEZ, yalnızca dosya işlemi için var.
+    env_yolu: Path
+    # Yazılabilir klasör olağandışı seçildiyse (paketlenmiş program, kayıtlar
+    # eski yerde bulundu) açılışta günlüğe düşecek cümle. Olağan durumda boş.
+    veri_konumu_notu: str = ""
+    veri_konumu_ayrintisi: str = ""
+
+
+def env_degerlerini_oku(env_yolu: Path) -> dict[str, str]:
+    """.env dosyasını anahtar→değer sözlüğüne çevirir (değerler kırpılır)."""
+    return {a: (d or "").strip() for a, d in dotenv_values(env_yolu).items()}
 
 
 def ayarlari_yukle(kok_dizin: Path | None = None) -> Ayarlar:
     """.env dosyasını okur, doğrular, gereken klasörleri oluşturur.
 
+    `kok_dizin` verilmezse yazılabilir kök app/kaynaklar.py'den sorulur:
+    geliştirmede depo kökü, paketlenmiş programda kullanıcı profilindeki
+    klasör. Testler kökü açıkça verir.
+
     Her doğrulama hatası, kullanıcının olduğu gibi okuyabileceği Türkçe
     bir AyarHatasi mesajıdır.
     """
-    kok = (kok_dizin or _VARSAYILAN_KOK).resolve()
+    konum = (
+        kaynaklar.VeriKonumu(kok_dizin.resolve())
+        if kok_dizin is not None
+        else kaynaklar.veri_konumu()
+    )
+    kok = konum.kok
     env_yolu = kok / ".env"
+    if not env_yolu.exists() and kaynaklar.paketlenmis_mi():
+        # Paketlenmiş programda kullanıcının kopyalayabileceği bir .env.example
+        # YOKTUR (dosyalar paketin içindedir) ve klasör de ilk açılışta boştur.
+        # Bu yüzden ayar dosyası bir kez, örnekten üretilir.
+        _ornek_envden_olustur(env_yolu)
     if not env_yolu.exists():
         raise AyarHatasi(
             f"Ayar dosyası bulunamadı: {env_yolu}\n"
             "Çözüm: .env.example dosyasını .env adıyla kopyalayın. "
             "(Kontrol Paneli'ndeki 'İlk Kurulumu Yap' düğmesi bunu otomatik yapar.)"
         )
-    degerler = {a: (d or "").strip() for a, d in dotenv_values(env_yolu).items()}
+    return ayarlari_coz(kok, env_degerlerini_oku(env_yolu), konum)
+
+
+def _ornek_envden_olustur(env_yolu: Path) -> None:
+    """.env yoksa programla gelen .env.example'dan BİR KEZ üretir."""
+    ornek = kaynaklar.kaynak_yolu(".env.example")
+    if not ornek.is_file():
+        # Örnek de yoksa aşağıdaki "Ayar dosyası bulunamadı" hatası devreye girer.
+        return
+    _klasor_olustur(env_yolu.parent)
+    try:
+        shutil.copyfile(ornek, env_yolu)
+    except OSError as hata:
+        raise AyarHatasi(
+            "Ayar dosyası oluşturulamadı: klasöre yazılamıyor.",
+            f"{ornek} → {env_yolu} kopyalanamadı: {hata!r}",
+        ) from hata
+
+
+def ayarlari_coz(
+    kok: Path, degerler: dict[str, str], konum: kaynaklar.VeriKonumu | None = None
+) -> Ayarlar:
+    """Anahtar→değer sözlüğünü doğrulanmış `Ayarlar` nesnesine çevirir.
+
+    Dosyadan ayrı durur ki Ayarlar sayfası, formdaki değerleri .env'e YAZMADAN
+    ÖNCE aynı doğrulamadan geçirebilsin: kaydedilen bir ayar, sistemin bir
+    daha açılmamasına yol açamaz.
+    """
+    konum = konum or kaynaklar.VeriKonumu(kok)
 
     # Not: giriş şifresi bilerek YOK (docs/07 #0). Sistem tek makinede, yalnızca
     # 127.0.0.1'e bağlı çalışır; fabrika sunucusuna çıkmadan önce geri eklenir.
@@ -82,9 +144,23 @@ def ayarlari_yukle(kok_dizin: Path | None = None) -> Ayarlar:
     veri_dizini = kok / "veri"
     veritabani_yolu = kok / _metin(degerler, "VERITABANI_YOLU", "veri/dalsan.db")
     goruntu_klasoru = kok / _metin(degerler, "GORUNTU_KLASORU", "veri/goruntuler")
+    # Nesne kütüphanesi fotoğrafları GÖRÜNTÜ KLASÖRÜNÜN DIŞINDA durur: görüntü
+    # klasörünü bakım döngüsü saklama süresi dolunca temizler (supervizor.py
+    # _eski_dosyalari_sil). Kullanıcının elle tanıttığı nesne fotoğrafı bir
+    # kanıt fotoğrafı değildir, kendiliğinden silinmemelidir.
+    nesne_klasoru = kok / _metin(degerler, "NESNE_KLASORU", "veri/nesneler")
+    # Tarama çıktıları (işaretlenmiş sonuç görüntüleri) ayrı alt klasörde:
+    # referans fotoğraflarla karışmasın, sayısı sınırlı tutulup budanabilsin.
+    nesne_tarama_klasoru = nesne_klasoru / "taramalar"
     log_dosyasi = veri_dizini / "loglar" / "sistem.log"
 
-    for klasor in (veritabani_yolu.parent, goruntu_klasoru, log_dosyasi.parent):
+    for klasor in (
+        veritabani_yolu.parent,
+        goruntu_klasoru,
+        nesne_klasoru,
+        nesne_tarama_klasoru,
+        log_dosyasi.parent,
+    ):
         _klasor_olustur(klasor)
 
     anons = _secenek(degerler, "ANONS", varsayilan="null", secenekler=_ANONS_SECENEKLERI)
@@ -108,6 +184,8 @@ def ayarlari_yukle(kok_dizin: Path | None = None) -> Ayarlar:
         veri_dizini=veri_dizini,
         veritabani_yolu=veritabani_yolu,
         goruntu_klasoru=goruntu_klasoru,
+        nesne_klasoru=nesne_klasoru,
+        nesne_tarama_klasoru=nesne_tarama_klasoru,
         log_dosyasi=log_dosyasi,
         olay_saklama_gun=_tam_sayi(degerler, "OLAY_SAKLAMA_GUN", 180, 1, 3650),
         goruntu_saklama_gun=_tam_sayi(degerler, "GORUNTU_SAKLAMA_GUN", 90, 1, 3650),
@@ -145,7 +223,134 @@ def ayarlari_yukle(kok_dizin: Path | None = None) -> Ayarlar:
         # hoparlör aynı kamera+mesaj için bu süre dolmadan tekrar bağırmaz.
         anons_bekleme_sn=_tam_sayi(degerler, "ANONS_BEKLEME_SN", 30, 5, 3600),
         model_dosyasi=kok / _metin(degerler, "MODEL_DOSYASI", "models/yolox_tiny.onnx"),
+        # --- Nesne kütüphanesi sınırları -------------------------------------
+        # Yükleme doğrulaması koda gömülmez (CLAUDE.md §7): hangi uzantı kabul
+        # edilir, dosya en fazla kaç MB olur, bir taramada kaç dosya işlenir —
+        # üçü de .env'den okunur.
+        nesne_izinli_uzantilar=_uzanti_listesi(
+            degerler, "NESNE_IZINLI_UZANTILAR", "jpg,jpeg,png,webp,bmp"
+        ),
+        nesne_foto_en_buyuk_mb=_tam_sayi(degerler, "NESNE_FOTO_EN_BUYUK_MB", 12, 1, 200),
+        # Tarama, yüklenen fotoğrafı parça parça gezer; dosya sayısı arttıkça
+        # bekleme uzar. Kullanıcı "sistem dondu" sanmasın diye sınırlı tutulur.
+        nesne_tarama_en_cok_dosya=_tam_sayi(degerler, "NESNE_TARAMA_EN_COK_DOSYA", 6, 1, 30),
+        # Bu skorun altındaki en iyi benzerlik "eşleşme yok" sayılır: sistem
+        # emin olmadığı yere isim YAZMAZ (docs/12'deki üç durum ilkesiyle aynı).
+        nesne_eslesme_esigi=_ondalik(degerler, "NESNE_ESLESME_ESIGI", 0.42, 0.05, 0.95),
+        env_yolu=kok / ".env",
+        veri_konumu_notu=konum.gunluk_notu,
+        veri_konumu_ayrintisi=konum.gunluk_ayrintisi,
     )
+
+
+# ---------------------------------------------------------------- .env yazımı
+#
+# Ayarlar sayfası (web/ayar_rotalari.py) kullanıcının değiştirdiği anahtarları
+# buradan yazar. Kullanıcı .env'i elle düzenleyemeyeceği için (paketlenmiş
+# programda dosya kullanıcı profilindedir) dosyanın AÇIKLAMA SATIRLARI çok
+# değerlidir: dosya baştan yazılmaz, yalnızca ilgili satırın değeri değişir.
+
+# "KARE_ORNEKLEME_FPS = 6   # açıklama" biçimindeki bir satırı parçalara ayırır.
+# Yorum satırları ('#' ile başlayanlar) bilerek eşleşmez.
+_ENV_SATIRI = re.compile(r"^(\s*)([A-Za-z_][A-Za-z0-9_]*)(\s*=\s*)(.*)$")
+# Değerin ardındaki açıklama: python-dotenv de boşluk + '#' gördüğü yerden
+# sonrasını yorum sayar, yani burada korunan şey okunan şeyle aynıdır.
+_SATIR_SONU_YORUMU = re.compile(r"\s+#.*$")
+
+
+def env_guncelle(metin: str, degisiklikler: dict[str, str]) -> str:
+    """Ayar dosyasının metnini, açıklama satırlarına dokunmadan günceller.
+
+    Var olan anahtarın yalnızca değeri değişir; dosyada olmayan anahtarlar
+    sona eklenir.
+    """
+    kalan = dict(degisiklikler)
+    satirlar = metin.splitlines()
+    for sira, satir in enumerate(satirlar):
+        eslesme = _ENV_SATIRI.match(satir)
+        if not eslesme:
+            continue
+        onek, anahtar, esittir, ham_deger = eslesme.groups()
+        if anahtar not in kalan:
+            continue
+        satirlar[sira] = (
+            f"{onek}{anahtar}{esittir}{_env_degeri(kalan.pop(anahtar))}{_yorum(ham_deger)}"
+        )
+
+    if kalan:
+        if satirlar and satirlar[-1].strip():
+            satirlar.append("")
+        satirlar.append("# Ayarlar sayfasından eklendi")
+        satirlar.extend(f"{anahtar}={_env_degeri(deger)}" for anahtar, deger in kalan.items())
+    return "\n".join(satirlar) + "\n"
+
+
+def _yorum(ham_deger: str) -> str:
+    """Satırın sonundaki açıklamayı ('ANONS=null   # kapalı') olduğu gibi verir.
+
+    TIRNAKLI değerde açıklama ARANMAZ: `A="adres # not"` satırında ' # not'
+    değerin parçasıdır, açıklama değildir. Aranırsa değerin yarısı açıklama
+    sanılıp bir sonraki kayıtta satırın sonuna yapıştırılırdı.
+    """
+    if ham_deger.lstrip()[:1] in ('"', "'"):
+        return ""
+    eslesme = _SATIR_SONU_YORUMU.search(ham_deger)
+    return eslesme.group(0) if eslesme else ""
+
+
+def _env_degeri(deger: str) -> str:
+    """Boşluk ya da '#' içeren değeri tırnağa alır; yoksa olduğu gibi yazar.
+
+    Tırnaksız bir değerde ' #' dizisi, dosyayı OKUYAN taraf için açıklama
+    başlangıcıdır: değerin geri kalanı sessizce kaybolurdu.
+    """
+    temiz = deger.strip()
+    if not temiz or not any(karakter in temiz for karakter in " \t#\"'"):
+        return temiz
+    return '"' + temiz.replace("\\", "\\\\").replace('"', '\\"') + '"'
+
+
+def env_dosyasina_yaz(env_yolu: Path, degisiklikler: dict[str, str]) -> None:
+    """Değişiklikleri ayar dosyasına yazar.
+
+    Önce yanına geçici bir dosya yazılır, sonra tek adımda yerine geçer:
+    yazma yarıda kalsa bile (disk dolu, elektrik kesildi) ESKİ ayar dosyası
+    bozulmadan kalır ve sistem bir daha açılamaz duruma düşmez. Yarım kalan
+    geçici dosya bilerek silinmez — bir sonraki kayıtta üzerine yazılır ve
+    varlığı destek için ipucudur.
+    """
+    try:
+        eski_metin = env_yolu.read_text(encoding="utf-8") if env_yolu.is_file() else ""
+    except OSError as hata:
+        raise AyarHatasi(
+            "Ayar dosyası okunamadı; kaydedilemedi.",
+            f"{env_yolu} okunamadı: {hata!r}",
+        ) from hata
+
+    gecici = env_yolu.with_name(env_yolu.name + ".yeni")
+    try:
+        gecici.write_text(env_guncelle(eski_metin, degisiklikler), encoding="utf-8")
+        gecici.replace(env_yolu)
+    except OSError as hata:
+        raise AyarHatasi(
+            "Ayarlar kaydedilemedi: klasöre yazılamıyor. Diskte yer olduğundan "
+            "ve programın kapalı olmadığından emin olun.",
+            f"{gecici} → {env_yolu} yazılamadı: {hata!r}",
+        ) from hata
+
+
+def _uzanti_listesi(degerler: dict, anahtar: str, varsayilan: str) -> tuple[str, ...]:
+    """'jpg, PNG' → ('.jpg', '.png'). Nokta ve büyük/küçük harf farkı hoş görülür."""
+    ham = degerler.get(anahtar, "") or varsayilan
+    uzantilar = tuple(
+        "." + parca.strip().lstrip(".").lower() for parca in ham.split(",") if parca.strip()
+    )
+    if not uzantilar:
+        raise AyarHatasi(
+            f".env dosyasında {anahtar} boş olamaz; en az bir dosya uzantısı yazın "
+            f"(örnek: {varsayilan})."
+        )
+    return uzantilar
 
 
 def _metin(degerler: dict, anahtar: str, varsayilan: str) -> str:

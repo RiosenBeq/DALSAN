@@ -157,5 +157,6 @@ ruff check . && ruff format .
 | `10-YAPAY-ZEKA-ILE-CALISMA.md` | Kullanıcının çalışma yöntemi |
 | `11-BILGISAYAR-UYGULAMASI.md` | Kontrol Paneli kullanımı |
 | `12-KAMERA-VE-GORUNTU-KALITESI.md` | Kamera yerleşimi, görüntü kalitesi, hassasiyet ayarı, sınıf renkleri, yaya yolu kuralı |
+| `13-UYGULAMA-PAKETLEME.md` | Teslim edilecek uygulamayı üretme (Mac `.app` / Windows `.exe`), veri yeri, güncelleme, Windows tuzakları |
 
 Bir karar bu dosyalarda yoksa **uydurma — sor.**

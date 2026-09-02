@@ -143,10 +143,13 @@ class Tespitci:
         self.nms_esigi = nms_esigi
         self.en_kucuk_kenar_px = en_kucuk_kenar_px
         self._kilit = threading.Lock()
+        # Kontrol Paneli günlüğünde ürün adı görünür; dosya adı ve tam yol
+        # yalnızca veri/loglar/sistem.log'daki `ayrinti` alanına düşer.
         log_al("tespit").info(
-            f"Tespit modeli yüklendi: {model_dosyasi.name} "
+            f"{gorunen_model_adi(model_dosyasi.name)} yüklendi "
             f"(girdi {self._girdi_boyu}px, cihaz: {self.etkin_cihaz}, "
-            f"eşik {self.guven_esigi:g}/insan {self.insan_guven_esigi:g})"
+            f"eşik {self.guven_esigi:g}/insan {self.insan_guven_esigi:g})",
+            extra={"ayrinti": f"model dosyası: {model_dosyasi}"},
         )
 
     def tespit_et(self, kare: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:

@@ -241,8 +241,14 @@ class AnalizSupervizoru:
             self.tespitci = None
             self.tespit_hatasi = hata.kullanici_mesaji
             self.model_durumu = "hata"
-            # Ekranda sade mesaj, günlükte tam ayrıntı (indirme adresi, özgün hata)
-            self._log.error(hata.teknik_ayrinti, exc_info=hata)
+            # Ekranda sade mesaj, günlük DOSYASINDA tam ayrıntı (indirme
+            # adresi, dosya yolu, özgün hata). Teknik metin `mesaj` alanına
+            # yazılırsa Kontrol Paneli penceresinde de görünürdü.
+            self._log.error(
+                hata.kullanici_mesaji,
+                extra={"ayrinti": hata.teknik_ayrinti},
+                exc_info=hata,
+            )
             sistem_olayi_yaz(baglanti, f"Tespit modeli yüklenemedi: {hata.kullanici_mesaji}")
 
     def _modeli_hazirla(self) -> None:
@@ -257,7 +263,8 @@ class AnalizSupervizoru:
             raise ozel_model_hatasi(dosya)
         self.model_durumu = "indiriliyor"
         self._log.info(
-            f"Tespit modeli bulunamadı, indiriliyor (bir kez, ~20-35 MB): {dosya.name} …"
+            f"{gorunen_model_adi(dosya.name)} ilk kez indiriliyor (bir kez, ~20-35 MB) …",
+            extra={"ayrinti": f"model dosyası: {dosya}"},
         )
         son_yuzde = -1
 
@@ -271,7 +278,10 @@ class AnalizSupervizoru:
                 self._log.info(f"Model indiriliyor: %{yuzde}")
 
         modeli_indir(dosya, ilerleme)
-        self._log.info(f"Tespit modeli indirildi: {dosya}")
+        self._log.info(
+            f"{gorunen_model_adi(dosya.name)} indirildi.",
+            extra={"ayrinti": f"model dosyası: {dosya}"},
+        )
 
     # ---- konfigürasyon ----
 
@@ -541,11 +551,17 @@ class AnalizSupervizoru:
             # Sonuç: veritabanında var görünen ama diskte olmayan örnekler.
             tamam, tampon = cv2.imencode(".jpg", kirpik)
             if not tamam:
-                self._log.error(f"KKD örneği kodlanamadı: {tam_yol}")
+                self._log.error(
+                    "KKD örneği kaydedilemedi (görüntü kodlanamadı).",
+                    extra={"ayrinti": f"dosya: {tam_yol}"},
+                )
                 return
             tam_yol.write_bytes(tampon.tobytes())
         except (OSError, cv2.error) as hata:
-            self._log.error(f"KKD örneği yazılamadı ({tam_yol}): {hata}")
+            self._log.error(
+                f"KKD örneği diske yazılamadı: {hata}",
+                extra={"ayrinti": f"dosya: {tam_yol}"},
+            )
             return
         # Kamera bu arada silinmiş olabilir (konfig penceresi) — FK hatası yerine
         # örnek kamerasız kaydedilir; eğitim verisi yine de değerlidir.
@@ -638,7 +654,9 @@ class AnalizSupervizoru:
         ).rowcount
         baglanti.commit()
 
-        silinen_foto = self._eski_dosyalari_sil(a.goruntu_klasoru, a.goruntu_saklama_gun)
+        silinen_foto = self._eski_dosyalari_sil(
+            a.goruntu_klasoru, a.goruntu_saklama_gun, a.nesne_klasoru
+        )
         # Dosya silindiği halde events.snapshot_path dolu kalırsa olay ekranında
         # kırık resim görünür; kaydı da temizle (olayın kendisi korunur).
         baglanti.execute(
@@ -664,18 +682,26 @@ class AnalizSupervizoru:
                 "Saklama sürelerini kısaltmayı veya disk açmayı değerlendirin.",
             )
 
-    def _eski_dosyalari_sil(self, klasor: Path, gun: int) -> int:
+    def _eski_dosyalari_sil(self, klasor: Path, gun: int, nesne_klasoru: Path) -> int:
         """Eski OLAY fotoğraflarını siler.
 
         kkd-ornekler/ alt ağacına DOKUNMAZ: etiketli örnekler eğitim veri
         setidir ve asla silinmez; etiketsizlerin süresi _kkd_hamlarini_sil
         tarafından ayrı (daha kısa) politika ile yönetilir (docs/06 §5).
+
+        `nesne_klasoru` ağacına da DOKUNMAZ (.env → NESNE_KLASORU): oradaki
+        fotoğrafları kullanıcı kendi eliyle yükledi, onlar kanıt değil TANIM.
+        Klasör varsayılan yerleşimde zaten görüntü klasörünün dışındadır; bu
+        kontrol, iki klasörü iç içe ayarlayan bir kurulumda da korur. Korunan
+        klasör parametre olarak GEÇİLİR (self.ayarlar'dan okunmaz): bakım
+        mantığı, çağıranın hangi klasörü koruduğunu görünür kılsın.
         """
         sinir = time.time() - gun * 86400
         kkd_klasoru = klasor / "kkd-ornekler"
+        nesne_kok = nesne_klasoru.resolve()
         sayi = 0
         for dosya in klasor.rglob("*.jpg"):
-            if dosya.is_relative_to(kkd_klasoru):
+            if dosya.is_relative_to(kkd_klasoru) or dosya.resolve().is_relative_to(nesne_kok):
                 continue
             try:
                 if dosya.stat().st_mtime < sinir:
@@ -702,7 +728,10 @@ class AnalizSupervizoru:
             try:
                 dosya.unlink(missing_ok=True)
             except OSError as hata:
-                self._log.error(f"KKD örneği silinemedi ({dosya}): {hata}")
+                self._log.error(
+                    f"Eski KKD örneği silinemedi: {hata}",
+                    extra={"ayrinti": f"dosya: {dosya}"},
+                )
         baglanti.execute(
             "DELETE FROM ppe_samples WHERE labeled_at IS NULL AND captured_at < ?",
             (sinir,),

@@ -3,6 +3,18 @@
 Her satır tek bir JSON nesnesidir: {"ts", "level", "bilesen", "mesaj"}.
 Kontrol Paneli bu çıktıyı okuyup günlük penceresinde gösterir; kullanıcı
 sorun olduğunda satırları olduğu gibi kopyalayıp Claude Code'a yapıştırır.
+
+İKİ AKIŞ, İKİ AYRINTI SEVİYESİ (CLAUDE.md §8):
+  * EKRAN (Kontrol Paneli'nin "Sistem günlüğü" penceresi): yalnızca `mesaj`.
+    Kullanıcıya model dosyasının adı, mutlak dosya yolu ya da yığın izi
+    gösterilmez — bunlar korkutur ve yazılım bilmeyen kullanıcının hiçbir
+    işine yaramaz.
+  * DOSYA (veri/loglar/sistem.log): aynı satır + `ayrinti` alanı. Teknik
+    ayrıntı KAYBOLMAZ; destek ekibine iletilen dosya odur.
+
+Teknik ayrıntı `extra={"ayrinti": "..."}` ile verilir:
+
+    log_al("tespit").info("NextGen AI Hızlı yüklendi", extra={"ayrinti": str(yol)})
 """
 
 from __future__ import annotations
@@ -19,6 +31,17 @@ _KOK_AD = "dalsan"
 
 
 class _JsonSatirBicimi(logging.Formatter):
+    """`ayrintili=False` olan akışa teknik ayrıntı yazılmaz.
+
+    Aynı kayıt iki kez biçimlendirilir: ekrana sade, dosyaya ayrıntılı.
+    Böylece "ekranda dosya yolu görünmesin" kuralı ile "destek için ayrıntı
+    kaybolmasın" ihtiyacı tek bir yerde, çağıran kodu ilgilendirmeden çözülür.
+    """
+
+    def __init__(self, ayrintili: bool) -> None:
+        super().__init__()
+        self.ayrintili = ayrintili
+
     def format(self, kayit: logging.LogRecord) -> str:
         bilesen = kayit.name.removeprefix(_KOK_AD + ".") if kayit.name != _KOK_AD else "sistem"
         satir = {
@@ -27,8 +50,15 @@ class _JsonSatirBicimi(logging.Formatter):
             "bilesen": bilesen,
             "mesaj": kayit.getMessage(),
         }
-        if kayit.exc_info:
-            satir["ayrinti"] = self.formatException(kayit.exc_info)
+        if self.ayrintili:
+            parcalar = []
+            ek = getattr(kayit, "ayrinti", None)
+            if ek:
+                parcalar.append(str(ek))
+            if kayit.exc_info:
+                parcalar.append(self.formatException(kayit.exc_info))
+            if parcalar:
+                satir["ayrinti"] = "\n".join(parcalar)
         return json.dumps(satir, ensure_ascii=False)
 
 
@@ -56,10 +86,10 @@ def kur(ayarlar: Ayarlar) -> None:
     kok.propagate = False
     kok.handlers.clear()  # testlerde/yeniden kurulumda satırlar ikilenmesin
 
-    bicim = _JsonSatirBicimi()
-
+    # Ekran akışını Kontrol Paneli okuyup penceresinde gösteriyor: teknik
+    # ayrıntı buraya YAZILMAZ, yalnızca dosyaya yazılır (modül başlığı).
     ekran = logging.StreamHandler()
-    ekran.setFormatter(bicim)
+    ekran.setFormatter(_JsonSatirBicimi(ayrintili=False))
     kok.addHandler(ekran)
 
     # Dosya sınırsız büyümesin diye 5 MB'ta döner, son 3 kopya saklanır —
@@ -67,7 +97,7 @@ def kur(ayarlar: Ayarlar) -> None:
     dosya = RotatingFileHandler(
         ayarlar.log_dosyasi, maxBytes=5 * 1024 * 1024, backupCount=3, encoding="utf-8"
     )
-    dosya.setFormatter(bicim)
+    dosya.setFormatter(_JsonSatirBicimi(ayrintili=True))
     kok.addHandler(dosya)
 
 

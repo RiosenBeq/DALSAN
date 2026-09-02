@@ -1,4 +1,6 @@
 .env
+# Ayarlar sayfasının atomik yazımından kalabilecek geçici dosya
+.env.yeni
 veri/
 models/*.pt
 models/*.onnx
@@ -14,3 +16,11 @@ models/*.part
 # Claude Design tuvali (yerel tasarim calismasi, depoya girmez)
 DALSAN İleri Fabrika Tasarımı/
 *.dc.html
+
+# PyInstaller / paketleme çıktısı (yüzlerce MB olur, depoya girmez)
+build/
+dist/
+# PyInstaller depo kökünde kendiliğinden .spec üretir; o geçicidir.
+*.spec
+# Bizim yazdığımız üretim tarifi ise KAYNAK dosyadır, depoda durur.
+!paketleme/*.spec

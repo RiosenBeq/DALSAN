@@ -24,11 +24,16 @@ def test_ayarlari(tmp_path: Path):
     veri = tmp_path / "veri"
     (veri / "loglar").mkdir(parents=True)
     (veri / "goruntuler").mkdir()
+    # Nesne kütüphanesi klasörü GÖRÜNTÜ KLASÖRÜNÜN DIŞINDA: bakım döngüsü
+    # oraya dokunmamalı (tests/test_nesne_kutuphanesi.py bunu sınar).
+    (veri / "nesneler" / "taramalar").mkdir(parents=True)
     return Ayarlar(
         kok_dizin=tmp_path,
         veri_dizini=veri,
         veritabani_yolu=veri / "dalsan.db",
         goruntu_klasoru=veri / "goruntuler",
+        nesne_klasoru=veri / "nesneler",
+        nesne_tarama_klasoru=veri / "nesneler" / "taramalar",
         log_dosyasi=veri / "loglar" / "sistem.log",
         olay_saklama_gun=180,
         goruntu_saklama_gun=90,
@@ -48,6 +53,11 @@ def test_ayarlari(tmp_path: Path):
         anons_http_adresi="",
         anons_bekleme_sn=30,
         model_dosyasi=tmp_path / "models" / "olmayan-model.onnx",
+        nesne_izinli_uzantilar=(".jpg", ".jpeg", ".png", ".webp", ".bmp"),
+        nesne_foto_en_buyuk_mb=12,
+        nesne_tarama_en_cok_dosya=6,
+        nesne_eslesme_esigi=0.42,
+        env_yolu=tmp_path / ".env",
     )
 
 

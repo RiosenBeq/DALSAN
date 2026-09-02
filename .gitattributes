@@ -14,3 +14,7 @@
 *.onnx    binary
 *.jpg     binary
 *.wav     binary
+# Simge dosyalarina satir sonu donusumu uygulanirsa ICI BOZULUR ve uretim
+# "gecersiz simge" diyerek durur.
+*.ico     binary
+*.icns    binary

@@ -9,26 +9,29 @@ Bu yüzden yan etkisiz fabrika burada, yan etkili giriş noktası main.py'de.
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
-from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
-from app import loglama, veritabani
+from app import kaynaklar, loglama, veritabani
 from app.ayarlar import Ayarlar
 from app.hatalar import VeritabaniHatasi, hata_yakalayicilari_kur
 from app.web import (
     anons_web,
+    ayar_rotalari,
     hoparlorler,
     kameralar,
     kkd_web,
     komuta,
     kurallar,
+    nesne_rotalari,
     olaylar_web,
     rotalar,
 )
 
-STATIK_DIZINI = Path(__file__).resolve().parent / "web" / "static"
+# Stil/betik dosyalarının yeri app/kaynaklar.py'den çözülür (paketlenmiş
+# programda dosyalar depoda değil, paketin açıldığı geçici klasördedir).
+STATIK_DIZINI = kaynaklar.kaynak_yolu("backend", "app", "web", "static")
 
 
 def uygulama_olustur(ayarlar: Ayarlar, analiz: bool = True) -> FastAPI:
@@ -40,6 +43,15 @@ def uygulama_olustur(ayarlar: Ayarlar, analiz: bool = True) -> FastAPI:
     @asynccontextmanager
     async def yasam_dongusu(uygulama: FastAPI):
         log = loglama.log_al("sistem")
+        # Kayıtların olağandışı bir klasörden okunduğu durum (paketlenmiş
+        # programda eski konumda veri bulunması) SESSİZ kalmamalı: kullanıcı
+        # yedeğini ararken hangi klasöre bakacağını bilmeli. Tam yol ekrana
+        # değil, günlük dosyasındaki `ayrinti` alanına yazılır.
+        if ayarlar.veri_konumu_notu:
+            log.info(
+                ayarlar.veri_konumu_notu,
+                extra={"ayrinti": ayarlar.veri_konumu_ayrintisi},
+            )
         try:
             baglanti = veritabani.baglanti_ac(ayarlar.veritabani_yolu)
             try:
@@ -52,7 +64,12 @@ def uygulama_olustur(ayarlar: Ayarlar, analiz: bool = True) -> FastAPI:
             # ardından açılış bilerek durdurulur — sistem yarım çalışmaz.
             log.error(hata.kullanici_mesaji)
             raise
-        log.info(f"Sistem hazır — veritabanı: {ayarlar.veritabani_yolu}, şema: {surum}")
+        # Veritabanının tam yolu Kontrol Paneli penceresinde görünmesin; destek
+        # için günlük dosyasındaki `ayrinti` alanında durur (loglama.py).
+        log.info(
+            "Sistem hazır.",
+            extra={"ayrinti": f"veritabanı: {ayarlar.veritabani_yolu}, şema: {surum}"},
+        )
 
         supervizor = None
         if analiz:
@@ -87,6 +104,14 @@ def uygulama_olustur(ayarlar: Ayarlar, analiz: bool = True) -> FastAPI:
     # Komuta kabuğu (/komuta…): tasarımın altı ekranı. Ana sayfa ve
     # kurulum sayfaları eski kabukta kalır; ikisi bağlantıyla geçer.
     uygulama.include_router(komuta.router)
+    # Nesne kütüphanesi (şema 003): kullanıcının kendi nesnesini fotoğrafla
+    # tanıtması. Komuta kabuğunu kullanır ama CANLI ANALİZE GİRMEZ — arama
+    # yalnızca o sayfaya yüklenen fotoğraflarda yapılır.
+    uygulama.include_router(nesne_rotalari.router)
+    # Ayarlar sayfası: .env'in ekrandaki karşılığı. Paketlenmiş programda ayar
+    # dosyası kullanıcı profilindedir ve elle açılamaz; eşik/anons ayarı için
+    # tek yol budur.
+    uygulama.include_router(ayar_rotalari.router)
 
     uygulama.mount("/static", StaticFiles(directory=str(STATIK_DIZINI)), name="static")
     return uygulama

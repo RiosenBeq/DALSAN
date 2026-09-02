@@ -41,6 +41,28 @@ Erişim: `http://127.0.0.1:8080` (compose varsayılanı sunucunun kendisine aça
 Şema **otomatik** uygulanır: açılışta `backend/sema/*.sql` sırayla çalışır ve
 uygulananlar `sema_surumu` tablosuna yazılır. Ayrı migrasyon komutu yoktur.
 
+### 1.3 Verinin ve ayarların yeri
+
+İki soru birbirinden ayrıdır ve ikisi de `backend/app/kaynaklar.py` içinde,
+**tek yerde** çözülür:
+
+| | Depodan çalışırken (bugün) | Paketlenmiş programda |
+|---|---|---|
+| Kaynak dosyalar (şablon, stil, şema betiği) | depo kökü | programın açtığı geçici klasör (`sys._MEIPASS`) |
+| Yazılabilir veri (`veri/`, `models/`, `.env`) | depo kökü | macOS: `~/Library/Application Support/NextGen Detector/` · Windows: `%LOCALAPPDATA%\NextGen Detector\` |
+
+Neden ayrı: paketlenmiş uygulamanın kendisi **salt okunurdur**; veritabanı,
+günlük ve indirilen model oraya yazılamaz.
+
+**Veri asla kendiliğinden taşınmaz.** Paketlenmiş program, kendi yanındaki
+klasörde bir `veri/dalsan.db` bulur ve yeni konum boşsa **eski konumu
+kullanmaya devam eder**; durumu günlüğe yazar. Sessiz kopyalama yapılsaydı,
+yarıda kalan bir taşımada ya da yedeğini eski klasörde arayan kullanıcıda
+kayıtlar kaybolmuş sayılırdı.
+
+Paketlenmiş programda `.env` dosyası ilk açılışta `.env.example`'dan **bir kez**
+üretilir; sonraki açılışlarda üzerine yazılmaz.
+
 ---
 
 ## 2. Servis
@@ -114,6 +136,12 @@ her 24 saatlik çalışma süresinde bir çalışır. Ayrı zamanlanmış görev
 | Kanıt fotoğrafları | `GORUNTU_SAKLAMA_GUN` | 90 gün | Disk büyümesinin ana kalemi |
 | Etiketlenmemiş KKD kırpıkları | `KKD_HAM_VERI_SAKLAMA_GUN` | 30 gün | **Etiketlenenler silinmez** — eğitim veri setidir |
 | Sistem olayları | `SISTEM_OLAY_SAKLAMA_GUN` | 90 gün | |
+
+Bu dört süre, disk uyarı sınırı, anons adresi ve tespit eşikleri **arayüzden**
+de değiştirilebilir: soldaki raftan **Sistem ayarları** (`/ayarlar`). Sayfa
+`.env` dosyasını açıklama satırlarını bozmadan günceller ve değeri yazmadan
+önce açılıştaki doğrulayıcıdan geçirir — geçersiz bir ayar dosyaya yazılmaz.
+**Değişiklik, sistem yeniden başlatılınca geçerli olur.**
 
 Fotoğrafı silinen olayın kaydı korunur, yalnızca fotoğraf bağlantısı temizlenir
 (olay ekranında kırık resim çıkmaz).

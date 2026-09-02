@@ -1,0 +1,10 @@
+# Mac/Windows uygulaması (.app / .exe) ÜRETMEK için gereken tek araç.
+#
+# Bu dosya backend/requirements.txt'ten AYRIDIR ve bilerek öyledir:
+# PyInstaller bir DERLEME aracıdır, sistemin çalışma bağımlılığı değildir.
+# backend/requirements.txt'e eklenirse fabrika sunucusundaki her kurulum
+# gereksiz yere 20 MB indirir ve "İlk Kurulumu Yap" adımı uzar.
+#
+# Kurulumu Mac-Uygulama-Uret.command yapar; elle:
+#     .venv/bin/python -m pip install -r paketleme/requirements-paketleme.txt
+pyinstaller==6.22.2

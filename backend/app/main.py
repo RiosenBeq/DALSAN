@@ -29,7 +29,19 @@ def _guvenli_yaz(metin: str) -> None:
         sys.stderr.flush()
 
 
-def _ana_uygulama() -> FastAPI:
+def uygulamayi_kur() -> FastAPI:
+    """Ayarları okur, log sistemini kurar, uygulamayı döndürür.
+
+    İki çağıranı vardır ve ikisi de bu dosyadan geçer:
+      * aşağıdaki `app` — uvicorn'un beklediği modül düzeyi nesne
+        (Kontrol Paneli geliştirme kurulumunda böyle başlatır);
+      * paketlenmiş programın Kontrol Paneli — sunucuyu kendi süreci
+        içinde başlattığı için HER "Sistemi Başlat"ta yeniden çağırır.
+
+    İkinci çağıran yüzünden bu iş bir fonksiyonda durmalı: yoksa Durdur →
+    Sistemi Başlat turunda ayarlar dosyası yeniden OKUNMAZ ve Ayarlar
+    sayfasının "yeniden başlatınca geçerli olur" sözü sessizce boşa çıkar.
+    """
     try:
         ayarlar = ayarlari_yukle()
     except AyarHatasi as hata:
@@ -48,4 +60,4 @@ def _ana_uygulama() -> FastAPI:
     return uygulama_olustur(ayarlar)
 
 
-app = _ana_uygulama()
+app = uygulamayi_kur()

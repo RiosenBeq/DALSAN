@@ -9,6 +9,7 @@ Mac'te   : Baslat-Mac.command  dosyasina cift tikla
 Windows'ta: Baslat-Windows.bat dosyasina cift tikla
 """
 
+import logging
 import os
 import queue
 import signal
@@ -24,21 +25,56 @@ from pathlib import Path
 # ----------------------------------------------------------------------------
 # Ayarlar
 # ----------------------------------------------------------------------------
-APP_TITLE = "DALSAN İSG — Kontrol Paneli"
 PORT = 8080
 URL = f"http://127.0.0.1:{PORT}"
 
-ROOT = Path(__file__).resolve().parent.parent   # depo kok dizini
+IS_WINDOWS = os.name == "nt"
+
+# Program, cift tiklanan bir uygulama (.app / .exe) olarak mi calisiyor?
+# PyInstaller paketlenmis programda sys.frozen'i kurar; normal Python
+# calistirmasinda bu ozellik YOKTUR.
+#
+# Paketlenmis programda IKI sey degisir:
+#   1. Kurulum adimi YOKTUR — Python ortami ve paketler uygulamanin icinde
+#      gelir; "Ilk Kurulumu Yap" dugmesi gosterilmez.
+#   2. Sunucu ALT SUREC OLARAK BASLATILAMAZ. Paketlenmis programda
+#      sys.executable artik python degil, UYGULAMANIN KENDISIDIR; onu
+#      yeniden calistirmak ikinci bir Kontrol Paneli acar ve sonsuz dongu
+#      olusur. Bu yuzden sunucu ayni surec icinde, bir is parcaciginda
+#      calistirilir (bkz. _ic_surecte_baslat).
+PAKETLENMIS = bool(getattr(sys, "frozen", False))
+
+APP_TITLE = (
+    "NextGen Detector — Kontrol Paneli" if PAKETLENMIS else "DALSAN İSG — Kontrol Paneli"
+)
+
+
+def _yazilabilir_kok() -> Path:
+    """Veritabani, gunluk ve ayar dosyasinin duracagi klasor.
+
+    Gelistirme kurulumunda depo kokudur (bugunku davranis). Paketlenmis
+    programda uygulama paketinin ICI SALT OKUNURDUR; yazilabilir klasoru
+    backend'le AYNI kural belirlemeli, yoksa panel ile sunucu iki ayri
+    klasore bakar. Bu yuzden karar tek yerden, app/kaynaklar.py'den alinir.
+    """
+    if PAKETLENMIS:
+        from app import kaynaklar
+
+        return kaynaklar.veri_konumu().kok
+    return Path(__file__).resolve().parent.parent
+
+
+ROOT = _yazilabilir_kok()       # gelistirmede depo koku, pakette veri koku
 BACKEND = ROOT / "backend"
 VENV = ROOT / ".venv"
 REQUIREMENTS = BACKEND / "requirements.txt"
 MAIN_MODULE = BACKEND / "app" / "main.py"
 ENV_FILE = ROOT / ".env"
+# Paketlenmis programda ornek ayar dosyasi paketin icindedir ve .env'i
+# app/ayarlar.py bir kez oradan uretir; buradaki kopyalama o modda calismaz.
 ENV_EXAMPLE = ROOT / ".env.example"
 DATA_DIR = ROOT / "veri"
 LOG_FILE = DATA_DIR / "loglar" / "sistem.log"
-
-IS_WINDOWS = os.name == "nt"
 
 # Renkler (sade, goz yormayan)
 BG = "#f5f5f4"
@@ -81,6 +117,9 @@ def venv_hazir() -> bool:
 
 def paketler_hazir() -> bool:
     """FastAPI kurulu mu diye bakar — kurulumun bittiginin isareti."""
+    if PAKETLENMIS:
+        # Paketler uygulamanin icinde gelir; kurulacak bir sey yoktur.
+        return True
     if not venv_hazir():
         return False
     try:
@@ -95,6 +134,9 @@ def paketler_hazir() -> bool:
 
 def kod_hazir() -> bool:
     """Sistemin kodu yazilmis mi? (Claude Code ile uretilecek)"""
+    if PAKETLENMIS:
+        # Kod uygulamanin icindedir; diskte aranacak bir dosya yoktur.
+        return True
     return MAIN_MODULE.exists()
 
 
@@ -162,6 +204,108 @@ def klasorleri_hazirla() -> None:
 
 
 # ----------------------------------------------------------------------------
+# Paketlenmis programda sunucu: AYNI SUREC, ayri is parcacigi
+# ----------------------------------------------------------------------------
+class _PanelGunlukAkisi(logging.Handler):
+    """Sunucunun gunluk satirlarini Kontrol Paneli penceresine akitir.
+
+    Gelistirme kurulumunda bu is alt surecin stdout'u okunarak yapilir.
+    Paketlenmis programda stdout DIYE BIR SEY YOKTUR (.app Finder'dan acilir,
+    ciktisi hicbir yere gitmez); satirlar bu yuzden dogrudan log sisteminden
+    alinir.
+    """
+
+    def __init__(self, yaz) -> None:
+        super().__init__()
+        self._yaz = yaz
+        self.panel_akisi = True
+
+    def emit(self, kayit: logging.LogRecord) -> None:
+        try:
+            self._yaz(self.format(kayit))
+        except (TypeError, ValueError, OSError):
+            self.handleError(kayit)
+
+
+def _gunlugu_panele_bagla(log) -> None:
+    """Log sistemine panel akisini ekler (bir kez).
+
+    Bicimlendirici, sunucunun EKRAN akisindan aynen odunc alinir: teknik
+    ayrinti (dosya yollari, yigin izi) yine yalnizca gunluk DOSYASINA yazilir,
+    panele degil (bkz. backend/app/loglama.py).
+    """
+    kok = logging.getLogger("dalsan")
+    if any(getattr(h, "panel_akisi", False) for h in kok.handlers):
+        return
+    ekran_bicimi = next(
+        (
+            h.formatter
+            for h in kok.handlers
+            if isinstance(h, logging.StreamHandler) and not isinstance(h, logging.FileHandler)
+        ),
+        None,
+    )
+    akis = _PanelGunlukAkisi(log)
+    if ekran_bicimi is not None:
+        akis.setFormatter(ekran_bicimi)
+    kok.addHandler(akis)
+
+
+def _ic_surecte_baslat(log, gunluk_yaz=None):
+    """Sunucuyu ayni surec icinde baslatir; uvicorn.Server nesnesini dondurur.
+
+    Hata durumunda None doner ve sebebi Turkce olarak gunluge yazar.
+
+    `gunluk_yaz`: sunucunun kendi gunluk satirlarinin gidecegi yer. Panelin
+    `log`'undan AYRIDIR, cunku o satirlar zaten kendi akislarina yaziliyor;
+    ikinci kez terminale basilmalari cikti ikilerdi.
+    """
+    import uvicorn
+
+    from app.ayarlar import ayarlari_yukle
+    from app.hatalar import AyarHatasi
+
+    # On kontrol: app.main ayni dogrulamayi yapar ama hatasini stderr'e
+    # yazar — .app olarak acildiginda stderr hicbir yere gitmez ve kullanici
+    # sebebi HIC goremezdi.
+    try:
+        ayarlari_yukle()
+    except AyarHatasi as hata:
+        log(f"[AYAR HATASI] {hata.kullanici_mesaji}")
+        return None
+
+    # Uygulama HER baslatista yeniden kurulur (modul duzeyindeki hazir nesne
+    # kullanilmaz): boylece Durdur → Sistemi Baslat turunda ayar dosyasi
+    # yeniden okunur ve Ayarlar sayfasindaki degisiklik gercekten gecerli olur.
+    from app.main import uygulamayi_kur
+
+    fastapi_uygulamasi = uygulamayi_kur()
+
+    # Log sistemi yukaridaki cagrida yeniden kuruldu; panel akisi ondan SONRA
+    # baglanmali, yoksa akis temizlenir ve pencereye tek satir dusmez.
+    _gunlugu_panele_bagla(gunluk_yaz if gunluk_yaz is not None else log)
+
+    # log_config=None: uvicorn kendi log yapilandirmasini kurmasin, sistemin
+    # kendi bicimi (JSON satirlari) bozulmasin.
+    sunucu = uvicorn.Server(
+        uvicorn.Config(fastapi_uygulamasi, host="127.0.0.1", port=PORT, log_config=None)
+    )
+
+    def calistir():
+        try:
+            sunucu.run()
+        except SystemExit:
+            # uvicorn adrese baglanamayinca sys.exit(1) cagirir; is
+            # parcaciginda bu SESSIZCE biter ve kullanici sebebini goremez.
+            log("[HATA] Sistem başlatılamadı: 8080 numaralı bağlantı noktası dolu olabilir.")
+        except OSError as hata:
+            log(f"[HATA] Sistem başlatılamadı: {hata}")
+
+    threading.Thread(target=calistir, daemon=True, name="sunucu").start()
+    return sunucu
+
+
+# ----------------------------------------------------------------------------
 # Arayuz
 # ----------------------------------------------------------------------------
 def arayuzu_baslat():
@@ -180,7 +324,7 @@ def arayuzu_baslat():
     kucuk_font = tkfont.Font(family="Helvetica", size=11)
     log_font = tkfont.Font(family="Menlo" if not IS_WINDOWS else "Consolas", size=10)
 
-    durum = {"surec": None, "calisiyor": False, "mesgul": False}
+    durum = {"surec": None, "sunucu": None, "calisiyor": False, "mesgul": False}
     log_kuyrugu: "queue.Queue[str]" = queue.Queue()
 
     # paketler_hazir() bir alt surec calistirir (yavas). Ana pencere donmasin
@@ -207,13 +351,21 @@ def arayuzu_baslat():
                              highlightbackground="#e7e5e4", highlightthickness=1)
     durum_cerceve.pack(fill="x", padx=24, pady=10)
 
+    # Paketlenmis programda kurulum satirlari GOSTERILMEZ: Python, paketler ve
+    # kod uygulamanin icinde gelir — kullanicinin bakacagi tek satir sistemin
+    # calisip calismadigidir.
+    satirlar = (
+        [("sunucu", "Sistem durumu")]
+        if PAKETLENMIS
+        else [
+            ("python", "Python"),
+            ("paket", "Gerekli paketler"),
+            ("kod", "Sistem kodu"),
+            ("sunucu", "Sistem durumu"),
+        ]
+    )
     durum_etiketleri = {}
-    for anahtar, metin in [
-        ("python", "Python"),
-        ("paket", "Gerekli paketler"),
-        ("kod", "Sistem kodu"),
-        ("sunucu", "Sistem durumu"),
-    ]:
+    for anahtar, metin in satirlar:
         satir = tk.Frame(durum_cerceve, bg="white")
         satir.pack(fill="x", padx=16, pady=6)
         tk.Label(satir, text=metin, font=normal_font, bg="white", fg=MUTED,
@@ -238,10 +390,14 @@ def arayuzu_baslat():
         b.pack(side="left", padx=(0, 10))
         return b
 
-    kurulum_btn = buton("İlk Kurulumu Yap", lambda: is_baslat(kurulumu_yap))
+    # Paketlenmis programda kurulacak bir sey yoktur: dugme hic konmaz.
+    kurulum_btn = None
+    if not PAKETLENMIS:
+        kurulum_btn = buton("İlk Kurulumu Yap", lambda: is_baslat(kurulumu_yap))
     baslat_btn = buton("Sistemi Başlat", lambda: is_baslat(sistemi_baslat), ana=True)
     durdur_btn = buton("Durdur", lambda: sistemi_durdur())
     ekran_btn = buton("İzleme Ekranını Aç", lambda: webbrowser.open(URL))
+    kilitlenecek = [b for b in (kurulum_btn, baslat_btn, durdur_btn) if b is not None]
 
     # ---- log alani ----
     tk.Label(kok, text="Sistem günlüğü", font=kucuk_font, bg=BG, fg=MUTED)\
@@ -255,6 +411,17 @@ def arayuzu_baslat():
     # ---- log yazma ----
     def log(mesaj: str):
         log_kuyrugu.put(mesaj)
+        # Ayni satir terminale de dusurulur. Uygulama hic acilmiyorsa
+        # (pencere gorunmuyorsa) tek teshis yolu budur: kullanici .app'i
+        # Terminal'den calistirip sebebi okuyabilir. Finder'dan acildiginda
+        # bu cikti hicbir yere gitmez, zarari yoktur.
+        try:
+            print(mesaj, file=sys.stderr, flush=True)
+        except (OSError, ValueError, UnicodeEncodeError):
+            # Cikti akisi kapali/yonlendirilmis olabilir. Yapilacak bir sey
+            # yok: satir zaten pencerede duruyor, gunluk sistemi kendi
+            # dosyasina yaziyor.
+            pass
 
     def kuyrugu_bosalt():
         yazildi = False
@@ -278,7 +445,9 @@ def arayuzu_baslat():
             return
 
         def ayarla(anahtar, metin, renk):
-            durum_etiketleri[anahtar].configure(text=metin, fg=renk)
+            etiket = durum_etiketleri.get(anahtar)   # pakette kurulum satirlari yok
+            if etiket is not None:
+                etiket.configure(text=metin, fg=renk)
 
         if python_ok():
             ayarla("python", f"Hazır (sürüm {sys.version_info.major}.{sys.version_info.minor})", OK)
@@ -310,7 +479,8 @@ def arayuzu_baslat():
         baslat_btn.configure(state="normal" if (paket_hazir and kod_hazir() and not ayakta) else "disabled")
         durdur_btn.configure(state="normal" if ayakta else "disabled")
         ekran_btn.configure(state="normal" if ayakta else "disabled")
-        kurulum_btn.configure(state="disabled" if durum["mesgul"] else "normal")
+        if kurulum_btn is not None:
+            kurulum_btn.configure(state="disabled" if durum["mesgul"] else "normal")
 
         kok.after(1500, durumu_yenile)
 
@@ -319,7 +489,7 @@ def arayuzu_baslat():
         if durum["mesgul"]:
             return
         durum["mesgul"] = True
-        for b in (kurulum_btn, baslat_btn, durdur_btn):
+        for b in kilitlenecek:
             b.configure(state="disabled")
 
         def sar():
@@ -402,14 +572,17 @@ def arayuzu_baslat():
         log("=" * 60)
 
     # ---- sistemi baslat ----
-    def sistemi_baslat():
-        if sunucu_ayakta():
-            log("[!] Sistem zaten çalışıyor.")
-            return
-        klasorleri_hazirla()
-        log("=" * 60)
-        log("SİSTEM BAŞLATILIYOR…")
+    def ciktiyi_oku():
+        try:
+            for satir in durum["surec"].stdout:
+                log(satir.rstrip())
+        except Exception as hata:
+            # Sessizce yutulursa gunluk penceresi donar ve kimse sebebini
+            # bilmez; en azindan satiri ekrana dusur.
+            log(f"[HATA] Gunluk okunamadi: {hata}")
 
+    def alt_surecte_baslat():
+        """Gelistirme kurulumu: sunucu, .venv'deki python ile ayri surecte."""
         komut = [str(venv_python()), "-m", "uvicorn", "app.main:app",
                  "--host", "127.0.0.1", "--port", str(PORT)]
 
@@ -421,29 +594,59 @@ def arayuzu_baslat():
             start_new_session=not IS_WINDOWS,
         )
         _pid_yaz(durum["surec"].pid)
-
-        def ciktiyi_oku():
-            try:
-                for satir in durum["surec"].stdout:
-                    log(satir.rstrip())
-            except Exception as hata:
-                # Sessizce yutulursa gunluk penceresi donar ve kimse sebebini
-                # bilmez; en azindan satiri ekrana dusur.
-                log(f"[HATA] Gunluk okunamadi: {hata}")
-
         threading.Thread(target=ciktiyi_oku, daemon=True).start()
+        return True
 
-        for _ in range(40):          # en fazla 20 saniye bekle
+    def sistemi_baslat():
+        if sunucu_ayakta():
+            log("[!] Sistem zaten çalışıyor.")
+            return
+        klasorleri_hazirla()
+        log("=" * 60)
+        log("SİSTEM BAŞLATILIYOR…")
+
+        if PAKETLENMIS:
+            durum["sunucu"] = _ic_surecte_baslat(log, log_kuyrugu.put)
+            if durum["sunucu"] is None:
+                return
+        else:
+            alt_surecte_baslat()
+
+        # ILK acilis uzun surer: tanima modeli bir kez indirilir (~20-35 MB) ve
+        # gecici onbellekler kurulur. 20 saniye yetmiyordu — sistem aslinda
+        # sorunsuz acilirken ekranda "acilmadi" yaziyor, kullanici korkuyordu.
+        for adim in range(360):      # en fazla 3 dakika
             if sunucu_ayakta():
                 log(f"\n✓ SİSTEM ÇALIŞIYOR → {URL}")
                 log("=" * 60)
                 kok.after(400, lambda: webbrowser.open(URL))
                 return
+            if adim and adim % 30 == 0:
+                log(f"   … hazırlanıyor ({adim // 2} sn geçti) — pencereyi kapatmayın.")
             time.sleep(0.5)
-        log("[!] Sistem 20 saniyede açılmadı. Yukarıdaki hata satırlarına bakın.")
+        log("[!] Sistem 3 dakikada açılmadı. Yukarıdaki hata satırlarına bakın.")
 
     # ---- sistemi durdur ----
+    def ic_sureci_durdur() -> bool:
+        """Ayni surecte calisan sunucuyu nazikce kapatir (kameralar dahil)."""
+        sunucu = durum.get("sunucu")
+        if sunucu is None:
+            return False
+        log("\nSistem durduruluyor…")
+        sunucu.should_exit = True
+        for _ in range(60):          # en fazla 15 saniye bekle
+            if not sunucu_ayakta():
+                break
+            time.sleep(0.25)
+        durum["sunucu"] = None
+        log("✓ Durduruldu")
+        return True
+
     def sistemi_durdur():
+        if PAKETLENMIS:
+            if not ic_sureci_durdur():
+                log("[!] Çalışan sistem bulunamadı.")
+            return
         surec = durum.get("surec")
         if not surec or surec.poll() is not None:
             # Panel cokup yeniden acildiysa sunucu SAHIPSIZ calisiyor olabilir:
@@ -486,12 +689,29 @@ def arayuzu_baslat():
 
     kok.protocol("WM_DELETE_WINDOW", kapanirken)
 
-    log("DALSAN İSG Kontrol Paneli hazır.")
-    log(f"Proje klasörü: {ROOT}")
-    log("\nİlk kez kullanıyorsanız: 'İlk Kurulumu Yap' düğmesine basın.\n")
+    if PAKETLENMIS:
+        # Kullaniciya mutlak dosya yolu gosterilmez (CLAUDE.md §8): paketlenmis
+        # programda "proje klasoru" diye bir kavram da yoktur.
+        log("NextGen Detector Kontrol Paneli hazır.")
+        log("\nSistem kendiliğinden başlatılıyor; ilk açılış birkaç saniye sürer.")
+        log("Bu pencereyi kapatırsanız sistem durur.\n")
+    else:
+        log("DALSAN İSG Kontrol Paneli hazır.")
+        log(f"Proje klasörü: {ROOT}")
+        log("\nİlk kez kullanıyorsanız: 'İlk Kurulumu Yap' düğmesine basın.\n")
 
     kuyrugu_bosalt()
     durumu_yenile()
+
+    if PAKETLENMIS:
+        # Cift tiklanan bir uygulamada ikinci bir "baslat" tiklamasi
+        # gereksizdir: pencerenin kendisi zaten "kapatirsaniz sistem durur"
+        # diyor — yani pencere acikken sistem calisiyor demektir. Kurulum
+        # adimi da olmadigi icin kullanicinin yapabilecegi baska bir sey yok.
+        # Baslatma basarisiz olursa "Sistemi Baslat" dugmesi yerinde durur;
+        # kullanici sebebini gunlukte gorup tekrar deneyebilir.
+        kok.after(600, lambda: is_baslat(sistemi_baslat))
+
     kok.mainloop()
 
 
@@ -500,16 +720,17 @@ def arayuzu_baslat():
 # ----------------------------------------------------------------------------
 def metin_modu(hata):
     print("=" * 64)
-    print("  DALSAN İSG — Kontrol Paneli")
+    print(f"  {APP_TITLE}")
     print("=" * 64)
     print(f"\n  Pencere açılamadı: {hata}\n")
-    print("  Mac'te Homebrew Python kullanıyorsanız şunu çalıştırın:")
-    print("      brew install python-tk")
-    print("\n  Ya da python.org üzerinden Python 3.12 kurun (tkinter dahildir).\n")
-    print(f"  Proje klasörü : {ROOT}")
-    print(f"  Python         : {'tamam' if python_ok() else 'SÜRÜM ESKİ'}")
-    print(f"  Paketler       : {'kurulu' if paketler_hazir() else 'eksik'}")
-    print(f"  Sistem kodu    : {'hazır' if kod_hazir() else 'henüz yok'}")
+    if not PAKETLENMIS:
+        print("  Mac'te Homebrew Python kullanıyorsanız şunu çalıştırın:")
+        print("      brew install python-tk")
+        print("\n  Ya da python.org üzerinden Python 3.12 kurun (tkinter dahildir).\n")
+        print(f"  Proje klasörü : {ROOT}")
+        print(f"  Python         : {'tamam' if python_ok() else 'SÜRÜM ESKİ'}")
+        print(f"  Paketler       : {'kurulu' if paketler_hazir() else 'eksik'}")
+        print(f"  Sistem kodu    : {'hazır' if kod_hazir() else 'henüz yok'}")
     print(f"  Sistem         : {'çalışıyor' if sunucu_ayakta() else 'durdu'}")
     print()
     input("  Kapatmak için Enter'a basın…")

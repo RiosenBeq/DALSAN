@@ -10,14 +10,16 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
-from app import veritabani, zaman
+from app import kaynaklar, veritabani, zaman
 from app.analiz.model_adi import gorunen_model_adi
 from app.hatalar import VeritabaniHatasi
 from app.web.ortak import SINIFLAR, baglanti_al
 
 router = APIRouter()
 
-SABLON_DIZINI = Path(__file__).resolve().parent / "templates"
+# Şablonların yeri app/kaynaklar.py'den çözülür (paketlenmiş programda
+# dosyalar depoda değil, paketin açıldığı geçici klasördedir).
+SABLON_DIZINI = kaynaklar.kaynak_yolu("backend", "app", "web", "templates")
 sablonlar = Jinja2Templates(directory=str(SABLON_DIZINI))
 
 

@@ -48,6 +48,12 @@ EKRAN_BASLIKLARI = {
     # Tasarımda olmayan yedinci ekran: sistemi ilk kez açan kişi için
     # kurulumun ve günlük kullanımın tek sayfalık anlatımı.
     "kilavuz": "Kullanım kılavuzu",
+    # Sekizinci ekran: kullanıcının kendi nesnesini fotoğrafla tanıtması.
+    # CANLI ANALİZE GİRMEZ — yalnızca yüklenen fotoğrafta arar (nesne_rotalari.py).
+    "nesneler": "Nesneler",
+    # Dokuzuncu ekran: .env dosyasının ekrandaki karşılığı (ayar_rotalari.py).
+    # Paketlenmiş programda ayar dosyası elle açılamaz; tek yol burasıdır.
+    "ayarlar": "Sistem ayarları",
 }
 
 # Alt başlıklar da tasarımdan birebirdir — ANCAK içinde sayı geçenler
@@ -59,6 +65,7 @@ EKRAN_ALT_BASLIKLARI = {
     "saglik": "Bağlantı, örnekleme ve kalibrasyon durumu",
     "uyari": "Kural, hoparlör ve bildirim zinciri",
     "kilavuz": "Sistemi kurma, çalıştırma ve uyarıları değerlendirme",
+    "ayarlar": "Anons, tespit hassasiyeti ve saklama süreleri",
 }
 
 
@@ -108,6 +115,15 @@ def _alt_baslik(ekran: str, istek: Request, baglanti, toplam: int, bolum: int) -
             "SELECT COUNT(*) AS n FROM announcement_messages WHERE enabled = 1"
         ).fetchone()["n"]
         return f"Anons yolu: {yol} · {mesaj} hazır mesaj"
+    if ekran == "nesneler":
+        # Gerçek sayılar: kaç nesne tanıtıldı, toplam kaç referans fotoğraf var.
+        sayi = baglanti.execute(
+            "SELECT (SELECT COUNT(*) FROM library_objects) AS nesne, "
+            "(SELECT COUNT(*) FROM library_object_photos) AS foto"
+        ).fetchone()
+        if sayi["nesne"] == 0:
+            return "Yüklenen fotoğrafta aranır · henüz nesne tanıtılmadı"
+        return f"Yüklenen fotoğrafta aranır · {sayi['nesne']} nesne · {sayi['foto']} fotoğraf"
     return EKRAN_ALT_BASLIKLARI[ekran]
 
 

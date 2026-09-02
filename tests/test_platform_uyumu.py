@@ -233,5 +233,7 @@ def test_bakim_kilitli_dosyada_durmaz(test_ayarlari, monkeypatch):
         return gercek_unlink(self, *a, **k)
 
     monkeypatch.setattr(Path, "unlink", sahte_unlink)
-    silinen = supervizor._eski_dosyalari_sil(test_ayarlari.goruntu_klasoru, 90)
+    silinen = supervizor._eski_dosyalari_sil(
+        test_ayarlari.goruntu_klasoru, 90, test_ayarlari.nesne_klasoru
+    )
     assert silinen == 1, "kilitli dosya atlanmalı, diğeri silinmeli"

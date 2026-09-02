@@ -36,6 +36,7 @@ KILAVUZ_BOLUMLERI = (
     ("bolge", "Bölge nasıl çizilir"),
     ("kural", "Kural nasıl kurulur"),
     ("uyari", "Uyarı gelince ne yapılır"),
+    ("ayarlar", "Ayarları değiştirme"),
     ("sorun", "Bir şey çalışmazsa"),
 )
 
@@ -287,7 +288,7 @@ def test_kilavuz_sayfasi_aciliyor(istemci):
 
 
 @pytest.mark.parametrize(("cengel", "baslik"), KILAVUZ_BOLUMLERI)
-def test_kilavuzda_yedi_bolum_ve_icindekiler_var(istemci, cengel, baslik):
+def test_kilavuzda_her_bolum_ve_icindekiler_var(istemci, cengel, baslik):
     metin = istemci.get("/komuta/kilavuz").text
     assert f'id="{cengel}"' in metin, f"Kılavuzda bölüm yok: {cengel}"
     assert f'href="#{cengel}"' in metin, f"İçindekilerde bağlantı yok: {cengel}"

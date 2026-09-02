@@ -1,0 +1,187 @@
+{# Nesneler — kendi eşyanı fotoğrafla tanıt, yüklediğin fotoğrafta ara.
+
+   Sayfanın en üstündeki UYARI ŞERİDİ KAPATILAMAZ ve gizlenemez: bu özelliğin
+   tek büyük yanlış anlaşılma riski "tanıttım ama kamera görmüyor"dur. Diğer
+   ekranların kapatılabilir kılavuz şeridinden bilerek ayrı durur.
+
+   Kutuların üzerine nesne ADI yazılmaz, numara konur: OpenCV yazı tipleri
+   Türkçe harfleri çizemez (bkz. nesneler/arama.py _isaretle). Numaranın
+   karşılığı görüntünün altındaki listede yazar. #}
+{% extends "komuta_temel.html" %}
+{% block icerik %}
+
+<section class="nesne-sinir">
+  <span class="nesne-sinir-ikon" aria-hidden="true">
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M12 4.6l8 14H4z"/><path d="M12 10.4v3.4"/><path d="M12 16.4v.4"/></svg>
+  </span>
+  <span>
+    <b>Bu sayfa canlı kameraları ETKİLEMEZ.</b> Burada tanıttığınız nesne yalnızca
+    buraya yüklediğiniz fotoğraflarda aranır; kameralarda aranmaz, uyarı üretmez,
+    olay kaydı oluşturmaz. Yaya yolu, yükleme alanı gibi <b>YERLER</b> ise
+    kameranın kendi sayfasında bölge çizilerek tanıtılır ve canlı kurallara girer —
+    bu sayfa <b>taşınabilir eşyalar</b> içindir.
+  </span>
+</section>
+
+{% if hata %}<p class="komuta-sonuc uyari-tonu">{{ hata }}</p>{% endif %}
+{% if mesaj %}<p class="komuta-sonuc">{{ mesaj }}</p>{% endif %}
+
+{# --- 1) nesne tanıtma ------------------------------------------------- #}
+<section class="komuta-panel">
+  <div class="panel-basligi">
+    <h2>Kendi nesnenizi tanıtın</h2>
+    <span class="panel-notu">farklı açılardan 3-8 fotoğraf</span>
+  </div>
+
+  <p class="panel-notu">
+    Nesnenin <b>önden, yandan, üstten</b> ve varsa <b>yazılı/logolu yüzünden</b>
+    fotoğrafını çekin. Nesne karede büyük ve net olsun, arka plan sade olsun,
+    mümkünse farklı ışıklarda birer fotoğraf ekleyin. Sistem her fotoğraftan
+    <b>renk ve desen parmak izi</b> çıkarır — bu bir model eğitimi değildir.
+  </p>
+
+  <form method="post" action="/nesneler/ekle" enctype="multipart/form-data" class="dikey-form">
+    <label>Nesne adı
+      <input name="ad" placeholder="örnek: 3. hol yangın dolabı" required maxlength="60">
+    </label>
+    <label>Açıklama (isteğe bağlı)
+      <input name="aciklama" placeholder="örnek: kırmızı, cam kapaklı, duvara asılı" maxlength="200">
+    </label>
+    <label>Fotoğraflar
+      <input type="file" name="fotograflar" accept="{{ kabul_ozniteligi }}" multiple required>
+    </label>
+    <p class="panel-notu">{{ izinli_uzantilar }} · her biri en fazla {{ en_buyuk_mb }} MB</p>
+    <div><button class="dugme" type="submit">Nesneyi Ekle</button></div>
+  </form>
+</section>
+
+{# --- 2) tanıtılmış nesneler ------------------------------------------- #}
+{% if nesneler %}
+  {% for n in nesneler %}
+  <section class="komuta-panel">
+    <div class="panel-basligi">
+      <h2>{{ n.ad }}</h2>
+      <span class="rozet {{ 'yesil' if n.fotolar|length >= 3 else 'sari' }}">
+        {{ n.fotolar|length }} fotoğraf</span>
+      {% if n.aciklama %}<span class="panel-notu">{{ n.aciklama }}</span>{% endif %}
+    </div>
+
+    {% if n.fotolar|length < 3 %}
+    <p class="panel-notu">En az 3 farklı açı önerilir. Tek açıdan tanıtılan nesne,
+      başka açıdan çekilmiş bir fotoğrafta tanınmayabilir.</p>
+    {% endif %}
+
+    <div class="nesne-izgara">
+      {% for f in n.fotolar %}
+      <figure class="nesne-foto">
+        <img src="/nesneler/foto/{{ f.dosya }}" alt="{{ n.ad }} referans fotoğrafı" loading="lazy">
+        <figcaption>{{ f.eklendi }}</figcaption>
+        <form method="post" action="/nesneler/fotograf/{{ f.id }}/sil">
+          <button class="dugme ikincil kucuk" type="submit">Kaldır</button>
+        </form>
+      </figure>
+      {% endfor %}
+    </div>
+
+    <form method="post" action="/nesneler/{{ n.id }}/fotograf"
+          enctype="multipart/form-data" class="dikey-form">
+      <label>Yeni açı ekle
+        <input type="file" name="fotograflar" accept="{{ kabul_ozniteligi }}" multiple required>
+      </label>
+      <div><button class="dugme kucuk" type="submit">Fotoğrafları Yükle</button></div>
+    </form>
+
+    <form method="post" action="/nesneler/{{ n.id }}/sil" class="satir-form"
+          data-onay="{{ n.ad }} ve fotoğrafları silinsin mi? Bu işlem geri alınamaz.">
+      <button class="dugme tehlike kucuk" type="submit">Nesneyi Sil</button>
+    </form>
+  </section>
+  {% endfor %}
+{% else %}
+<section class="komuta-panel">
+  <div class="komuta-bos">
+    <h3>Henüz nesne tanıtılmadı</h3>
+    <p>Yukarıdaki formla ilk nesnenizi ekleyin: bir ad yazın ve nesnenin farklı
+      açılardan çekilmiş 3-8 fotoğrafını seçin.</p>
+  </div>
+</section>
+{% endif %}
+
+{# --- 3) fotoğrafta arama ---------------------------------------------- #}
+<section class="komuta-panel">
+  <div class="panel-basligi">
+    <h2>Fotoğrafta ara</h2>
+    <span class="panel-notu">yüklediğiniz kareyi tarar — kameralara dokunmaz</span>
+  </div>
+
+  <form method="post" action="/nesneler/tara" enctype="multipart/form-data" class="dikey-form">
+    <label>Aranacak fotoğraflar
+      <input type="file" name="kareler" accept="{{ kabul_ozniteligi }}" multiple required>
+    </label>
+    <label class="yatay">Kabul çıtası (%)
+      <input type="number" name="esik_yuzde" value="{{ esik_yuzde }}" min="5" max="95" step="1">
+    </label>
+    <p class="panel-notu">
+      Bir taramada en fazla {{ en_cok_dosya }} fotoğraf işlenir. Çıtayı
+      <b>yükseltirseniz</b> daha az ama daha emin işaret çıkar; <b>düşürürseniz</b>
+      daha çok işaret çıkar ve yanlış eşleşme ihtimali artar. Çıtanın altında kalan
+      en iyi benzerlik bile kabul edilmez — sistem uydurma isim yazmaz.
+    </p>
+    <div><button class="dugme" type="submit">Fotoğrafta Ara</button></div>
+  </form>
+</section>
+
+{% for s in sonuclar %}
+<section class="komuta-panel">
+  <div class="panel-basligi">
+    <h2>{{ s.dosya_adi }}</h2>
+    {% if s.bulgular %}
+    <span class="rozet yesil">{{ s.bulgular|length }} eşleşme</span>
+    {% else %}
+    <span class="rozet gri">eşleşme yok</span>
+    {% endif %}
+  </div>
+
+  {% if s.sonuc_gorseli %}
+  <div class="nesne-sonuc-gorsel">
+    <img src="/nesneler/tarama-foto/{{ s.sonuc_gorseli }}" alt="{{ s.dosya_adi }} tarama sonucu">
+  </div>
+  {% endif %}
+
+  {% if s.bulgular %}
+  <div class="komuta-tablo nesne-tablo">
+    <div class="komuta-tablo-basligi"><span>No</span><span>Nesne</span><span>Benzerlik</span></div>
+    {% for b in s.bulgular %}
+    <div class="komuta-tablo-satiri">
+      <span class="sayisal">{{ b.sira }}</span>
+      <span class="satir-adi">{{ b.nesne_adi }}</span>
+      <span class="sayisal">%{{ b.yuzde }}</span>
+    </div>
+    {% endfor %}
+  </div>
+  <p class="panel-notu">Numaralar fotoğraftaki mor kutulara karşılık gelir.</p>
+  {% endif %}
+
+  {% if s.uyari %}<p class="panel-notu">{{ s.uyari }}</p>{% endif %}
+</section>
+{% endfor %}
+
+{# --- 4) yöntemin sınırı ----------------------------------------------- #}
+<section class="komuta-panel">
+  <div class="panel-basligi">
+    <h2>Bu yöntem ne yapar, ne yapmaz</h2>
+  </div>
+  <p class="panel-notu">
+    <b>Yapar:</b> nesnenin renk dağılımı ile yazı/logo/kenar desenini fotoğraftan
+    çıkarır ve yüklediğiniz karede benzeyen yerleri arar. Ayırt edici rengi ya da
+    deseni olan nesnelerde (sarı tüp, yazılı pano, markalı kutu) iyi çalışır.
+  </p>
+  <p class="panel-notu">
+    <b>Yapmaz:</b> yapay zeka modelini yeniden eğitmez, canlı kameralarda arama
+    yapmaz. Düz gri, desensiz nesnelerde ayırt etme zayıftır — renk dışında
+    tutunacak bir iz kalmaz. Emin olunamayan durumda isim yazmak yerine
+    "eşleşme yok" der.
+  </p>
+</section>
+
+{% endblock %}

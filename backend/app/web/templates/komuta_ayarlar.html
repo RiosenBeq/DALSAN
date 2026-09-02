@@ -1,0 +1,64 @@
+{# Sistem ayarları — .env dosyasının ekrandaki karşılığı.
+
+   Kullanıcı yazılım bilmiyor ve paketlenmiş programda ayar dosyası kullanıcı
+   profilinde, gözle bulunamayacak bir klasörde duruyor. Bu sayfa olmadan
+   sahada bir eşik değiştirmek imkânsız olurdu.
+
+   Sayfanın en üstündeki şerit KAPATILAMAZ: "kaydettim ama hiçbir şey
+   değişmedi" bu ekranın tek büyük yanlış anlaşılma riskidir — ayarlar
+   yalnızca yeniden başlatınca geçerli olur.
+
+   Kutuların yanındaki alt yazılar tek tek açıklamalardır; "neyi ne zaman
+   değiştiririm" sorusunun cevabı kılavuzda değil, ayarın yanında durmalıdır. #}
+{% extends "komuta_temel.html" %}
+{% block icerik %}
+
+<section class="uyari-serit">
+  <span class="uyari-serit-ikon" aria-hidden="true">
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="8.6"/><path d="M12 11.2v5"/><path d="M12 7.7v.5"/></svg>
+  </span>
+  <span>
+    <b>Burada yaptığınız değişiklik, sistem yeniden başlatılınca geçerli olur.</b>
+    Kaydettikten sonra Kontrol Paneli'nde önce <b>Durdur</b>'a, sonra
+    <b>Sistemi Başlat</b>'a basın. Kamera adresleri, bölgeler ve kurallar bu
+    sayfada değil kendi sayfalarındadır ve anında geçerli olur.
+  </span>
+</section>
+
+{% if sonuc_mesaji %}<p class="komuta-sonuc">{{ sonuc_mesaji }}</p>{% endif %}
+
+<form method="post" action="/ayarlar/kaydet">
+  {% for grup in gruplar %}
+  <section class="komuta-panel">
+    <div class="panel-basligi">
+      <h2>{{ grup.baslik }}</h2>
+    </div>
+    <p class="panel-notu">{{ grup.aciklama }}</p>
+
+    <div class="dikey-form">
+      {% for alan in grup.alanlar %}
+      <label>{{ alan.etiket }}
+        {% if alan.tur == 'secim' %}
+        <select name="{{ alan.anahtar }}">
+          {% for deger, ad in alan.secenekler %}
+          <option value="{{ deger }}" {% if degerler[alan.anahtar] == deger %}selected{% endif %}>{{ ad }}</option>
+          {% endfor %}
+        </select>
+        {% elif alan.tur == 'metin' %}
+        <input type="text" name="{{ alan.anahtar }}" value="{{ degerler[alan.anahtar] }}"
+               placeholder="{{ alan.ipucu }}" maxlength="200">
+        {% else %}
+        <input type="number" name="{{ alan.anahtar }}" value="{{ degerler[alan.anahtar] }}"
+               min="{{ alan.en_az }}" max="{{ alan.en_cok }}" step="{{ alan.adim }}" required>
+        {% endif %}
+        <span class="panel-notu">{{ alan.aciklama }}</span>
+      </label>
+      {% endfor %}
+    </div>
+
+    <div><button class="dugme" type="submit">Ayarları Kaydet</button></div>
+  </section>
+  {% endfor %}
+</form>
+
+{% endblock %}

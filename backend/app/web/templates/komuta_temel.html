@@ -14,16 +14,16 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block baslik %}{{ ekran_basligi }} — DALSAN İSG{% endblock %}</title>
-  <link rel="icon" href="/static/logo.svg?v=16">
-  <link rel="stylesheet" href="/static/stil.css?v=16">
-  <link rel="stylesheet" href="/static/komuta.css?v=16">
+  <link rel="icon" href="/static/logo.svg?v=19">
+  <link rel="stylesheet" href="/static/stil.css?v=19">
+  <link rel="stylesheet" href="/static/komuta.css?v=19">
 </head>
 <body>
 <div class="komuta-kabuk">
 
   <aside class="komuta-raf">
     <a class="raf-marka" href="/komuta" title="NextGen Detector — DALSAN İSG">
-      <img src="/static/logo.svg?v=16" alt="NextGen Detector" width="26" height="26">
+      <img src="/static/logo.svg?v=19" alt="NextGen Detector" width="26" height="26">
     </a>
 
     <a class="raf-dugme {% if ekran == 'ana' %}aktif{% endif %}" href="/komuta">
@@ -65,6 +65,20 @@
     <a class="raf-dugme" href="/kkd">
       <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 16a7.5 7.5 0 0115 0"/><path d="M9.6 8.9V5.6a1 1 0 011-1h2.8a1 1 0 011 1v3.3"/><rect x="2.8" y="16" width="18.4" height="3.2" rx="1.6"/></svg>
       <span>KKD</span>
+    </a>
+    {# Nesneler: kullanıcının kendi eşyasını fotoğrafla tanıttığı sayfa.
+       Rafta "Ayarlar" grubundadır çünkü canlı izleme ekranı DEĞİLDİR —
+       tanıtılan nesne kameralarda aranmaz, yalnızca yüklenen fotoğrafta. #}
+    <a class="raf-dugme {% if ekran == 'nesneler' %}aktif{% endif %}" href="/nesneler">
+      <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.4l7.5 4.1v8.8L12 20.6 4.5 16.3V7.5z"/><path d="M4.7 7.6L12 11.7l7.3-4.1"/><path d="M12 11.7v8.7"/></svg>
+      <span>Nesneler</span>
+    </a>
+    {# Sistem ayarları: .env dosyasının ekrandaki karşılığı. Rafın en altında
+       değil bu grubun sonunda durur — Kameralar/Kurallar/KKD gibi "kurulum"
+       işidir, günlük izleme ekranı değildir. #}
+    <a class="raf-dugme {% if ekran == 'ayarlar' %}aktif{% endif %}" href="/ayarlar">
+      <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3.1"/><path d="M12 3.6v2.2M12 18.2v2.2M20.4 12h-2.2M5.8 12H3.6M18 6l-1.6 1.6M7.6 16.4L6 18M18 18l-1.6-1.6M7.6 7.6L6 6"/></svg>
+      <span>Sistem ayarları</span>
     </a>
 
     <span class="raf-dip">
@@ -125,7 +139,7 @@
       {% endif %}
       {# Betik BURADA yüklenir (sayfanın sonunda değil): şerit öğesi çözümlenmiş
          olduğu için, kapatılmış bir şerit ekranda bir an görünüp kaybolmaz. #}
-      <script src="/static/kilavuz.js?v=16"></script>
+      <script src="/static/kilavuz.js?v=19"></script>
 
       {% block icerik %}{% endblock %}
     </main>
@@ -133,7 +147,7 @@
 
 </div>
 {# Silme onayı: eski kabukla AYNI dosya — iki ekranda farklı davranmasın. #}
-<script src="/static/onay.js?v=16"></script>
+<script src="/static/onay.js?v=19"></script>
 {% block betikler %}{% endblock %}
 </body>
 </html>

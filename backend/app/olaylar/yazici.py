@@ -107,6 +107,9 @@ def _fotograf_kaydet(ayarlar: Ayarlar, kamera_id: int, zaman_utc: str, jpeg: byt
         tam_yol.write_bytes(jpeg)
     except OSError as hata:
         # Fotoğraf yazılamadı diye olay kaybolmaz; sebep log'a düşer
-        _log.error(f"Kanıt fotoğrafı yazılamadı ({tam_yol}): {hata}")
+        _log.error(
+            f"Kanıt fotoğrafı diske yazılamadı: {hata}",
+            extra={"ayrinti": f"dosya: {tam_yol}"},
+        )
         return None
     return goreli
