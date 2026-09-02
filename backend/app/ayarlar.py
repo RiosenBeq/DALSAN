@@ -2,7 +2,7 @@
 
 Başka hiçbir dosya os.environ'a veya .env'e bakmaz; ayar gereken her yer
 buradan bir `Ayarlar` nesnesi alır (CLAUDE.md §7: sabit kodlanmış eşik,
-yol, IP, şifre yasak).
+yol, IP yasak).
 
 Eksik veya bozuk ayar, program açılışında anlaşılır Türkçe bir `AyarHatasi`
 ile durdurur — sistem yarım ayarla ÇALIŞMAZ.
@@ -30,7 +30,6 @@ _CIHAZ_SECENEKLERI = ("cpu", "cuda")
 @dataclass(frozen=True)
 class Ayarlar:
     kok_dizin: Path
-    yonetici_sifresi: str
     veri_dizini: Path
     veritabani_yolu: Path
     goruntu_klasoru: Path
@@ -65,12 +64,8 @@ def ayarlari_yukle(kok_dizin: Path | None = None) -> Ayarlar:
         )
     degerler = {a: (d or "").strip() for a, d in dotenv_values(env_yolu).items()}
 
-    yonetici_sifresi = degerler.get("YONETICI_SIFRESI", "")
-    if not yonetici_sifresi:
-        raise AyarHatasi(
-            ".env dosyasında YONETICI_SIFRESI boş veya eksik. "
-            "Bir yönetici şifresi yazıp sistemi yeniden başlatın."
-        )
+    # Not: giriş şifresi bilerek YOK (docs/07 #0). Sistem tek makinede, yalnızca
+    # 127.0.0.1'e bağlı çalışır; fabrika sunucusuna çıkmadan önce geri eklenir.
 
     # Not: sistemin portunu Kontrol Paneli belirler (8080). Bu yüzden .env'de
     # port ayarı YOKTUR — okunmayan bir ayar ekranda yanlış bilgi gösterirdi.
@@ -95,7 +90,6 @@ def ayarlari_yukle(kok_dizin: Path | None = None) -> Ayarlar:
 
     return Ayarlar(
         kok_dizin=kok,
-        yonetici_sifresi=yonetici_sifresi,
         veri_dizini=veri_dizini,
         veritabani_yolu=veritabani_yolu,
         goruntu_klasoru=goruntu_klasoru,

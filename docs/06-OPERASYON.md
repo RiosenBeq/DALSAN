@@ -4,7 +4,7 @@
 
 ```bash
 git clone <repo> && cd dalsan-isg
-cp .env.example .env          # doldur: DB şifresi, ADMIN_PASSWORD, ANNOUNCER, retention
+cp .env.example .env          # doldur: ANONS, saklama süreleri (giriş şifresi: docs/07 #0)
 bash models/download.sh       # model ağırlıkları (repoda yok)
 docker compose up -d
 docker compose exec api alembic upgrade head

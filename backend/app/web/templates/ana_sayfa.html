@@ -8,6 +8,9 @@
     <table>
       <tr><th>Tespit modeli</th>
         <td>{% if model_durumu == 'hazir' %}<span class="rozet yesil">Hazır — {{ model_adi }}</span>
+            {% elif model_durumu == 'indiriliyor' %}<span class="rozet sari">İndiriliyor…</span>
+              {{ model_adi }} bir kez indiriliyor (internet gerekir); bitince bu satır yeşile döner.
+            {% elif model_durumu == 'yukleniyor' %}<span class="rozet sari">Yükleniyor…</span> {{ model_adi }}
             {% else %}<span class="rozet kirmizi">Yüklenemedi</span> {{ model_hatasi }}{% endif %}</td></tr>
       <tr><th>KKD modeli</th>
         <td><span class="rozet gri">Henüz eğitilmedi</span> — veri toplandıktan sonra eğitilecek (KKD sekmesi)</td></tr>
@@ -40,8 +43,8 @@
       <tr><th>{{ ad }}</th><td>{{ deger }}</td></tr>
       {% endfor %}
     </table>
-    <p class="not">Şifre ve RTSP bağlantı bilgileri güvenlik gereği maskeli gösterilir.
-      Değiştirmek için kök klasördeki .env dosyasını düzenleyip sistemi yeniden başlatın.</p>
+    <p class="not">RTSP bağlantı bilgileri güvenlik gereği maskeli gösterilir.
+      Bu ayarları değiştirmek için kök klasördeki .env dosyasını düzenleyip sistemi yeniden başlatın.</p>
   </section>
 
   <section class="kart">

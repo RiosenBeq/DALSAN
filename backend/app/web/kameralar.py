@@ -3,6 +3,10 @@
 from __future__ import annotations
 
 import json
+import os
+import re
+from pathlib import Path
+from urllib.parse import unquote, urlsplit
 
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
@@ -20,11 +24,25 @@ class KameraBulunamadi(DogrulamaHatasi):
     http_kodu = 404
 
 
+# Kullanıcıya görünen durum rozeti: (metin, renk sınıfı)
+DURUM_ROZETLERI = {
+    "online": ("çevrimiçi", "yesil"),
+    "connecting": ("bağlanıyor", "sari"),
+    "offline": ("çevrimdışı", "kirmizi"),
+}
+
+
 def _kamera_getir(baglanti, kamera_id: int) -> dict:
     satir = baglanti.execute("SELECT * FROM cameras WHERE id = ?", (kamera_id,)).fetchone()
     if satir is None:
         raise KameraBulunamadi(f"Kamera bulunamadı (id {kamera_id}). Silinmiş olabilir.")
     return dict(satir)
+
+
+def _rozet(kamera: dict) -> tuple[str, str]:
+    if not kamera["enabled"]:
+        return ("pasif", "gri")
+    return DURUM_ROZETLERI.get(kamera["status"], DURUM_ROZETLERI["offline"])
 
 
 @router.get("/kameralar", response_class=HTMLResponse)
@@ -36,6 +54,7 @@ def kamera_listesi(istek: Request, baglanti=Depends(baglanti_al)):
         kamera["son_kare"] = (
             zaman.ekranda_goster(kamera["last_frame_at"]) if kamera["last_frame_at"] else "—"
         )
+        kamera["rozet"], kamera["rozet_rengi"] = _rozet(kamera)
         kameralar.append(kamera)
     return sablonlar.TemplateResponse(
         istek,
@@ -63,12 +82,12 @@ def kamera_ekle(
     sample_fps: float = Form(6),
     baglanti=Depends(baglanti_al),
 ):
-    _kamera_dogrula(name, source_type, source_url, sample_fps)
+    source_url = _kamera_dogrula(name, source_type, source_url, sample_fps)
     simdi = zaman.simdi_utc()
     imlec = baglanti.execute(
         "INSERT INTO cameras (name, area, source_type, source_url, sample_fps, "
         "created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-        (name.strip(), area.strip(), source_type, source_url.strip(), sample_fps, simdi, simdi),
+        (name.strip(), area.strip(), source_type, source_url, sample_fps, simdi, simdi),
     )
     baglanti.commit()
     return RedirectResponse(f"/kameralar/{imlec.lastrowid}", status_code=303)
@@ -78,6 +97,7 @@ def kamera_ekle(
 def kamera_detay(istek: Request, kamera_id: int, baglanti=Depends(baglanti_al)):
     kamera = _kamera_getir(baglanti, kamera_id)
     kamera["maskeli_url"] = rtsp_maskele(kamera["source_url"])
+    kamera["rozet"], kamera["rozet_rengi"] = _rozet(kamera)
 
     bolgeler = []
     for satir in baglanti.execute(
@@ -85,6 +105,7 @@ def kamera_detay(istek: Request, kamera_id: int, baglanti=Depends(baglanti_al)):
     ):
         bolge = dict(satir)
         bolge["tip_adi"] = BOLGE_TIPLERI.get(bolge["zone_type"], bolge["zone_type"])
+        bolge["noktalar"] = json.loads(bolge["polygon"])
         bolgeler.append(bolge)
 
     kurallar = []
@@ -107,10 +128,7 @@ def kamera_detay(istek: Request, kamera_id: int, baglanti=Depends(baglanti_al)):
             "kamera": kamera,
             "bolgeler": bolgeler,
             "bolgeler_json": guvenli_json(
-                [
-                    {"id": b["id"], "poligon": json.loads(b["polygon"]), "ad": b["name"]}
-                    for b in bolgeler
-                ]
+                [{"id": b["id"], "poligon": b["noktalar"], "ad": b["name"]} for b in bolgeler]
             ),
             "kurallar": kurallar,
             "bolge_tipleri": BOLGE_TIPLERI,
@@ -134,7 +152,7 @@ def kamera_duzenle(
     baglanti=Depends(baglanti_al),
 ):
     _kamera_getir(baglanti, kamera_id)
-    _kamera_dogrula(name, source_type, source_url, sample_fps)
+    source_url = _kamera_dogrula(name, source_type, source_url, sample_fps)
     baglanti.execute(
         "UPDATE cameras SET name = ?, area = ?, source_type = ?, source_url = ?, "
         "sample_fps = ?, enabled = ?, updated_at = ? WHERE id = ?",
@@ -142,7 +160,7 @@ def kamera_duzenle(
             name.strip(),
             area.strip(),
             source_type,
-            source_url.strip(),
+            source_url,
             sample_fps,
             1 if enabled == "1" else 0,
             zaman.simdi_utc(),
@@ -161,6 +179,23 @@ def kamera_sil(kamera_id: int, baglanti=Depends(baglanti_al)):
     # updated_at değişmediği için süpervizörün fark etmesi adına sayaç damgası:
     baglanti.commit()
     return RedirectResponse("/kameralar", status_code=303)
+
+
+@router.get("/kameralar/{kamera_id}/durum.json")
+def kamera_durumu(istek: Request, kamera_id: int, baglanti=Depends(baglanti_al)):
+    """Kamera sayfasının canlı durum satırı: bağlanıyor / çevrimiçi / çevrimdışı
+    + bağlanamama SEBEBİ. Kullanıcı günlük dosyasına bakmak zorunda kalmaz."""
+    kamera = _kamera_getir(baglanti, kamera_id)
+    if not kamera["enabled"]:
+        return {
+            "durum": "pasif",
+            "mesaj": "Kamera pasif — izlenmiyor. Aşağıdaki 'Kamera aktif' kutusunu "
+            "işaretleyip Kaydet'e basın.",
+        }
+    supervizor = getattr(istek.app.state, "supervizor", None)
+    if supervizor is None:
+        return {"durum": "kapali", "mesaj": "Analiz başlatılmadı."}
+    return supervizor.kamera_durumu(kamera_id)
 
 
 @router.get("/kameralar/{kamera_id}/onizleme.jpg")
@@ -261,20 +296,57 @@ def kalibrasyon_sil(kamera_id: int, baglanti=Depends(baglanti_al)):
 # ---- doğrulama ----
 
 
-def _kamera_dogrula(name: str, source_type: str, source_url: str, sample_fps: float) -> None:
+def dosya_yolu_duzelt(ham: str) -> str:
+    """Kullanıcının yapıştırdığı dosya yolunu OpenCV'nin açabileceği hale getirir.
+
+    Karşılanan biçimler: tırnaklı yol (Windows "Yol olarak kopyala"),
+    file:// adresi (tarayıcıdan sürükleme), Terminal'den sürüklemede boşlukların
+    önüne gelen ters bölü kaçışları (Mac) ve ~ kısaltması.
+    """
+    yol = ham.strip().strip('"').strip("'").strip()
+    if yol.lower().startswith("file://"):
+        yol = unquote(yol[7:])
+        if re.match(r"^/[A-Za-z]:", yol):  # file:///C:/... → C:/...
+            yol = yol[1:]
+    yol = yol.replace("\\ ", " ")
+    return os.path.expanduser(yol)
+
+
+def _kamera_dogrula(name: str, source_type: str, source_url: str, sample_fps: float) -> str:
+    """Formu doğrular; kaydedilecek (temizlenmiş) kaynak adresini döndürür."""
     if not name.strip():
         raise DogrulamaHatasi("Kamera adı boş olamaz.")
     if source_type not in ("rtsp", "file"):
         raise DogrulamaHatasi("Kaynak tipi 'rtsp' veya 'file' olmalı.")
-    if not source_url.strip():
-        raise DogrulamaHatasi(
-            "Kaynak adresi boş olamaz. RTSP örneği: rtsp://kullanici:sifre@192.168.1.64:554/... "
-            "— Video dosyası örneği: veri/test-videolari/ornek.mp4"
-        )
-    if source_type == "rtsp" and not source_url.strip().startswith("rtsp://"):
-        raise DogrulamaHatasi("RTSP adresi rtsp:// ile başlamalı.")
     if not 0.5 <= sample_fps <= 30:
         raise DogrulamaHatasi("Örnekleme hızı 0,5 ile 30 fps arasında olmalı.")
+    adres = source_url.strip()
+    if not adres:
+        raise DogrulamaHatasi(
+            "Kaynak adresi boş olamaz. RTSP örneği: rtsp://kullanici:sifre@192.168.1.64:554/... "
+            "— Video dosyası örneği: /Users/adiniz/Desktop/test.mp4"
+        )
+    if source_type == "rtsp":
+        if not adres.lower().startswith("rtsp://"):
+            raise DogrulamaHatasi(
+                "RTSP adresi rtsp:// ile başlamalı. Örnek: "
+                "rtsp://kullanici:sifre@192.168.1.64:554/Streaming/Channels/102 — "
+                "Bilgisayardaki bir video dosyasını izlemek için kaynak tipini "
+                "'Video dosyası' yapın."
+            )
+        if not urlsplit(adres).hostname:
+            raise DogrulamaHatasi(
+                "RTSP adresinde kamera IP'si okunamadı. Biçim: rtsp://kullanici:sifre@IP:554/yol"
+            )
+        return adres
+    yol = dosya_yolu_duzelt(adres)
+    if not Path(yol).is_file():
+        raise DogrulamaHatasi(
+            f"Video dosyası bulunamadı: {yol} — Dosyanın TAM yolunu yazın. "
+            "Mac'te: dosyayı Finder'da seçip Option+Command+C ile yolu kopyalayın. "
+            "Windows'ta: dosyaya Shift + sağ tık → 'Yol olarak kopyala'."
+        )
+    return yol
 
 
 def _poligon_dogrula(polygon: str) -> list[list[float]]:

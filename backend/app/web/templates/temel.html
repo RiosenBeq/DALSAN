@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block baslik %}DALSAN İSG{% endblock %}</title>
-  <link rel="stylesheet" href="/static/stil.css?v=3">
+  <link rel="stylesheet" href="/static/stil.css?v=4">
 </head>
 <body>
   <header>
@@ -17,9 +17,6 @@
         <a href="/olaylar" {% if aktif_sekme == 'olaylar' %}class="aktif"{% endif %}>Olaylar</a>
         <a href="/kkd" {% if aktif_sekme == 'kkd' %}class="aktif"{% endif %}>KKD</a>
       </nav>
-      <form method="post" action="/cikis" class="cikis-form">
-        <button type="submit" class="dugme ikincil kucuk">Çıkış</button>
-      </form>
     </div>
   </header>
   <main>

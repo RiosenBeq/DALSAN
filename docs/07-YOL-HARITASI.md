@@ -12,6 +12,7 @@ Sıralama beklenen faydaya göre.
 
 | # | Başlık | Tetikleyici / gerekçe | Büyüklük |
 |---|---|---|---|
+| 0 | **Giriş şifresi** (tek yönetici şifresi, imzalı çerez) — **fabrika sunucusuna çıkmadan ÖNCE** | Geliştirme aşamasında kullanıcı kararıyla kaldırıldı (02.09.2026): sistem tek makinede, yalnızca 127.0.0.1'den açılıyor. Docker/0.0.0.0 ile ağa açılınca zorunlu. Eski kod git geçmişinde: `backend/app/web/giris.py` + `tests/test_giris.py` (commit 067a2b6). | Küçük |
 | 1 | **Olay video klibi** (öncesi/sonrası 5+5 sn) | Yanlış alarm incelemesinde ve İSG eğitiminde snapshot'tan çok daha güçlü. En sık istenecek özellik. | Orta |
 | 2 | **KKD geri besleme döngüsü** | MVP'nin "Yanlış alarm" işaretleri + snapshot'ları zaten veri seti. Kalan iş: periyodik yeniden eğitim betiği + model sürüm yönetimi. Precision'ı zamanla yükseltir. | Orta |
 | 3 | **Raporlama ve dashboard** | "İSG performansının veriye dayalı izlenmesi" hedefinin devamı: kamera/kural/bölge/**alan** kırılımı, vardiya karşılaştırması, PDF/Excel çıktı. Olay tablosu zaten doğru indeksli. | Orta |

@@ -8,12 +8,14 @@ from app import veritabani
 
 
 def _kamera_ve_bolge(istemci, test_ayarlari) -> tuple[int, int]:
+    video = test_ayarlari.kok_dizin / "video.mp4"
+    video.write_bytes(b"sahte")  # form, dosyanın varlığını denetler
     yanit = istemci.post(
         "/kameralar/yeni",
         data={
             "name": "K1",
             "source_type": "file",
-            "source_url": "video.mp4",
+            "source_url": str(video),
             "sample_fps": "6",
         },
         follow_redirects=False,

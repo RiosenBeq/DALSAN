@@ -21,8 +21,8 @@ services:
       # Model dosyaları imaja gömülüdür; dışarıdan güncellemek isterseniz açın:
       # - ./models:/uygulama/models:ro
     healthcheck:
-      # Giriş sayfası cevap veriyorsa süreç ayakta demektir
-      test: ["CMD", "curl", "-fs", "http://127.0.0.1:8080/giris"]
+      # Ana sayfa cevap veriyorsa süreç ayakta demektir
+      test: ["CMD", "curl", "-fs", "http://127.0.0.1:8080/"]
       interval: 30s
       timeout: 5s
       retries: 3

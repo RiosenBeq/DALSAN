@@ -116,13 +116,15 @@ kendiliğinden kalkar, çökerse kendini yeniden başlatır.
 
 ```bash
 cd DALSAN-ISG          # ya da OTOPARK-DEMO / LAFFOGATO
-cp .env.example .env   # ayarları düzenleyin (şifre, kamera adresi)
+cp .env.example .env   # ayarları düzenleyin (kamera adresi, saklama süreleri)
 bash models/indir.sh   # yapay zeka modelini indirir
 ```
 
 > Model indirilmeden imaj derlenmez: derleme **"models/yolox_tiny.onnx
 > bulunamadi"** diyerek durur. Bu bilinçlidir — modelsiz container hiçbir şey
-> tespit etmeden sessizce çalışırdı.
+> tespit etmeden sessizce çalışırdı. (Çift tıkla çalıştırmada model eksikse
+> sistem ilk açılışta kendisi indirir; Docker'da imaj derlenmeden önce
+> indirilmiş olmalıdır.)
 
 ### Başlatma
 
@@ -150,11 +152,15 @@ Adres: `http://localhost:8080` (demolarda 8090 / 8100).
 
 ```bash
 git clone <depo-adresi> && cd DALSAN-ISG
-cp .env.example .env       # YONETICI_SIFRESI'ni mutlaka değiştirin
+cp .env.example .env
 bash models/indir.sh
 docker compose up -d
 docker compose ps          # durum "healthy" görünmeli
 ```
+
+> **Dikkat:** Giriş şifresi şu an bilerek kapalıdır (geliştirme aşaması).
+> Fabrika sunucusunda sistem ağdaki her bilgisayardan açılabilir; sunucuya
+> kurmadan ÖNCE şifre geri eklenmelidir (`docs/07-YOL-HARITASI.md` #0).
 
 Sunucu yeniden başladığında sistem kendiliğinden kalkar (`restart:
 unless-stopped`). Günlük yedek için `veri/` klasörünü zamanlanmış görevle
@@ -168,7 +174,6 @@ Sık kullanılan satırlar:
 
 | Ayar | Anlamı |
 |---|---|
-| `YONETICI_SIFRESI` | Fabrika sisteminin giriş şifresi — **mutlaka değiştirin** |
 | `KAYNAK` | Demolarda kamera: `0` (bilgisayar kamerası), `rtsp://…`, ya da video dosyası |
 | `CIKARIM_CIHAZI` | `cpu` veya `cuda` (yalnız NVIDIA'lı Linux sunucuda `cuda`) |
 | `KARE_ORNEKLEME_FPS` / `KARE_FPS` | Saniyede kaç kare analiz edilsin (3-6 yeterli) |
@@ -186,9 +191,10 @@ değiştirince sistem yeniden başlatılmaz, birkaç saniyede devreye girer.
 |---|---|
 | Çift tıklayınca hiçbir şey olmuyor (Mac) | Dosyaya çalıştırma izni gerekiyor: sağ tık → Aç → Aç |
 | "Python bulunamadı" (Windows) | Kurulumda "Add Python to PATH" işaretlenmemiş; Python'u kaldırıp kutuyu işaretleyerek tekrar kurun |
-| Sayfa açılıyor ama görüntü yok | Kamera adresi yanlış olabilir; ekranda kırmızı kutuda sebep yazar |
+| Sayfa açılıyor ama görüntü yok | Kamera sayfasındaki durum satırı sebebi yazar: "dosya bulunamadı", "kameraya ulaşılamıyor (IP:port)", "kullanıcı adı/şifre yanlış olabilir"… |
+| Kamera eklerken kırmızı hata sayfası | Sayfadaki mesaj ne yapılacağını söyler; "Geri dön ve düzelt" ile forma dönün (girdiğiniz bilgiler korunur) |
 | "Kamera açılamadı" (Mac, Laffogato) | Kamera izni verilmemiş ya da kamerayı Zoom/FaceTime kullanıyor |
-| Kutular çıkmıyor, sayaç 0 | Model indirilmemiş olabilir: `bash models/indir.sh`. Nesne çok küçükse hassasiyeti düşürün |
+| Kutular çıkmıyor, sayaç 0 | Ana sayfada "Tespit modeli" satırına bakın: "İndiriliyor…" ise bekleyin, "Yüklenemedi" ise internet bağlantısını kontrol edip sistemi yeniden başlatın (ya da `bash models/indir.sh`) |
 | Docker derlemesi "model bulunamadi" diyor | Derlemeden önce `bash models/indir.sh` çalıştırın |
 | Docker'da kamera yok | Docker Desktop bilgisayar kamerasını veremez; RTSP veya video dosyası kullanın |
 | Saatler 3 saat kaymış (Windows) | `pip install tzdata` (yeni kurulumlarda otomatik gelir) |

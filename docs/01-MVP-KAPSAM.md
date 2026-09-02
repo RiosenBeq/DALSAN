@@ -117,7 +117,7 @@ Kamera (RTSP) → Kare örnekleme → Tespit (insan/forklift/tır) → Takip (ka
 
 | Özellik | MVP? | Öncelik | Neden? | Geleceğe bırakılabilir mi? |
 |---|---|---|---|---|
-| Tek yönetici şifresi (env, oturum çerezi) | ✅ | MUST | Kural değiştirebilen ve anons tetikleyen sistem LAN'da bile şifresiz olmaz. | Hayır |
+| Tek yönetici şifresi (env, oturum çerezi) | ⏸ | MUST (fabrika) | Kural değiştirebilen ve anons tetikleyen sistem LAN'da bile şifresiz olmaz. **Geliştirme aşamasında kullanıcı kararıyla kapatıldı (02.09.2026):** sistem tek makinede, yalnızca 127.0.0.1'e bağlı çalışıyor. Fabrika sunucusuna çıkmadan önce geri eklenir → `07` #0. | Fabrika kurulumuna kadar |
 | Kullanıcı yönetimi / roller | ❌ | FUTURE | Tek ekip. Auth tek dependency'de; sonradan kullanıcı tablosuyla değişir. | Evet → Phase 2 |
 | RTSP kimlik bilgisi maskeleme | ✅ | MUST | Temel hijyen. | Hayır |
 | Retention (olay N gün, snapshot M gün, otomatik silme) | ✅ | MUST | Disk dolunca sistem durur. **Ayrıca KVKK gereği.** | Hayır |
