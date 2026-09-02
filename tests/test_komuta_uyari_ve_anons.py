@@ -95,7 +95,18 @@ def _anons_id(test_ayarlari, anahtar: str = "safe_distance") -> int:
 
 
 def _ihlal_ekle(test_ayarlari, kamera_id: int, kural_kaydi: dict, *, saat_once: float = 1) -> int:
-    an = (datetime.now(UTC) - timedelta(hours=saat_once)).isoformat(timespec="seconds")
+    """BUGÜNE (yerel takvime göre) bir ihlal yazar.
+
+    `saat_once` kadar geriye gidilir AMA yerel gün başlangıcının gerisine
+    ASLA düşülmez. Bu kelepçe olmadan testler gece yarısından sonraki ilk
+    saatlerde kırılıyordu: saat 00:01'de "1 saat önce" yerel takvimde DÜNDÜR,
+    dolayısıyla "Bugün anons tetikleyen ihlal" sayacı haklı olarak 0 gösterir.
+    Kırılan sistem değil, testin varsayımıydı — ekranın "bugün" penceresi
+    Türkiye gününe göre kurulur (app/zaman.py: gun_basi_utc).
+    """
+    istenen = datetime.now(UTC) - timedelta(hours=saat_once)
+    gun_basi = datetime.fromisoformat(zaman.gun_basi_utc(0)) + timedelta(minutes=1)
+    an = max(istenen, gun_basi).isoformat(timespec="seconds")
     return _sql(
         test_ayarlari,
         "INSERT INTO events (occurred_at, event_type, camera_id, rule_snapshot, details, status) "
