@@ -18,7 +18,9 @@
     <p id="kare-durumu" class="not" data-kamera="{{ kamera.id }}">
       {% if kamera.enabled %}Durum alınıyor…{% else %}Kamera pasif — izlenmiyor.{% endif %}
     </p>
+    <p id="kalite-uyarisi" class="kalite-uyarisi" hidden></p>
     <div class="sayim-izgara kucuk-sayim" id="canli-sayim"></div>
+    {% include "renk_anahtari.html" %}
   </section>
 
   <section class="kart">
@@ -42,6 +44,23 @@
     </table>
     {% else %}
     <p class="bos">Bu kamerada bölge yok. Kurallar bölge üstünde çalışır — önce bölge çizin.</p>
+    {% endif %}
+
+    {% set yaya_yollari = bolgeler | selectattr("zone_type", "equalto", "pedestrian_path")
+                                   | rejectattr("kurali_var") | list %}
+    {% if yaya_yollari %}
+    <div class="hazir-kural">
+      <h4>Yaya yolu kuralı</h4>
+      <p class="not">Fabrikada çizili yürüyüş yolu varsa, insanların oradan yürümesi beklenir.
+        Bu kural yaya yolunun <b>dışında</b> {{ 5 }} saniyeden uzun kalan kişiyi uyarır;
+        yolun kenarına bir adım atan kişi uyarı üretmez.</p>
+      {% for b in yaya_yollari %}
+      <form method="post" action="/kurallar/yaya-yolu" class="satir-form">
+        <input type="hidden" name="zone_id" value="{{ b.id }}">
+        <button class="dugme">"{{ b.name }}" için yaya yolu kuralı ekle</button>
+      </form>
+      {% endfor %}
+    </div>
     {% endif %}
 
     <div class="bolge-cizim-kutusu">

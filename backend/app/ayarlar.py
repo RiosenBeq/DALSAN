@@ -25,6 +25,7 @@ _VARSAYILAN_KOK = Path(__file__).resolve().parents[2]
 
 _ANONS_SECENEKLERI = ("null", "ses_karti", "http")
 _CIHAZ_SECENEKLERI = ("cpu", "cuda")
+_IYILESTIRME_SECENEKLERI = ("kapali", "otomatik")
 
 
 @dataclass(frozen=True)
@@ -46,6 +47,7 @@ class Ayarlar:
     tespit_insan_guven_esigi: float
     tespit_nms_esigi: float
     tespit_en_kucuk_kenar_px: int
+    goruntu_iyilestirme: str
     anons: str
     anons_http_adresi: str
     anons_bekleme_sn: int
@@ -127,6 +129,10 @@ def ayarlari_yukle(kok_dizin: Path | None = None) -> Ayarlar:
         # Bu kenar uzunluğundan küçük kutular atılır: uzaktaki birkaç piksellik
         # gürültü insan sanılıp yanlış alarm üretmesin
         tespit_en_kucuk_kenar_px=_tam_sayi(degerler, "TESPIT_EN_KUCUK_KENAR_PX", 12, 2, 500),
+        # Düşük kaliteli fabrika kamerası için yerel kontrast dengeleme (CLAHE)
+        goruntu_iyilestirme=_secenek(
+            degerler, "GORUNTU_IYILESTIRME", "kapali", _IYILESTIRME_SECENEKLERI
+        ),
         anons=anons,
         anons_http_adresi=anons_http_adresi,
         # Anons, ekran uyarısından bağımsız ve daha seyrek çalar (docs/02 §7):

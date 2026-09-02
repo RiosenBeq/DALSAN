@@ -37,6 +37,7 @@
   if (!durumSatiri || !durumSatiri.dataset.kamera) return;
   var rozet = document.getElementById("durum-rozeti");
   var sayimKutusu = document.getElementById("canli-sayim");
+  var kaliteKutusu = document.getElementById("kalite-uyarisi");
   var ROZETLER = {
     online: ["çevrimiçi", "yesil"],
     connecting: ["bağlanıyor", "sari"],
@@ -57,6 +58,11 @@
         var r = ROZETLER[veri.durum];
         if (rozet && r) { rozet.textContent = r[0]; rozet.className = "rozet " + r[1]; }
         if (sayimKutusu) sayimiYaz(veri.sayim_tr || {});
+        if (kaliteKutusu) {
+          var kalite = veri.kalite || {};
+          kaliteKutusu.textContent = kalite.mesaj || "";
+          kaliteKutusu.hidden = !kalite.mesaj;
+        }
       })
       .catch(function () { /* bir sonraki tur */ });
   }

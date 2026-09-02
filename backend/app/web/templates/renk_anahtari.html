@@ -1,0 +1,68 @@
+{# Canlı görüntüdeki kutu renklerinin anlamı. Renkler analiz/boru_hatti.py
+   içindeki _RENKLER tablosuyla BİREBİR aynıdır — ekranda görülen renk burada
+   da aynı görünmeli, yoksa anahtar yanıltıcı olur. #}
+<div class="renk-anahtari">
+  <span class="anahtar-baslik">Renk anahtarı:</span>
+
+  <span class="anahtar-oge">
+    <svg viewBox="0 0 24 24" class="anahtar-simge" aria-hidden="true">
+      <circle cx="12" cy="6" r="3.2" fill="#50C850"/>
+      <path d="M6.5 21v-6.5c0-3 2.4-5.2 5.5-5.2s5.5 2.2 5.5 5.2V21" fill="none"
+            stroke="#50C850" stroke-width="2.2" stroke-linecap="round"/>
+    </svg>
+    <span class="anahtar-kutu" style="background:#50C850"></span> İnsan
+  </span>
+
+  <span class="anahtar-oge">
+    <svg viewBox="0 0 24 24" class="anahtar-simge" aria-hidden="true">
+      <path d="M3 17h9V8h4l3 5v4" fill="none" stroke="#FFAA00" stroke-width="2.2"
+            stroke-linejoin="round"/>
+      <path d="M12 8V4h6" fill="none" stroke="#FFAA00" stroke-width="2.2" stroke-linecap="round"/>
+      <circle cx="6" cy="19.5" r="2" fill="#FFAA00"/>
+      <circle cx="15" cy="19.5" r="2" fill="#FFAA00"/>
+    </svg>
+    <span class="anahtar-kutu" style="background:#FFAA00"></span> Forklift
+  </span>
+
+  <span class="anahtar-oge">
+    <svg viewBox="0 0 24 24" class="anahtar-simge" aria-hidden="true">
+      <path d="M2 16V7h11v9M13 10h4l4 4v2" fill="none" stroke="#3C8CFF" stroke-width="2.2"
+            stroke-linejoin="round"/>
+      <circle cx="7" cy="18.5" r="2" fill="#3C8CFF"/>
+      <circle cx="17" cy="18.5" r="2" fill="#3C8CFF"/>
+    </svg>
+    <span class="anahtar-kutu" style="background:#3C8CFF"></span> Tır / Araç
+  </span>
+
+  <span class="anahtar-oge">
+    <svg viewBox="0 0 24 24" class="anahtar-simge" aria-hidden="true">
+      <path d="M3.5 16a8.5 8.5 0 0 1 17 0" fill="#3CC8FF"/>
+      <rect x="2" y="16" width="20" height="3.2" rx="1.6" fill="#3CC8FF"/>
+    </svg>
+    <span class="anahtar-kutu" style="background:#3CC8FF"></span> Baret
+    <span class="not">(kişi kutusunda <b>B</b> rozeti)</span>
+  </span>
+
+  <span class="anahtar-oge">
+    <svg viewBox="0 0 24 24" class="anahtar-simge" aria-hidden="true">
+      <path d="M8 3l4 3 4-3 4 2.5V21H4V5.5z" fill="#F5DC00"/>
+      <path d="M9.5 6.5V21M14.5 6.5V21" stroke="#333" stroke-width="1.6" opacity=".55"/>
+    </svg>
+    <span class="anahtar-kutu" style="background:#F5DC00"></span> Reflektörlü yelek
+    <span class="not">(kişi kutusunda <b>Y</b> rozeti)</span>
+  </span>
+
+  <span class="anahtar-oge">
+    <span class="anahtar-kutu" style="background:#DC0000"></span> Kural ihlali
+    <span class="not">(kutu kırmızıya döner ve kalınlaşır)</span>
+  </span>
+
+  <span class="anahtar-oge">
+    <span class="anahtar-kutu cizgi" style="border-color:#A03CC8"></span> Çizdiğiniz bölge
+  </span>
+</div>
+<p class="not">
+  Baret/yelek rozetleri: <b>dolu</b> = var · <b>kırmızı çarpı</b> = yok ·
+  <b>gri soru işareti</b> = belirsiz. <b>Belirsiz asla ihlal sayılmaz</b> — KKD
+  modeli eğitilene kadar (KKD sekmesi) tüm kişiler belirsiz görünür, bu normaldir.
+</p>

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import logging
+import sys
 from logging.handlers import RotatingFileHandler
 
 from app import zaman
@@ -31,8 +32,25 @@ class _JsonSatirBicimi(logging.Formatter):
         return json.dumps(satir, ensure_ascii=False)
 
 
+def _ekran_akisini_hazirla() -> None:
+    """Windows konsolu varsayılan olarak cp1254'tür; Türkçe karakter içeren bir
+    log satırı UnicodeEncodeError verip LOG SİSTEMİNİ ÇÖKERTİR. UTF-8'e geçir,
+    olmazsa bozuk karakteri hataya değil '?'e çevir."""
+    for akis in (sys.stdout, sys.stderr):
+        yeniden_yapilandir = getattr(akis, "reconfigure", None)
+        if yeniden_yapilandir is None:
+            continue
+        try:
+            yeniden_yapilandir(encoding="utf-8", errors="replace")
+        except (ValueError, OSError):
+            # Yönlendirilmiş ya da kapalı akışta yeniden yapılandırma başarısız
+            # olabilir; log yine de çalışmalı.
+            continue
+
+
 def kur(ayarlar: Ayarlar) -> None:
     """Log sistemini bir kez kurar. İkinci çağrı eskisinin yerine geçer."""
+    _ekran_akisini_hazirla()
     kok = logging.getLogger(_KOK_AD)
     kok.setLevel(logging.INFO)
     kok.propagate = False

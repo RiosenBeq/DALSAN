@@ -33,6 +33,9 @@ onu kamera gibi izler. Kamera sayfasındaki durum satırı bağlanamama sebebini
 | Yetenek | Durum |
 |---|---|
 | Kamera yönetimi (RTSP/video), otomatik yeniden bağlanma, canlı önizleme, bağlantı teşhisi | ✅ |
+| Canlı sayım (insan/araç), ekranda renk anahtarı, görüntü kalitesi teşhisi | ✅ |
+| Yaya yolu kuralı (tek tıkla) — insanların yürüyüş yolunu kullanması | ✅ |
+| İhlalde ekran bandı + sesli uyarı + Türkçe seslendirme, anons deneme düğmesi | ✅ |
 | İnsan / araç tespiti (YOLOX, Apache-2.0) + ByteTrack takip | ✅ |
 | Bölge çizimi (tarayıcıda poligon) ve bölge ihlali kuralı | ✅ |
 | Güvenli mesafe kuralı (4 nokta zemin kalibrasyonu, metre cinsinden) | ✅ |
@@ -68,6 +71,9 @@ içinde test edilir; bu kural `tests/rules/test_saflik.py` ile korunur.
 ```
 
 ## Doküman haritası
+
+Kamera yerleşimi, görüntü kalitesi ve hassasiyet ayarı için:
+`docs/12-KAMERA-VE-GORUNTU-KALITESI.md`.
 
 Tüm tasarım kararları `docs/` altındadır; çelişki durumunda
 `docs/09-BASITLESTIRME-KARARLARI.md` geçerlidir. Çalışma yöntemi için

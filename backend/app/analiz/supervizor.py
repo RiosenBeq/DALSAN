@@ -130,7 +130,12 @@ class AnalizSupervizoru:
             if kaynak.son_deneme_utc
             else "",
             "sayim": self.canli_sayim(kamera_id),
+            "kalite": self._kalite(kamera_id),
         }
+
+    def _kalite(self, kamera_id: int) -> dict:
+        hat = self._hatlar.get(kamera_id)
+        return hat.kalite() if hat is not None else {"sorun": "yok", "mesaj": ""}
 
     def onizleme_jpeg(self, kamera_id: int) -> bytes | None:
         """İşlenmiş (kutulu) son kare; yoksa ham son kare."""
@@ -299,7 +304,11 @@ class AnalizSupervizoru:
                 hat = None
                 self._hatlar.pop(kid, None)
             if hat is None:
-                hat = KameraHatti(kid, int(kamera["sample_fps"]))
+                hat = KameraHatti(
+                    kid,
+                    int(kamera["sample_fps"]),
+                    iyilestir=self.ayarlar.goruntu_iyilestirme == "otomatik",
+                )
                 self._hatlar[kid] = hat
             hat.yapilandir(
                 self._bolgeleri_yukle(baglanti, kid),

@@ -281,3 +281,32 @@ legend { font-size: 0.88rem; color: var(--metin-3); padding: 0 6px; }
   padding: 8px 0; border-bottom: 1px solid var(--cizgi-soluk);
 }
 .anons-satiri .satir-form { margin: 0; }
+
+/* renk anahtarı */
+.renk-anahtari {
+  display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center;
+  margin: 10px 0 4px; font-size: 0.84rem; color: var(--metin-2);
+}
+.anahtar-baslik { font-weight: 650; color: var(--metin-3); }
+.anahtar-oge { display: inline-flex; align-items: center; gap: 6px; }
+.anahtar-simge { width: 20px; height: 20px; flex: none; }
+.anahtar-kutu {
+  width: 15px; height: 15px; border-radius: 4px; flex: none;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+.anahtar-kutu.cizgi { background: transparent; border: 2px solid; }
+.renk-anahtari .not { font-size: 0.78rem; }
+
+/* görüntü kalitesi uyarısı */
+.kalite-uyarisi {
+  margin: 8px 0; padding: 9px 13px; border-radius: var(--radius-kucuk);
+  background: rgba(254, 243, 199, 0.85); border: 1px solid rgba(252, 211, 77, 0.9);
+  color: #92400e; font-size: 0.85rem;
+}
+
+/* hazır kural kutusu */
+.hazir-kural {
+  margin-top: 14px; padding: 12px 14px; border-radius: var(--radius-kucuk);
+  background: rgba(219, 234, 254, 0.6); border: 1px solid rgba(147, 197, 253, 0.8);
+}
+.hazir-kural h4 { margin: 0 0 4px; }

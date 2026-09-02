@@ -156,5 +156,6 @@ ruff check . && ruff format .
 | **`09-BASITLESTIRME-KARARLARI.md`** | **Çelişki varsa BU dosya geçerlidir** |
 | `10-YAPAY-ZEKA-ILE-CALISMA.md` | Kullanıcının çalışma yöntemi |
 | `11-BILGISAYAR-UYGULAMASI.md` | Kontrol Paneli kullanımı |
+| `12-KAMERA-VE-GORUNTU-KALITESI.md` | Kamera yerleşimi, görüntü kalitesi, hassasiyet ayarı, sınıf renkleri, yaya yolu kuralı |
 
 Bir karar bu dosyalarda yoksa **uydurma — sor.**

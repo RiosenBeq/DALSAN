@@ -146,3 +146,33 @@ hoparlörün 3 kez bağırması sorundur.
 5. Frontend'e parametre formu
 
 Başka hiçbir dosyaya dokunulmaz. Bu şablon bozuluyorsa mimari sınır ihlal ediliyor demektir.
+
+---
+
+## Ek — Yaya yolu (yürüyüş yolu) kuralı
+
+Fabrikadaki çizili yürüyüş yolu, `zone_intrusion` kuralının **`mode=outside`**
+biçimiyle karşılanır: yaya yolu bölgesinin **dışında** kalan kişi ihlal üretir.
+Ayrı bir kural tipi eklenmedi — mevcut tip bu davranışı zaten kapsıyor
+(CLAUDE.md §3: en az parça).
+
+Arayüzde tek tıkla kurulur (kamera sayfası → "… için yaya yolu kuralı ekle").
+Kurduğu değerler:
+
+| Alan | Değer | Neden |
+|---|---|---|
+| `rule_type` | `zone_intrusion` | mevcut tip yeter |
+| `zone_type` | `pedestrian_path` | başka tipte bölgeye kurulamaz |
+| `target_classes` | `["person"]` | yol kuralı yalnızca insan içindir |
+| `mode` | `outside` | yolu KULLANMAYAN kişi ihlaldir |
+| `min_dwell_s` | 5,0 | yolun kenarına bir adım atan kişi uyarı üretmemeli |
+| `cooldown_s` | 180 | aynı kişi için üç dakikada bir uyarı yeter |
+| `announcement_id` | `pedestrian_path` | "Lütfen yaya yolunu kullanınız." |
+
+**Karar noktası** diğer bölge kurallarıyla aynıdır: kutunun **alt-orta noktası**
+(zemin teması). Bölge, üzerine basılan zemin alanı olarak çizilmelidir.
+
+**Bilinen sınır:** kural, karede görünen HER kişiyi değerlendirir. Kameranın
+görüş alanına yol dışında kalan çalışma istasyonları da giriyorsa, o alanlar
+sürekli ihlal üretir. Böyle bir sahnede yolu değil, **yasak alanı** çizip
+`mode=inside` kullanmak daha doğrudur.

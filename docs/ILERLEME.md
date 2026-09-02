@@ -1,5 +1,35 @@
 # İlerleme
 
+## Sınıf görselleri, yaya yolu kuralı ve görüntü kalitesi (02.09.2026)
+
+- **Sınıf görselleri ve renk anahtarı:** İnsan yeşil, forklift turuncu, tır/araç
+  mavi, ihlal kırmızı (kalın), bölge mor. Kişi kutusunda **baret (B)** ve
+  **reflektörlü yelek (Y)** rozetleri; yelek sahadaki gibi **sarı**. Üç durum
+  gösterilir: dolu = var, kırmızı çarpı = yok, gri soru işareti = belirsiz.
+  Kamera sayfasına simgeli **renk anahtarı** eklendi; renkler koddaki tabloyla
+  birebir aynı (test bunu koruyor). Etiketler koyu dış hatla yazılıyor: açık
+  zeminde (beton) kaybolmuyor.
+- **Yaya yolu kuralı:** Bölgeyi "Yaya yolu" tipiyle çizip tek düğmeye basmak
+  yetiyor. Kural, yolun **dışında** 5 saniyeden uzun kalan kişiyi uyarıyor ve
+  "Lütfen yaya yolunu kullanınız." anonsuna bağlanıyor. Yolun kenarına bir adım
+  atan kişi uyarı üretmiyor. Gerçek görüntüyle doğrulandı: yolun üstündeki
+  kişiler uyarı üretmedi, yolun dışındaki üç kişi tam 5 saniyede uyarı üretti.
+- **Görüntü kalitesi:** Sistem kareyi ölçüyor ve kamera sayfasında Türkçe uyarı
+  veriyor — çok karanlık / aşırı parlak / bulanık / düşük kontrast, her biri için
+  ne yapılacağıyla birlikte. `.env` → `GORUNTU_IYILESTIRME=otomatik` yerel
+  kontrast dengeleme (CLAHE) uyguluyor; yalnız parlaklık kanalında çalıştığı için
+  reflektörlü yeleğin sarısını bozmuyor. Tespit ve önizleme aynı kareyi
+  kullanıyor: ekranda modelin gördüğü görüntü var.
+- **Windows konsol kodlaması:** Türkçe karakter içeren bir log satırı Windows'un
+  cp1254 konsolunda `UnicodeEncodeError` verip log sistemini çökertebiliyordu;
+  akışlar UTF-8'e alındı, ayar hatası mesajı da güvenli yazılıyor.
+- **Yeni doküman:** `docs/12-KAMERA-VE-GORUNTU-KALITESI.md` — kamera yerleşimi,
+  sistemin tanıdığı nesneler ve renkleri, kalite sorunları ve çözümleri,
+  hassasiyet ayarının sırası, forklift hakkında dürüst not, yaya yolu kurulumu.
+  `docs/03` yaya yolu bölümüyle, README ve CLAUDE.md haritası güncellendi.
+
+155 test yeşil (14 yeni), ruff temiz.
+
 ## Tanıma / sayma / uyarı turu + derin hata taraması (02.09.2026)
 
 **Tespit isabeti (kullanıcı önceliği):**

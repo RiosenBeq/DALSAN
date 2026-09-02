@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Form, Request
 from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import HTMLResponse, RedirectResponse
 
@@ -184,6 +184,64 @@ def _kural_kaydet_islemi(baglanti, form):
         )
     baglanti.commit()
     return RedirectResponse("/kurallar", status_code=303)
+
+
+# Yaya yolu kuralının varsayılanları (docs/03 §1). Kısa süreli sapmalar ihlal
+# sayılmasın diye kalış süresi bilerek uzun: yolun kenarına bir adım atan kişi
+# değil, yolu KULLANMAYAN kişi uyarı üretmeli.
+YAYA_YOLU_VARSAYILANLARI = {"mode": "outside", "min_dwell_s": 5.0}
+YAYA_YOLU_COOLDOWN_SN = 180
+
+
+@router.post("/kurallar/yaya-yolu")
+def yaya_yolu_kurali(
+    zone_id: int = Form(...),
+    baglanti=Depends(baglanti_al),
+):
+    """Tek tıkla 'yaya yolunu kullanmayan kişi' kuralı.
+
+    Fabrikada çizili yürüyüş yolu vardır ve insanların oradan yürümesi beklenir.
+    Bu kural, yaya yolu bölgesinin DIŞINDA belirli süreden uzun kalan kişiyi
+    uyarır. Elle kurmak için Kurallar sayfasında 'Bölge DIŞINDA olmak ihlal'
+    seçeneği de vardır; bu düğme aynı kuralı doğru varsayılanlarla kurar.
+    """
+    bolge = baglanti.execute(
+        "SELECT id, camera_id, zone_type, name FROM zones WHERE id = ?", (zone_id,)
+    ).fetchone()
+    if bolge is None:
+        raise DogrulamaHatasi("Bölge bulunamadı.")
+    if bolge["zone_type"] != "pedestrian_path":
+        raise DogrulamaHatasi(
+            "Yaya yolu kuralı yalnızca 'Yaya yolu' tipindeki bir bölgeye kurulabilir. "
+            "Kamera sayfasında bölgeyi bu tiple çizin."
+        )
+    mevcut = baglanti.execute(
+        "SELECT 1 FROM rules WHERE zone_id = ? AND rule_type = 'zone_intrusion'", (zone_id,)
+    ).fetchone()
+    if mevcut is not None:
+        raise DogrulamaHatasi(
+            f"'{bolge['name']}' bölgesinde zaten bir kural var. Kurallar sayfasından düzenleyin."
+        )
+
+    anons = baglanti.execute(
+        "SELECT id FROM announcement_messages WHERE key = 'pedestrian_path'"
+    ).fetchone()
+    baglanti.execute(
+        "INSERT INTO rules (camera_id, rule_type, zone_id, target_classes, params, "
+        "cooldown_s, announcement_id, enabled, updated_at) VALUES (?,?,?,?,?,?,?,1,?)",
+        (
+            bolge["camera_id"],
+            "zone_intrusion",
+            zone_id,
+            json.dumps(["person"]),
+            json.dumps(params_dogrula("zone_intrusion", dict(YAYA_YOLU_VARSAYILANLARI))),
+            YAYA_YOLU_COOLDOWN_SN,
+            anons["id"] if anons else None,
+            zaman.simdi_utc(),
+        ),
+    )
+    baglanti.commit()
+    return RedirectResponse(f"/kameralar/{bolge['camera_id']}", status_code=303)
 
 
 @router.post("/kurallar/{kural_id}/sil")

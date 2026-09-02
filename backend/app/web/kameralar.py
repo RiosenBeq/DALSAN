@@ -113,6 +113,10 @@ def kamera_detay(istek: Request, kamera_id: int, baglanti=Depends(baglanti_al)):
         bolge = dict(satir)
         bolge["tip_adi"] = BOLGE_TIPLERI.get(bolge["zone_type"], bolge["zone_type"])
         bolge["noktalar"] = json.loads(bolge["polygon"])
+        bolge["kurali_var"] = (
+            baglanti.execute("SELECT 1 FROM rules WHERE zone_id = ?", (bolge["id"],)).fetchone()
+            is not None
+        )
         bolgeler.append(bolge)
 
     kurallar = []
