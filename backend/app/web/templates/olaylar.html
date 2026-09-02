@@ -62,11 +62,29 @@
     </table>
     <p class="not">Son 200 olay gösteriliyor. Daha fazlası için filtre daraltın veya CSV indirin.</p>
     {% else %}
+    {# İki ayrı boş durum: filtre yüzünden mi boş, yoksa sistem hiç olay mı
+       yazmadı? İkisine verilecek cevap farklıdır. #}
+    {# `filtre` boş seçimler için de anahtar taşır ("tip=" gibi); dolu olup
+       olmadığına DEĞERLERE bakılarak karar verilir. #}
+    {% if filtre.values() | select | list %}
     <p class="bos">Bu filtreyle olay bulunamadı.</p>
+    <p class="not">Filtreyi genişletmeyi deneyin: kamera, alan, tip ve durum
+      kutularını "Tüm…" seçeneğine alın, tarih aralığını kaldırın.</p>
+    <p class="satir-form"><a class="dugme ikincil" href="/olaylar">Filtreyi temizle</a></p>
+    {% else %}
+    <p class="bos">Henüz hiç olay kaydedilmedi.</p>
+    <p class="not">Olay, kurduğunuz bir kural çiğnendiğinde yazılır. Liste boşsa ya
+      henüz ihlal olmamıştır ya da kural kurulmamıştır — Kurallar sayfasından hangi
+      kuralların açık olduğunu görebilirsiniz.</p>
+    <p class="satir-form">
+      <a class="dugme ikincil" href="/kurallar">Kuralları aç</a>
+      <a class="dugme ikincil" href="/komuta/kilavuz#uyari">Uyarı gelince ne yapılır?</a>
+    </p>
+    {% endif %}
     {% endif %}
   </section>
 {% endblock %}
 {% block betikler %}
-<script src="/static/uyari.js?v=11"></script>
-<script src="/static/canli.js?v=11"></script>
+<script src="/static/uyari.js?v=16"></script>
+<script src="/static/canli.js?v=16"></script>
 {% endblock %}

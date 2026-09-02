@@ -25,6 +25,11 @@ ANONS_ACIKLAMALARI = {
     "http": "IP hoparlör / anons sunucusu — ihlalde adrese HTTP isteği gönderilir.",
 }
 
+# "Anonsu Dene" hangi ekrandan basıldıysa oraya döner. Ham yol DEĞİL anahtar
+# alınır: dışarıdan verilen bir adrese yönlendirme (açık yönlendirme açığı)
+# mümkün olmasın (olaylar_web.py'deki DONUS_YOLLARI ile aynı desen).
+DONUS_YOLLARI = {"anons": "/anons?sonuc=denendi", "komuta": "/komuta/anons?sonuc=denendi"}
+
 
 @router.get("/anons", response_class=HTMLResponse)
 def anons_sayfasi(istek: Request, sonuc: str = "", baglanti=Depends(baglanti_al)):
@@ -97,8 +102,12 @@ def mesaj_kaydet(
 
 
 @router.post("/anons/{mesaj_id}/dene")
-def mesaj_dene(istek: Request, mesaj_id: int, baglanti=Depends(baglanti_al)):
+def mesaj_dene(
+    istek: Request, mesaj_id: int, donus: str = Form("anons"), baglanti=Depends(baglanti_al)
+):
     """Anonsu HEMEN çalar (cooldown uygulanmaz) — saha kurulumunu denemek için."""
+    if donus not in DONUS_YOLLARI:
+        raise DogrulamaHatasi(f"Bilinmeyen dönüş ekranı: {donus}")
     satir = baglanti.execute(
         "SELECT * FROM announcement_messages WHERE id = ?", (mesaj_id,)
     ).fetchone()
@@ -110,4 +119,4 @@ def mesaj_dene(istek: Request, mesaj_id: int, baglanti=Depends(baglanti_al)):
             "Analiz çalışmıyor; anons denenemez. Kontrol Paneli'nden sistemi başlatın."
         )
     supervizor._anons.hemen_cal(dict(satir))
-    return RedirectResponse("/anons?sonuc=denendi", status_code=303)
+    return RedirectResponse(DONUS_YOLLARI[donus], status_code=303)

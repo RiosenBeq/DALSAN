@@ -19,6 +19,7 @@
         <td>
           {% if not r.enabled %}<span class="rozet gri">kapalı</span>
           {% elif r.kalibrasyon_bekliyor %}<span class="rozet sari">kalibrasyon bekleniyor</span>
+          {% elif r.shadow_mode %}<span class="rozet sari">gölge mod</span>
           {% else %}<span class="rozet yesil">aktif</span>{% endif %}
         </td>
         <td>
@@ -33,10 +34,23 @@
     </table>
     <p class="not">"Kalibrasyon bekleniyor": güvenli mesafe kuralı, kamerası kalibre edilene
       kadar bilerek pasif kalır — yaklaşık piksel mesafesi yanıltıcı olur.</p>
+    <p class="not">"Gölge mod": kural çalışır ve olay yazar, ama hoparlör susar ve
+      ekranda uyarı bandı çıkmaz. Yeni kuralı denemenin güvenli yoludur;
+      <a href="/komuta/uyari">Uyarı zinciri</a> ekranından tek tıkla açıp
+      kapatabilirsiniz.</p>
   </section>
   {% else %}
+  {# Boş liste ÖĞRETİR: kural yoksa sistem görüntüyü izler ama HİÇ uyarı
+     üretmez — bu, sessizce yanlış anlaşılan tek durumdur. #}
   <section class="kart">
-    <p class="bos">Henüz kural yok. Önce kamera ekleyip bölge çizin, sonra kural tanımlayın.</p>
+    <p class="bos">Henüz kural yok — sistem görüntüyü izliyor ama hiçbir uyarı üretmiyor.</p>
+    <p>Sıra şudur: <b>kamera ekle → kamera sayfasında bölge çiz → o bölgeye kural
+      bağla</b>. Bölgeyi çizdikten sonra kamera sayfasında beliren
+      <b>"Hazır kurallar"</b> düğmesi, bölge tipine uyan kuralı tek tıkla kurar.</p>
+    <p class="satir-form">
+      <a class="dugme" href="/kameralar">Kameralara git</a>
+      <a class="dugme ikincil" href="/komuta/kilavuz#kural">Kural kurma kılavuzu</a>
+    </p>
   </section>
   {% endif %}
 {% endblock %}

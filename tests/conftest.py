@@ -38,6 +38,7 @@ def test_ayarlari(tmp_path: Path):
         disk_uyari_gb=5,
         cikarim_cihazi="cpu",
         kare_ornekleme_fps=6,
+        fps_uyari_orani=0.6,
         tespit_guven_esigi=0.35,
         tespit_insan_guven_esigi=0.28,
         tespit_nms_esigi=0.45,

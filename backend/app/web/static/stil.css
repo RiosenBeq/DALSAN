@@ -95,6 +95,13 @@
   --golge-ust: 0 6px 24px rgba(20, 22, 28, 0.08);
   --golge-buyuk: 0 18px 50px rgba(20, 22, 28, 0.18);
   --bulanik: blur(26px) saturate(1.7);
+
+  /* --- komuta kabuğu (komuta.css) ---
+     Komuta ekranları daha büyük cam panellerden kurulur: bulanıklık daha
+     derin, köşeler daha yumuşaktır. Renk EKLENMEDİ — yalnızca biçim. */
+  --bulanik-guclu: blur(40px) saturate(1.8);
+  --radius-orta: 16px;
+  --radius-buyuk: 24px;
 }
 
 /* Buzlu cam desteklemeyen tarayıcı (fabrika bilgisayarında eski sürüm olabilir):
@@ -119,6 +126,14 @@
 }
 
 * { box-sizing: border-box; }
+
+/* `hidden` HER ZAMAN gizlesin.
+   Tarayıcının kendi kuralı [hidden]{display:none} en düşük öncelikliktir;
+   bizim ".kilavuz-serit { display: grid }" gibi bir kuralımız onu sessizce
+   ezer ve "gizlenen" öğe ekranda durmaya devam eder. Tarayıcıda görülüp
+   düzeltilen gerçek bir hataydı: "Gizle"ye basınca şerit kaybolmuyor,
+   yalnızca altına ikinci bir düğme ekleniyordu. */
+[hidden] { display: none !important; }
 
 body {
   margin: 0;
@@ -548,4 +563,38 @@ table.liste tr.pasif td { color: var(--metin-3); }
   /* Telefonda kılavuz balonu üç satıra çıkıyor ve görüntünün yarısını
      kapatıyordu — görüntünün üstünde değil, altında dursun. */
   .cizim-balonu { position: static; margin-top: 8px; box-shadow: var(--golge-ince); }
+}
+
+/* ------------------------------------------------------------------ ipucu balonu
+   Karmaşık bir alanın yanındaki küçük "?" işareti ve tek cümlelik açıklaması.
+   İKİ kabuk da bu dosyayı yüklediği için burada durur (komuta.css'te değil):
+   ipuçları hem komuta ekranlarında hem kurulum sayfalarında kullanılır. */
+.ipucu-sarmal { position: relative; display: inline-block; vertical-align: baseline; }
+.ipucu-dugme {
+  width: 17px; height: 17px; padding: 0; margin-left: 5px;
+  border-radius: 999px; border: 1px solid var(--cizgi);
+  background: var(--cam-orta); color: var(--metin-2);
+  font: inherit; font-size: 11px; font-weight: 700; line-height: 15px;
+  text-align: center; cursor: pointer;
+}
+.ipucu-dugme:hover { background: var(--cam-parlak); color: var(--metin); }
+.ipucu-dugme:focus-visible { outline: 2px solid var(--vurgu); outline-offset: 2px; }
+.ipucu-dugme[aria-expanded="true"] {
+  background: var(--vurgu); color: var(--dolu-metin); border-color: transparent;
+}
+.ipucu-balon {
+  position: absolute; z-index: 60; left: 0; top: calc(100% + 7px);
+  display: block; width: max-content; max-width: 34ch;
+  padding: 9px 12px; border-radius: var(--radius-kucuk);
+  background: var(--cam-yogun); border: 1px solid var(--cam-sinir);
+  box-shadow: var(--golge-ust);
+  color: var(--metin); font-size: 0.82rem; font-weight: 400; line-height: 1.45;
+  white-space: normal; text-align: left;
+}
+@supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .ipucu-balon { backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); }
+}
+/* Telefonda 34ch'lik balon ekrandan taşıyordu; sağ kenara yaslanır. */
+@media (max-width: 620px) {
+  .ipucu-balon { max-width: min(34ch, 74vw); }
 }

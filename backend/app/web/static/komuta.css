@@ -1,0 +1,1032 @@
+/* NextGen Detector — DALSAN İSG · KOMUTA KABUĞU
+   ------------------------------------------------------------------
+   "DALSAN Komuta" tasarımının satır içi style'ları burada SINIF SİSTEMİNE
+   çevrildi. Bu dosya stil.css'in ÜSTÜNE yüklenir; stil.css'i değiştirmez,
+   yalnızca komuta ekranlarında geçerli olan sınıfları ekler.
+
+   RENK KURALI (stil.css ile aynı): burada elle yazılmış renk YOKTUR.
+   Her renk stil.css :root'undaki anlamsal değişkenden gelir. Tasarımdaki
+   soluk griler (#8a90a0) yerine --metin-3 kullanılır: aynı anlam, ama
+   cam panel üzerinde WCAG AA karşıtlığını geçen ton.
+
+   ROZET: yeşil/sarı/gri/kırmızı rozet stil.css'te ZATEN var (.rozet.yesil …).
+   Burada ikinci bir rozet tanımlanmaz; komuta ekranları o sınıfı kullanır.
+
+   ESKİ TARAYICI: buzlu cam desteklenmiyorsa cam yüzeyler opak zemine döner
+   (dosyanın sonundaki @supports bloğu). */
+
+/* ---------------------------------------------------------- kabuk iskeleti */
+.komuta-kabuk {
+  min-height: 100vh;
+  display: flex;
+  align-items: stretch;
+}
+.komuta-sutun {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* -------------------------------------------------------------- sol raf */
+.komuta-raf {
+  position: sticky;
+  top: 0;
+  align-self: flex-start;
+  height: 100vh;
+  width: 84px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 18px 0;
+  overflow-y: auto;
+  background: var(--cam);
+  -webkit-backdrop-filter: var(--bulanik-guclu);
+  backdrop-filter: var(--bulanik-guclu);
+  border-right: 1px solid var(--cam-sinir);
+}
+.raf-marka {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  margin-bottom: 10px;
+  flex: none;
+  background: var(--cam-yogun);
+  border: 1px solid var(--cam-sinir);
+  box-shadow: var(--cam-ic-isik), var(--golge-ince);
+}
+.raf-marka img {
+  width: 26px;
+  height: 26px;
+  display: block;
+  filter: drop-shadow(0 1px 3px var(--vurgu-golge));
+}
+.raf-marka:focus-visible { outline: 2px solid var(--vurgu); outline-offset: 3px; }
+
+.raf-dugme {
+  width: 64px;
+  flex: none;
+  display: grid;
+  justify-items: center;
+  gap: 5px;
+  padding: 9px 0;
+  border-radius: 14px;
+  color: var(--metin-2);
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s;
+}
+.raf-dugme svg { display: block; }
+.raf-dugme span {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  text-align: center;
+  line-height: 1.2;
+}
+.raf-dugme:hover { background: var(--cam-parlak); color: var(--metin); }
+.raf-dugme:focus-visible { outline: 2px solid var(--vurgu); outline-offset: 2px; }
+.raf-dugme.aktif {
+  background: var(--vurgu);
+  color: var(--dolu-metin);
+  box-shadow: var(--ic-isik-koyu), 0 2px 10px var(--vurgu-golge);
+}
+
+/* Rafın ikinci grubu ("Ayarlar"): kurulum sayfaları eski kabukta yaşar,
+   ama rafta görünmezse kullanıcı bölge çizimine ULAŞAMAZ. */
+.raf-grup-basligi {
+  margin: 14px 0 0;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--metin-3);
+  flex: none;
+}
+.raf-ayirac {
+  width: 44px;
+  height: 1px;
+  flex: none;
+  margin-top: 14px;
+  background: var(--cizgi-soluk);
+}
+.raf-dip { margin-top: auto; padding-top: 14px; display: grid; justify-items: center; gap: 6px; }
+
+/* ------------------------------------------------------------ üst başlık */
+.komuta-baslik {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+  padding: 16px 34px;
+  background: var(--cam-orta);
+  -webkit-backdrop-filter: var(--bulanik-guclu);
+  backdrop-filter: var(--bulanik-guclu);
+  border-bottom: 1px solid var(--cam-sinir);
+  box-shadow: none;
+}
+.komuta-baslik-yazi { display: grid; gap: 2px; min-width: 0; }
+.komuta-ekran-adi { font-size: 17px; font-weight: 680; letter-spacing: -0.025em; }
+.komuta-ekran-alt { font-size: 11.5px; color: var(--metin-3); letter-spacing: -0.01em; }
+.komuta-baslik-sag {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.komuta-saat {
+  font-size: 12px;
+  color: var(--metin-3);
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* durum hapı: başlıktaki "canlı kamera" göstergesi */
+.komuta-hap {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 13px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 620;
+  letter-spacing: -0.01em;
+  background: var(--cam-orta);
+  border: 1px solid var(--cam-sinir);
+  color: var(--metin-2);
+}
+.komuta-hap.yesil {
+  background: var(--basari-zemin);
+  border-color: var(--basari-cizgi);
+  color: var(--basari-metin);
+}
+.komuta-hap.sari {
+  background: var(--uyari-zemin);
+  border-color: var(--uyari-cizgi);
+  color: var(--uyari-metin);
+}
+.komuta-hap.kirmizi {
+  background: var(--tehlike-zemin);
+  border-color: var(--tehlike-cizgi);
+  color: var(--tehlike-metin);
+}
+
+/* ---------------------------------------------------------- durum noktası */
+.durum-noktasi {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex: none;
+  background: var(--metin-3);
+}
+.durum-noktasi.yesil { background: var(--basari); }
+.durum-noktasi.sari { background: var(--uyari); }
+.durum-noktasi.kirmizi { background: var(--tehlike); }
+.durum-noktasi.nabiz { animation: nabiz 2s ease-in-out infinite; }
+@keyframes nabiz { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+@media (prefers-reduced-motion: reduce) {
+  .durum-noktasi.nabiz { animation: none; }
+}
+
+/* ---------------------------------------------------------------- içerik */
+.komuta-icerik {
+  max-width: 1560px;
+  margin: 0;
+  padding: 30px 34px 56px;
+  display: grid;
+  /* minmax(0, 1fr) ŞART: grid'in varsayılan "auto" sütunu min-content'in
+     altına inemez. 24 saatlik histogramın min-content genişliği ~385 px;
+     "auto" bırakılsaydı telefon genişliğinde bütün sütun o ölçüye şişer ve
+     SAYFAYI yana kaydırırdı (ölçüldü: 375 px ekranda 26 px taşma). */
+  grid-template-columns: minmax(0, 1fr);
+  gap: 22px;
+  align-content: start;
+}
+
+/* --------------------------------------------------------- panel ve kart */
+.komuta-panel {
+  background: var(--cam-orta);
+  -webkit-backdrop-filter: var(--bulanik-guclu);
+  backdrop-filter: var(--bulanik-guclu);
+  border: 1px solid var(--cam-sinir);
+  border-radius: var(--radius-buyuk);
+  padding: 24px;
+  box-shadow: var(--cam-ic-isik), var(--golge);
+  display: grid;
+  gap: 18px;
+  align-content: start;
+}
+/* Boş kabuk aşamasında panel hiç içerik almayabilir: yassı bir çizgiye
+   dönüşmesin, kart yüksekliğini korusun. */
+.komuta-panel:empty { min-height: 120px; }
+
+.panel-basligi { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+.panel-basligi h2 { margin: 0; font-size: 15px; font-weight: 680; letter-spacing: -0.02em; }
+.panel-basligi .panel-notu { margin-left: 0; }
+.panel-notu { margin: 0; font-size: 11.5px; color: var(--metin-3); letter-spacing: -0.01em; }
+.panel-sag { margin-left: auto; font-size: 12px; font-weight: 620; }
+
+/* koyu panel (canlı duvar) — cam değil, mat koyu yüzey */
+.komuta-panel.koyu {
+  background: var(--koyu);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  border-color: var(--koyu-sinir);
+  box-shadow: var(--golge-buyuk);
+  color: var(--koyu-metin);
+}
+.komuta-panel.koyu h2 { color: var(--koyu-metin); }
+.komuta-panel.koyu .panel-notu { color: var(--koyu-metin-soluk); }
+
+/* iç kutu: panelin içindeki ikincil yüzey */
+.komuta-kutu {
+  background: var(--cam-hafif);
+  border: 1px solid var(--cam-sinir);
+  border-radius: var(--radius-orta);
+  padding: 15px 16px;
+  display: grid;
+  gap: 4px;
+}
+
+/* --------------------------------------------------------- sayı kartları */
+.komuta-sayilar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 18px;
+}
+.sayi-karti {
+  background: var(--cam-orta);
+  -webkit-backdrop-filter: var(--bulanik-guclu);
+  backdrop-filter: var(--bulanik-guclu);
+  border: 1px solid var(--cam-sinir);
+  border-radius: var(--radius-buyuk);
+  padding: 22px 24px;
+  box-shadow: var(--cam-ic-isik), var(--golge);
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+.sayi-etiketi { font-size: 12px; font-weight: 600; color: var(--metin-3); letter-spacing: -0.01em; }
+.sayi-degeri {
+  font-size: 46px;
+  font-weight: 640;
+  letter-spacing: -0.045em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.sayi-degeri.orta { font-size: 34px; }
+.sayi-degeri.dikkat { color: var(--uyari-metin); }
+.sayi-degeri.tehlike { color: var(--tehlike-metin); }
+.sayi-birimi { font-size: 20px; font-weight: 600; color: var(--metin-3); letter-spacing: -0.02em; }
+.sayi-alt { font-size: 12px; color: var(--metin-3); }
+
+/* ------------------------------------------------------ bar ve histogram */
+.komuta-bar-satiri {
+  display: grid;
+  grid-template-columns: 118px 1fr 54px;
+  align-items: center;
+  gap: 16px;
+}
+.komuta-bar-ad { font-size: 13px; font-weight: 600; letter-spacing: -0.01em; }
+.komuta-bar { height: 8px; border-radius: 999px; background: var(--oyuk); overflow: hidden; }
+.komuta-bar > span { display: block; height: 100%; border-radius: 999px; background: var(--vurgu); }
+.komuta-bar > span.yogun { background: var(--tehlike); }
+.komuta-bar > span.orta { background: var(--uyari); }
+.komuta-bar-deger {
+  font-size: 13px;
+  font-weight: 620;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Sütunun ORTA satırı çubuğun alanıdır ve 1fr'dir; kapsayıcının yüksekliği
+   (168px) belli olduğu için çubuğun yüzdelik yüksekliği buna göre çözülür.
+   Satır "auto" bırakılsaydı yüzde, içeriği olmayan bir kutuya göre hesaplanır
+   ve BÜTÜN ÇUBUKLAR GÖRÜNMEZ olurdu. */
+/* Histogram, 24 saat etiketi yüzünden dardan aşağı inemez. Sayfayı yana
+   kaydırmak yerine KENDİ İÇİNDE kaysın — geniş ekranda hiç görünmez. */
+.komuta-histogram {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  height: 168px;
+  overflow-x: auto;
+}
+.histogram-sutun {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 8px;
+  justify-items: center;
+}
+.histogram-sayi {
+  font-size: 11px;
+  font-weight: 640;
+  color: var(--metin-3);
+  font-variant-numeric: tabular-nums;
+  min-height: 13px;
+}
+.histogram-sayi.yogun { color: var(--tehlike-metin); }
+.histogram-cubuk {
+  width: 100%;
+  align-self: end;
+  border-radius: 8px 8px 4px 4px;
+  background: var(--vurgu);
+}
+.histogram-cubuk.yogun { background: var(--tehlike); }
+.histogram-cubuk.orta { background: var(--uyari); }
+.histogram-etiket { font-size: 10px; color: var(--metin-3); font-variant-numeric: tabular-nums; }
+
+/* --------------------------------------------------------- tablo satırı */
+.komuta-tablo { display: grid; gap: 4px; }
+.komuta-tablo-basligi,
+.komuta-tablo-satiri { display: grid; gap: 14px; align-items: center; }
+.komuta-tablo-basligi { padding: 0 8px 12px; border-bottom: 1px solid var(--cizgi); }
+.komuta-tablo-basligi span {
+  font-size: 10.5px;
+  font-weight: 640;
+  color: var(--metin-3);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.komuta-tablo-satiri {
+  padding: 12px 8px;
+  border-bottom: 1px solid var(--cizgi-soluk);
+  font-size: 12.5px;
+  color: var(--metin-2);
+}
+.komuta-tablo-satiri .satir-adi {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--metin);
+  letter-spacing: -0.015em;
+}
+.komuta-tablo-satiri .sayisal { font-variant-numeric: tabular-nums; }
+
+/* ------------------------------------------------------------ boş durum */
+/* Veri yoksa sayı UYDURULMAZ: kullanıcıya ne yapacağı söylenir. */
+.komuta-bos { display: grid; gap: 10px; justify-items: start; padding: 8px 2px; }
+.komuta-bos h3 { margin: 0; font-size: 15px; font-weight: 680; letter-spacing: -0.02em; }
+.komuta-bos p { margin: 0; max-width: 60ch; font-size: 13px; color: var(--metin-2); }
+
+/* --------------------------------------------- eski tarayıcı (cam yoksa) */
+/* stil.css'teki aynı yedek cam DEĞİŞKENLERİNİ opak yapar; burada komuta
+   yüzeylerinde bulanıklık da kapatılır, yoksa yarı saydam panel arka planla
+   karışıp okunmaz kalırdı. */
+@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .komuta-raf,
+  .komuta-baslik,
+  .komuta-panel,
+  .sayi-karti {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background: var(--cam-yogun);
+  }
+  .komuta-panel.koyu { background: var(--koyu); }
+}
+
+/* ------------------------------------------------- iki sütunlu yerleşim */
+/* Tasarımda 1.62fr / 1fr: solda geniş çubuk listesi, sağda dar canlı akış. */
+.komuta-ikili {
+  display: grid;
+  grid-template-columns: 1.62fr 1fr;
+  gap: 22px;
+  align-items: start;
+}
+
+.komuta-bar-listesi { display: grid; gap: 14px; }
+
+/* ------------------------------------------------------------ canlı akış */
+/* Satırın SOLUNDAKİ renk şeridi olayın durumunu söyler; tasarımdaki
+   kırmızı/sarı/nötr üçlüsünün karşılığı. Anlamı web/komuta.py'de. */
+.akis-listesi { display: grid; gap: 8px; }
+.akis-satiri {
+  display: grid;
+  gap: 5px;
+  padding: 13px 15px;
+  border-radius: var(--radius-orta);
+  border: 1px solid var(--cam-sinir);
+  border-left: 3px solid var(--metin-3);
+  background: var(--cam-hafif);
+  color: inherit;
+  text-decoration: none;
+}
+.akis-satiri:hover { background: var(--cam-parlak); }
+.akis-satiri:focus-visible { outline: 2px solid var(--vurgu); outline-offset: 2px; }
+.akis-satiri.kirmizi {
+  background: var(--tehlike-zemin);
+  border-color: var(--tehlike-cizgi);
+  border-left-color: var(--tehlike);
+}
+.akis-satiri.sari {
+  background: var(--uyari-zemin);
+  border-color: var(--uyari-cizgi);
+  border-left-color: var(--uyari);
+}
+.akis-ust { display: flex; align-items: center; gap: 8px; }
+.akis-baslik { font-size: 13px; font-weight: 640; letter-spacing: -0.015em; }
+.akis-saat {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--metin-3);
+  font-variant-numeric: tabular-nums;
+  /* Dar kuyruk sütununda "yanlış alarm" iki satıra bölünüp satırı
+     yamultmasın; yer daralırsa BAŞLIK kırılsın. */
+  white-space: nowrap;
+}
+.akis-yer { font-size: 11.5px; color: var(--metin-2); letter-spacing: -0.01em; }
+
+/* -------------------------------------------------- öne çıkan kameralar */
+/* Kart sayısı kamera sayısına göre değişir (en çok 4). Sütun genişliği üstten
+   sınırlanır: 2 kamera varken kutular ekranı kaplayacak kadar büyümesin. */
+.kamera-kartlari {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 260px));
+  gap: 16px;
+}
+.kamera-karti { display: grid; gap: 9px; color: inherit; text-decoration: none; }
+.kamera-karti:focus-visible { outline: 2px solid var(--vurgu); outline-offset: 3px; }
+.kamera-goruntu {
+  position: relative;
+  display: block;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-orta);
+  overflow: hidden;
+  background: var(--koyu);
+  border: 1px solid var(--cam-sinir-ince);
+}
+.kamera-goruntu .canli-onizleme {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  border: 0;
+  border-radius: 0;
+  object-fit: cover;
+}
+.kamera-rozet {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--koyu-cam);
+  color: var(--koyu-metin);
+  font-size: 10.5px;
+  font-weight: 620;
+}
+.kamera-alt { display: flex; align-items: baseline; gap: 8px; }
+.kamera-ad { font-size: 13px; font-weight: 620; letter-spacing: -0.015em; }
+.kamera-sayi {
+  margin-left: auto;
+  font-size: 11.5px;
+  color: var(--metin-3);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------------------ canlı duvar */
+/* Sütun sayısı şablondan --duvar-sutun ile gelir: kamera SAYISINA uyar,
+   boş kutu eklenmez (bkz. web/komuta.py → duvar_sutun_sayisi). */
+.duvar-izgara {
+  display: grid;
+  grid-template-columns: repeat(var(--duvar-sutun, 3), minmax(0, 1fr));
+  gap: 10px;
+}
+.duvar-kutu {
+  position: relative;
+  display: block;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-orta);
+  overflow: hidden;
+  background: var(--koyu);
+  border: 1px solid var(--koyu-sinir);
+}
+.duvar-kutu:focus-visible { outline: 2px solid var(--vurgu); outline-offset: 2px; }
+/* İhlalli kamera: kalın kırmızı çerçeve — tasarımdaki rgba(220,0,0,0.85). */
+.duvar-kutu.ihlalli {
+  border-color: var(--tehlike);
+  box-shadow: 0 0 0 1px var(--tehlike), 0 0 18px var(--tehlike-golge);
+}
+.duvar-kutu .canli-onizleme {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  border: 0;
+  border-radius: 0;
+  object-fit: cover;
+}
+.duvar-ad {
+  position: absolute;
+  left: 8px;
+  bottom: 6px;
+  right: 20px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--koyu-metin);
+  letter-spacing: -0.01em;
+  text-shadow: 0 1px 3px var(--koyu);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.duvar-kutu .durum-noktasi { position: absolute; right: 7px; top: 7px; }
+.duvar-rozet {
+  position: absolute;
+  left: 7px;
+  top: 7px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--tehlike);
+  color: var(--dolu-metin);
+  font-size: 10px;
+  font-weight: 640;
+}
+/* Koyu panelde bekleme yazısı okunur kalsın. */
+.duvar-kutu .onizleme-yazi { font-size: 10.5px; }
+
+/* ------------------------------------------------------- olay inceleme */
+/* Tasarımda 320px / 1fr: solda kuyruk, sağda seçili olayın kanıtı. */
+.inceleme-duzen {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: 22px;
+  align-items: start;
+}
+
+/* Kuyruk satırı canlı akış satırıyla AYNI bileşendir (.akis-satiri); burada
+   yalnızca "hangisine bakıyorum" işareti eklenir. İki ayrı satır bileşeni
+   kursaydık aynı olay iki ekranda farklı görünürdü. */
+.akis-satiri.secili {
+  outline: 2px solid var(--vurgu);
+  outline-offset: 1px;
+  background: var(--cam-parlak);
+}
+
+.inceleme-ust { display: flex; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+.inceleme-baslik { display: grid; gap: 5px; min-width: 0; }
+.inceleme-baslik h2 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 660;
+  letter-spacing: -0.03em;
+}
+/* Rozetler sağa yaslanır; gölge moddaki olayda iki rozet yan yana durur. */
+.inceleme-rozetler {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* kanıt fotoğrafı: koyu kutu, görüntü KIRPILMADAN sığar — kanıt kırpılamaz */
+.kanit-kutu {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  border-radius: 18px;
+  overflow: hidden;
+  background: var(--koyu);
+  border: 1px solid var(--cam-sinir-ince);
+  display: grid;
+  place-items: center;
+}
+.kanit-kutu img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.kanit-yazi {
+  padding: 0 24px;
+  max-width: 46ch;
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--koyu-metin-soluk);
+}
+
+/* ölçüm kutuları: kaç tane çıkacağı olayın kural tipine göre değişir */
+.inceleme-kutular {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+.kutu-degeri { font-size: 19px; font-weight: 640; letter-spacing: -0.03em; }
+
+.inceleme-islem { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.inceleme-islem input { flex: 1; min-width: 200px; }
+
+.inceleme-gezinme { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+
+/* ------------------------------------------------------ kamera sağlığı */
+/* Tasarımda üç eşit kutu; sayı kartı bileşeni aynen kullanılır. */
+.komuta-sayilar.uclu { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+/* Altı sütun dar ekrana sığmaz: tablo KENDİ İÇİNDE yana kayar, sayfa değil. */
+.tablo-kaydirma { overflow-x: auto; }
+.saglik-tablo { min-width: 700px; }
+.saglik-tablo .komuta-tablo-basligi,
+.saglik-tablo .komuta-tablo-satiri {
+  grid-template-columns: 1.4fr 1fr 0.8fr 0.9fr 1fr 1.2fr;
+}
+.saglik-tablo .satir-adi a { color: inherit; text-decoration: none; }
+.saglik-tablo .satir-adi a:hover { text-decoration: underline; }
+/* Ölçülen hız ayarlanandan belirgin düşük: eşik .env'den gelir (FPS_UYARI_ORANI) */
+.fps-dusuk { color: var(--uyari-metin); font-weight: 640; }
+
+/* ------------------------------------------------------------ dar ekran */
+/* Fabrika sunucusunun ekranı geniştir, ama sistem dizüstünden de açılıyor:
+   84px'lik dikey raf yatay şeride döner, içerik tam genişliği kullanır. */
+@media (max-width: 900px) {
+  .komuta-kabuk { flex-direction: column; }
+  .komuta-raf {
+    position: static;
+    height: auto;
+    width: 100%;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 4px;
+    padding: 10px 8px;
+    border-right: 0;
+    border-bottom: 1px solid var(--cam-sinir);
+  }
+  .raf-marka { margin-bottom: 0; }
+  .raf-grup-basligi, .raf-ayirac { display: none; }
+  .raf-dip { margin-top: 0; padding-top: 0; }
+  .komuta-baslik { padding: 14px 16px; }
+  .komuta-icerik { padding: 20px 16px 40px; }
+  .komuta-bar-satiri { grid-template-columns: 96px 1fr 44px; gap: 10px; }
+  /* Dar ekranda iki sütun alt alta iner; duvar ızgarası sabit sütun sayısını
+     bırakıp sığdığı kadar kutu dizer. */
+  .komuta-ikili { grid-template-columns: 1fr; }
+  .duvar-izgara { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+  .komuta-histogram { gap: 3px; height: 140px; }
+  .histogram-etiket { font-size: 8.5px; }
+  /* İnceleme: kuyruk üstte, seçili olay altta. Üç eşit sayı kutusu da
+     dar ekranda alt alta iner. */
+  .inceleme-duzen { grid-template-columns: 1fr; }
+  .komuta-sayilar.uclu { grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+}
+
+/* --------------------------------------------------- uyarı zinciri ekranı */
+/* Tasarımda 1fr / 330px: solda zincir ve tırmandırma, sağda dar bir panel.
+   Sağdaki panel tasarımda sahte bir telefon bildirimi gösteriyordu; burada
+   gerçekten çalışan tek güvenli deneme yolunu (gölge mod) anlatıyor. */
+.uyari-duzen {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 330px;
+  gap: 22px;
+  align-items: start;
+}
+.uyari-sol { display: grid; gap: 22px; align-content: start; }
+.uyari-yan { gap: 12px; }
+
+/* Zincir satırı: kural → anons → bildirim → durum.
+   Tasarımdaki 1.1fr 1.3fr 1fr auto ölçüsü korundu. */
+.zincir-listesi { display: grid; gap: 8px; }
+.zincir-basligi,
+.zincir-satiri {
+  display: grid;
+  grid-template-columns: 1.1fr 1.3fr 0.8fr auto;
+  gap: 16px;
+  align-items: center;
+}
+.zincir-basligi { padding: 0 16px 10px; border-bottom: 1px solid var(--cizgi); }
+.zincir-basligi span {
+  font-size: 10.5px;
+  font-weight: 640;
+  color: var(--metin-3);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.zincir-satiri {
+  padding: 15px 16px;
+  border-radius: var(--radius-orta);
+  background: var(--cam-hafif);
+  border: 1px solid var(--cam-sinir);
+  font-size: 12.5px;
+  color: var(--metin-2);
+}
+/* Gölge moddaki satır sarı: "çalışıyor ama hoparlör susuyor". Kapalı satır
+   soluk: göz önce çalışanlara gitsin. */
+.zincir-satiri.golge { background: var(--uyari-zemin); border-color: var(--uyari-cizgi); }
+.zincir-satiri.kapali { opacity: 0.62; }
+.zincir-hucre { display: grid; gap: 3px; min-width: 0; }
+.zincir-hucre.soluk { color: var(--metin-3); }
+.zincir-hucre.sag { justify-items: end; gap: 8px; }
+.zincir-uyari { font-size: 11.5px; color: var(--uyari-metin); font-weight: 600; }
+
+/* Tırmandırma: kurulu olan adım normal, kurulmayanlar soluk ve kesik çizgili
+   — "burada bir şey var ama çalışmıyor" ekranda görünsün. */
+.tirmandirma { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.tirmandirma .komuta-kutu { gap: 6px; }
+.komuta-kutu.bos-adim {
+  background: transparent;
+  border-style: dashed;
+  border-color: var(--cizgi);
+}
+.komuta-kutu.bos-adim .satir-adi,
+.komuta-kutu.bos-adim .panel-notu { color: var(--metin-3); }
+.komuta-kutu .satir-adi { font-size: 13px; font-weight: 620; letter-spacing: -0.015em; }
+
+/* ------------------------------------------------------- anons ekranı */
+/* Kayıt/silme sonrası tek satırlık geri bildirim. */
+.komuta-sonuc {
+  margin: 0;
+  padding: 11px 16px;
+  border-radius: var(--radius-orta);
+  background: var(--bilgi-zemin);
+  border: 1px solid var(--bilgi-cizgi);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--metin);
+}
+
+/* Sayı kartında SAYI değil METİN varsa ("IP hoparlör", "30 sn"): 46px'lik
+   rakam ölçüsü kutuyu taşırır, tasarımdaki 22px'e döner. */
+.sayi-degeri.yazi { font-size: 22px; font-weight: 640; letter-spacing: -0.03em; }
+
+.mesaj-listesi { display: grid; gap: 8px; }
+.mesaj-basligi,
+.mesaj-satiri {
+  display: grid;
+  grid-template-columns: 1.5fr 1.1fr 60px auto auto;
+  gap: 16px;
+  align-items: center;
+}
+.mesaj-basligi { padding: 0 16px 10px; border-bottom: 1px solid var(--cizgi); }
+.mesaj-basligi span {
+  font-size: 10.5px;
+  font-weight: 640;
+  color: var(--metin-3);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.mesaj-satiri {
+  padding: 14px 16px;
+  border-radius: var(--radius-orta);
+  background: var(--cam-hafif);
+  border: 1px solid var(--cam-sinir);
+  font-size: 12.5px;
+  color: var(--metin-2);
+}
+.mesaj-satiri .sayisal { font-variant-numeric: tabular-nums; font-weight: 620; }
+
+/* Hoparlör bölgeleri: satır + <details> içinde düzenleme formu.
+   Form <details> içinde olduğu için JavaScript gerekmez. */
+.hoparlor-listesi { display: grid; gap: 8px; }
+.hoparlor-satiri {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  gap: 14px;
+  align-items: center;
+  padding: 13px 15px;
+  border-radius: var(--radius-orta);
+  background: var(--cam-hafif);
+  border: 1px solid var(--cam-sinir);
+  font-size: 12.5px;
+  color: var(--metin-2);
+}
+.hoparlor-satiri .sayisal { font-variant-numeric: tabular-nums; }
+.hoparlor-duzenle,
+.hoparlor-ekle { grid-column: 1 / -1; }
+.hoparlor-duzenle summary,
+.hoparlor-ekle summary {
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 620;
+  color: var(--vurgu-metin);
+  letter-spacing: -0.01em;
+}
+.hoparlor-duzenle summary:focus-visible,
+.hoparlor-ekle summary:focus-visible { outline: 2px solid var(--vurgu); outline-offset: 2px; }
+.hoparlor-formu { display: grid; gap: 10px; margin: 12px 0 6px; }
+.hoparlor-formu label { display: grid; gap: 4px; font-size: 12px; font-weight: 600; }
+.hoparlor-formu label.yatay {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+.hoparlor-formu .dugme-satiri { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* ------------------------------------------------------------ dar ekran */
+@media (max-width: 900px) {
+  /* Sağdaki dar panel alta iner; zincir ve mesaj satırları tek sütuna düşer
+     ki 12px'lik yazı dört sütuna sıkışıp okunmaz olmasın. */
+  .uyari-duzen { grid-template-columns: 1fr; }
+  .zincir-basligi, .mesaj-basligi { display: none; }
+  .zincir-satiri,
+  .mesaj-satiri { grid-template-columns: 1fr; gap: 8px; }
+  .zincir-hucre.sag { justify-items: start; }
+  .tirmandirma { grid-template-columns: 1fr; }
+  .hoparlor-satiri { grid-template-columns: 1fr; }
+}
+
+/* ==================================================================
+   KILAVUZ: açıklama şeridi, ilk kurulum listesi, kılavuz sayfası
+   ==================================================================
+   Renk yok — hepsi stil.css :root'undaki anlamsal değişkenlerden gelir. */
+
+/* ------------------------------------------------ ekran açıklama şeridi */
+.kilavuz-serit {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 13px;
+  align-items: start;
+  padding: 14px 18px;
+  border-radius: var(--radius-orta);
+  background: var(--bilgi-zemin);
+  border: 1px solid var(--bilgi-cizgi);
+}
+.serit-ikon { color: var(--vurgu-metin); display: block; padding-top: 1px; }
+.serit-ikon svg { display: block; }
+.serit-yazi {
+  display: grid;
+  gap: 4px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--metin-2);
+  letter-spacing: -0.01em;
+}
+.serit-yazi b { color: var(--metin); font-weight: 660; }
+.serit-islem { display: flex; align-items: center; gap: 12px; white-space: nowrap; }
+.serit-islem a { font-size: 12px; font-weight: 620; }
+.serit-kapat {
+  padding: 5px 11px;
+  border-radius: 999px;
+  border: 1px solid var(--cam-sinir);
+  background: var(--cam-orta);
+  color: var(--metin-2);
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 620;
+  cursor: pointer;
+}
+.serit-kapat:hover { background: var(--cam-parlak); color: var(--metin); }
+.serit-kapat:focus-visible { outline: 2px solid var(--vurgu); outline-offset: 2px; }
+
+/* Şerit gizliyken yerinde kalan küçük düğme — açıklamaya geri dönüş yolu. */
+.kilavuz-acici {
+  justify-self: start;
+  padding: 6px 13px;
+  border-radius: 999px;
+  border: 1px dashed var(--bilgi-cizgi);
+  background: transparent;
+  color: var(--vurgu-metin);
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 620;
+  cursor: pointer;
+}
+.kilavuz-acici:hover { background: var(--bilgi-zemin); }
+.kilavuz-acici:focus-visible { outline: 2px solid var(--vurgu); outline-offset: 2px; }
+
+/* ------------------------------------------------ ilk kurulum listesi */
+.kurulum-listesi { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.kurulum-adimi {
+  display: grid;
+  grid-template-columns: 30px 1fr auto;
+  gap: 14px;
+  align-items: center;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: var(--cam-hafif);
+  border: 1px solid var(--cam-sinir-ince);
+}
+.kurulum-adimi.sira {
+  background: var(--bilgi-zemin);
+  border-color: var(--bilgi-cizgi);
+}
+.kurulum-adimi.sorun {
+  background: var(--tehlike-zemin);
+  border-color: var(--tehlike-cizgi);
+}
+/* Sırası gelmemiş adım SOLUK ama okunur kalır: kullanıcı yolun tamamını
+   görmeli, yalnızca hangisine şimdi basacağını karıştırmamalı. */
+.kurulum-adimi.beklemede { opacity: 0.62; }
+.adim-isaret {
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  font-size: 12.5px;
+  font-weight: 700;
+  background: var(--oyuk);
+  color: var(--metin-3);
+  font-variant-numeric: tabular-nums;
+}
+.kurulum-adimi.tamam .adim-isaret { background: var(--basari-zemin); color: var(--basari-metin); }
+.kurulum-adimi.sira .adim-isaret { background: var(--vurgu); color: var(--dolu-metin); }
+.kurulum-adimi.sorun .adim-isaret { background: var(--tehlike-zemin); color: var(--tehlike-metin); }
+.adim-govde { display: grid; gap: 3px; min-width: 0; }
+.adim-baslik { font-size: 13px; font-weight: 640; letter-spacing: -0.015em; }
+.adim-aciklama { font-size: 11.5px; color: var(--metin-2); line-height: 1.45; }
+.adim-etiket {
+  display: inline-block;
+  font-size: 10.5px;
+  font-weight: 620;
+  color: var(--metin-3);
+  border: 1px solid var(--cizgi);
+  border-radius: 999px;
+  padding: 1px 7px;
+  margin-left: 6px;
+  /* Telefonda "isteğe bağlı" iki satıra bölünüp rozet gibi görünmüyordu. */
+  white-space: nowrap;
+}
+.adim-sag { display: flex; align-items: center; gap: 10px; justify-content: flex-end; }
+
+/* Kurulum bitince liste tek satırlık bir rozete iner. */
+.hazir-rozet {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: var(--basari-zemin);
+  border: 1px solid var(--basari-cizgi);
+  font-size: 12.5px;
+  color: var(--metin-2);
+}
+/* Kurulum bitmemişken aynı rozet mavi zeminde 'bilgi' olarak görünür:
+   yeşil, tamamlanmamış bir kurulum için yanlış bir 'her şey yolunda' der. */
+.hazir-rozet.bilgi { background: var(--bilgi-zemin); border-color: var(--bilgi-cizgi); }
+.hazir-rozet b { color: var(--metin); }
+.hazir-rozet a { margin-left: auto; font-size: 12px; font-weight: 620; }
+
+/* ------------------------------------------------ kılavuz sayfası */
+.kilavuz-duzen { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 22px; }
+.kilavuz-icindekiler {
+  position: sticky;
+  top: 22px;
+  align-self: start;
+  display: grid;
+  gap: 4px;
+  padding: 18px;
+  border-radius: var(--radius-orta);
+}
+.kilavuz-icindekiler h2 {
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--metin-3);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.kilavuz-icindekiler a {
+  padding: 6px 9px;
+  border-radius: 9px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--metin-2);
+  text-decoration: none;
+}
+.kilavuz-icindekiler a:hover { background: var(--cam-parlak); color: var(--metin); }
+.kilavuz-bolumler { display: grid; gap: 18px; min-width: 0; }
+.kilavuz-bolum { scroll-margin-top: 18px; }
+.kilavuz-bolum p { margin: 0; font-size: 13px; line-height: 1.62; color: var(--metin-2); }
+.kilavuz-bolum p b { color: var(--metin); }
+/* Örnek RTSP adresi bölünemeyen tek bir kelimedir; telefonda sayfayı
+   yatay kaydırılır hale getiriyordu. Kırılmasına izin verilir. */
+.kilavuz-bolum code { overflow-wrap: anywhere; }
+.kilavuz-bolum ol,
+.kilavuz-bolum ul {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 7px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--metin-2);
+}
+.kilavuz-bolum li b { color: var(--metin); }
+.kilavuz-bolum .komuta-kutu { gap: 6px; }
+.kilavuz-sorun { display: grid; gap: 10px; }
+.kilavuz-sorun .satir-adi { font-size: 13px; font-weight: 640; letter-spacing: -0.015em; }
+.kilavuz-alinti {
+  margin: 0;
+  padding: 8px 12px;
+  border-left: 3px solid var(--uyari-cizgi);
+  background: var(--uyari-zemin);
+  border-radius: 0 var(--radius-kucuk) var(--radius-kucuk) 0;
+  font-size: 12px;
+  color: var(--uyari-metin);
+  line-height: 1.5;
+}
+.kilavuz-bag { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+
+/* ------------------------------------------------ dar ekran */
+@media (max-width: 900px) {
+  .kilavuz-serit { grid-template-columns: auto 1fr; }
+  .serit-islem { grid-column: 1 / -1; justify-content: flex-start; }
+  .kurulum-adimi { grid-template-columns: 26px 1fr; }
+  .adim-sag { grid-column: 2 / -1; justify-content: flex-start; }
+  /* minmax(0, 1fr): düz '1fr' izin verilen en küçük genişliği İÇERİĞE göre
+     alır ve uzun bir adres sütunu ekranın dışına taşırırdı. */
+  .kilavuz-duzen { grid-template-columns: minmax(0, 1fr); }
+  .kilavuz-icindekiler { position: static; }
+}

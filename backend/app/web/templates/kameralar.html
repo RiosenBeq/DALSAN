@@ -35,15 +35,21 @@
     {% endfor %}
   </section>
   {% else %}
+  {# Boş liste ÖĞRETİR: neden boş, ne yapmalı ve doğru sayfaya giden düğme.
+     "Kayıt yok" demek, sistemi ilk açan kişiyi burada bırakırdı. #}
   <section class="kart">
-    <p class="bos">Henüz kamera eklenmedi.</p>
+    <p class="bos">Henüz kamera eklenmedi — sistem izleyecek bir görüntü bulamıyor.</p>
     <p>Fabrika kamerası için RTSP adresi gerekir (örnek:
       <code>rtsp://kullanici:sifre@192.168.1.64:554/Streaming/Channels/102</code>).<br>
       Kamerasız denemek için kaynak tipi <b>Video dosyası</b> seçip bilgisayardaki
       bir .mp4 dosyasının tam yolunu yazabilirsiniz — sistem onu kamera gibi izler.</p>
+    <p class="satir-form">
+      <a class="dugme" href="/kameralar/yeni">+ İlk kamerayı ekle</a>
+      <a class="dugme ikincil" href="/komuta/kilavuz#kamera">Kamera ekleme kılavuzu</a>
+    </p>
   </section>
   {% endif %}
 {% endblock %}
 {% block betikler %}
-<script src="/static/onizleme.js?v=11"></script>
+<script src="/static/onizleme.js?v=16"></script>
 {% endblock %}

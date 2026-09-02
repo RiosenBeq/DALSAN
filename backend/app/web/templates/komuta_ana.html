@@ -1,0 +1,196 @@
+{# Komuta panosu — tasarımdaki dört bölüm, GERÇEK veritabanı verisiyle.
+
+   Tasarımın sayıları (34 ihlal, %94 KKD uyumu, 24 kamera) ÖRNEKTİ; hiçbiri
+   buraya taşınmadı. Veri yoksa sıfır dolu bir pano göstermek yerine ne
+   yapılacağını söyleyen bir boş durum çıkar. #}
+{% extends "komuta_temel.html" %}
+{% block icerik %}
+
+{# --- ilk kurulum kontrol listesi ------------------------------------
+   Sistemi ilk açan kişi "şimdi ne yapacağım?" sorusuna burada cevap bulur.
+   Listenin her satırı GERÇEK veritabanı durumundan üretilir; sahte ilerleme
+   yoktur. Kurulum bitince liste tek satırlık bir rozete iner ve panonun
+   yerini kaplamaz. #}
+{% if kurulum.hazir %}
+  <p class="hazir-rozet">
+    <span class="durum-noktasi yesil" aria-hidden="true"></span>
+    <span><b>Sistem hazır.</b> Kurulumun {{ kurulum.toplam }} adımı da tamamlandı;
+      kameralar izleniyor ve kurallar çalışıyor.</span>
+    <a href="/komuta/kilavuz">kullanım kılavuzu →</a>
+  </p>
+{% else %}
+  <section class="komuta-panel">
+    <div class="panel-basligi">
+      <h2>İlk kurulum</h2>
+      <span class="panel-notu">{{ kurulum.tamamlanan }} / {{ kurulum.toplam }} adım tamam</span>
+      <a class="panel-sag" href="/komuta/kilavuz">ayrıntılı kılavuz →</a>
+    </div>
+    <p class="panel-notu">Sistemin uyarı üretebilmesi için aşağıdaki adımların
+      tamamlanması gerekir. <b>Sıradaki adım</b> vurgulu görünür; sırası gelmemiş
+      adımlar soluk kalır — tek seferde tek işe bakmanız yeter.</p>
+    <ol class="kurulum-listesi">
+      {% for adim in kurulum.adimlar %}
+      <li class="kurulum-adimi {{ adim.durum }}">
+        <span class="adim-isaret" aria-hidden="true">{% if adim.durum == 'tamam' %}✓{% else %}{{ adim.no }}{% endif %}</span>
+        <span class="adim-govde">
+          <span class="adim-baslik">{{ adim.baslik }}{% if adim.istege_bagli %}<span class="adim-etiket">isteğe bağlı</span>{% endif %}</span>
+          <span class="adim-aciklama">{{ adim.aciklama }}</span>
+        </span>
+        <span class="adim-sag">
+          <span class="rozet {{ adim.rozet_rengi }}">{{ adim.rozet }}</span>
+          {% if adim.bag and adim.durum in ('sira', 'sorun') %}
+          <a class="dugme kucuk" href="{{ adim.bag }}">{{ adim.bag_yazi }}</a>
+          {% endif %}
+        </span>
+      </li>
+      {% endfor %}
+    </ol>
+  </section>
+{% endif %}
+
+{% if kamera_var %}
+
+  {# --- a) dört özet kutusu ------------------------------------------- #}
+  <div class="komuta-sayilar">
+    {% for kart in sayi_kartlari %}
+    <div class="sayi-karti">
+      <span class="sayi-etiketi">{{ kart.etiket }}</span>
+      <span class="sayi-degeri {{ kart.renk }}">{{ kart.deger }}</span>
+      {% if kart.alt %}<span class="sayi-alt">{{ kart.alt }}</span>{% endif %}
+      {% if kart.bag %}<a class="sayi-alt" href="{{ kart.bag }}">{{ kart.bag_yazi }}</a>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="komuta-ikili">
+
+    {# --- b) alanlara göre ihlal yoğunluğu ---------------------------- #}
+    <section class="komuta-panel">
+      <div class="panel-basligi">
+        <h2>Alanlara göre ihlal yoğunluğu</h2>
+        <span class="panel-notu">son {{ alan_penceresi }} gün · {{ alanlar|length }} bölüm</span>
+      </div>
+      {% if alanlar %}
+        <div class="komuta-bar-listesi">
+          {% for alan in alanlar %}
+          <div class="komuta-bar-satiri">
+            <span class="komuta-bar-ad">{{ alan.ad }}</span>
+            <span class="komuta-bar">
+              <span class="{{ alan.sinif }}" style="width: {{ alan.genislik }}"></span>
+            </span>
+            <span class="komuta-bar-deger">{{ alan.deger }}</span>
+          </div>
+          {% endfor %}
+        </div>
+        <p class="panel-notu">Çubuklar birbirine göre ölçeklenir: en uzun çubuk
+          o dönemin en yoğun bölümüdür.</p>
+      {% else %}
+        <div class="komuta-bos">
+          <h3>Son {{ alan_penceresi }} günde ihlal kaydedilmedi</h3>
+          <p>Bu iyi haber olabilir; kural kurulmamışsa sistem zaten ihlal
+            üretmiyor olabilir. Kurallar sayfasından hangi kuralların açık
+            olduğunu görebilirsiniz.</p>
+          <a class="dugme ikincil" href="/kurallar">Kuralları aç</a>
+        </div>
+      {% endif %}
+    </section>
+
+    {# --- c) canlı akış ----------------------------------------------- #}
+    <section class="komuta-panel">
+      <div class="panel-basligi">
+        <h2>Canlı akış</h2>
+        <span class="durum-noktasi yesil nabiz" aria-hidden="true"></span>
+        <a class="panel-sag" href="/olaylar">tüm olaylar →</a>
+      </div>
+      {% if akis %}
+        <div class="akis-listesi">
+          {% for olay in akis %}
+          <a class="akis-satiri {{ olay.renk }}" href="/olaylar/{{ olay.id }}">
+            <span class="akis-ust">
+              <span class="durum-noktasi {{ olay.renk }}" aria-hidden="true"></span>
+              <span class="akis-baslik">{{ olay.baslik }}</span>
+              <span class="akis-saat">{{ olay.saat }}</span>
+            </span>
+            <span class="akis-yer">{{ olay.yer }} · {{ olay.durum_kucuk }}</span>
+          </a>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="komuta-bos">
+          <h3>Henüz olay yok</h3>
+          <p>Sistem bir kural ihlali gördüğünde satır buraya düşer. Önce bir
+            kamerada bölge çizip kural kurmanız gerekir.</p>
+          <a class="dugme ikincil" href="/kameralar">Kameralara git</a>
+        </div>
+      {% endif %}
+    </section>
+
+  </div>
+
+  {# --- d) ihlallerin saate göre dağılımı ----------------------------- #}
+  <section class="komuta-panel">
+    <div class="panel-basligi">
+      <h2>İhlallerin saate göre dağılımı</h2>
+      <span class="panel-notu">bugün · {{ saat_toplami }} ihlal</span>
+      {% if saat_tepesi %}
+      <span class="komuta-hap kirmizi panel-sag">{{ saat_tepesi }}</span>
+      {% endif %}
+    </div>
+    {% if saat_toplami %}
+      {# 00-23 tam gün: eksik saatler boş sütun olarak görünür, böylece
+         "gece hiç ihlal yok" bilgisi de ekranda okunur. #}
+      <div class="komuta-histogram">
+        {% for s in saat_sutunlari %}
+        <div class="histogram-sutun">
+          <span class="histogram-sayi {{ s.sinif }}">{% if s.deger %}{{ s.deger }}{% endif %}</span>
+          <span class="histogram-cubuk {{ s.sinif }}" style="height: {{ s.yukseklik }}"></span>
+          <span class="histogram-etiket">{{ s.etiket }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="komuta-bos">
+        <h3>Bugün ihlal kaydedilmedi</h3>
+        <p>Gün içinde ihlal geldikçe saat sütunları burada dolar.</p>
+      </div>
+    {% endif %}
+  </section>
+
+  {# --- e) öne çıkan kameralar ---------------------------------------- #}
+  <section class="komuta-panel">
+    <div class="panel-basligi">
+      <h2>Öne çıkan kameralar</h2>
+      <span class="panel-notu">son {{ alan_penceresi }} günde en çok ihlal üreten noktalar</span>
+      <a class="panel-sag" href="/komuta/duvar">canlı duvara geç →</a>
+    </div>
+    {% if one_cikan %}
+      <div class="kamera-kartlari">
+        {% for kam in one_cikan %}
+        <a class="kamera-karti onizleme-kutu" href="/kameralar/{{ kam.id }}">
+          <span class="kamera-goruntu">
+            <img class="canli-onizleme" data-kamera="{{ kam.id }}"
+                 data-aralik="{{ tazeleme_ms }}" alt="">
+            <span class="onizleme-yazi">görüntü bekleniyor…</span>
+            <span class="kamera-rozet">{{ kam.rozet }}</span>
+          </span>
+          <span class="kamera-alt">
+            <span class="kamera-ad">{{ kam.ad }}</span>
+            <span class="kamera-sayi">{{ kam.ihlal }} ihlal</span>
+          </span>
+        </a>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="komuta-bos">
+        <h3>Son {{ alan_penceresi }} günde ihlal üreten kamera olmadı</h3>
+        <p>Tüm kameraları tek ekranda canlı görmek için duvara geçebilirsiniz.</p>
+        <a class="dugme ikincil" href="/komuta/duvar">Canlı duvarı aç</a>
+      </div>
+    {% endif %}
+  </section>
+
+{% endif %}
+{% endblock %}
+{% block betikler %}
+<script src="/static/onizleme.js?v=16"></script>
+{% endblock %}

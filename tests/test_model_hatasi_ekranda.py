@@ -104,9 +104,12 @@ def _hata_sayfalari(istemci) -> dict[str, str]:
     Ana sayfa "Tespit modeli" satırında mesajı basar; süpervizör aynı mesajı
     sistem olayı olarak da yazdığı için olay listesi ve olay ayrıntısı da
     kontrol edilir — sızıntı bu üç yerden herhangi birinde çıkabilir.
+
+    Komuta ekranı da listeye eklendi: ilk kurulum kontrol listesinin ilk satırı
+    aynı hata metnini gösteriyor, yani sızıntı için DÖRDÜNCÜ bir yol açıldı.
     """
     sayfalar = {}
-    for yol in ("/", "/olaylar"):
+    for yol in ("/", "/olaylar", "/komuta"):
         yanit = istemci.get(yol)
         assert yanit.status_code == 200, f"{yol} açılmadı: {yanit.status_code}"
         sayfalar[yol] = yanit.text

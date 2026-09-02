@@ -18,7 +18,7 @@ from fastapi.responses import (
 
 from app import veritabani, zaman
 from app.hatalar import DogrulamaHatasi
-from app.web.ortak import KURAL_TIPLERI, OLAY_DURUMLARI, baglanti_al
+from app.web.ortak import OLAY_DURUMLARI, OLAY_SORGUSU, baglanti_al, olay_hazirla
 from app.web.rotalar import sablonlar
 
 router = APIRouter()
@@ -65,46 +65,13 @@ def _tarih_siniri(tarih: str, gun_sonu: bool) -> str:
         raise DogrulamaHatasi(f"Tarih okunamadı: {hata}") from hata
 
 
-_OLAY_SORGUSU = (
-    "SELECT e.*, c.name AS kamera_adi, c.area AS kamera_alani "
-    "FROM events e LEFT JOIN cameras c ON c.id = e.camera_id"
-)
-
-
-def _olay_hazirla(satir) -> dict:
-    olay = dict(satir)
-    olay["yerel_zaman"] = zaman.ekranda_goster(olay["occurred_at"])
-    olay["durum_adi"] = OLAY_DURUMLARI.get(olay["status"], olay["status"])
-    try:
-        olay["detaylar"] = json.loads(olay["details"]) if olay["details"] else {}
-    except json.JSONDecodeError:
-        olay["detaylar"] = {"ham": olay["details"]}
-    try:
-        kural = json.loads(olay["rule_snapshot"]) if olay["rule_snapshot"] else {}
-    except json.JSONDecodeError:
-        kural = {}
-    olay["kural_tipi_adi"] = KURAL_TIPLERI.get(kural.get("rule_type", ""), "")
-    if olay["event_type"] == "system":
-        olay["ozet"] = olay["detaylar"].get("mesaj", "Sistem olayı")
-    else:
-        olay["ozet"] = olay["kural_tipi_adi"] or "İhlal"
-        if olay["detaylar"].get("eksik_kkd"):
-            eksik = {"helmet": "baret", "vest": "yelek"}
-            olay["ozet"] += (
-                " — " + ", ".join(eksik.get(k, k) for k in olay["detaylar"]["eksik_kkd"]) + " yok"
-            )
-        elif olay["detaylar"].get("mesafe_m") is not None:
-            olay["ozet"] += f" — {olay['detaylar']['mesafe_m']} m"
-    return olay
-
-
 @router.get("/olaylar", response_class=HTMLResponse)
 def olay_listesi(istek: Request, baglanti=Depends(baglanti_al)):
     kosul, degerler = _filtre_sorgusu(istek)
     satirlar = baglanti.execute(
-        f"{_OLAY_SORGUSU}{kosul} ORDER BY e.occurred_at DESC LIMIT 200", degerler
+        f"{OLAY_SORGUSU}{kosul} ORDER BY e.occurred_at DESC LIMIT 200", degerler
     ).fetchall()
-    olaylar = [_olay_hazirla(s) for s in satirlar]
+    olaylar = [olay_hazirla(s) for s in satirlar]
     kameralar = [dict(s) for s in baglanti.execute("SELECT id, name FROM cameras ORDER BY name")]
     alanlar = [
         s["area"]
@@ -142,10 +109,10 @@ async def olay_akisi(istek: Request):
                 if await istek.is_disconnected():
                     return
                 satirlar = baglanti.execute(
-                    f"{_OLAY_SORGUSU} WHERE e.id > ? ORDER BY e.id LIMIT 20", (son_id,)
+                    f"{OLAY_SORGUSU} WHERE e.id > ? ORDER BY e.id LIMIT 20", (son_id,)
                 ).fetchall()
                 for satir in satirlar:
-                    olay = _olay_hazirla(satir)
+                    olay = olay_hazirla(satir)
                     son_id = olay["id"]
                     veri = json.dumps(
                         {
@@ -155,6 +122,10 @@ async def olay_akisi(istek: Request):
                             "ozet": olay["ozet"],
                             "tip": olay["event_type"],
                             "kural": olay["kural_tipi_adi"],
+                            # Gölge moddaki kuralın olayı listeye düşer ama
+                            # ekranda uyarı bandı ÇIKMAZ (static/uyari.js):
+                            # gölge mod "sessizce dene" demektir.
+                            "golge": olay["golge_mod"],
                         },
                         ensure_ascii=False,
                     )
@@ -175,13 +146,13 @@ async def olay_akisi(istek: Request):
 def csv_disa_aktar(istek: Request, baglanti=Depends(baglanti_al)):
     kosul, degerler = _filtre_sorgusu(istek)
     satirlar = baglanti.execute(
-        f"{_OLAY_SORGUSU}{kosul} ORDER BY e.occurred_at DESC LIMIT 10000", degerler
+        f"{OLAY_SORGUSU}{kosul} ORDER BY e.occurred_at DESC LIMIT 10000", degerler
     ).fetchall()
     tampon = io.StringIO()
     yazici = csv.writer(tampon, delimiter=";")  # Türkçe Excel noktalı virgül bekler
     yazici.writerow(["Zaman", "Tip", "Kamera", "Alan", "Özet", "Durum", "Not"])
     for satir in satirlar:
-        olay = _olay_hazirla(satir)
+        olay = olay_hazirla(satir)
         yazici.writerow(
             [
                 olay["yerel_zaman"],
@@ -202,10 +173,10 @@ def csv_disa_aktar(istek: Request, baglanti=Depends(baglanti_al)):
 
 @router.get("/olaylar/{olay_id}", response_class=HTMLResponse)
 def olay_detay(istek: Request, olay_id: int, baglanti=Depends(baglanti_al)):
-    satir = baglanti.execute(f"{_OLAY_SORGUSU} WHERE e.id = ?", (olay_id,)).fetchone()
+    satir = baglanti.execute(f"{OLAY_SORGUSU} WHERE e.id = ?", (olay_id,)).fetchone()
     if satir is None:
         return RedirectResponse("/olaylar", status_code=303)
-    olay = _olay_hazirla(satir)
+    olay = olay_hazirla(satir)
     olay["detay_metni"] = json.dumps(olay["detaylar"], ensure_ascii=False, indent=2)
     return sablonlar.TemplateResponse(
         istek,
@@ -214,27 +185,62 @@ def olay_detay(istek: Request, olay_id: int, baglanti=Depends(baglanti_al)):
     )
 
 
+# İşaretlemeden sonra kullanıcının döneceği ekran. Formdan HAM YOL almak
+# yerine anahtar alınır: dışarıdan verilen bir adrese yönlendirme (açık
+# yönlendirme açığı) hiç mümkün olmasın. İnceleme ekranından işaretlenen olay
+# yine inceleme ekranında kalır — kuyruğun sırası kaybolmasın.
+DONUS_YOLLARI = {
+    "olay": "/olaylar/{id}",
+    "inceleme": "/komuta/inceleme?olay={id}",
+}
+
+
 @router.post("/olaylar/{olay_id}/durum")
 def olay_durumu(
     olay_id: int,
     durum: str = Form(...),
     not_metni: str = Form(""),
+    donus: str = Form("olay"),
     baglanti=Depends(baglanti_al),
 ):
-    """Yeni / İncelendi / Yanlış alarm — K11 precision ölçümünün veri kaynağı."""
+    """Yeni / İncelendi / Yanlış alarm — K11 precision ölçümünün veri kaynağı.
+
+    Olayı işaretleyen TEK yol burasıdır: olay detay sayfası da komuta inceleme
+    ekranı da bu uca yazar. İkinci bir yazma yolu açılsaydı iki ekran zamanla
+    farklı davranır (biri reviewed_at yazar, diğeri yazmaz) ve K11 ölçümü
+    güvenilmez olurdu.
+    """
     if durum not in OLAY_DURUMLARI:
         raise DogrulamaHatasi(f"Geçersiz olay durumu: {durum}")
+    if donus not in DONUS_YOLLARI:
+        raise DogrulamaHatasi(f"Bilinmeyen dönüş ekranı: {donus}")
+    # reviewed_at YALNIZCA gerçek bir inceleme kararında damgalanır. Sadece not
+    # eklendiğinde eski damga KORUNUR: bu alan K11 isabet ölçümünün ve "ihlal ne
+    # kadar sürede incelendi" sorusunun veri kaynağı. Günler sonra not yazmak,
+    # olayı bugün incelenmiş gibi göstermemeli.
+    # SQLite'ta UPDATE'in sağ tarafındaki sütunlar satırın ESKİ değerini verir;
+    # bu yüzden "status <> :durum" karşılaştırması önceki durumu görür.
     baglanti.execute(
-        "UPDATE events SET status = ?, note = ?, reviewed_at = ? WHERE id = ?",
-        (
-            durum,
-            not_metni.strip() or None,
-            zaman.simdi_utc() if durum != "new" else None,
-            olay_id,
-        ),
+        """
+        UPDATE events
+           SET note = :not_metni,
+               reviewed_at = CASE
+                   WHEN :durum = 'new' THEN NULL
+                   WHEN status <> :durum OR reviewed_at IS NULL THEN :simdi
+                   ELSE reviewed_at
+               END,
+               status = :durum
+         WHERE id = :olay_id
+        """,
+        {
+            "durum": durum,
+            "not_metni": not_metni.strip() or None,
+            "simdi": zaman.simdi_utc(),
+            "olay_id": olay_id,
+        },
     )
     baglanti.commit()
-    return RedirectResponse(f"/olaylar/{olay_id}", status_code=303)
+    return RedirectResponse(DONUS_YOLLARI[donus].format(id=olay_id), status_code=303)
 
 
 @router.get("/goruntuler/{yol:path}")

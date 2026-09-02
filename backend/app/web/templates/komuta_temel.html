@@ -1,0 +1,139 @@
+{# Komuta kabuğu: sol raf + üst başlık + içerik.
+   Altı komuta ekranı bu şablonu extends eder.
+
+   Eski kabuk (temel.html) DURUYOR: Kameralar / Kurallar / KKD / Kamera detay
+   sayfaları onu kullanmaya devam eder. Rafın "Ayarlar" grubu o sayfalara
+   köprüdür; eski kabuğun üst çubuğundan Komuta'ya dönülür.
+
+   İkonlar tasarımdaki satır içi SVG'lerin birebir kopyasıdır (kütüphane yok).
+   Ayarlar grubunun üç ikonu tasarımda yoktu; aynı ölçüde (21px, 1.6 kalınlık,
+   currentColor) çizildi. #}
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block baslik %}{{ ekran_basligi }} — DALSAN İSG{% endblock %}</title>
+  <link rel="icon" href="/static/logo.svg?v=16">
+  <link rel="stylesheet" href="/static/stil.css?v=16">
+  <link rel="stylesheet" href="/static/komuta.css?v=16">
+</head>
+<body>
+<div class="komuta-kabuk">
+
+  <aside class="komuta-raf">
+    <a class="raf-marka" href="/komuta" title="NextGen Detector — DALSAN İSG">
+      <img src="/static/logo.svg?v=16" alt="NextGen Detector" width="26" height="26">
+    </a>
+
+    <a class="raf-dugme {% if ekran == 'ana' %}aktif{% endif %}" href="/komuta">
+      <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M4 13h6v7H4zM14 4h6v16h-6zM4 4h6v5H4z"/></svg>
+      <span>Komuta</span>
+    </a>
+    <a class="raf-dugme {% if ekran == 'duvar' %}aktif{% endif %}" href="/komuta/duvar">
+      <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3" y="4" width="7.5" height="7" rx="1.5"/><rect x="13.5" y="4" width="7.5" height="7" rx="1.5"/><rect x="3" y="13" width="7.5" height="7" rx="1.5"/><rect x="13.5" y="13" width="7.5" height="7" rx="1.5"/></svg>
+      <span>Duvar</span>
+    </a>
+    <a class="raf-dugme {% if ekran == 'inceleme' %}aktif{% endif %}" href="/komuta/inceleme">
+      <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.4-4.4"/></svg>
+      <span>İnceleme</span>
+    </a>
+    <a class="raf-dugme {% if ekran == 'saglik' %}aktif{% endif %}" href="/komuta/saglik">
+      <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h4l2.5-5 3 10 2.5-5h6"/></svg>
+      <span>Sağlık</span>
+    </a>
+    <a class="raf-dugme {% if ekran == 'uyari' %}aktif{% endif %}" href="/komuta/uyari">
+      <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M6 10a6 6 0 1112 0c0 4 1.5 5.5 1.5 5.5h-15S6 14 6 10z"/><path d="M10 19a2.2 2.2 0 004 0"/></svg>
+      <span>Uyarı</span>
+    </a>
+    <a class="raf-dugme {% if ekran == 'anons' %}aktif{% endif %}" href="/komuta/anons">
+      <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10v4h3l5 4V6L7 10H4z"/><path d="M16.5 9.2a4 4 0 010 5.6M19 6.8a7.5 7.5 0 010 10.4"/></svg>
+      <span>Anons</span>
+    </a>
+
+    <span class="raf-ayirac" aria-hidden="true"></span>
+    <span class="raf-grup-basligi">Ayarlar</span>
+
+    <a class="raf-dugme" href="/kameralar">
+      <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="12" height="10" rx="2"/><path d="M15 11.2l5-3v7.6l-5-3z"/></svg>
+      <span>Kameralar</span>
+    </a>
+    <a class="raf-dugme" href="/kurallar">
+      <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 6h10M10 12h10M10 18h10"/><path d="M4 6l1.5 1.5L8.2 4.8"/><path d="M4 12l1.5 1.5L8.2 10.8"/><path d="M4 18l1.5 1.5L8.2 16.8"/></svg>
+      <span>Kurallar</span>
+    </a>
+    <a class="raf-dugme" href="/kkd">
+      <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 16a7.5 7.5 0 0115 0"/><path d="M9.6 8.9V5.6a1 1 0 011-1h2.8a1 1 0 011 1v3.3"/><rect x="2.8" y="16" width="18.4" height="3.2" rx="1.6"/></svg>
+      <span>KKD</span>
+    </a>
+
+    <span class="raf-dip">
+      {# Kılavuz rafın DİBİNDE ama Teşhis'in ÜSTÜNDE: sistemi ilk açan kişinin
+         gideceği yer burasıdır, teşhis ekranı ise arıza anında bakılan yerdir. #}
+      <a class="raf-dugme {% if ekran == 'kilavuz' %}aktif{% endif %}" href="/komuta/kilavuz">
+        <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5.5A1.5 1.5 0 015.5 4H10a2 2 0 012 2v13a1.6 1.6 0 00-1.6-1.4H5.5A1.5 1.5 0 014 16.1z"/><path d="M20 5.5A1.5 1.5 0 0018.5 4H14a2 2 0 00-2 2v13a1.6 1.6 0 011.6-1.4h4.9A1.5 1.5 0 0020 16.1z"/></svg>
+        <span>Kılavuz</span>
+      </a>
+      <a class="raf-dugme" href="/">
+        <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11.2L12 4l8 7.2"/><path d="M6 10.5V20h12v-9.5"/></svg>
+        <span>Teşhis</span>
+      </a>
+    </span>
+  </aside>
+
+  <div class="komuta-sutun">
+    <header class="komuta-baslik">
+      <span class="komuta-baslik-yazi">
+        <span class="komuta-ekran-adi">{{ ekran_basligi }}</span>
+        <span class="komuta-ekran-alt">{{ ekran_alt_basligi }}</span>
+      </span>
+      <span class="komuta-baslik-sag">
+        <span class="komuta-hap {{ kamera_hapi.renk }}">
+          {% if kamera_hapi.nabiz %}<span class="durum-noktasi yesil nabiz"></span>{% endif %}
+          {{ kamera_hapi.metin }}
+        </span>
+        <span class="komuta-saat">{{ sunucu_saati }}</span>
+      </span>
+    </header>
+
+    <main class="komuta-icerik">
+      {# --- kapatılabilir açıklama şeridi -------------------------------
+         "Bu ekran ne işe yarar" + "Ne yapmalısınız". Kapatma tercihi YALNIZCA
+         bu tarayıcıda saklanır (localStorage); sunucuya hiçbir şey yazılmaz ve
+         başka bir bilgisayarda açan kişi şeridi yine görür.
+
+         Şerit kapalıyken yerinde küçük bir "Bu ekran ne işe yarar?" düğmesi
+         kalır: gizlenen açıklamaya geri dönmenin yolu olmasaydı, bir kez
+         kapatan kullanıcı onu bir daha bulamazdı. #}
+      {% if ekran_aciklamasi %}
+      <section class="kilavuz-serit" data-serit="{{ ekran }}">
+        <span class="serit-ikon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="8.6"/><path d="M12 11.2v5"/><path d="M12 7.7v.5"/></svg>
+        </span>
+        <span class="serit-yazi">
+          <span><b>Bu ekran ne işe yarar:</b> {{ ekran_aciklamasi.ne }}</span>
+          <span><b>Ne yapmalısınız:</b> {{ ekran_aciklamasi.yap }}</span>
+        </span>
+        <span class="serit-islem">
+          <a href="/komuta/kilavuz">Kılavuz →</a>
+          <button type="button" class="serit-kapat" data-serit-kapat="{{ ekran }}">Gizle</button>
+        </span>
+      </section>
+      <button type="button" class="kilavuz-acici" data-serit-ac="{{ ekran }}" hidden>
+        Bu ekran ne işe yarar?
+      </button>
+      {% endif %}
+      {# Betik BURADA yüklenir (sayfanın sonunda değil): şerit öğesi çözümlenmiş
+         olduğu için, kapatılmış bir şerit ekranda bir an görünüp kaybolmaz. #}
+      <script src="/static/kilavuz.js?v=16"></script>
+
+      {% block icerik %}{% endblock %}
+    </main>
+  </div>
+
+</div>
+{# Silme onayı: eski kabukla AYNI dosya — iki ekranda farklı davranmasın. #}
+<script src="/static/onay.js?v=16"></script>
+{% block betikler %}{% endblock %}
+</body>
+</html>

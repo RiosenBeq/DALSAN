@@ -283,7 +283,11 @@ class AnalizSupervizoru:
             "(SELECT COALESCE(MAX(calibrated_at), '') FROM camera_calibrations) || '|' || "
             "(SELECT COALESCE(COUNT(*), 0) FROM cameras) || '|' || "
             "(SELECT COALESCE(COUNT(*), 0) FROM zones) || '|' || "
-            "(SELECT COALESCE(COUNT(*), 0) FROM rules) AS damga"
+            "(SELECT COALESCE(COUNT(*), 0) FROM rules) || '|' || "
+            # Hoparlör bölgesi eklenince/değişince anons hemen doğru adrese
+            # gitsin; kullanıcıdan sistemi yeniden başlatması istenmesin.
+            "(SELECT COALESCE(MAX(updated_at), '') FROM speaker_zones) || '|' || "
+            "(SELECT COALESCE(COUNT(*), 0) FROM speaker_zones) AS damga"
         ).fetchone()
         damga = damga_satiri["damga"]
         if damga == self._konfig_damgasi:
@@ -295,6 +299,9 @@ class AnalizSupervizoru:
             satir["id"]: dict(satir)
             for satir in baglanti.execute("SELECT * FROM announcement_messages")
         }
+        # Anons, ihlalin olduğu BÖLÜMÜN hoparlörüne gider (şema 002).
+        # Bölge tanımlanmamışsa liste boş kalır ve .env'deki tek adres kullanılır.
+        self._anons.bolgeleri_yukle(baglanti.execute("SELECT * FROM speaker_zones ORDER BY id"))
 
         aktif_idler = set()
         for kamera in kameralar:
@@ -466,9 +473,25 @@ class AnalizSupervizoru:
         self._log.info(
             f"İhlal kaydedildi (olay {olay_id}, kamera {ihlal.kamera_id}, kural {ihlal.kural_id})"
         )
+        # GÖLGE MOD (şema 002): kural çalışır ve olay yazılır, ama hoparlör
+        # susar. Yeni kurulan bir kuralın güvenli deneme yoludur (docs/04 §8.2:
+        # KKD 3 gün "aktif ama anonssuz" çalışır, precision ölçülür, sonra anons
+        # açılır). Kural motoruna DOKUNULMAZ: karar yine kural motorundan gelir,
+        # burada yalnızca duyurma adımı atlanır.
+        if kural_kaydi.get("shadow_mode"):
+            self._log.info(f"Kural {ihlal.kural_id} gölge modda — anons çalınmadı.")
+            return
         anons_id = kural_kaydi.get("announcement_id")
         if anons_id:
-            self._anons.duyur(ihlal.kamera_id, simdi, self._anons_mesajlari.get(anons_id))
+            # Kamera konfigürasyonu _atanmis_kameralar()'tan gelen dict'tir;
+            # bölüm adı anonsun HANGİ hoparlöre gideceğini belirler.
+            konfig = self._kamera_konfig.get(ihlal.kamera_id) or {}
+            self._anons.duyur(
+                ihlal.kamera_id,
+                konfig.get("area", ""),
+                simdi,
+                self._anons_mesajlari.get(anons_id),
+            )
 
     def _kural_kaydi(self, baglanti, kural_id: int) -> dict:
         satir = baglanti.execute("SELECT * FROM rules WHERE id = ?", (kural_id,)).fetchone()

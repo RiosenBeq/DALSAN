@@ -102,6 +102,10 @@ window.Uyari = (function () {
     // Yeni bir ihlal geldiğinde çağrılır (olay akışından)
     duyur: function (veri) {
       if (!veri || veri.tip !== "violation") return;
+      // GÖLGE MOD: kural çalıştı, olay listeye düştü, ama uyarı bandı ve ses
+      // ÇIKMAZ. Gölge mod "kuralı sessizce dene" demektir; bandı gösterirsek
+      // deneme aşamasındaki bir kural ekran başındaki kişiyi boşuna uyarır.
+      if (veri.golge) return;
       goster(veri);
       if (ayarOku(SES_ANAHTARI)) sesCal();
       if (ayarOku(KONUSMA_ANAHTARI)) {

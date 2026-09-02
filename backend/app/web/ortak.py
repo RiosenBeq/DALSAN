@@ -10,7 +10,7 @@ from dataclasses import dataclass
 
 from fastapi import Request
 
-from app import veritabani
+from app import veritabani, zaman
 from app.rules.parametreler import params_dogrula
 
 # Kullanıcıya görünen Türkçe adlar (kod içi değerler İngilizce kalır)
@@ -31,7 +31,90 @@ KURAL_TIPLERI = {
 
 OLAY_DURUMLARI = {"new": "Yeni", "reviewed": "İncelendi", "false_alarm": "Yanlış alarm"}
 
+# Cümle içinde küçük harfle geçen durum adı ("… · incelendi").
+# Jinja'nın |lower süzgeci BURADA KULLANILAMAZ: Python "İncelendi".lower()
+# çağrısında "i̇ncelendi" üretir (i + ayrı nokta), çünkü Türkçe büyük İ'nin
+# küçüğü noktasız bir i değildir. Ekranda gözle görülür bir bozukluk olur.
+OLAY_DURUMLARI_KUCUK = {"new": "yeni", "reviewed": "incelendi", "false_alarm": "yanlış alarm"}
+
 SINIFLAR = {"person": "İnsan", "forklift": "Forklift", "truck": "Tır/Araç"}
+
+# KKD parçalarının Türkçe adları. Olay özetinde ve inceleme ekranında AYNI
+# kelime görünsün diye tek yerde durur.
+KKD_ADLARI = {"helmet": "baret", "vest": "yelek"}
+
+# .env'deki ANONS ayarının başlıkta gösterilen KISA adı. Uzun açıklamalar
+# web/anons_web.py ANONS_ACIKLAMALARI'nda; burada yalnızca tek kelimelik ad.
+ANONS_KISA_ADLARI = {"null": "kapalı", "ses_karti": "ses kartı", "http": "IP hoparlör"}
+
+
+# ---------------------------------------------------------------- olay özeti
+#
+# Olay listesi, CSV, canlı akış (SSE) ve komuta ekranı AYNI cümleyi göstermeli.
+# Özet metni iki ayrı yerde üretilirse er ya da geç birbirinden ayrılır ve
+# kullanıcı aynı olayı iki farklı isimle görür; bu yüzden tek yerde durur.
+
+OLAY_SORGUSU = (
+    "SELECT e.*, c.name AS kamera_adi, c.area AS kamera_alani "
+    "FROM events e LEFT JOIN cameras c ON c.id = e.camera_id"
+)
+
+
+def sayi_metni(deger, birim: str = "", basamak: int = 1) -> str:
+    """Ölçülen değeri Türkçe yazımıyla gösterir: 1.85 → '1,85 m'.
+
+    Türkçede ondalık ayırıcı virgüldür; aynı sayı ekranın bir yerinde nokta,
+    başka yerinde virgülle görünürse kullanıcı iki farklı ölçüm sanır.
+    Değer yoksa BOŞ metin döner — çağıran taraf o kutuyu hiç çizmez; boş
+    kutuya "—" yazmak "ölçüldü ama sonuç çıkmadı" izlenimi verirdi.
+    """
+    if deger is None:
+        return ""
+    try:
+        metin = f"{float(deger):.{basamak}f}"
+    except (TypeError, ValueError):
+        return ""
+    if "." in metin:
+        metin = metin.rstrip("0").rstrip(".")
+    return f"{metin.replace('.', ',')} {birim}".strip()
+
+
+def olay_hazirla(satir) -> dict:
+    """Veritabanı satırını ekrana hazır olay sözlüğüne çevirir."""
+    olay = dict(satir)
+    olay["yerel_zaman"] = zaman.ekranda_goster(olay["occurred_at"])
+    olay["durum_adi"] = OLAY_DURUMLARI.get(olay["status"], olay["status"])
+    olay["durum_kucuk"] = OLAY_DURUMLARI_KUCUK.get(olay["status"], olay["status"])
+    try:
+        olay["detaylar"] = json.loads(olay["details"]) if olay["details"] else {}
+    except json.JSONDecodeError:
+        olay["detaylar"] = {"ham": olay["details"]}
+    try:
+        kural = json.loads(olay["rule_snapshot"]) if olay["rule_snapshot"] else {}
+    except json.JSONDecodeError:
+        kural = {}
+    # Kural anlık görüntüsü (olay anındaki eşikler) inceleme ekranında
+    # "ölçülen değer" ile "kural eşiği" yan yana gösterilirken kullanılır.
+    olay["kural_kaydi"] = kural
+    olay["kural_tipi_adi"] = KURAL_TIPLERI.get(kural.get("rule_type", ""), "")
+    # GÖLGE MOD (şema 002): kural çalışıp olay yazmış ama hoparlör susmuş ve
+    # ekranda uyarı bandı çıkmamıştır. Kuralın BUGÜNKÜ halinden değil olay
+    # anındaki anlık görüntüsünden okunur: kural sonradan canlıya alındıysa
+    # geçmiş olay "anons çaldı" diye görünmemeli.
+    olay["golge_mod"] = bool(kural.get("shadow_mode"))
+    if olay["event_type"] == "system":
+        olay["ozet"] = olay["detaylar"].get("mesaj", "Sistem olayı")
+    else:
+        olay["ozet"] = olay["kural_tipi_adi"] or "İhlal"
+        if olay["detaylar"].get("eksik_kkd"):
+            olay["ozet"] += (
+                " — "
+                + ", ".join(KKD_ADLARI.get(k, k) for k in olay["detaylar"]["eksik_kkd"])
+                + " yok"
+            )
+        elif olay["detaylar"].get("mesafe_m") is not None:
+            olay["ozet"] += f" — {sayi_metni(olay['detaylar']['mesafe_m'], 'm', 2)}"
+    return olay
 
 
 def baglanti_al(istek: Request) -> Iterator:
@@ -44,7 +127,13 @@ def baglanti_al(istek: Request) -> Iterator:
 
 
 def rtsp_maskele(url: str) -> str:
-    """rtsp://kullanici:sifre@ip/... → rtsp://••••@ip/...  (docs/01 §3.6)."""
+    """rtsp://kullanici:sifre@ip/... → rtsp://••••@ip/...  (docs/01 §3.6).
+
+    Kamera adresleri için yazıldı, ama şema/protokole bakmaz: hoparlör
+    bölgelerinin http adresleri de aynı desenle maskelenir. Adresin kendisi
+    (ip, port, yol) görünür kalır — kullanıcı hangi cihazı yazdığını görmeli;
+    gizlenen yalnızca kullanıcı adı ve şifredir.
+    """
     return re.sub(r"//[^/@]+@", "//••••@", url)
 
 

@@ -1,5 +1,7 @@
 """Ana sayfa (teşhis ekranı) testleri."""
 
+from tests.sema_bilgisi import SON_SEMA_SURUMU
+
 
 def test_ana_sayfa_200_donuyor(istemci):
     yanit = istemci.get("/")
@@ -10,7 +12,10 @@ def test_ana_sayfa_200_donuyor(istemci):
 def test_ana_sayfa_beklenen_bilgileri_gosteriyor(istemci):
     metin = istemci.get("/").text
     assert "Henüz kamera eklenmedi" in metin
-    assert "001_ilk.sql" in metin  # şema sürümü
+    # Şema sürümü EN SON uygulanan betiktir: yeni göç eklendikçe burası da
+    # ilerler. Ana sayfada görünmesi, kullanıcının "hangi sürümdeyim" sorusuna
+    # tek bakışta cevap vermesi içindir.
+    assert SON_SEMA_SURUMU in metin
     assert "Aktif ayarlar" in metin
     assert "Disk" in metin
 

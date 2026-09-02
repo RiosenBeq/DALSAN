@@ -17,7 +17,16 @@ from fastapi.staticfiles import StaticFiles
 from app import loglama, veritabani
 from app.ayarlar import Ayarlar
 from app.hatalar import VeritabaniHatasi, hata_yakalayicilari_kur
-from app.web import anons_web, kameralar, kkd_web, kurallar, olaylar_web, rotalar
+from app.web import (
+    anons_web,
+    hoparlorler,
+    kameralar,
+    kkd_web,
+    komuta,
+    kurallar,
+    olaylar_web,
+    rotalar,
+)
 
 STATIK_DIZINI = Path(__file__).resolve().parent / "web" / "static"
 
@@ -72,6 +81,12 @@ def uygulama_olustur(ayarlar: Ayarlar, analiz: bool = True) -> FastAPI:
     uygulama.include_router(olaylar_web.router)
     uygulama.include_router(kkd_web.router)
     uygulama.include_router(anons_web.router)
+    # Hoparlör bölgeleri (şema 002): anonsun hangi adrese gideceğini
+    # belirler; ekranı Anons sistemi sayfasındadır.
+    uygulama.include_router(hoparlorler.router)
+    # Komuta kabuğu (/komuta…): tasarımın altı ekranı. Ana sayfa ve
+    # kurulum sayfaları eski kabukta kalır; ikisi bağlantıyla geçer.
+    uygulama.include_router(komuta.router)
 
     uygulama.mount("/static", StaticFiles(directory=str(STATIK_DIZINI)), name="static")
     return uygulama

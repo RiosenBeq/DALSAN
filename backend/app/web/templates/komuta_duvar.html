@@ -1,0 +1,65 @@
+{# Canlı duvar — tüm kameralar tek ekranda.
+
+   Tasarım 24 kamerayı 6 sütuna diziyor; buradaki ızgara GERÇEK kamera
+   sayısına uyar (backend/app/web/komuta.py → duvar_sutun_sayisi) ve boş kutu
+   EKLEMEZ. Kutuya tıklayınca o kameranın sayfası açılır. #}
+{% extends "komuta_temel.html" %}
+{% block icerik %}
+
+{% if not kameralar %}
+  <section class="komuta-panel">
+    <div class="komuta-bos">
+      <h3>Duvara koyacak kamera yok</h3>
+      <p>Canlı duvar, eklenmiş kameraların görüntüsünü yan yana gösterir.
+        İlk kameranızı ekledikten sonra bu ekran kendiliğinden dolar.</p>
+      <a class="dugme" href="/kameralar/yeni">Kamera ekle</a>
+    </div>
+  </section>
+
+{% else %}
+  <section class="komuta-panel koyu">
+    <div class="panel-basligi">
+      <h2>Canlı duvar · {{ kameralar|length }} kamera</h2>
+      <span class="panel-notu">
+        {% if duvar_bolum %}{{ duvar_bolum }} bölüm · {% endif %}
+        {{ tazeleme_sn }} sn'de bir kare
+      </span>
+    </div>
+
+    <div class="duvar-izgara" style="--duvar-sutun: {{ duvar_sutun }}">
+      {% for kam in kameralar %}
+      <a class="duvar-kutu onizleme-kutu {% if kam.acik_ihlal %}ihlalli{% endif %}"
+         href="/kameralar/{{ kam.id }}"
+         title="{{ kam.ad }}{% if kam.alan %} · {{ kam.alan }}{% endif %} — {{ kam.durum }}">
+        {% if kam.canli %}
+        <img class="canli-onizleme" data-kamera="{{ kam.id }}"
+             data-aralik="{{ tazeleme_ms }}" alt="">
+        {% endif %}
+        {# Kare gelene kadar (ve hiç gelmeyecekse hep) ortada durumu yazar.
+           İlk kare gelince onizleme.js kutuya "dolu" sınıfı ekler, yazı kalkar. #}
+        <span class="onizleme-yazi">{{ kam.durum }}</span>
+        {% if kam.acik_ihlal %}
+        <span class="duvar-rozet">{{ kam.acik_ihlal }} açık ihlal</span>
+        {% endif %}
+        <span class="duvar-ad">{{ kam.ad }}</span>
+        <span class="durum-noktasi {{ kam.nokta }}" aria-hidden="true"></span>
+      </a>
+      {% endfor %}
+    </div>
+
+    {# Kırmızı çerçeve açıklaması yalnızca ekranda kırmızı çerçeve VARKEN
+       görünür; yoksa olmayan bir şeyi anlatan bir cümle kalırdı. #}
+    <p class="panel-notu">
+      {% if kameralar | selectattr('acik_ihlal') | list %}
+        Kırmızı çerçeveli kameralarda henüz incelenmemiş ihlal var; olayı
+        işaretleyince çerçeve söner.
+      {% endif %}
+      Kutuya tıklayınca o kameranın sayfası açılır.
+    </p>
+  </section>
+{% endif %}
+
+{% endblock %}
+{% block betikler %}
+<script src="/static/onizleme.js?v=16"></script>
+{% endblock %}

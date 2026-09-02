@@ -1,0 +1,21 @@
+{# İpucu balonu — karmaşık bir alanın yanındaki küçük "?" işareti.
+
+   Kullanımı:
+     {% from "ipucu.html" import ipucu %}
+     ... {{ ipucu('cooldown', 'Aynı uyarının en az kaç saniye arayla tekrarlanacağı.') }}
+
+   İlk parametre sayfada BENZERSİZ olmalı (id olarak kullanılır).
+   Metin TEK cümledir: iki cümlelik açıklama balona değil, sayfadaki
+   "not" satırına ya da /komuta/kilavuz sayfasına yazılır.
+
+   Düğme gerçek bir <button>'dır: fare olmadan da (Tab + Enter/Boşluk) açılır.
+   Balonu açıp kapatan kod backend/app/web/static/kilavuz.js içindedir; o dosya
+   yüklenmese bile sayfa bozulmaz, balon yalnızca kapalı kalır. #}
+{% macro ipucu(anahtar, metin) -%}
+<span class="ipucu-sarmal"
+  ><button type="button" class="ipucu-dugme" aria-expanded="false"
+    aria-controls="ipucu-{{ anahtar }}" aria-label="Bu ne demek?"
+    title="Bu ne demek?">?</button
+  ><span class="ipucu-balon" id="ipucu-{{ anahtar }}" role="tooltip" hidden>{{ metin }}</span
+></span>
+{%- endmacro %}

@@ -1,0 +1,157 @@
+{# Uyarı zinciri — "bir kural çiğnenince ne oluyor?" sorusunun tek ekrandaki cevabı.
+
+   Tasarımdaki (317-388) dört satırın üçü gerçek kural tiplerimizdir; dördüncüsü
+   ("Ani hareket · forklift hızı") sistemde YOK ve uydurulmadı — docs/07 yol
+   haritasına yazıldı. Sağdaki telefon bildirimi ekranı da taşınmadı: sistemde
+   e-posta/SMS/push altyapısı yok, sahte bir bildirim önizlemesi göstermek
+   "kurulu" izlenimi verirdi. O alan, ekrandaki tek gerçek güvenli deneme
+   yolunu (gölge mod) anlatan panele ayrıldı. #}
+{% extends "komuta_temel.html" %}
+{% block icerik %}
+{% from "ipucu.html" import ipucu %}
+
+{% if not zincir %}
+  <section class="komuta-panel">
+    <div class="komuta-bos">
+      <h3>Henüz kural kurulmadı</h3>
+      <p>Zincir bir kuralla başlar: kamera sayfasında bölge çizip kural kurduğunuzda
+        burada "kural → anons → bildirim" satırı olarak görünür. Kural yoksa sistem
+        görüntüyü izler ama hiçbir uyarı üretmez.</p>
+      <a class="dugme" href="/kurallar">Kurallara git</a>
+    </div>
+  </section>
+
+{% else %}
+<div class="uyari-duzen">
+  <div class="uyari-sol">
+
+    {# --- zincir tablosu ---------------------------------------------- #}
+    <section class="komuta-panel">
+      <div class="panel-basligi">
+        <h2>Uyarı zinciri</h2>
+        <span class="panel-notu">kural → anons → bildirim</span>
+        <a class="panel-sag" href="/kurallar">kuralları düzenle →</a>
+      </div>
+
+      <div class="zincir-listesi">
+        <div class="zincir-basligi">
+          <span>Kural ve kapsam</span><span>Anons</span><span>Bildirim</span>
+          <span>Durum
+            {{ ipucu('zincir-golge', 'Gölge moddaki kural çalışır ve olayı kaydeder, ama hoparlör susar ve ekranda uyarı bandı çıkmaz.') }}</span>
+        </div>
+
+        {% for z in zincir %}
+        <div class="zincir-satiri {% if z.golge %}golge{% elif z.kapali %}kapali{% endif %}">
+          <span class="zincir-hucre">
+            <span class="satir-adi">{{ z.kural }}</span>
+            <span class="panel-notu">{{ z.kapsam }}</span>
+            {% if z.kalibrasyonsuz %}
+            <span class="zincir-uyari">{{ z.kalibrasyonsuz }} kamerada kalibrasyon yok —
+              güvenli mesafe kuralı o kamerada bilerek pasif</span>
+            {% endif %}
+          </span>
+
+          <span class="zincir-hucre">
+            <span>{{ z.anons }}</span>
+            <span class="panel-notu">{{ z.yol }}{% if z.ses %} · {{ z.ses }}{% endif %}</span>
+            {% if z.anons_kapali %}
+            <span class="zincir-uyari">bu mesaj Anons sisteminde kapalı — çalınmaz</span>
+            {% endif %}
+          </span>
+
+          <span class="zincir-hucre soluk">{{ z.bildirim }}</span>
+
+          <span class="zincir-hucre sag">
+            <span class="rozet {{ z.rozet_rengi }}">{{ z.rozet }}</span>
+            {% if not z.kapali %}
+            <form method="post" action="/komuta/uyari/golge" class="satir-form">
+              {% for kural_id in z.kural_idler %}
+              <input type="hidden" name="kural_idler" value="{{ kural_id }}">
+              {% endfor %}
+              <input type="hidden" name="golge" value="{% if z.golge %}0{% else %}1{% endif %}">
+              <button type="submit" class="dugme ikincil kucuk">
+                {% if z.golge %}Anonsu aç{% else %}Gölge moda al{% endif %}
+              </button>
+            </form>
+            {% endif %}
+          </span>
+        </div>
+        {% endfor %}
+      </div>
+
+      {% if anons_kapali %}
+      <p class="panel-notu"><b>Anons sistemi kapalı.</b> Kurallara mesaj bağlansa bile
+        hoparlörden ses çıkmaz; uyarı yalnızca ekranda ve olay listesinde görünür.
+        Açmak için .env dosyasında ANONS ayarını <b>ses_karti</b> ya da <b>http</b>
+        yapıp sistemi yeniden başlatın. <a href="/komuta/anons">Anons sistemi →</a></p>
+      {% endif %}
+      {% if anonssuz_sayisi %}
+      <p class="panel-notu">{{ anonssuz_sayisi }} satırda anons mesajı seçilmemiş: o kural
+        ihlalde olay yazar ve ekranda uyarı verir, ama hoparlör susar. Mesajı kuralın
+        düzenleme sayfasından seçebilirsiniz.</p>
+      {% endif %}
+      <p class="panel-notu">"Bildirim" sütunu her satırda <b>kurulmadı</b> yazar: sistemde
+        e-posta, SMS ve mobil bildirim altyapısı <b>yoktur</b>. Bu, unutulmuş bir eksik
+        değil, bilinçli bir sınır — <b>docs/07-YOL-HARITASI.md</b> dosyasında
+        "Phase 2, madde 4: Bildirim kanalları" olarak duruyor.</p>
+    </section>
+
+    {# --- tırmandırma: yalnızca GERÇEKTEN olan adım ------------------- #}
+    <section class="komuta-panel">
+      <div class="panel-basligi">
+        <h2>Tırmandırma</h2>
+        <span class="panel-notu">ihlalden sonra sırayla ne oluyor</span>
+      </div>
+      <div class="tirmandirma">
+        <div class="komuta-kutu">
+          <span class="sayi-etiketi">0. dakika — çalışıyor</span>
+          <span class="satir-adi">Ekran bandı + anons</span>
+          <span class="panel-notu">İhlal anında ekranda uyarı bandı çıkar, olay kuyruğa
+            düşer ve kurala mesaj bağlıysa hoparlör çalar. Aynı kamera ve mesaj için
+            {{ anons_bekleme_sn }} saniye dolmadan tekrar çalınmaz.</span>
+        </div>
+        <div class="komuta-kutu bos-adim">
+          <span class="sayi-etiketi">Sonraki adım — kurulmadı</span>
+          <span class="satir-adi">Vardiya şefine bildirim</span>
+          <span class="panel-notu">"İhlal 3 dakikadır incelenmedi → telefona düşsün" için
+            e-posta/SMS/push altyapısı gerekir; sistemde yok. docs/07 Phase 2, madde 4.</span>
+        </div>
+        <div class="komuta-kutu bos-adim">
+          <span class="sayi-etiketi">Sonraki adım — kurulmadı</span>
+          <span class="satir-adi">İSG uzmanına özet</span>
+          <span class="panel-notu">"Aynı bölümde 3+ ihlal birikirse özet gönder" de aynı
+            altyapıya bağlı. docs/07 Phase 2, madde 3 ve 4.</span>
+        </div>
+      </div>
+      <p class="panel-notu">Bugün tırmandırmanın yerini <b>Olay inceleme kuyruğu</b> tutuyor:
+        işaretlenmemiş ihlaller kuyruğun en üstünde kalır ve komuta ekranındaki
+        "İncelenmeyi bekleyen" sayısı sıfırlanana kadar düşmez.
+        <a href="/komuta/inceleme">İnceleme kuyruğunu aç →</a></p>
+    </section>
+  </div>
+
+  {# --- sağ sütun: gölge mod ----------------------------------------- #}
+  <section class="komuta-panel uyari-yan">
+    <div class="panel-basligi">
+      <h2>Gölge mod</h2>
+    </div>
+    <p class="panel-notu">Gölge moddaki kural <b>normal çalışır ve her ihlali kaydeder</b>,
+      ama hoparlör susar ve ekranda uyarı bandı çıkmaz.</p>
+    <p class="panel-notu">Yeni bir kuralı birkaç gün gölge modda tutun, biriken olayları
+      "doğru uyarı / yanlış alarm" diye işaretleyin. Kural isabetli çalışıyorsa
+      "Anonsu aç" düğmesine basın.</p>
+    <p class="panel-notu">İlk günden anonsla başlamak, henüz ayarlanmamış bir kuralın
+      çalışanı boşuna uyarmasına yol açar — bir kez kaybedilen güven geri gelmez.
+      KKD kuralının devreye alınması bu yüzden zaten gölge modla başlar.</p>
+    <div class="komuta-kutu">
+      <span class="sayi-etiketi">Şu an gölge modda</span>
+      <span class="sayi-degeri orta {% if golge_sayisi %}dikkat{% endif %}">{{ golge_sayisi }}</span>
+      <span class="sayi-alt">{{ zincir|length }} zincir satırından</span>
+    </div>
+    <p class="panel-notu">Aynı ayar kuralın kendi düzenleme sayfasında da var
+      ("Gölge mod — olay kaydedilsin ama anons çalmasın").</p>
+  </section>
+</div>
+{% endif %}
+
+{% endblock %}

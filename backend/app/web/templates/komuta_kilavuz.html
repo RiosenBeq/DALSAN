@@ -1,0 +1,318 @@
+{# Kullanım kılavuzu — tek sayfa, Türkçe, ekran görüntüsü GEREKTİRMEZ.
+
+   Neden ekran görüntüsü yok: görüntüler arayüz her değiştiğinde eskiyor ve
+   eskimiş bir kılavuz, hiç olmayan kılavuzdan kötüdür. Her adım burada
+   ekranda görünen DÜĞME ADIYLA tarif edilir.
+
+   Sayfadaki tek değişken sayı, üstteki kurulum satırıdır; o da gerçek
+   veritabanı durumundan gelir. Geri kalanı sabit metindir — uydurma sayı yok. #}
+{% extends "komuta_temel.html" %}
+{% block icerik %}
+
+<div class="kilavuz-duzen">
+
+  <nav class="kilavuz-icindekiler komuta-panel">
+    <h2>İçindekiler</h2>
+    <a href="#ne-yapar">1 · Sistem ne yapar</a>
+    <a href="#baslat">2 · Başlatma ve durdurma</a>
+    <a href="#kamera">3 · Kamera nasıl eklenir</a>
+    <a href="#bolge">4 · Bölge nasıl çizilir</a>
+    <a href="#kural">5 · Kural nasıl kurulur</a>
+    <a href="#uyari">6 · Uyarı gelince ne yapılır</a>
+    <a href="#sorun">7 · Bir şey çalışmazsa</a>
+  </nav>
+
+  <div class="kilavuz-bolumler">
+
+    {# Kurulumun gerçek durumu: kılavuzu okuyan kişi nerede kaldığını görsün. #}
+    {% if kurulum.hazir %}
+    <p class="hazir-rozet">
+      <span class="durum-noktasi yesil" aria-hidden="true"></span>
+      <span><b>Kurulumunuz tamam.</b> Bu sayfa günlük kullanım için başvuru
+        kaynağıdır; istediğiniz bölüme soldan geçebilirsiniz.</span>
+      <a href="/komuta">komuta ekranı →</a>
+    </p>
+    {% else %}
+    <p class="hazir-rozet bilgi">
+      <span class="durum-noktasi sari" aria-hidden="true"></span>
+      <span><b>Kurulumun {{ kurulum.tamamlanan }} / {{ kurulum.toplam }} adımı tamam.</b>
+        Sıradaki adımı ve düğmesini komuta ekranındaki listede görürsünüz.</span>
+      <a href="/komuta">kurulum listesini aç →</a>
+    </p>
+    {% endif %}
+
+    {# ---------------------------------------------------------------- 1 #}
+    <section class="komuta-panel kilavuz-bolum" id="ne-yapar">
+      <div class="panel-basligi"><h2>1 · Sistem ne yapar</h2></div>
+      <p>Bu sistem, fabrikadaki mevcut kameraların görüntüsünü izler ve görüntüde
+        <b>insan, forklift ve tır</b> arar. Sizin çizdiğiniz alanlara ve kurduğunuz
+        kurallara bakarak üç şeyi değerlendirir: birinin girmemesi gereken bir yerde
+        olması, bir kişinin hareket halindeki bir araca fazla yaklaşması ve baret
+        ya da yeleğin takılı olmaması.</p>
+      <p>Bir kural çiğnendiğinde sistem ekranda uyarı verir, olayı kanıt fotoğrafıyla
+        kaydeder ve — kurulduysa — hoparlörden Türkçe bir anons geçer. <b>Sistem kimseyi
+        tanımaz ve kimseyi kimliklendirmez;</b> yalnızca "burada bir insan var, şurada
+        bir forklift var" der.</p>
+      <p>Amaç ceza kesmek değil, <b>kaza olmadan önce uyarmaktır</b>. Sistemin
+        güvenilir sayılması için uyarıların doğru olması gerekir; bu yüzden her uyarıyı
+        "doğru" ya da "yanlış alarm" diye işaretlemeniz istenir (6. bölüm).</p>
+      <p class="kilavuz-bag"><a href="/komuta">Komuta ekranını aç →</a></p>
+    </section>
+
+    {# ---------------------------------------------------------------- 2 #}
+    <section class="komuta-panel kilavuz-bolum" id="baslat">
+      <div class="panel-basligi">
+        <h2>2 · Nasıl başlatılır, nasıl durdurulur</h2>
+        <span class="panel-notu">Kontrol Paneli penceresi</span>
+      </div>
+      <p>Sistem, bilgisayarda açık duran <b>Kontrol Paneli</b> penceresinden yönetilir.
+        Terminal ya da komut yazmanız gerekmez.</p>
+      <ol>
+        <li><b>Başlatmak için:</b> program klasöründeki <b>Baslat-Mac.command</b>
+          (Mac) ya da <b>Baslat-Windows.bat</b> (Windows) dosyasına <b>çift tıklayın</b>.
+          Kontrol Paneli penceresi açılır.</li>
+        <li>Pencerede <b>“Sistemi Başlat”</b> düğmesine basın. Birkaç saniye
+          sonra tarayıcı kendiliğinden açılır ve bu ekranlar gelir.</li>
+        <li><b>Durdurmak için:</b> aynı penceredeki <b>“Durdur”</b> düğmesine
+          basın. <b>Kontrol Paneli penceresini kapatırsanız sistem de durur</b> — izleme
+          sürsün istiyorsanız pencereyi açık bırakın.</li>
+        <li>Tarayıcı sekmesini yanlışlıkla kapattıysanız panik yok: sistem çalışmaya
+          devam eder. Ekranı geri getirmek için <b>“İzleme Ekranını Aç”</b>
+          düğmesine basın.</li>
+      </ol>
+      <p class="kilavuz-alinti">İlk açılışta pencerede <b>“İlk Kurulumu Yap”</b>
+        düğmesi de vardır. Bu düğme yalnızca bir kez, gerekli parçalar bilgisayara
+        kurulurken kullanılır ve birkaç dakika sürebilir.</p>
+      <p class="kilavuz-bag"><a href="/">Sistem durumunu (teşhis ekranı) aç →</a></p>
+    </section>
+
+    {# ---------------------------------------------------------------- 3 #}
+    <section class="komuta-panel kilavuz-bolum" id="kamera">
+      <div class="panel-basligi">
+        <h2>3 · Kamera nasıl eklenir</h2>
+        <span class="panel-notu">iki yol: fabrika kamerası veya video dosyası</span>
+      </div>
+      <p><b>Kameralar</b> sayfasında <b>“+ Yeni Kamera”</b> düğmesine basın ve
+        formu doldurun. İki tür kaynak vardır.</p>
+
+      <div class="komuta-kutu">
+        <span class="satir-adi">A · Fabrika kamerası (RTSP)</span>
+        <ol>
+          <li><b>Ad:</b> herkesin anlayacağı bir isim yazın, örneğin
+            <i>Sevkiyat rampası</i>.</li>
+          <li><b>Alan:</b> kameranın bulunduğu bölümün adı, örneğin <i>Sevkiyat</i>.
+            Aynı adı yazdığınız kameralar raporlarda birlikte gruplanır; hoparlör
+            bölgeleri de bu adla eşleşir.</li>
+          <li><b>Kaynak tipi:</b> <b>RTSP</b> seçin.</li>
+          <li><b>Kaynak adresi:</b> kameranın RTSP adresini yazın. Biçim şudur:
+            <code>rtsp://kullanici:sifre@IP:554/yol</code>. Adresi kameranın kendi
+            yönetim sayfasından ya da kamerayı kuran firmadan alabilirsiniz.</li>
+          <li><b>Örnekleme (fps):</b> saniyede kaç kare inceleneceği. Varsayılan değer
+            fabrika içi için yeterlidir; bilgisayar zorlanıyorsa düşürün.</li>
+          <li><b>Kaydet</b>'e basın. Kamera sayfasında birkaç saniye içinde canlı
+            görüntü belirmelidir.</li>
+        </ol>
+        <p class="kilavuz-alinti">Şifrenizde <b>@ : / # ?</b> gibi karakterler varsa
+          adres bozulur. Bunları sırasıyla <b>%40 %3A %2F %23 %3F</b> yazın.</p>
+      </div>
+
+      <div class="komuta-kutu">
+        <span class="satir-adi">B · Video dosyası (kamerasız deneme)</span>
+        <ol>
+          <li><b>Kaynak tipi:</b> <b>Video dosyası</b> seçin.</li>
+          <li><b>Kaynak adresi:</b> bilgisayardaki bir video dosyasının <b>tam
+            yolunu</b> yazın. Yolu elle yazmayın, kopyalayın:
+            <b>Mac'te</b> dosyayı Finder'da seçip <b>Option + Command + C</b>;
+            <b>Windows'ta</b> dosyaya <b>Shift + sağ tık → “Yol olarak
+            kopyala”</b>.</li>
+          <li>Sistem bu dosyayı kamera gibi izler. Kamera bağlanmadan önce bölge
+            çizimini ve kuralları denemenin en kolay yolu budur.</li>
+        </ol>
+      </div>
+      <p class="kilavuz-bag">
+        <a class="dugme" href="/kameralar/yeni">Kamera ekle</a>
+        <a href="/komuta/saglik">Kamera sağlığını aç →</a>
+      </p>
+    </section>
+
+    {# ---------------------------------------------------------------- 4 #}
+    <section class="komuta-panel kilavuz-bolum" id="bolge">
+      <div class="panel-basligi">
+        <h2>4 · Bölge nasıl çizilir</h2>
+        <span class="panel-notu">kamera sayfası → Bölgeler</span>
+      </div>
+      <p>Bölge, kameranın gördüğü alanın üzerine sizin çizdiğiniz kapalı bir
+        şekildir: yaya yolu, yükleme alanı, yasak bölge gibi. <b>Kurallar bölgelerin
+        üstünde çalışır</b>, bu yüzden önce bölge çizilir.</p>
+      <ol>
+        <li>Kameranın sayfasını açın ve <b>Yeni bölge çiz</b> bölümüne inin.</li>
+        <li><b>Ad</b> yazın ve <b>tip</b> seçin. Tip, çizerken görünen rengi ve
+          hangi hazır kuralın önerileceğini belirler.</li>
+        <li><b>“Çizime başla”</b>ya basın, sonra yukarıdaki canlı görüntüde
+          alanın <b>köşelerine sırayla tıklayın</b> (en az 3 köşe).</li>
+        <li>Üç köşeden sonra <b>ilk nokta büyür</b>. Alanı kapatmak için o büyük
+          noktaya tıklamanız yeter — son köşeyi başa bağlamakla uğraşmazsınız.</li>
+        <li>Yanlış tıkladıysanız <b>“Son köşeyi geri al”</b> düğmesini
+          kullanın. Tüm çizimden vazgeçmek için <b>Esc</b> tuşuna basın.</li>
+        <li><b>“Bölgeyi Kaydet”</b>e basın.</li>
+      </ol>
+      <p>Sonradan adını, tipini veya çizimini değiştirmek isterseniz <b>Sil</b>
+        değil <b>Düzenle</b>'yi kullanın: silmek, o bölgeye bağlı kuralları da
+        siler. Bir bölgeyi geçici olarak susturmak için <b>Kapat</b> düğmesi vardır;
+        kuralları korunur, <b>Aç</b>'a basınca aynen döner.</p>
+      <p class="kilavuz-alinti">Her bölge tipinin ayrı bir rengi vardır ve çizim
+        sırasında o rengi görürsünüz. Kaydedilmiş bölgeler, her ekranda aynı görünsün
+        diye tek renkle çizilir.</p>
+      <p class="kilavuz-bag"><a href="/kameralar">Kameralara git →</a></p>
+    </section>
+
+    {# ---------------------------------------------------------------- 5 #}
+    <section class="komuta-panel kilavuz-bolum" id="kural">
+      <div class="panel-basligi">
+        <h2>5 · Kural nasıl kurulur</h2>
+        <span class="panel-notu">en kolay yol: hazır kural düğmesi</span>
+      </div>
+      <p><b>Çizilen bölge tek başına uyarı üretmez.</b> Uyarıyı üreten kuraldır.
+        En kolay yol, bölgeyi çizdikten sonra kamera sayfasında beliren
+        <b>“Hazır kurallar”</b> bölümüdür: tek düğmeye basarsınız, o bölge
+        tipine uyan kural denenmiş değerlerle kurulur. Değerleri sonradan
+        <b>Kurallar</b> sayfasından değiştirebilirsiniz.</p>
+      <p>Altı bölge tipi ve tek tıkla kurdukları kural:</p>
+      <ul>
+        <li><b>Yaya yolu</b> — yolun <b>dışında</b> kalan kişi uyarı üretir;
+          hoparlörden “yaya yolunu kullanınız” anonsu geçer.</li>
+        <li><b>Yükleme alanı</b> — forklift ve tırın çalıştığı alanın
+          <b>içinde</b> duran yaya uyarı üretir.</li>
+        <li><b>Tır park alanı</b> — park alanının <b>dışında</b> duran tır uyarı
+          üretir; “aracınızı belirlenen alana konumlandırınız” anonsu geçer.</li>
+        <li><b>Araç sahası</b> — bu alandaki kişi ile <b>hareket halindeki</b>
+          forklift/tır arasındaki mesafe eşiğin altına düşerse uyarı üretir.
+          <b>Bu kural için kameranın kalibre edilmiş olması gerekir</b> (aşağıya bakın).</li>
+        <li><b>KKD zorunlu alan</b> — bu bölgede baret veya yelek takmayan kişi
+          uyarı üretir. Karar tek kareye değil, birden çok gözleme bakılarak verilir;
+          emin olunamayan durum <b>ihlal sayılmaz</b>.</li>
+        <li><b>Yasak bölge</b> — bölgeye girip belirlenen süreden uzun kalan kişi
+          uyarı üretir.</li>
+      </ul>
+      <p><b>Mesafe kalibrasyonu:</b> güvenli mesafe kuralı metre ölçer, kamera ise
+        piksel görür. Bu ikisini birbirine çevirmek için kameranın sayfasındaki
+        <b>“Mesafe kalibrasyonu”</b> bölümünde, zeminde gerçek ölçüsünü bildiğiniz
+        4 noktayı işaretlersiniz. Kalibrasyon yapılmadan güvenli mesafe kuralı
+        <b>bilerek pasif kalır</b> — yaklaşık bir ölçü, yanlış uyarıdan beterdir.</p>
+      <p class="kilavuz-alinti">Yeni kurduğunuz kuralı birkaç gün <b>gölge modda</b>
+        tutun: kural çalışır ve olayları kaydeder, ama hoparlör susar ve ekranda uyarı
+        bandı çıkmaz. Olayları işaretleyip isabetli olduğuna ikna olunca anonsu açın.
+        İlk günden anonsla başlamak, ayarlanmamış bir kuralın çalışanı boşuna
+        uyarmasına ve sisteme güvenin kaybolmasına yol açar.</p>
+      <p class="kilavuz-bag">
+        <a href="/kurallar">Kuralları aç →</a>
+        <a href="/komuta/uyari">Uyarı zincirini aç →</a>
+      </p>
+    </section>
+
+    {# ---------------------------------------------------------------- 6 #}
+    <section class="komuta-panel kilavuz-bolum" id="uyari">
+      <div class="panel-basligi">
+        <h2>6 · Uyarı gelince ne yapılır</h2>
+        <span class="panel-notu">günde bir kez, birkaç dakika</span>
+      </div>
+      <p>Bir kural çiğnendiğinde ekranın üstünde uyarı bandı çıkar, olay kanıt
+        fotoğrafıyla kaydedilir ve kurala anons bağlıysa hoparlör konuşur. Aynı uyarı
+        üst üste bağırmaz: her kuralın bir bekleme süresi vardır.</p>
+      <ol>
+        <li><b>Olay inceleme</b> ekranını açın. Soldaki kuyrukta işaretlenmemiş
+          olaylar en üstte durur.</li>
+        <li>Bir olaya tıklayın. Sağda kanıt fotoğrafı ve ölçüm kutuları çıkar:
+          ölçülen değer, kuralın eşiği ve kararın nasıl verildiği yazar.</li>
+        <li>Fotoğrafa bakıp karar verin ve iki düğmeden birine basın:
+          <b>“Doğru uyarı”</b> ya da <b>“Yanlış alarm”</b>.
+          İsterseniz not da yazabilirsiniz.</li>
+        <li><b>Sol/sağ ok tuşlarıyla</b> önceki ve sonraki olaya geçebilirsiniz.</li>
+      </ol>
+      <p><b>“Yanlış alarm” işaretini atlamayın.</b> Sistemin isabetini
+        ölçebildiğimiz tek veri budur; hangi kuralın hangi kamerada yanıldığı ancak
+        böyle görünür ve eşikler ona göre düzeltilir. Yanlış uyarı biriken bir sistem,
+        bir süre sonra hiç kimsenin dinlemediği bir sisteme dönüşür.</p>
+      <p class="kilavuz-bag">
+        <a class="dugme" href="/komuta/inceleme">Olay incelemeyi aç</a>
+        <a href="/olaylar">Tüm olaylar →</a>
+      </p>
+    </section>
+
+    {# ---------------------------------------------------------------- 7 #}
+    <section class="komuta-panel kilavuz-bolum" id="sorun">
+      <div class="panel-basligi">
+        <h2>7 · Bir şey çalışmazsa</h2>
+        <span class="panel-notu">en sık görülen üç durum</span>
+      </div>
+
+      <div class="kilavuz-sorun">
+        <div class="komuta-kutu">
+          <span class="satir-adi">A · Kamera görüntü vermiyor</span>
+          <p>Kamera sayfasında ya da <b>Kamera sağlığı</b> ekranında sarı/kırmızı bir
+            rozet görürsünüz. Ekrandaki cümle nedeni söyler:</p>
+          <p class="kilavuz-alinti">“Kameraya ağ üzerinden ulaşılamıyor.
+            IP adresini, port numarasını ve kameranın/ağ kablosunun bağlı olduğunu
+            kontrol edin.” → Adres ya da ağ sorunu. Kameranın IP'sini
+            kontrol edin; kamera ile bu bilgisayar aynı ağda olmalı.</p>
+          <p class="kilavuz-alinti">“Kameraya ulaşıldı ama görüntü akışı
+            açılamadı. Kullanıcı adı, şifre veya akış yolu yanlış olabilir.”
+            → Ağ iyi, bilgiler yanlış. Şifrede <b>@ : / #</b> varsa
+            <b>%40 %3A %2F %23</b> biçiminde yazın.</p>
+          <p class="kilavuz-alinti">“Video dosyası bulunamadı” → Dosya
+            taşınmış ya da yol elle yazılırken bozulmuş. Yolu kopyalayıp yapıştırın.</p>
+        </div>
+
+        <div class="komuta-kutu">
+          <span class="satir-adi">B · Bölge çizdim ama hiç uyarı gelmiyor</span>
+          <p>Sırayla şunlara bakın:</p>
+          <ul>
+            <li><b>Kural var mı?</b> Bölge tek başına uyarı üretmez. Kamera
+              sayfasındaki <b>Hazır kurallar</b> bölümünden tek tıkla kurabilirsiniz.</li>
+            <li><b>Kural gölge modda mı?</b> Gölge moddaki kural olayı kaydeder ama
+              hoparlör susar ve ekranda bant çıkmaz. Kurallar sayfasında sarı
+              <b>gölge mod</b> rozetiyle görünür.</li>
+            <li><b>Bölge kapalı mı?</b> Kapalı bölge görüntüde çizilmez ve kuralları
+              çalışmaz; kamera sayfasında <b>Aç</b>'a basın.</li>
+            <li><b>Güvenli mesafe kuralıysa kamera kalibre edildi mi?</b>
+              Kalibrasyon yoksa bu kural bilerek pasif kalır.</li>
+            <li><b>Tespit motoru hazır mı?</b> Komuta ekranındaki kurulum listesinin
+              ilk satırı bunu söyler.</li>
+          </ul>
+        </div>
+
+        <div class="komuta-kutu">
+          <span class="satir-adi">C · Tespit motoru “Yüklenemedi” diyor</span>
+          <p>Motor ilk açılışta bir kez internetten indirilir. İndirme yarıda
+            kaldıysa sistem çalışmaya devam eder ama görüntüde bir şey aramaz.</p>
+          <ul>
+            <li>Kontrol Paneli'nde önce <b>“Durdur”</b>, sonra
+              <b>“Sistemi Başlat”</b> düğmesine basın; indirme baştan denenir.</li>
+            <li>Bilgisayarın internete çıktığından emin olun.</li>
+            <li><b>Mac'te “sertifika doğrulanamadı” diyorsa:</b>
+              Uygulamalar klasöründeki Python sürümünün içindeki
+              <b>Install Certificates.command</b> dosyasına bir kez çift tıklayın ve
+              sistemi yeniden başlatın.</li>
+          </ul>
+        </div>
+
+        <div class="komuta-kutu">
+          <span class="satir-adi">Hiçbiri işe yaramadıysa</span>
+          <p>Program klasöründeki <b>veri/loglar/sistem.log</b> dosyasını açın, en
+            alttaki satırları kopyalayın ve şu üç cümleyle birlikte iletin:
+            <b>ne yapmaya çalıştığınızı</b>, <b>ne olmasını beklediğinizi</b>,
+            <b>onun yerine ne olduğunu</b>. Ekrandaki hata cümlesini de olduğu gibi
+            ekleyin — kısaltmayın.</p>
+        </div>
+      </div>
+
+      <p class="kilavuz-bag">
+        <a href="/">Sistem durumunu aç →</a>
+        <a href="/komuta/saglik">Kamera sağlığını aç →</a>
+      </p>
+    </section>
+
+  </div>
+</div>
+
+{% endblock %}

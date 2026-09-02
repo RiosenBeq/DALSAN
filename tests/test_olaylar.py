@@ -221,3 +221,93 @@ def test_yedekleme(istemci, test_ayarlari):
         assert "cameras" in veritabani.tablo_adlari(kopya)
     finally:
         kopya.close()
+
+
+def test_not_eklemek_inceleme_damgasini_kaydirmaz(istemci, test_ayarlari):
+    """Sadece not yazmak reviewed_at'i BUGÜNE çekmemeli.
+
+    Neden önemli: reviewed_at, K11 isabet ölçümünün ve "ihlal ne kadar sürede
+    incelendi" sorusunun veri kaynağıdır. Kullanıcı günler sonra bir olaya not
+    eklediğinde damga o güne kayarsa, olay o gün incelenmiş gibi görünür ve
+    ölçüm sessizce bozulur. Gerçek bir inceleme KARARI (durum değişikliği) ise
+    damgayı yenilemelidir — iki davranış da burada çivileniyor.
+    """
+    baglanti = veritabani.baglanti_ac(test_ayarlari.veritabani_yolu)
+    try:
+        kamera_id = _kamera_olustur(baglanti)
+        olay_id = ihlal_yaz(
+            baglanti,
+            test_ayarlari,
+            _ornek_ihlal(kamera_id, 1),
+            {"rule_type": "zone_intrusion"},
+            None,
+        )
+    finally:
+        baglanti.close()
+
+    def damga_ve_durum() -> tuple[str | None, str]:
+        baglanti = veritabani.baglanti_ac(test_ayarlari.veritabani_yolu)
+        try:
+            satir = baglanti.execute(
+                "SELECT reviewed_at, status FROM events WHERE id = ?", (olay_id,)
+            ).fetchone()
+            return satir["reviewed_at"], satir["status"]
+        finally:
+            baglanti.close()
+
+    # 1) İlk inceleme kararı: damga BASILIR.
+    istemci.post(
+        f"/olaylar/{olay_id}/durum",
+        data={"durum": "reviewed", "not_metni": ""},
+        follow_redirects=False,
+    )
+    ilk_damga, durum = damga_ve_durum()
+    assert durum == "reviewed"
+    assert ilk_damga is not None, "İlk inceleme kararı reviewed_at damgalamalı"
+
+    # Damgayı BİLEREK geçmişe çekiyoruz. Zorunlu: zaman.simdi_utc() saniye
+    # çözünürlüğünde olduğu için arka arkaya iki istek AYNI damgayı üretir ve
+    # "damga kaymadı" kontrolü hatalı kodda da geçerdi (denendi: geçti).
+    # Geçmiş bir değerle kontrol, saate hiç bağlı olmadan kesin sonuç verir.
+    GECMIS_DAMGA = "2026-08-30T09:15:00+00:00"
+    baglanti = veritabani.baglanti_ac(test_ayarlari.veritabani_yolu)
+    try:
+        baglanti.execute("UPDATE events SET reviewed_at = ? WHERE id = ?", (GECMIS_DAMGA, olay_id))
+        baglanti.commit()
+    finally:
+        baglanti.close()
+
+    # 2) Aynı durumda SADECE not eklendi: damga AYNEN kalmalı.
+    istemci.post(
+        f"/olaylar/{olay_id}/durum",
+        data={"durum": "reviewed", "not_metni": "vinç operatörüyle konuşuldu"},
+        follow_redirects=False,
+    )
+    not_sonrasi, durum = damga_ve_durum()
+    assert durum == "reviewed"
+    assert not_sonrasi == GECMIS_DAMGA, (
+        "Sadece not eklemek inceleme damgasını bugüne kaydırdı — K11 ölçümü bozulur"
+    )
+    assert "vinç operatörüyle konuşuldu" in istemci.get(f"/olaylar/{olay_id}").text
+
+    # 3) Gerçek karar değişikliği: damga YENİLENİR (geçmişte kalmamalı).
+    istemci.post(
+        f"/olaylar/{olay_id}/durum",
+        data={"durum": "false_alarm", "not_metni": "gölge yansıması"},
+        follow_redirects=False,
+    )
+    karar_sonrasi, durum = damga_ve_durum()
+    assert durum == "false_alarm"
+    assert karar_sonrasi is not None and karar_sonrasi > GECMIS_DAMGA, (
+        "Durum gerçekten değiştiğinde damga yenilenmeli"
+    )
+
+    # 4) "Yeni"ye geri alındığında damga TEMİZLENİR (olay incelenmemiş sayılır).
+    istemci.post(
+        f"/olaylar/{olay_id}/durum",
+        data={"durum": "new", "not_metni": ""},
+        follow_redirects=False,
+    )
+    geri_alindi, durum = damga_ve_durum()
+    assert durum == "new"
+    assert geri_alindi is None, "'Yeni'ye dönen olayda inceleme damgası kalmamalı"

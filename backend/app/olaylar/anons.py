@@ -5,18 +5,26 @@ Anons cooldown'u ekran uyarısından BAĞIMSIZ ve daha uzundur — ekranda 3 ola
 görünmesi sorun değil; hoparlörün 3 kez bağırması sorundur (docs/03 §4).
 
 Anons altyapısı yoksa (ANONS=null) sistem bundan tamamen bağımsız çalışır (K6).
+
+HOPARLÖR BÖLGELERİ (şema 002): ANONS=http iken anons, ihlalin olduğu BÖLÜMÜN
+hoparlörüne gönderilir (speaker_zones tablosu, `area` alanı cameras.area ile
+eşleşir). Bölüme ait bölge yoksa "tüm fabrika" bölgesi, o da yoksa .env'deki
+tek adres kullanılır — yani bölge tanımlanmamış bir kurulumda davranış
+eskisiyle birebir aynıdır.
 """
 
 from __future__ import annotations
 
 import json
 import shutil
+import sqlite3
 import subprocess
 import sys
 import threading
 import urllib.error
 import urllib.request
 
+from app import veritabani, zaman
 from app.ayarlar import Ayarlar
 from app.loglama import log_al
 from app.rules.cooldown import Cooldown
@@ -118,31 +126,69 @@ class SesKartiAnonscu:
         _log.info(f"Anons çalındı: {metin}")
 
 
-class HttpAnonscu:
-    """IP hoparlör / anons sunucusuna HTTP POST atar.
+def http_gonder(adres: str, anahtar: str, metin: str) -> None:
+    """Tek bir anons adresine HTTP POST atar; başarısızlıkta AnonsHatasi.
 
     Gövde: {"key": ..., "text": ...} JSON. Somut uç nokta biçimi, sahadaki
     anons sistemi öğrenilince gerekirse uyarlanır (docs/08 R3).
+
+    Ayrı bir fonksiyon: hem ihlal anındaki otomatik anons hem de arayüzdeki
+    "Bu hoparlörü dene" düğmesi AYNI yoldan gider. İkisi ayrı kod olsaydı
+    deneme başarılı olup gerçek anons sessizce başarısız olabilirdi.
     """
+    veri = json.dumps({"key": anahtar, "text": metin}).encode("utf-8")
+    istek = urllib.request.Request(adres, data=veri, headers={"Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(istek, timeout=5) as yanit:
+            _log.info(f"Anons HTTP gönderildi ({yanit.status}): {metin}")
+    except (urllib.error.URLError, TimeoutError, ValueError) as hata:
+        # ValueError: adres biçimi bozuksa urllib bunu fırlatır.
+        # Adres MESAJA KONMAZ: içinde kullanıcı adı/şifre olabilir ve hata
+        # ekranı onu ham gösterirdi. Tam adres yalnızca günlüğe yazılır;
+        # çağıran taraf hangi hoparlör olduğunu maskeli adresle ekler.
+        _log.error(f"Anons HTTP gönderilemedi ({adres}): {hata}")
+        raise AnonsHatasi(
+            f"Anons adresine ulaşılamadı. Sebep: {hata}. "
+            "Hoparlörün açık ve aynı ağda olduğunu doğrulayın."
+        ) from hata
+
+
+class HttpAnonscu:
+    """IP hoparlör / anons sunucusuna HTTP POST atar."""
 
     ad = "http"
 
     def __init__(self, adres: str) -> None:
         self._adres = adres
 
+    @property
+    def adres(self) -> str:
+        return self._adres
+
     def cal(self, anahtar: str, metin: str, ses_dosyasi: str | None) -> None:
-        veri = json.dumps({"key": anahtar, "text": metin}).encode("utf-8")
-        istek = urllib.request.Request(
-            self._adres, data=veri, headers={"Content-Type": "application/json"}
-        )
-        try:
-            with urllib.request.urlopen(istek, timeout=5) as yanit:
-                _log.info(f"Anons HTTP gönderildi ({yanit.status}): {metin}")
-        except (urllib.error.URLError, TimeoutError, ValueError) as hata:
-            # ValueError: adres biçimi bozuksa urllib bunu fırlatır; ayarlar.py
-            # açılışta engelliyor ama burada da yutulmalı — anons hatası
-            # yüzünden analiz durmaz.
-            _log.error(f"Anons HTTP gönderilemedi ({self._adres}): {hata}")
+        http_gonder(self._adres, anahtar, metin)
+
+
+def bolge_sec(bolgeler: list[dict], kamera_alani: str | None) -> dict | None:
+    """İhlalin olduğu bölümün hoparlörü — seçim kuralının TEK yeri.
+
+    Önce bölümü BİREBİR eşleşen açık bölge, sonra "tüm fabrika" (area boş)
+    bölgesi. Hiçbiri yoksa None döner ve .env'deki tek adres kullanılır; yani
+    hiç bölge tanımlanmamış bir kurulumda davranış eskisiyle aynıdır.
+
+    Modül düzeyinde ve saf: Anons ekranı "bu kamera hangi hoparlöre bağlı"
+    yazarken de bunu çağırır. İki ayrı seçim kodu olsaydı ekran bir hoparlörü
+    gösterip anons başka hoparlörden çalabilirdi.
+    """
+    alan = (kamera_alani or "").strip()
+    if alan:
+        for bolge in bolgeler:
+            if bolge.get("enabled") and (bolge.get("area") or "").strip() == alan:
+                return bolge
+    for bolge in bolgeler:
+        if bolge.get("enabled") and not (bolge.get("area") or "").strip():
+            return bolge
+    return None
 
 
 def anonscu_kur(ayarlar: Ayarlar):
@@ -166,23 +212,37 @@ class AnonsYoneticisi:
         self._anonscu = anonscu_kur(ayarlar)
         self._bekleme_sn = ayarlar.anons_bekleme_sn
         self._goruntu_koku = ayarlar.kok_dizin
+        self._veritabani_yolu = ayarlar.veritabani_yolu
         self._cooldown = Cooldown()
+        # speaker_zones satırları (dict). Süpervizör, konfigürasyon her
+        # değiştiğinde yeniler; boş liste = eski davranış (.env'deki tek adres).
+        self._bolgeler: list[dict] = []
         self.son_sonuc: str = "Henüz anons denenmedi."
 
     @property
     def ad(self) -> str:
         return self._anonscu.ad
 
-    def duyur(self, kamera_id: int, zaman_s: float, mesaj: dict | None) -> None:
+    def bolgeleri_yukle(self, satirlar) -> None:
+        """Hoparlör bölgelerini tazeler (speaker_zones satırları)."""
+        self._bolgeler = [dict(satir) for satir in satirlar]
+
+    def bolge_sec(self, kamera_alani: str | None) -> dict | None:
+        """İhlalin olduğu bölümün hoparlörü (bkz. modül düzeyindeki bolge_sec)."""
+        return bolge_sec(self._bolgeler, kamera_alani)
+
+    def duyur(
+        self, kamera_id: int, kamera_alani: str | None, zaman_s: float, mesaj: dict | None
+    ) -> None:
         """mesaj: announcement_messages satırı (dict) veya None."""
         if mesaj is None or not mesaj.get("enabled", 1):
             return
         anahtar = ("anons", kamera_id, mesaj["id"])
         if not self._cooldown.izinli_mi(anahtar, zaman_s, float(self._bekleme_sn)):
             return
-        self.hemen_cal(mesaj)
+        self.hemen_cal(mesaj, self.bolge_sec(kamera_alani))
 
-    def hemen_cal(self, mesaj: dict) -> None:
+    def hemen_cal(self, mesaj: dict, bolge: dict | None = None) -> None:
         """Cooldown'suz çalar (arayüzdeki 'Anonsu Dene' düğmesi bunu kullanır)."""
         ses = mesaj.get("audio_file")
         ses_yolu = None
@@ -197,19 +257,55 @@ class AnonsYoneticisi:
             ses_yolu = str(tam)
         threading.Thread(
             target=self._cal_ve_kaydet,
-            args=(mesaj.get("key", ""), mesaj.get("text", ""), ses_yolu),
+            args=(mesaj.get("key", ""), mesaj.get("text", ""), ses_yolu, bolge),
             name="anons",
             daemon=True,
         ).start()
 
-    def _cal_ve_kaydet(self, anahtar: str, metin: str, ses_yolu: str | None) -> None:
+    def _hedef_anonscu(self, bolge: dict | None):
+        """Bölge seçildiyse AYNI adaptör, o bölgenin adresiyle.
+
+        Hoparlör bölgesi yalnızca IP hoparlörde (ANONS=http) anlamlıdır: ses
+        kartına bağlı tek amfide "hangi bölüme çalsın" diye bir seçim yoktur.
+        """
+        if bolge is None or not isinstance(self._anonscu, HttpAnonscu):
+            return self._anonscu
+        return HttpAnonscu(bolge["address"])
+
+    def _cal_ve_kaydet(
+        self, anahtar: str, metin: str, ses_yolu: str | None, bolge: dict | None = None
+    ) -> None:
+        nereye = f" ({bolge['name']})" if bolge else ""
         try:
-            self._anonscu.cal(anahtar, metin, ses_yolu)
-            self.son_sonuc = f"Son anons ÇALINDI: {metin}"
+            self._hedef_anonscu(bolge).cal(anahtar, metin, ses_yolu)
+            self.son_sonuc = f"Son anons ÇALINDI{nereye}: {metin}"
+            if bolge is not None:
+                self._son_anonsu_yaz(int(bolge["id"]))
         except AnonsHatasi as hata:
             # Bilinen sebep: kullanıcıya olduğu gibi göster
-            self.son_sonuc = f"Son anons ÇALINAMADI — {hata}"
+            self.son_sonuc = f"Son anons ÇALINAMADI{nereye} — {hata}"
             _log.error(f"Anons çalınamadı: {hata}")
         except Exception as hata:  # noqa: BLE001 — anons hatası sistemi durdurmaz
-            self.son_sonuc = f"Son anons ÇALINAMADI — beklenmeyen hata: {hata}"
+            self.son_sonuc = f"Son anons ÇALINAMADI{nereye} — beklenmeyen hata: {hata}"
             _log.error(f"Anons çalınamadı: {hata}", exc_info=hata)
+
+    def _son_anonsu_yaz(self, bolge_id: int) -> None:
+        """Bölgenin 'son anons' damgasını günceller.
+
+        Anons ayrı bir iş parçacığında çalıştığı için burada KENDİ kısa ömürlü
+        bağlantısı açılır; süpervizörün bağlantısı başka bir iş parçacığına
+        aittir ve paylaşılamaz. Yazma başarısız olursa anons yine çalmıştır:
+        ekrandaki "son anons" bilgisi eksik kalır, sistem durmaz.
+        """
+        try:
+            baglanti = veritabani.baglanti_ac(self._veritabani_yolu)
+            try:
+                baglanti.execute(
+                    "UPDATE speaker_zones SET last_announced_at = ? WHERE id = ?",
+                    (zaman.simdi_utc(), bolge_id),
+                )
+                baglanti.commit()
+            finally:
+                baglanti.close()
+        except (sqlite3.Error, OSError) as hata:
+            _log.error(f"Hoparlör bölgesinin son anons zamanı yazılamadı ({bolge_id}): {hata}")

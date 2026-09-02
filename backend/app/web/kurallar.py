@@ -153,12 +153,16 @@ def _kural_kaydet_islemi(baglanti, form):
         )
     anons_id = int(form.get("announcement_id") or 0) or None
     aktif = 1 if form.get("enabled") == "1" else 0
+    # Gölge mod: kural çalışır ve olay yazar, ama anons çalmaz / ekranda uyarı
+    # bandı çıkmaz (docs/04 §8.2). Yeni kuralın güvenli deneme yoludur.
+    golge = 1 if form.get("shadow_mode") == "1" else 0
     simdi = zaman.simdi_utc()
 
     if kural_id:
         baglanti.execute(
             "UPDATE rules SET camera_id=?, rule_type=?, zone_id=?, target_classes=?, "
-            "params=?, cooldown_s=?, announcement_id=?, enabled=?, updated_at=? WHERE id=?",
+            "params=?, cooldown_s=?, announcement_id=?, enabled=?, shadow_mode=?, "
+            "updated_at=? WHERE id=?",
             (
                 kamera_id,
                 kural_tipi,
@@ -168,6 +172,7 @@ def _kural_kaydet_islemi(baglanti, form):
                 cooldown,
                 anons_id,
                 aktif,
+                golge,
                 simdi,
                 kural_id,
             ),
@@ -175,7 +180,8 @@ def _kural_kaydet_islemi(baglanti, form):
     else:
         baglanti.execute(
             "INSERT INTO rules (camera_id, rule_type, zone_id, target_classes, params, "
-            "cooldown_s, announcement_id, enabled, updated_at) VALUES (?,?,?,?,?,?,?,?,?)",
+            "cooldown_s, announcement_id, enabled, shadow_mode, updated_at) "
+            "VALUES (?,?,?,?,?,?,?,?,?,?)",
             (
                 kamera_id,
                 kural_tipi,
@@ -185,6 +191,7 @@ def _kural_kaydet_islemi(baglanti, form):
                 cooldown,
                 anons_id,
                 aktif,
+                golge,
                 simdi,
             ),
         )

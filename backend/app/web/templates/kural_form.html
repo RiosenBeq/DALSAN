@@ -1,6 +1,10 @@
 {% extends "temel.html" %}
 {% block baslik %}Kural — DALSAN İSG{% endblock %}
 {% block icerik %}
+  {# İpucu balonları: "?" işaretine tıklayınca tek cümlelik Türkçe açıklama
+     açılır. İmport blok İÇİNDEDİR — extends eden şablonda blok dışındaki
+     isimler bloklardan görünmez. #}
+  {% from "ipucu.html" import ipucu %}
   <h2>{{ "Kuralı Düzenle" if kural else "Yeni Kural" }}</h2>
   <section class="kart dar">
     <form method="post" action="/kurallar/kaydet" class="dikey-form">
@@ -60,7 +64,8 @@
           <label class="yatay"><input type="checkbox" name="object_classes" value="truck"
             {% if 'truck' in nesneler %}checked{% endif %}> Tır/Araç</label>
         </div>
-        <label>Mesafe eşiği (metre)
+        <label><span>Mesafe eşiği (metre)
+          {{ ipucu('mesafe-esigi', 'Bir kişi ile hareket halindeki forklift/tır arasındaki mesafe bu değerin altına düşerse uyarı üretilir.') }}</span>
           <input name="distance_m" type="number" step="0.5" min="0.5"
                  value="{{ kural.params.get('distance_m', 3.0) if kural else 3.0 }}">
         </label>
@@ -98,19 +103,23 @@
           <input name="min_vest_height_px" type="number" min="20"
                  value="{{ kural.params.get('min_vest_height_px', 80) if kural else 80 }}">
         </label>
-        <label>Güven eşiği (0-1)
+        <label><span>Güven eşiği (0-1)
+          {{ ipucu('kkd-guven', 'Model kararından bu kadar emin değilse sonuç «belirsiz» sayılır ve uyarı üretilmez.') }}</span>
           <input name="min_confidence" type="number" step="0.05" min="0" max="1"
                  value="{{ kural.params.get('min_confidence', 0.7) if kural else 0.7 }}">
         </label>
-        <label>Gözlem penceresi
+        <label><span>Gözlem penceresi
+          {{ ipucu('kkd-pencere', 'Karar tek kareye değil, aynı kişinin son bu kadar gözlemine bakılarak verilir.') }}</span>
           <input name="window_size" type="number" min="3"
                  value="{{ kural.params.get('window_size', 15) if kural else 15 }}">
         </label>
-        <label>En az geçerli gözlem
+        <label><span>En az geçerli gözlem
+          {{ ipucu('kkd-gecerli', 'Penceredeki gözlemlerin en az bu kadarı kullanılabilir olmalı; yoksa karar hiç verilmez.') }}</span>
           <input name="min_valid_observations" type="number" min="1"
                  value="{{ kural.params.get('min_valid_observations', 8) if kural else 8 }}">
         </label>
-        <label>İhlal oranı (0,5-1)
+        <label><span>İhlal oranı (0,5-1)
+          {{ ipucu('kkd-oran', 'Geçerli gözlemlerin bu oranı «yok» derse ihlal sayılır; altında kalırsa uyarı üretilmez.') }}</span>
           <input name="violation_ratio" type="number" step="0.05" min="0.5" max="1"
                  value="{{ kural.params.get('violation_ratio', 0.75) if kural else 0.75 }}">
         </label>
@@ -125,7 +134,8 @@
           eğitilmediyse bu kural olay üretmez ama bölgeden veri toplar (KKD sekmesi).</p>
       </fieldset>
 
-      <label>Tekrar uyarı bastırma / cooldown (saniye)
+      <label><span>Tekrar uyarı bastırma / cooldown (saniye)
+        {{ ipucu('cooldown', 'Aynı kural aynı kamerada bu süre dolmadan ikinci kez uyarı üretmez — hoparlör üst üste bağırmaz.') }}</span>
         <input name="cooldown_s" type="number" min="5"
                value="{{ kural.cooldown_s if kural else 120 }}">
       </label>
@@ -141,6 +151,20 @@
 
       <label class="yatay"><input type="checkbox" name="enabled" value="1"
         {% if not kural or kural.enabled %}checked{% endif %}> Kural aktif</label>
+
+      <label class="yatay"><input type="checkbox" name="shadow_mode" value="1"
+        {% if kural and kural.shadow_mode %}checked{% endif %}>
+        Gölge mod — olay kaydedilsin ama anons çalmasın
+        {# İpucu etiketin İÇİNDE: dışarıda kalsaydı form ızgarasında ayrı bir
+           satıra düşüp tek başına duran bir "?" gibi görünürdü. Düğmeye
+           tıklamak onay kutusunu değiştirmez (kilavuz.js tıklamayı durdurur). #}
+        {{ ipucu('golge-mod', 'Gölge modda kural çalışır ve olayı kaydeder, ama hoparlör susar ve ekranda uyarı bandı çıkmaz.') }}</label>
+      <p class="not">Gölge modda kural normal çalışır ve her ihlal olay listesine
+        düşer; hoparlörden ses ÇIKMAZ ve ekranda uyarı bandı görünmez. Yeni kurulan
+        bir kuralı birkaç gün gölge modda tutup olayları "doğru uyarı / yanlış alarm"
+        diye işaretleyin: kural isabetli çalışıyorsa bu kutuyu kaldırıp anonsu açın.
+        İlk günden anonsla başlamak, ayarlanmamış bir kuralın çalışanı boşuna
+        uyarmasına ve sisteme güvenin kaybolmasına yol açar.</p>
 
       <button type="submit" class="dugme">Kaydet</button>
     </form>

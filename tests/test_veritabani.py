@@ -8,6 +8,7 @@ import pytest
 
 from app import veritabani, zaman
 from app.hatalar import VeritabaniHatasi
+from tests.sema_bilgisi import SEMA_BETIK_SAYISI, SON_SEMA_SURUMU
 
 BEKLENEN_TABLOLAR = {
     "cameras",
@@ -17,6 +18,8 @@ BEKLENEN_TABLOLAR = {
     "events",
     "announcement_messages",
     "ppe_samples",
+    # 002 — hoparlör bölgeleri: anonsun hangi adrese gideceği
+    "speaker_zones",
 }
 
 
@@ -28,10 +31,10 @@ def baglanti(tmp_path):
     baglanti.close()
 
 
-def test_yedi_tablo_ve_surum_tablosu_olusuyor(baglanti):
+def test_beklenen_tablolar_ve_surum_tablosu_olusuyor(baglanti):
     tablolar = set(veritabani.tablo_adlari(baglanti))
     assert tablolar == BEKLENEN_TABLOLAR | {"sema_surumu"}
-    assert veritabani.mevcut_surum(baglanti) == "001_ilk.sql"
+    assert veritabani.mevcut_surum(baglanti) == SON_SEMA_SURUMU
 
 
 def test_wal_modu_acik(baglanti):
@@ -43,7 +46,7 @@ def test_sema_iki_kez_uygulanabiliyor(baglanti):
     # İkinci uygulama hata vermemeli, hiçbir şeyi ikilememeli (idempotent).
     veritabani.semayi_uygula(baglanti)
     surumler = baglanti.execute("SELECT COUNT(*) FROM sema_surumu").fetchone()[0]
-    assert surumler == 1
+    assert surumler == SEMA_BETIK_SAYISI
     mesajlar = baglanti.execute("SELECT COUNT(*) FROM announcement_messages").fetchone()[0]
     assert mesajlar == 5
 

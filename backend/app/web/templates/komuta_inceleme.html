@@ -1,0 +1,131 @@
+{# Olay inceleme — solda kuyruk, sağda seçili olayın kanıtı ve kural özeti.
+
+   İşaretleme düğmeleri GERÇEKTEN veritabanına yazar; ama yeni bir yazma yolu
+   açılmaz: form, olay detay sayfasının da kullandığı /olaylar/{id}/durum
+   ucuna POST eder. `donus=inceleme` alanı kullanıcının bu ekranda kalmasını
+   sağlar (bkz. web/olaylar_web.py → DONUS_YOLLARI).
+
+   Tasarımdaki örnek olay ("Olay #418 · 2,1 m") buraya taşınmadı: ekrandaki
+   her sayı seçili olayın kendi kaydından gelir. #}
+{% extends "komuta_temel.html" %}
+{% block icerik %}
+
+{% if not olay %}
+  <section class="komuta-panel">
+    <div class="komuta-bos">
+      <h3>Kuyrukta olay yok</h3>
+      <p>Buraya yalnızca <b>ihlaller</b> düşer. Bir kamerada bölge çizip kural
+        kurduktan sonra, kural ilk kez çiğnendiğinde olay bu kuyruğa girer ve
+        siz "doğru uyarı" mı "yanlış alarm" mı olduğunu işaretlersiniz.</p>
+      <a class="dugme" href="/kameralar">Kameralara git</a>
+    </div>
+  </section>
+
+{% else %}
+  <div class="inceleme-duzen" id="inceleme"
+       data-onceki="{{ onceki_id or '' }}" data-sonraki="{{ sonraki_id or '' }}">
+
+    {# --- sol: kuyruk ---------------------------------------------------- #}
+    <section class="komuta-panel">
+      <div class="panel-basligi">
+        <h2>Kuyruk</h2>
+        <span class="panel-notu">
+          {% if bekleyen %}{{ bekleyen }} bekleyen{% else %}bekleyen yok{% endif %}
+        </span>
+      </div>
+      <div class="akis-listesi">
+        {% for k in kuyruk %}
+        <a class="akis-satiri {{ k.renk }} {% if k.id == olay.id %}secili{% endif %}"
+           href="/komuta/inceleme?olay={{ k.id }}"
+           {% if k.id == olay.id %}aria-current="true"{% endif %}>
+          <span class="akis-ust">
+            <span class="akis-baslik">{{ k.baslik }}</span>
+            <span class="akis-saat">{{ k.durum_kucuk }}</span>
+          </span>
+          <span class="akis-yer">{{ k.yer }} · {{ k.saat }}</span>
+        </a>
+        {% endfor %}
+      </div>
+      {% if kuyruk_dolu %}
+      <p class="panel-notu">En yeni {{ kuyruk|length }} ihlal gösteriliyor;
+        işaretlenmemiş olaylar her zaman listenin başındadır.
+        <a href="/olaylar">Tüm olaylar →</a></p>
+      {% endif %}
+    </section>
+
+    {# --- sağ: seçili olay ----------------------------------------------- #}
+    <section class="komuta-panel">
+      <div class="inceleme-ust">
+        <span class="inceleme-baslik">
+          <h2>{{ olay.ozet }}</h2>
+          <span class="panel-notu">Olay #{{ olay.id }} · {{ olay.yer }} · {{ olay.zaman_kisa }}</span>
+        </span>
+        <span class="inceleme-rozetler">
+          {# Gölge moddaki kuralın olayında hoparlör HİÇ çalmamıştır; bunu
+             yazmazsak kullanıcı "anons neden duyulmadı" diye arıza arar. #}
+          {% if olay.golge_mod %}
+          <span class="rozet sari">gölge mod — anons çalmadı</span>
+          {% endif %}
+          <span class="rozet {{ olay.rozet_rengi }}">{{ olay.rozet }}</span>
+        </span>
+      </div>
+
+      {# --- kanıt fotoğrafı --- #}
+      <div class="kanit-kutu">
+        {% if olay.snapshot_path %}
+          <img src="/goruntuler/{{ olay.snapshot_path }}" alt="Olay {{ olay.id }} kanıt görüntüsü">
+        {% else %}
+          {# Fotoğraf yazılamamış olabilir (disk dolu, klasör izni): olay yine
+             de kaydedilir. Boş bir kutu bırakmak yerine sebebi söylenir. #}
+          <span class="kanit-yazi">Bu olayın kanıt fotoğrafı kaydedilememiş —
+            olay kaydı yine de geçerlidir.</span>
+        {% endif %}
+      </div>
+
+      {# --- kural özeti: yalnızca kaydı olan değerler --- #}
+      {% if olay.kutular %}
+      <div class="inceleme-kutular">
+        {% for kutu in olay.kutular %}
+        <div class="komuta-kutu">
+          <span class="sayi-etiketi">{{ kutu.etiket }}</span>
+          <span class="kutu-degeri">{{ kutu.deger }}</span>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      {# --- işaretleme --- #}
+      <form method="post" action="/olaylar/{{ olay.id }}/durum" class="inceleme-islem">
+        <input type="hidden" name="donus" value="inceleme">
+        <button type="submit" class="dugme" name="durum" value="reviewed">Doğru uyarı</button>
+        <button type="submit" class="dugme ikincil" name="durum" value="false_alarm">Yanlış alarm</button>
+        <input name="not_metni" placeholder="Not (isteğe bağlı)" value="{{ olay.note or '' }}">
+        <button type="submit" class="dugme ikincil" name="durum" value="{{ olay.status }}">Notu kaydet</button>
+      </form>
+
+      <p class="panel-notu">«Yanlış alarm» işaretini esirgemeyin: yanlış uyarı,
+        kaçırılan ihlalden daha ağır bir kusurdur — çalışanın sisteme güvenini
+        bitirir. Bu işaretler, sistemin isabetini ölçebildiğimiz tek veridir.</p>
+
+      {# --- gezinme + görünür klavye ipucu --- #}
+      <div class="inceleme-gezinme">
+        {% if onceki_id %}
+        <a class="dugme ikincil" href="/komuta/inceleme?olay={{ onceki_id }}">← önceki olay</a>
+        {% endif %}
+        {% if sonraki_id %}
+        <a class="dugme" href="/komuta/inceleme?olay={{ sonraki_id }}">sonraki olay →</a>
+        {% endif %}
+        <span class="panel-notu">Klavyeden de geçebilirsiniz:
+          <b>←</b> önceki olay · <b>→</b> sonraki olay.
+          Not kutusundayken <b>Enter</b> tuşu «Doğru uyarı» demektir.</span>
+        <a class="panel-sag" href="/olaylar/{{ olay.id }}">teknik ayrıntı →</a>
+      </div>
+    </section>
+
+  </div>
+{% endif %}
+
+{% endblock %}
+{% block betikler %}
+<script src="/static/inceleme.js?v=16"></script>
+{% endblock %}

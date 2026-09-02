@@ -1,6 +1,7 @@
 {% extends "temel.html" %}
 {% block baslik %}{{ kamera.name }} — DALSAN İSG{% endblock %}
 {% block icerik %}
+  {% from "ipucu.html" import ipucu %}
   <div class="baslik-satiri">
     <h2>{{ kamera.name }}
       <span class="rozet {{ kamera.rozet_rengi }}" id="durum-rozeti">{{ kamera.rozet }}</span>
@@ -75,7 +76,10 @@
       silinmez, "Aç"a basınca aynen döner. Ad, tip veya çizim değiştirmek için
       <b>Düzenle</b>'yi kullanın — <b>Sil</b>, bölgeye bağlı kuralları da siler.</p>
     {% else %}
-    <p class="bos">Bu kamerada bölge yok. Kurallar bölge üstünde çalışır — önce bölge çizin.</p>
+    <p class="bos">Bu kamerada bölge yok — bu kamera hiçbir kural değerlendiremez.</p>
+    <p class="not">Kurallar bölgelerin üstünde çalışır. Aşağıdaki <b>"Yeni bölge çiz"</b>
+      bölümünden ad yazıp tip seçin, "Çizime başla"ya basıp görüntüde köşelere tıklayın.
+      Adım adım anlatım: <a href="/komuta/kilavuz#bolge">Bölge nasıl çizilir →</a></p>
     {% endif %}
 
     {# Her bölge tipinin tek tıkla kurulan bir kural karşılığı var (docs/03).
@@ -161,6 +165,7 @@
 
   <section class="kart">
     <h3>Mesafe kalibrasyonu
+      {{ ipucu('kalibrasyon', 'Kamera piksel görür, güvenli mesafe kuralı metre ölçer; kalibrasyon zeminde ölçüsünü bildiğiniz 4 noktayla bu ikisini birbirine çevirir.') }}
       {% if kalibrasyon_var %}<span class="rozet yesil">kalibre — {{ kalibrasyon_zamani }}</span>
       {% else %}<span class="rozet gri">kalibre değil</span>{% endif %}
     </h3>
@@ -196,7 +201,10 @@
       {% endfor %}
     </table>
     {% else %}
-    <p class="bos">Kural yok.</p>
+    <p class="bos">Bu kameraya henüz kural bağlanmadı — kameradan uyarı gelmez.</p>
+    <p class="not">Bölge çizdiyseniz yukarıdaki <b>"Hazır kurallar"</b> bölümü, bölge
+      tipine uyan kuralı tek düğmeyle kurar. Kendi değerlerinizle kurmak için aşağıdaki
+      düğmeyi kullanın.</p>
     {% endif %}
     <a class="dugme ikincil" href="/kurallar/yeni?kamera={{ kamera.id }}">+ Bu kameraya kural ekle</a>
   </section>
@@ -234,6 +242,6 @@
 {% block betikler %}
 <script>window.MEVCUT_BOLGELER = {{ bolgeler_json | safe }};
 window.DUZENLENEN_BOLGE = {{ duzenlenen_json | safe }};</script>
-<script src="/static/onizleme.js?v=11"></script>
-<script src="/static/kamera_detay.js?v=11"></script>
+<script src="/static/onizleme.js?v=16"></script>
+<script src="/static/kamera_detay.js?v=16"></script>
 {% endblock %}

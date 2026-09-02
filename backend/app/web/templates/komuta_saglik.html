@@ -1,0 +1,83 @@
+{# Kamera sağlığı — bağlantı, örnekleme hızı ve kalibrasyon durumu.
+
+   Tasarımın örnek satırları ("Sevkiyat Rampası · 5,8 fps · 28.08.2026")
+   buraya taşınmadı: her satır cameras + camera_calibrations tablolarından
+   gelir. Kamera yoksa boş bir tablo değil, ne yapılacağı gösterilir. #}
+{% extends "komuta_temel.html" %}
+{% block icerik %}
+
+{% if not saglik_kameralari %}
+  <section class="komuta-panel">
+    <div class="komuta-bos">
+      <h3>Henüz kamera eklenmedi</h3>
+      <p>Bu ekran, eklenen her kameranın bağlantısını, saniyede kaç kare
+        işlendiğini ve kalibrasyonunun yapılıp yapılmadığını gösterir.</p>
+      <a class="dugme" href="/kameralar/yeni">Kamera ekle</a>
+    </div>
+  </section>
+
+{% else %}
+
+  {# --- üç özet kutusu ------------------------------------------------- #}
+  <div class="komuta-sayilar uclu">
+    {% for kart in saglik_sayilari %}
+    <div class="sayi-karti">
+      <span class="sayi-etiketi">{{ kart.etiket }}</span>
+      <span class="sayi-degeri {{ kart.renk }}">{{ kart.deger }}</span>
+      <span class="sayi-alt">{{ kart.alt }}</span>
+    </div>
+    {% endfor %}
+  </div>
+
+  {# --- kamera tablosu -------------------------------------------------- #}
+  <section class="komuta-panel">
+    <div class="panel-basligi">
+      <h2>Kameralar</h2>
+      <span class="panel-notu">{{ saglik_kameralari|length }} kamera</span>
+      <a class="panel-sag" href="/kameralar">kamera ayarları →</a>
+    </div>
+
+    {# Altı sütun dar ekrana sığmaz; tablo kendi içinde yana kayar, sayfa
+       yatay kaymaz. #}
+    <div class="tablo-kaydirma">
+      <div class="komuta-tablo saglik-tablo">
+        <div class="komuta-tablo-basligi">
+          <span>Kamera</span><span>Alan</span><span>fps</span>
+          <span>Son kare</span><span>Kalibrasyon</span><span>Durum</span>
+        </div>
+        {% for k in saglik_kameralari %}
+        <div class="komuta-tablo-satiri">
+          <span class="satir-adi"><a href="/kameralar/{{ k.id }}">{{ k.ad }}</a></span>
+          <span>{{ k.alan }}</span>
+          <span class="sayisal {% if k.fps_dusuk %}fps-dusuk{% endif %}"
+                title="ayarlanan hız: {{ k.ayarlanan_fps }}">
+            {{ k.fps }}{% if k.fps_dusuk %} ▼{% endif %}
+          </span>
+          <span class="sayisal">{{ k.son_kare }}</span>
+          <span>
+            {% if k.kalibrasyon %}{{ k.kalibrasyon }}
+            {% else %}<a href="/kameralar/{{ k.id }}#kalibrasyon-formu">Kalibre et</a>{% endif %}
+          </span>
+          <span><span class="rozet {{ k.rozet_rengi }}">{{ k.rozet }}</span></span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    {% if yavas_kamera %}
+    <p class="panel-notu"><b>▼ işaretli {{ yavas_kamera }} kamerada</b> ölçülen hız,
+      ayarlanan hızın %{{ fps_uyari_yuzdesi }} sınırının altına indi: kamera ya da ağ
+      yavaş; görüntü kalitesi düşebilir ve hızlı geçen bir forklift kaçırılabilir.</p>
+    {% endif %}
+
+    {% if kalibrasyonsuz_kamera %}
+    <p class="panel-notu">Kalibre edilmemiş kamerada güvenli mesafe kuralı bilerek
+      pasif kalır — kalibrasyon olmadan piksel mesafesi metreye çevrilemez ve
+      yanıltıcı olur. "Kalibre et" bağlantısı sizi o kameranın sayfasındaki
+      kalibrasyon bölümüne götürür.</p>
+    {% endif %}
+  </section>
+
+{% endif %}
+
+{% endblock %}

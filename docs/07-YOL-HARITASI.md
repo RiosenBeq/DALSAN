@@ -27,6 +27,8 @@ Sıralama beklenen faydaya göre.
 | 12 | **NVR kayıt entegrasyonu** | Olaydan NVR'daki tam kayda atlama. | Orta |
 | 13 | **Düşme / hareketsizlik tespiti** | Ayrı model, ayrı veri, ayrı bedel. Teklifte kapsam dışı. | Büyük |
 | 14 | **PLC / SCADA / ERP entegrasyonu** | Teklifte açıkça kapsam dışı. İhlalde hat/kapı sinyali senaryosu doğarsa. | Değişken |
+| 15 | **Dördüncü kural tipi: ani hareket / forklift hızı** ("forklift 2,5 m/s üstünde") | Komuta tasarımının uyarı zincirinde örnek olarak geçiyor ama MVP'de YOK. Ertelenmesinin nedeni teknik: `rules.rule_type` bir CHECK kısıtıyla üç tipe kapalı ve SQLite'ta CHECK değiştirmek tabloyu yeniden kurmak demektir; şema betikleri işlem içinde çalıştığı için `PRAGMA foreign_keys` etkisiz kalır ve yeniden kurma, kullanıcının kurallarını sessizce silme riski taşır. Doğru yol: `rules` tablosunu güvenli biçimde taşıyan ayrı bir göç (yeni tablo + kopyala + eski tabloyu bırak) ve `rules/hiz.py` içinde saf bir kural fonksiyonu. Hız verisi zaten var: `Tespit.hiz_mps` kalibre kamerada hesaplanıyor. | Orta |
+| 16 | **Anons kayıt defteri** (hoparlör gerçekten kaç kez çaldı) | Anons ekranı bugün "anons tetikleyen ihlal" sayıyor; tekrar aralığı bir kısmını bastırdığı için gerçek anons sayısı bundan azdır ve ekran bunu açıkça yazıyor. Kesin sayı için her başarılı/başarısız anonsu yazan küçük bir tablo gerekir. | Küçük |
 
 ---
 

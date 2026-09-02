@@ -1,6 +1,11 @@
-// Canlı önizleme: data-kamera taşıyan her <img> 1 sn'de bir yenilenir.
+// Canlı önizleme: data-kamera taşıyan her <img> düzenli aralıklarla yenilenir.
 // Sunucu 204 dönerse (henüz kare yok) görüntü boş kalır, "bekleniyor" yazısı durur;
 // ilk kare gelince yazı kalkar. Kırık resim simgesi hiç görünmez.
+//
+// Tazeleme aralığı varsayılan 1 sn'dir. Aynı sayfada ÇOK kamera varsa (canlı
+// duvar) her istek sunucuda ayrı bir JPEG kodlaması demektir; o ekranlar
+// data-aralik ile daha uzun bir süre verir (bkz. web/komuta.py
+// KARE_TAZELEME_MS).
 //
 // Kamera sayfasında ayrıca #kare-durumu[data-kamera] varsa 2 sn'de bir
 // durum.json sorulur: bağlanıyor / çevrimiçi / çevrimdışı + bağlanamama SEBEBİ.
@@ -13,6 +18,13 @@
   function adres(resim) {
     var yol = "/kameralar/" + resim.dataset.kamera + "/onizleme.jpg";
     return resim.dataset.bolgesiz === "1" ? yol + "?bolgesiz=1" : yol;
+  }
+
+  var VARSAYILAN_ARALIK_MS = 1000;
+
+  function aralik(resim) {
+    var ms = parseInt(resim.dataset.aralik, 10);
+    return ms > 0 ? ms : VARSAYILAN_ARALIK_MS;
   }
 
   function yenile(resim) {
@@ -36,7 +48,7 @@
 
   resimler.forEach(function (resim) {
     yenile(resim);
-    setInterval(function () { yenile(resim); }, 1000);
+    setInterval(function () { yenile(resim); }, aralik(resim));
   });
 
   // --- canlı durum satırı (yalnız kamera detay sayfası) ---

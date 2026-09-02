@@ -4,15 +4,15 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block baslik %}DALSAN İSG{% endblock %}</title>
-  <link rel="icon" href="/static/logo.svg?v=11">
-  <link rel="stylesheet" href="/static/stil.css?v=11">
+  <link rel="icon" href="/static/logo.svg?v=16">
+  <link rel="stylesheet" href="/static/stil.css?v=16">
 </head>
 <body>
   <header>
     <div class="ust-cubuk">
       <h1 class="marka">
         <a class="marka-baglanti" href="/">
-          <img class="marka-logo" src="/static/logo.svg?v=11" alt="" width="30" height="30">
+          <img class="marka-logo" src="/static/logo.svg?v=16" alt="" width="30" height="30">
           <span class="marka-yazi">
             <span class="marka-ad">NextGen Detector</span>
             <span class="marka-alt">DALSAN İSG</span>
@@ -20,6 +20,9 @@
         </a>
       </h1>
       <nav>
+        {# Komuta kabuğuna dönüş: kurulum sayfaları eski kabukta açılır,
+           kullanıcı buradan komuta ekranlarına geri döner. #}
+        <a href="/komuta">← Komuta</a>
         <a href="/" {% if aktif_sekme == 'ana' %}class="aktif"{% endif %}>Ana Sayfa</a>
         <a href="/kameralar" {% if aktif_sekme == 'kameralar' %}class="aktif"{% endif %}>Kameralar</a>
         <a href="/kurallar" {% if aktif_sekme == 'kurallar' %}class="aktif"{% endif %}>Kurallar</a>
@@ -32,15 +35,12 @@
   <main>
     {% block icerik %}{% endblock %}
   </main>
-  <script>
-  // Silme onayı TEK yerde. Onay metni data-onay özniteliğinden okunur; JS
-  // kaynağına gömülmez. Aksi halde adında kesme işareti olan bir kamera
-  // ("Rampa 1'in önü") onay penceresini bozar ve kayıt SORULMADAN silinirdi.
-  document.addEventListener("submit", function (olay) {
-    var metin = olay.target.getAttribute && olay.target.getAttribute("data-onay");
-    if (metin && !window.confirm(metin)) olay.preventDefault();
-  });
-  </script>
+  {# Silme onayı iki kabukta da aynı dosyadan gelir (static/onay.js). #}
+  <script src="/static/onay.js?v=16"></script>
+  {# "?" ipucu balonları da iki kabukta aynı dosyadan gelir: kurulum sayfaları
+     (kural formu, kamera detayı) bu kabukta yaşıyor ve ipuçlarının çoğu
+     oradaki alanları anlatıyor. #}
+  <script src="/static/kilavuz.js?v=16"></script>
   {% block betikler %}{% endblock %}
 </body>
 </html>

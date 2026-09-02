@@ -43,6 +43,7 @@ class Ayarlar:
     disk_uyari_gb: int
     cikarim_cihazi: str
     kare_ornekleme_fps: int
+    fps_uyari_orani: float
     tespit_guven_esigi: float
     tespit_insan_guven_esigi: float
     tespit_nms_esigi: float
@@ -120,6 +121,11 @@ def ayarlari_yukle(kok_dizin: Path | None = None) -> Ayarlar:
         cikarim_cihazi=_secenek(degerler, "CIKARIM_CIHAZI", "cpu", _CIHAZ_SECENEKLERI),
         # Yeni kameranın varsayılan örnekleme hızı (kamera formunda değiştirilebilir)
         kare_ornekleme_fps=_tam_sayi(degerler, "KARE_ORNEKLEME_FPS", 6, 1, 30),
+        # Kamera sağlığı ekranı: ÖLÇÜLEN hız, ayarlanan hızın bu oranının
+        # altına inerse kamera sarı gösterilir. Sabit bir "2 fps altı kötü"
+        # eşiği yanlış olurdu: 6 fps'e ayarlı kamerada 3 fps yarı hız demektir,
+        # 2 fps'e ayarlı kamerada ise normaldir.
+        fps_uyari_orani=_ondalik(degerler, "FPS_UYARI_ORANI", 0.6, 0.1, 1.0),
         # Tespit eşikleri: sahaya göre ayarlanır, koda gömülmez (CLAUDE.md §7).
         # Düşük eşik = daha çok tespit + daha çok yanlış alarm. İnsan eşiği ayrı
         # tutulur: kaçırılan insan, kaçırılan araçtan daha risklidir (docs/00).

@@ -41,9 +41,14 @@
       {% endfor %}
     </div>
     {% else %}
-    <p class="bos">Etiketlenecek örnek yok. Örnek birikmesi için: bir kameraya
-      "KKD zorunlu alan" tipinde bölge çizin; insanlar o bölgeden geçtikçe örnekler
-      burada birikecek.</p>
+    <p class="bos">Etiketlenecek örnek yok — sistem henüz kişi görüntüsü toplamadı.</p>
+    <p class="not">Örnek birikmesi için bir kameraya <b>"KKD zorunlu alan"</b>
+      tipinde bölge çizin; insanlar o bölgeden geçtikçe kırpılmış görüntüler burada
+      birikir ve etiketlemeye açılır.</p>
+    <p class="satir-form">
+      <a class="dugme" href="/kameralar">Kameralara git</a>
+      <a class="dugme ikincil" href="/komuta/kilavuz#bolge">Bölge çizme kılavuzu</a>
+    </p>
     {% endif %}
   </section>
 {% endblock %}
