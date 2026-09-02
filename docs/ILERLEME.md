@@ -1,5 +1,55 @@
 # İlerleme
 
+## Mac / Windows uyumu — baştan aşağı denetim (02.09.2026)
+
+Bağımsız bir denetimle bulunan ve giderilenler (en kritikten):
+
+- **Windows'ta çift tıklama Microsoft Mağazası'nı açıyordu.** `where python`
+  Windows 10/11'de Python KURULU OLMASA BİLE başarılıdır: PATH'te sıfır baytlık
+  bir "python.exe" takma adı vardır. Yardım mesajı hiç görünmüyordu. Artık
+  `py -3` denenip adayın gerçekten Python olduğu doğrulanıyor.
+- **Hata anında pencere kapanıyordu** — kullanıcının kopyalayacak satırı
+  kalmıyordu (destek akışının tamamı buna dayanır). `pause` eklendi.
+- **Kontrol Paneli günlüğü Türkçe büyük harfte donuyordu.** Alt süreç UTF-8
+  yazarken panel cp1254 çözüyordu; Ş ve Ğ (0x9E) cp1254'te tanımsız olduğu için
+  "SİSTEM BAŞLATILIYOR" satırı `UnicodeDecodeError` verip günlük penceresini
+  sessizce donduruyordu. Artık UTF-8 okunuyor ve hata yutulmuyor.
+- **Kurulum Intel Mac'te kırılıyordu.** opencv-python 5.x ve onnxruntime 1.29
+  o platform için hazır paket yayınlamıyor; pip kaynaktan derlemeye kalkıp
+  dakikalarca hata basıyordu. Sürümler sabitlendi; Python alt sınırı
+  bağımlılıkların gerçekten istediği 3.11'e çekildi.
+- **Panel çökerse sistem kilitleniyordu:** sunucu sahipsiz çalışmaya devam
+  ediyor, "Durdur" onu bulamıyor, "Başlat" da kapalı kalıyordu. Artık PID
+  dosyasıyla sahipsiz süreç sahiplenilip durdurulabiliyor. Windows'ta önce
+  nazik kapatma (CTRL_BREAK) deneniyor: kapanış kodu artık gerçekten çalışıyor.
+- **Türkçe klasör adında KKD fotoğrafları kayboluyordu.** `cv2.imwrite` yolu
+  işletim sisteminin kod sayfasıyla kodlar ve `C:\Users\Gökhan\...` gibi bir
+  yolda hata FIRLATMADAN başarısız olur; veritabanında var görünen, diskte
+  olmayan örnekler oluşuyordu.
+- **Tek kilitli dosya bakımın tamamını iptal ediyordu** (Windows'ta Defender
+  veya yedekleme açık tutunca `PermissionError`); artık atlanıp devam ediliyor.
+- **"Anonsu Dene" yalan söylüyordu:** komutun çıkış kodu hiç bakılmıyordu, ses
+  çıkmasa da "gönderildi" yazıyordu. Artık sonuç bekleniyor ve sebep yazılıyor.
+  Anons kapalıyken (ANONS=null) bunu açıkça söylüyor. Ses dosyası **.wav**
+  olmak zorunda (Windows yalnız WAV çalar) ve yol POSIX biçiminde saklanıyor.
+- **PowerShell tırnak kaçışı:** yolda kesme işareti varsa ("Ali'nin Sesleri")
+  komut bozuluyordu — hem hata hem enjeksiyon yüzeyi.
+- **Mac başlatıcısı** artık `/usr/bin/python3` yer tutucusunu en sona bırakıyor
+  ("geliştirici araçları gerekiyor" penceresi iki kez açılıyordu) ve ZIP'ten
+  gelen dosyanın çalıştırma iznini kendisi tazeliyor.
+- **`.gitattributes` eklendi:** Windows'ta klonlanan depoda `Baslat-Mac.command`
+  CRLF'e çevrilip Mac'te çalışmaz hale geliyordu.
+- **Mac'te model indirme sertifika hatası** artık doğru teşhis ediliyor:
+  "Install Certificates.command dosyasına çift tıklayın".
+- **Görüntü üzerindeki etiketler:** OpenCV yalnız ASCII çizer, "tır" ekranda
+  "t?r" görünüyordu. Overlay'de ASCII karşılıklar kullanılıyor; arayüz ve renk
+  anahtarı tam Türkçe kaldı.
+- **Dokümanlar düzeltildi:** DirectShow arka ucu ve bilgisayar kamerası desteği
+  vaat ediliyordu, ikisi de yok. OneDrive/iCloud içine kurulum uyarısı,
+  `chmod +x` talimatı ve macOS sertifika adımı eklendi.
+
+172 test yeşil (17 yeni platform testi), ruff temiz.
+
 ## Sınıf görselleri, yaya yolu kuralı ve görüntü kalitesi (02.09.2026)
 
 - **Sınıf görselleri ve renk anahtarı:** İnsan yeşil, forklift turuncu, tır/araç

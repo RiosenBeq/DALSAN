@@ -7,7 +7,7 @@ Böylece fabrikada "acaba çalışıyor mu" belirsizliği kalmaz.
 
 from __future__ import annotations
 
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -80,7 +80,14 @@ def mesaj_kaydet(
                 f"Ses dosyası bulunamadı: {ses} — Dosyayı proje klasörüne kopyalayıp "
                 "yolunu 'veri/sesler/baret.wav' gibi yazın."
             )
-        ses = str(Path(ses))
+        if tam.suffix.lower() != ".wav":
+            raise DogrulamaHatasi(
+                "Ses dosyası .wav olmalı. Windows'un ses çalıcısı yalnızca WAV çalar; "
+                "MP3 Mac'te çalışıp fabrikada sessizce çalışmaz. Dosyayı WAV'a çevirin."
+            )
+        # POSIX biçiminde saklanır: Windows'ta kaydedilen 'veri\\sesler\\a.wav'
+        # Linux fabrika sunucusunda tek bir dosya adı sanılır ve bulunamazdı.
+        ses = PurePosixPath(Path(ses).as_posix()).as_posix()
     baglanti.execute(
         "UPDATE announcement_messages SET text = ?, audio_file = ?, enabled = ? WHERE id = ?",
         (metin, ses or None, 1 if enabled == "1" else 0, mesaj_id),

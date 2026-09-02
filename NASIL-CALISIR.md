@@ -57,7 +57,7 @@ tek şey, bakılacak tek günlük vardır.
 | Sistemin kendisi, arayüz | ✅ | ✅ | ✅ | ✅ |
 | Video dosyasıyla deneme | ✅ | ✅ | ✅ | ✅ |
 | **IP kamera (RTSP)** | ✅ | ✅ | ✅ | ✅ |
-| **Bilgisayarın kendi kamerası** | ✅ | ✅ | ❌ *(Docker Desktop kamerayı container'a veremez)* | ⚠️ yalnız USB kamera, ayar gerekir |
+| **Bilgisayarın kendi kamerası** | ❌ *(DALSAN yalnız RTSP ve video dosyası kabul eder)* | ❌ | ❌ | ❌ |
 | **Ekran kartı (GPU) hızlandırma** | ❌ *(Mac'te Docker GPU yok)* | ⚠️ WSL2 + NVIDIA ile | ❌ | ✅ NVIDIA + Container Toolkit |
 | Anons — ses kartı | ✅ | ✅ | ❌ | ✅ *(`/dev/snd` bağlanırsa)* |
 | Anons — IP hoparlör (HTTP) | ✅ | ✅ | ✅ | ✅ |
@@ -97,13 +97,21 @@ Docker içindir (aşağıya bakın).
    SmartScreen uyarısı çıkarsa: Daha fazla bilgi → Yine de çalıştır.
 3. Tarayıcı kendiliğinden açılır.
 
-Windows'a özel olarak halledilmiş üç şey:
-- **Kamera:** DirectShow arka ucu kullanılır (Windows'un varsayılanı yerleşik
-  kamerada sık takılır).
+Windows'a özel olarak halledilmiş şeyler:
+- **Başlatıcı:** `py -3` ile başlatılır. `where python` Windows 10/11'de Python
+  kurulu olmasa bile başarılı olur (Microsoft Store takma adı yüzünden) ve
+  Mağaza'yı açıp pencereyi kapatırdı.
+- **Türkçe günlük:** Kontrol Paneli alt sürecin çıktısını UTF-8 okur. Aksi halde
+  büyük Ş/Ğ harfleri Windows'un cp1254 kod sayfasında çözülemiyor ve günlük
+  penceresi sessizce donuyordu.
 - **Saat dilimi:** Windows saat dilimi veritabanıyla gelmez; `tzdata` paketi
   bağımlılıklara eklendi, saatler Türkiye saatinde doğru gösterilir.
 - **Anons sesi:** `afplay`/`aplay` Windows'ta yoktur; PowerShell'in hazır ses
-  çalıcısı kullanılır.
+  çalıcısı kullanılır. **Yalnızca .wav çalar** — sistem başka biçimi kabul etmez.
+- **Türkçe klasör adı:** Kanıt ve KKD fotoğrafları `C:\Users\Gökhan\...` gibi
+  yollara da yazılabilir (OpenCV'nin yol kodlaması atlanır).
+- **Kamera:** Kaynak olarak yalnızca RTSP adresi veya video dosyası kullanılır;
+  bilgisayarın kendi kamerası DALSAN kapsamında değildir.
 
 ---
 
@@ -174,7 +182,7 @@ Sık kullanılan satırlar:
 
 | Ayar | Anlamı |
 |---|---|
-| `KAYNAK` | Demolarda kamera: `0` (bilgisayar kamerası), `rtsp://…`, ya da video dosyası |
+| `KAYNAK` | **Yalnızca demolarda** (otopark/bardak sayacı) kamera seçimi. DALSAN'da kameralar ekrandan eklenir, .env'de kaynak ayarı yoktur |
 | `CIKARIM_CIHAZI` | `cpu` veya `cuda` (yalnız NVIDIA'lı Linux sunucuda `cuda`) |
 | `KARE_ORNEKLEME_FPS` / `KARE_FPS` | Saniyede kaç kare analiz edilsin (3-6 yeterli) |
 | `ANONS` | `null` (kapalı), `ses_karti`, `http` |
@@ -189,7 +197,9 @@ değiştirince sistem yeniden başlatılmaz, birkaç saniyede devreye girer.
 
 | Belirti | Sebep / çözüm |
 |---|---|
-| Çift tıklayınca hiçbir şey olmuyor (Mac) | Dosyaya çalıştırma izni gerekiyor: sağ tık → Aç → Aç |
+| Çift tıklayınca hiçbir şey olmuyor (Mac) | İki ayrı sebep olabilir: **(1) Güvenlik uyarısı** → sağ tık → Aç → Aç. **(2) Çalıştırma izni yok** (ZIP'ten çıktıysa ya da Windows üzerinden kopyalandıysa) → Terminal'de proje klasöründe `chmod +x Baslat-Mac.command` |
+| Mac'te "geliştirici araçları gerekiyor" penceresi | Python kurulu değil: python.org'dan Python 3.12 kurun |
+| Mac'te "model indirilemedi, sertifika doğrulanamadı" | Uygulamalar → Python 3.x klasöründeki **Install Certificates.command** dosyasına çift tıklayın |
 | "Python bulunamadı" (Windows) | Kurulumda "Add Python to PATH" işaretlenmemiş; Python'u kaldırıp kutuyu işaretleyerek tekrar kurun |
 | Sayfa açılıyor ama görüntü yok | Kamera sayfasındaki durum satırı sebebi yazar: "dosya bulunamadı", "kameraya ulaşılamıyor (IP:port)", "kullanıcı adı/şifre yanlış olabilir"… |
 | Kamera eklerken kırmızı hata sayfası | Sayfadaki mesaj ne yapılacağını söyler; "Geri dön ve düzelt" ile forma dönün (girdiğiniz bilgiler korunur) |

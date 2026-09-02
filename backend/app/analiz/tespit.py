@@ -40,6 +40,12 @@ _INSAN_MODEL_ID = 0
 # Kullanıcıya görünen Türkçe adlar (arayüz bu tabloyu kullanır)
 SINIF_TR = {"person": "insan", "truck": "tır", "forklift": "forklift"}
 
+# GÖRÜNTÜ ÜZERİNE yazılan adlar. cv2.putText yalnızca ASCII çizer; Türkçe
+# harfler "?" olur ("tır" → "t?r"). Yeni bir yazı tipi kütüphanesi eklemek
+# yerine (CLAUDE.md §3: en az parça) overlay'de ASCII karşılıkları kullanılır.
+# Ekrandaki metinler, tablolar ve renk anahtarı tam Türkçe kalır.
+SINIF_OVERLAY = {"person": "insan", "truck": "tir", "forklift": "forklift"}
+
 
 class ModelHatasi(DalsanHata):
     """Model dosyası yok/bozuk — analiz tespitsiz devam eder, sistem çökmez."""

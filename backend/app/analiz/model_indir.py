@@ -8,6 +8,7 @@ verilmişse indirilmez, kullanıcıya dosyayı kendisinin koyması söylenir.
 
 from __future__ import annotations
 
+import ssl
 import urllib.error
 import urllib.request
 from collections.abc import Callable
@@ -59,8 +60,23 @@ def modeli_indir(model_dosyasi: Path, ilerleme: Callable[[int, int], None] | Non
         gecici.replace(model_dosyasi)
     except (urllib.error.URLError, TimeoutError, OSError) as hata:
         gecici.unlink(missing_ok=True)
-        raise ModelIndirmeHatasi(
-            f"Tespit modeli indirilemedi ({adres}): {hata}. "
-            "İnternet bağlantısını kontrol edip sistemi yeniden başlatın; "
-            "ya da dosyayı models/ klasörüne elle koyun (bash models/indir.sh)."
-        ) from hata
+        raise ModelIndirmeHatasi(_indirme_hata_mesaji(adres, model_dosyasi, hata)) from hata
+
+
+def _indirme_hata_mesaji(adres: str, model_dosyasi: Path, hata: Exception) -> str:
+    """Sebebe göre DOĞRU çözümü söyler — "internetinizi kontrol edin" her
+    zaman doğru teşhis değildir."""
+    sebep = getattr(hata, "reason", hata)
+    if isinstance(sebep, ssl.SSLCertVerificationError) or "CERTIFICATE_VERIFY_FAILED" in str(hata):
+        return (
+            f"Tespit modeli indirilemedi: güvenlik sertifikaları doğrulanamadı ({adres}).\n"
+            "Mac'te python.org'dan kurulan Python'da bu sık görülür. Çözüm: Uygulamalar → "
+            "Python 3.x klasöründeki 'Install Certificates.command' dosyasına çift tıklayın, "
+            "sonra sistemi yeniden başlatın.\n"
+            f"Alternatif: dosyayı tarayıcıyla indirip {model_dosyasi} konumuna koyun:\n{adres}"
+        )
+    return (
+        f"Tespit modeli indirilemedi ({adres}): {hata}\n"
+        "İnternet bağlantısını kontrol edip sistemi yeniden başlatın. "
+        f"Alternatif: dosyayı tarayıcıyla indirip {model_dosyasi} konumuna koyun."
+    )

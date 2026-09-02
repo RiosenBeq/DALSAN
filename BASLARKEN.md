@@ -1,11 +1,24 @@
 # Başlarken — 10 Dakikalık Rehber
 
+## 0. Klasörü nereye koymalı
+
+Proje klasörünü **OneDrive, iCloud Drive veya Google Drive içine KOYMAYIN.**
+Bu klasörler dosyaları arka planda eşitler; veritabanı dosyası (`veri/dalsan.db`)
+eşitleme sırasında kilitlenir ve sistem "veritabanı kilitli" hatası verir.
+
+Güvenli yerler: `C:\DALSAN` (Windows) veya `~/DALSAN` (Mac).
+Yolun kısa olması Windows'ta ayrıca uzun-yol sorununu da önler.
+
 ## 1. Python'u kur (bir kez)
 
-https://www.python.org/downloads/ → **Python 3.12**
+https://www.python.org/downloads/ → **Python 3.12** (en az 3.11 gerekir)
 
 > **Windows'ta:** Kurulum ekranındaki **"Add Python to PATH"** kutusunu işaretle.
-> Bu kutuyu atlarsan hiçbir şey çalışmaz.
+> (İşaretlemeyi unutursan da başlatıcı `py` komutuyla çalışmayı dener.)
+
+> **Mac'te:** Kurulumdan sonra **Uygulamalar → Python 3.12** klasöründeki
+> **"Install Certificates.command"** dosyasına bir kez çift tıkla. Bunu
+> atlarsan tespit modeli indirilemez ("sertifika doğrulanamadı" hatası).
 
 ## 2. Kontrol Paneli'ni aç
 

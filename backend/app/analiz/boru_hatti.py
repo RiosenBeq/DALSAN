@@ -13,7 +13,7 @@ import numpy as np
 from app.analiz import goruntu
 from app.analiz.kkd_siniflandirici import KkdSiniflandirici, kisi_kirp
 from app.analiz.takip import Takipci
-from app.analiz.tespit import SINIF_TR, Tespitci
+from app.analiz.tespit import SINIF_OVERLAY, Tespitci
 from app.rules.geometri import nokta_poligonda
 from app.rules.motor import KuralMotoru
 from app.rules.tipler import (
@@ -189,7 +189,7 @@ class KameraHatti:
             ihlalli = tespit.takip_id in ihlal_takipleri
             renk = _IHLAL_RENGI if ihlalli else _RENKLER.get(tespit.sinif, (180, 180, 180))
             cv2.rectangle(gorsel, (x1, y1), (x2, y2), renk, 3 if ihlalli else 2)
-            etiket = f"{SINIF_TR.get(tespit.sinif, tespit.sinif)} #{tespit.takip_id}"
+            etiket = f"{SINIF_OVERLAY.get(tespit.sinif, tespit.sinif)} #{tespit.takip_id}"
             _yazi(gorsel, etiket, (x1, max(y1 - 6, 12)), renk)
             if tespit.sinif == SINIF_INSAN:
                 self._kkd_isaretle(gorsel, tespit, (x1, y1, x2, y2))

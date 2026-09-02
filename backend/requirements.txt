@@ -12,8 +12,13 @@ ruff
 # --- Görüntü analizi ---
 # Tespit modeli ONNX Runtime ile çalışır (ADR-002: Apache-2.0 lisanslı YOLOX;
 # torch'a gerek yok). supervision, ByteTrack sürümü değiştiği için sabitlendi.
-opencv-python
-onnxruntime
+# SÜRÜMLER SABİT: en yeni sürümler her platform için hazır paket (wheel)
+# yayınlamıyor. opencv-python 5.x yalnız macOS 13+/arm64 ve macOS 14+/x86_64
+# için tekerlek veriyor; Intel Mac'te pip kaynaktan derlemeye kalkıyor ve
+# "İlk Kurulumu Yap" 10 dakika hata basıp başarısız oluyordu. onnxruntime
+# 1.29 ise macOS x86_64 için hiç tekerlek yayınlamıyor.
+opencv-python==4.10.0.84
+onnxruntime==1.19.2
 numpy
 supervision==0.25.1
 

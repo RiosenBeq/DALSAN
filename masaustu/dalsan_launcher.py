@@ -11,6 +11,7 @@ Windows'ta: Baslat-Windows.bat dosyasina cift tikla
 
 import os
 import queue
+import signal
 import shutil
 import socket
 import subprocess
@@ -58,11 +59,24 @@ def venv_python() -> Path:
 
 
 def python_ok() -> bool:
-    return sys.version_info >= (3, 10)
+    # onnxruntime 3.11+ ister; 3.10'a izin vermek pip'i cok eski bir surume
+    # dusuruyor ve tespit sessizce bozuluyordu.
+    return sys.version_info >= (3, 11)
 
 
 def venv_hazir() -> bool:
-    return venv_python().exists()
+    """Ortam gercekten CALISIYOR mu? Yalnizca dosya varligina bakmak yetmez:
+    Python surumu kaldirilinca .venv icindeki python calismaz hale gelir ama
+    dosya durur; panel o zaman kurulumu atlayip cokmeye devam ederdi."""
+    yol = venv_python()
+    if not yol.exists():
+        return False
+    try:
+        return subprocess.run(
+            [str(yol), "-c", "pass"], capture_output=True, timeout=30
+        ).returncode == 0
+    except (OSError, subprocess.SubprocessError):
+        return False
 
 
 def paketler_hazir() -> bool:
@@ -89,6 +103,55 @@ def sunucu_ayakta() -> bool:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.settimeout(0.4)
         return s.connect_ex(("127.0.0.1", PORT)) == 0
+
+
+PID_DOSYASI = DATA_DIR / "sunucu.pid"
+
+
+def _pid_yaz(pid: int) -> None:
+    """Calisan sunucunun numarasini yaz: panel cokerse sahiplenebilelim."""
+    try:
+        DATA_DIR.mkdir(parents=True, exist_ok=True)
+        PID_DOSYASI.write_text(str(pid), encoding="utf-8")
+    except OSError:
+        pass
+
+
+def _pid_sil() -> None:
+    try:
+        PID_DOSYASI.unlink(missing_ok=True)
+    except OSError:
+        pass
+
+
+def _sahipsiz_sureci_durdur(log) -> bool:
+    """Onceki panelden kalan sunucuyu durdurur. Durdurulduysa True."""
+    try:
+        pid = int(PID_DOSYASI.read_text(encoding="utf-8").strip())
+    except (OSError, ValueError):
+        return False
+    log(f"\nOnceki calistirmadan kalan sunucu bulundu (numara {pid}), durduruluyor…")
+    try:
+        if IS_WINDOWS:
+            subprocess.run(
+                ["taskkill", "/PID", str(pid), "/T", "/F"],
+                capture_output=True, timeout=15,
+                creationflags=subprocess.CREATE_NO_WINDOW,
+            )
+        else:
+            os.kill(pid, signal.SIGTERM)
+            for _ in range(16):
+                time.sleep(0.5)
+                if not sunucu_ayakta():
+                    break
+            else:
+                os.kill(pid, signal.SIGKILL)
+    except (OSError, subprocess.SubprocessError) as hata:
+        log(f"[!] Durdurulamadi: {hata}")
+        return False
+    _pid_sil()
+    log("✓ Durduruldu")
+    return True
 
 
 def klasorleri_hazirla() -> None:
@@ -272,9 +335,13 @@ def arayuzu_baslat():
     # ---- komut calistirip ciktisini loga akitan yardimci ----
     def komut_calistir(komut, aciklama):
         log(f"\n▶ {aciklama}")
+        # encoding ZORUNLU: alt surec UTF-8 yazar, Windows'ta varsayilan cozucu
+        # cp1254'tur. Buyuk S ve G harfleri (U+015E / U+011E) cp1254'te tanimsiz
+        # 0x9E baytina denk gelir; "SISTEM BASLATILIYOR" gibi bir satir
+        # UnicodeDecodeError verip gunluk penceresini SESSIZCE dondururdu.
         surec = subprocess.Popen(
             komut, cwd=str(ROOT), stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-            text=True, bufsize=1,
+            text=True, bufsize=1, encoding="utf-8", errors="replace",
             creationflags=subprocess.CREATE_NO_WINDOW if IS_WINDOWS else 0,
         )
 
@@ -349,17 +416,20 @@ def arayuzu_baslat():
         durum["surec"] = subprocess.Popen(
             komut, cwd=str(BACKEND),
             stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-            text=True, bufsize=1,
+            text=True, bufsize=1, encoding="utf-8", errors="replace",
             creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if IS_WINDOWS else 0,
             start_new_session=not IS_WINDOWS,
         )
+        _pid_yaz(durum["surec"].pid)
 
         def ciktiyi_oku():
             try:
                 for satir in durum["surec"].stdout:
                     log(satir.rstrip())
-            except Exception:
-                pass
+            except Exception as hata:
+                # Sessizce yutulursa gunluk penceresi donar ve kimse sebebini
+                # bilmez; en azindan satiri ekrana dusur.
+                log(f"[HATA] Gunluk okunamadi: {hata}")
 
         threading.Thread(target=ciktiyi_oku, daemon=True).start()
 
@@ -376,14 +446,34 @@ def arayuzu_baslat():
     def sistemi_durdur():
         surec = durum.get("surec")
         if not surec or surec.poll() is not None:
+            # Panel cokup yeniden acildiysa sunucu SAHIPSIZ calisiyor olabilir:
+            # port dolu gorunur, "Durdur" ise "bulunamadi" der ve kullanici
+            # panelden cikamayacagi bir duruma sikisirdi. PID dosyasi bu
+            # durumdaki sureci sahiplenmeyi saglar.
+            if _sahipsiz_sureci_durdur(log):
+                durum["surec"] = None
+                return
             log("[!] Çalışan sistem bulunamadı.")
             return
         log("\nSistem durduruluyor…")
         try:
-            surec.terminate()
-            surec.wait(timeout=8)
+            if IS_WINDOWS:
+                # terminate() Windows'ta TerminateProcess'tir: kapanis kodu
+                # (kamera is parcaciklari, baglantilar) hic calismaz. Once
+                # nazik yolu dene.
+                try:
+                    surec.send_signal(signal.CTRL_BREAK_EVENT)
+                    surec.wait(timeout=8)
+                except Exception:
+                    surec.terminate()
+                    surec.wait(timeout=8)
+            else:
+                surec.terminate()
+                surec.wait(timeout=8)
         except Exception:
             surec.kill()
+        _pid_sil()
+        durum["surec"] = None
         log("✓ Durduruldu")
 
     # ---- pencere kapatilirken ----

@@ -24,6 +24,10 @@ from app.rules.cooldown import Cooldown
 _log = log_al("anons")
 
 
+class AnonsHatasi(Exception):
+    """Ses çalınamadı — sebebi Anons sayfasında gösterilir."""
+
+
 class NullAnonscu:
     """Varsayılan: hiçbir şey çalmaz. Geliştirme + anons altyapısız fabrika."""
 
@@ -31,6 +35,11 @@ class NullAnonscu:
 
     def cal(self, anahtar: str, metin: str, ses_dosyasi: str | None) -> None:
         _log.info(f"Anons (kapalı, çalınmadı): {metin}")
+        raise AnonsHatasi(
+            "Anons KAPALI (.env dosyasında ANONS=null). Hoparlörden ses çıkmaz; "
+            "yalnızca ekran uyarısı verilir. Ses kartına bağlamak için ANONS=ses_karti, "
+            "IP hoparlör için ANONS=http yapıp sistemi yeniden başlatın."
+        )
 
 
 def _ses_komutu(ses_dosyasi: str) -> list[str] | None:
@@ -41,12 +50,16 @@ def _ses_komutu(ses_dosyasi: str) -> list[str] | None:
     GEREKTİRMEYEN, sistemde hazır gelen araçlar seçildi.
     """
     if sys.platform == "win32":
-        # Windows'ta afplay/aplay yoktur; SoundPlayer her Windows'ta hazırdır
+        # Windows'ta afplay/aplay yoktur; SoundPlayer her Windows'ta hazırdır.
+        # Tek tırnak İKİLENİR: yolda kesme işareti varsa ("Ali'nin Sesleri")
+        # PowerShell metni erken kapanır — hem bozulur hem komut enjeksiyonu
+        # yüzeyi olur (yol arayüzden girilir).
+        guvenli = ses_dosyasi.replace("'", "''")
         return [
             "powershell",
             "-NoProfile",
             "-Command",
-            f"(New-Object Media.SoundPlayer '{ses_dosyasi}').PlaySync()",
+            f"(New-Object Media.SoundPlayer '{guvenli}').PlaySync()",
         ]
     calici = shutil.which("afplay") or shutil.which("aplay") or shutil.which("paplay")
     return [calici, ses_dosyasi] if calici else None
@@ -72,19 +85,37 @@ class SesKartiAnonscu:
             )
 
     def cal(self, anahtar: str, metin: str, ses_dosyasi: str | None) -> None:
-        if not self._kullanilabilir or not ses_dosyasi:
-            _log.warning(f"Anons ses dosyası yok, çalınamadı: {anahtar} — {metin}")
-            return
+        if not self._kullanilabilir:
+            raise AnonsHatasi("Bu bilgisayarda ses çalma komutu bulunamadı (afplay/aplay/paplay).")
+        if not ses_dosyasi:
+            raise AnonsHatasi(
+                f"'{anahtar}' mesajına ses dosyası bağlanmamış. Anons sayfasında "
+                "bir .wav dosyasının yolunu yazın; yoksa yalnızca ekran uyarısı verilir."
+            )
         komut = _ses_komutu(ses_dosyasi)
         if komut is None:
-            _log.error(f"Anons çalınamadı, ses komutu yok: {ses_dosyasi}")
-            return
+            raise AnonsHatasi(f"Ses çalma komutu bulunamadı: {ses_dosyasi}")
+        # Bu çağrı zaten ayrı bir iş parçacığındadır (AnonsYoneticisi), bu
+        # yüzden sonucu BEKLEYEBİLİRİZ. Beklemezsek komut hemen başarısız olsa
+        # bile "gönderildi" yazardı ve 'Anonsu Dene' düğmesi yalan söylerdi.
         try:
-            # Bloklamasın: hoparlör çalarken analiz beklememeli
-            subprocess.Popen(komut, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            _log.info(f"Anons çalınıyor: {metin}")
-        except OSError as hata:
-            _log.error(f"Anons çalınamadı ({ses_dosyasi}): {hata}")
+            sonuc = subprocess.run(
+                komut,
+                capture_output=True,
+                timeout=20,
+                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0)
+                if sys.platform == "win32"
+                else 0,
+            )
+        except (OSError, subprocess.SubprocessError) as hata:
+            raise AnonsHatasi(f"Ses çalınamadı ({ses_dosyasi}): {hata}") from hata
+        if sonuc.returncode != 0:
+            ayrinti = (sonuc.stderr or b"").decode("utf-8", "replace").strip()[:200]
+            raise AnonsHatasi(
+                f"Ses çalınamadı ({ses_dosyasi}). "
+                + (f"Sebep: {ayrinti}" if ayrinti else "Dosya biçimi desteklenmiyor olabilir.")
+            )
+        _log.info(f"Anons çalındı: {metin}")
 
 
 class HttpAnonscu:
@@ -154,7 +185,16 @@ class AnonsYoneticisi:
     def hemen_cal(self, mesaj: dict) -> None:
         """Cooldown'suz çalar (arayüzdeki 'Anonsu Dene' düğmesi bunu kullanır)."""
         ses = mesaj.get("audio_file")
-        ses_yolu = str(self._goruntu_koku / ses) if ses else None
+        ses_yolu = None
+        if ses:
+            # Yol her çalışta yeniden doğrulanır: veritabanı başka bir yoldan
+            # düzenlenmiş ya da sürücü harfli mutlak bir değer girmiş olabilir.
+            kok = self._goruntu_koku.resolve()
+            tam = (kok / ses).resolve()
+            if not tam.is_relative_to(kok):
+                _log.error(f"Anons ses dosyası proje klasörünün dışında, çalınmadı: {ses}")
+                return
+            ses_yolu = str(tam)
         threading.Thread(
             target=self._cal_ve_kaydet,
             args=(mesaj.get("key", ""), mesaj.get("text", ""), ses_yolu),
@@ -165,7 +205,11 @@ class AnonsYoneticisi:
     def _cal_ve_kaydet(self, anahtar: str, metin: str, ses_yolu: str | None) -> None:
         try:
             self._anonscu.cal(anahtar, metin, ses_yolu)
-            self.son_sonuc = f"Son anons gönderildi: {metin}"
+            self.son_sonuc = f"Son anons ÇALINDI: {metin}"
+        except AnonsHatasi as hata:
+            # Bilinen sebep: kullanıcıya olduğu gibi göster
+            self.son_sonuc = f"Son anons ÇALINAMADI — {hata}"
+            _log.error(f"Anons çalınamadı: {hata}")
         except Exception as hata:  # noqa: BLE001 — anons hatası sistemi durdurmaz
-            self.son_sonuc = f"Son anons başarısız: {hata}"
+            self.son_sonuc = f"Son anons ÇALINAMADI — beklenmeyen hata: {hata}"
             _log.error(f"Anons çalınamadı: {hata}", exc_info=hata)

@@ -487,7 +487,15 @@ class AnalizSupervizoru:
         tam_yol = self.ayarlar.goruntu_klasoru / goreli
         try:
             tam_yol.parent.mkdir(parents=True, exist_ok=True)
-            cv2.imwrite(str(tam_yol), kirpik)
+            # cv2.imwrite YERİNE imencode + write_bytes: imwrite yolu işletim
+            # sisteminin ANSI kod sayfasıyla kodlar ve Türkçe karakter içeren
+            # bir yolda (C:\Users\Gökhan\...) hata FIRLATMADAN False döner.
+            # Sonuç: veritabanında var görünen ama diskte olmayan örnekler.
+            tamam, tampon = cv2.imencode(".jpg", kirpik)
+            if not tamam:
+                self._log.error(f"KKD örneği kodlanamadı: {tam_yol}")
+                return
+            tam_yol.write_bytes(tampon.tobytes())
         except (OSError, cv2.error) as hata:
             self._log.error(f"KKD örneği yazılamadı ({tam_yol}): {hata}")
             return
@@ -625,7 +633,11 @@ class AnalizSupervizoru:
                 if dosya.stat().st_mtime < sinir:
                     dosya.unlink()
                     sayi += 1
-            except FileNotFoundError:
+            except OSError:
+                # Windows'ta başka bir işlemin (Defender, yedekleme, dizin
+                # oluşturucu) açık tuttuğu dosya PermissionError verir.
+                # Yalnızca FileNotFoundError yakalamak, TEK kilitli dosya
+                # yüzünden o günkü bakımın tamamını iptal ediyordu.
                 continue
         return sayi
 
