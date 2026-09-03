@@ -30,6 +30,28 @@ if [ ! -x "$PY" ]; then
   exit 1
 fi
 
+# TUZAK: Homebrew'in Python'u tkinter'i AYRI bir paketle getirir
+# (python-tk@3.12). Eksikse uretim SORUNSUZ tamamlanir ama olusan .app
+# Finder'dan cift tiklandiginda HICBIR SEY YAPMAZ: pencere acilmaz, hata
+# da hicbir yere yazilmaz (paketlenmis programin ciktisi bir yere gitmez).
+# Kullanici "uygulamayi goremedim" der ve sebebi bulunamaz. Bu yuzden
+# eksiklik URETIMDEN ONCE, tam cozumuyle birlikte soylenir.
+echo "-> Pencere kutuphanesi (tkinter) kontrol ediliyor…"
+if ! "$PY" -c "import tkinter" >/dev/null 2>&1; then
+  echo ""
+  echo "  [HATA] Bu Python'da tkinter YOK. Uretilen uygulama acilmazdi;"
+  echo "         bu yuzden uretim baslatilmadi."
+  echo ""
+  echo "  Cozum (Homebrew kullaniyorsaniz):"
+  echo "      brew install python-tk@3.12"
+  echo ""
+  echo "  Sonra .venv klasorunu silip Baslat-Mac.command ile"
+  echo "  'Ilk Kurulumu Yap' adimini tekrarlayin, buraya donun."
+  echo ""
+  read -r -p "  Kapatmak icin Enter..."
+  exit 1
+fi
+
 echo "-> Paketleme araci kuruluyor (zaten kuruluysa atlanir)…"
 "$PY" -m pip install --no-cache-dir -r paketleme/requirements-paketleme.txt || {
   echo ""

@@ -7,8 +7,13 @@ testpaths = ["tests"]
 [tool.ruff]
 target-version = "py312"
 line-length = 100
-# masaustu/dalsan_launcher.py çalışan, dokunulmayan bir dosyadır (kullanıcı talimatı).
-exclude = ["masaustu", ".venv", "veri"]
+# masaustu/dalsan_launcher.py kendi biçim düzenini korur (uzun satırlar, hizalı
+# yorumlar); ruff onu yeniden biçimlendirmesin.
+# dist/ ve build/ ÜRETİLEN klasörlerdir: içlerinde paketlenmiş üçüncü parti kod
+# (opencv, numpy…) durur. Dışlanmazlarsa, uygulama bir kez üretildikten sonra
+# `ruff check .` yüzlerce yabancı dosyayı tarar ve kullanılmaz hale gelir.
+# (.gitignore'da olmaları yetmez: depo klonlanmamışsa ruff onu okuyamaz.)
+exclude = ["masaustu", ".venv", "veri", "dist", "build"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B"]

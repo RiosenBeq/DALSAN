@@ -11,6 +11,8 @@ import re
 import subprocess
 from pathlib import Path
 
+from conftest import git_gerekli
+
 KOK = Path(__file__).resolve().parents[1]
 
 
@@ -66,6 +68,7 @@ def test_mac_baslaticisi_stub_pythonu_en_sona_birakir():
     assert "chmod +x" in metin, "ZIP'ten gelen dosyanın çalıştırma izni tazelenmeli"
 
 
+@git_gerekli
 def test_mac_baslaticisi_calistirilabilir():
     """Git'te çalıştırma izni yoksa Finder dosyayı hiç açmaz."""
     cikti = subprocess.run(

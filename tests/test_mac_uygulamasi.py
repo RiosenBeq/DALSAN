@@ -18,6 +18,7 @@ import sys
 from pathlib import Path
 
 import pytest
+from conftest import git_gerekli
 
 KOK = Path(__file__).resolve().parents[1]
 SPEC = KOK / "paketleme" / "NextGenDetector-mac.spec"
@@ -115,6 +116,7 @@ def test_ikon_dosyasi_var_ve_gecerli():
 # ------------------------------------------------------------ üretim komutu
 
 
+@git_gerekli
 def test_uretim_komutu_calistirilabilir_ve_lf():
     """Çalıştırma izni yoksa Finder dosyayı hiç açmaz; CRLF ise Mac 'cd: $\\r'
     hatası verir."""
@@ -146,6 +148,7 @@ def test_paketleme_araci_calisma_bagimliligina_karismiyor():
     assert "pyinstaller" in uretim.lower()
 
 
+@git_gerekli
 def test_uretilen_uygulama_depoya_girmiyor_tarif_giriyor():
     import subprocess
 

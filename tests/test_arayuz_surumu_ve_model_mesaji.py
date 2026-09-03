@@ -106,6 +106,30 @@ def test_sertifika_hatasi_dogru_teshisi_koruyor():
     assert "Install Certificates.command" in kullanici
 
 
+def test_saat_hatasi_sertifika_kurulumu_onermiyor():
+    """Sertifika "henüz geçerli değil" derse sorun sertifika DEPOSU değil,
+    bilgisayarın SAATİDİR. Buraya 'Install Certificates.command' yazmak
+    kullanıcıyı yanlış yere gönderir; o dosya Windows'ta zaten yoktur."""
+    for metin in (
+        "certificate verify failed: certificate is not yet valid",
+        "certificate verify failed: certificate has expired",
+        "certificate is not yet valid or the system clock is incorrect",
+    ):
+        kullanici, _, _ = _metinler(urllib.error.URLError(ssl.SSLCertVerificationError(metin)))
+        assert "Install Certificates" not in kullanici, f"yanlış teşhis: {kullanici}"
+        assert "saat" in kullanici.lower(), f"saat çözümü söylenmeli: {kullanici}"
+        assert "Kontrol Panelinden yeniden başlatın" in kullanici
+
+
+def test_saat_hatasi_ekraninda_da_adres_yok():
+    """Yeni dal da adres sızdırmamalı (diğer dallarla aynı kural)."""
+    kullanici, teknik, adres = _metinler(
+        urllib.error.URLError(ssl.SSLCertVerificationError("certificate is not yet valid"))
+    )
+    assert "http" not in kullanici.lower()
+    assert adres in teknik, "Tam adres günlüğe yazılmalı"
+
+
 def test_indirme_hatasi_kullanici_mesaji_ve_ayrinti_ayri():
     """Hata nesnesi ekran metnini ve günlük metnini ayrı taşımalı."""
     from app.analiz.model_indir import ModelIndirmeHatasi

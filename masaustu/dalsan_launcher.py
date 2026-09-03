@@ -9,6 +9,7 @@ Mac'te   : Baslat-Mac.command  dosyasina cift tikla
 Windows'ta: Baslat-Windows.bat dosyasina cift tikla
 """
 
+import json
 import logging
 import os
 import queue
@@ -19,6 +20,8 @@ import subprocess
 import sys
 import threading
 import time
+import urllib.error
+import urllib.request
 import webbrowser
 from pathlib import Path
 
@@ -140,11 +143,57 @@ def kod_hazir() -> bool:
     return MAIN_MODULE.exists()
 
 
+# Sunucunun uc hali. "Port dolu" ile "bizim sunucumuz calisiyor" AYNI SEY
+# DEGILDIR; ayrimi yapmayan panel kullaniciyi kilitliyordu (bkz. asagisi).
+DURDU = "durdu"
+CALISIYOR = "calisiyor"
+BASKASINDA = "baskasinda"
+
+
 def sunucu_ayakta() -> bool:
-    """Port dinleniyor mu?"""
+    """Port dinleniyor mu? (ucuz kontrol — kim dinliyor, onu SOYLEMEZ)"""
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.settimeout(0.4)
         return s.connect_ex(("127.0.0.1", PORT)) == 0
+
+
+def bizim_sunucumuz_mu() -> bool:
+    """Portu dinleyen program BIZIM sunucumuz mu?
+
+    /saglik ucu yalnizca bu sistemde vardir ve {"durum": "calisiyor"} doner.
+    """
+    try:
+        with urllib.request.urlopen(f"{URL}/saglik", timeout=2) as yanit:
+            return json.loads(yanit.read(4096)).get("durum") == "calisiyor"
+    except (urllib.error.URLError, OSError, ValueError):
+        # Baglanti yok, HTTP hatasi, JSON degil, beklenen alan yok — hicbiri
+        # bizim sunucumuz demek degildir.
+        return False
+
+
+def sunucu_durumu() -> str:
+    """durdu | calisiyor | baskasinda
+
+    NEDEN GEREKLI — 8080 cok yaygin bir porttur (XAMPP/MAMP, Tomcat, Jenkins,
+    baska bir gelistirme sunucusu). Yalnizca "port dolu mu" diye bakan panel,
+    baskasinin sunucusunu BIZIM sunucumuz sanir ve kullanici su kilide girer:
+    durum satiri "CALISIYOR" der, "Sistemi Baslat" dugmesi kapali kalir,
+    "Durdur" ise "calisan sistem bulunamadi" der. Sebep hicbir yerde yazmaz.
+    """
+    if not sunucu_ayakta():
+        return DURDU
+    return CALISIYOR if bizim_sunucumuz_mu() else BASKASINDA
+
+
+def port_dolu_mesaji() -> list[str]:
+    """Portu baskasi tutuyorken gunluge dusen aciklama (tek metin kaynagi)."""
+    return [
+        f"[HATA] {PORT} portunu bu bilgisayarda BAŞKA bir program kullanıyor;",
+        "       sistem bu yüzden açılamıyor.",
+        "       Bu portu genelde şu programlar tutar: XAMPP / MAMP, Tomcat,",
+        "       Jenkins, ya da açık kalmış başka bir geliştirme sunucusu.",
+        "       Çözüm: o programı kapatın ve 'Sistemi Başlat'a yeniden basın.",
+    ]
 
 
 PID_DOSYASI = DATA_DIR / "sunucu.pid"
@@ -338,6 +387,26 @@ def arayuzu_baslat():
 
     paketleri_arkada_kontrol_et()
 
+    # sunucu_durumu() /saglik ucuna HTTP istegi atar; portu tutan program
+    # yanit vermiyorsa bu iki saniye surebilir. Ana pencere donmasin diye
+    # kontrol ARKA PLANDA yapilir ve sonucu burada saklanir.
+    sunucu_bilgisi = {"durum": DURDU, "kontrol_ediliyor": False}
+
+    def sunucuyu_arkada_kontrol_et():
+        if sunucu_bilgisi["kontrol_ediliyor"]:
+            return                      # onceki kontrol daha bitmedi
+        sunucu_bilgisi["kontrol_ediliyor"] = True
+
+        def kontrol():
+            try:
+                sunucu_bilgisi["durum"] = sunucu_durumu()
+            finally:
+                sunucu_bilgisi["kontrol_ediliyor"] = False
+
+        threading.Thread(target=kontrol, daemon=True).start()
+
+    sunucuyu_arkada_kontrol_et()
+
     # ---- ust baslik ----
     ust = tk.Frame(kok, bg=BG)
     ust.pack(fill="x", padx=24, pady=(20, 8))
@@ -452,7 +521,7 @@ def arayuzu_baslat():
         if python_ok():
             ayarla("python", f"Hazır (sürüm {sys.version_info.major}.{sys.version_info.minor})", OK)
         else:
-            ayarla("python", "Python 3.10 veya üstü gerekiyor", ERR)
+            ayarla("python", "Python 3.11 veya üstü gerekiyor", ERR)
 
         paket_hazir = paket_durumu["hazir"]
         if paket_hazir is None:
@@ -469,10 +538,16 @@ def arayuzu_baslat():
         else:
             ayarla("kod", "Henüz yazılmadı (Claude Code ile üretilecek)", WARN)
 
-        ayakta = sunucu_ayakta()
+        sunucuyu_arkada_kontrol_et()
+        sunucu_hali = sunucu_bilgisi["durum"]
+        ayakta = sunucu_hali == CALISIYOR
         durum["calisiyor"] = ayakta
         if ayakta:
             ayarla("sunucu", f"ÇALIŞIYOR — {URL}", OK)
+        elif sunucu_hali == BASKASINDA:
+            # "Durdu" demek yanlis olurdu: kullanici Baslat'a basacak ve
+            # sebebini anlamadan basarisiz olacakti. Sebep burada yazar.
+            ayarla("sunucu", f"{PORT} portunu başka bir program tutuyor", ERR)
         else:
             ayarla("sunucu", "Durdu", MUTED)
 
@@ -538,7 +613,7 @@ def arayuzu_baslat():
     # ---- ilk kurulum ----
     def kurulumu_yap():
         if not python_ok():
-            log("[HATA] Bu bilgisayardaki Python sürümü çok eski (3.10+ gerekiyor).")
+            log("[HATA] Bu bilgisayardaki Python sürümü çok eski (3.11 veya üstü gerekiyor).")
             log("       https://www.python.org/downloads/ adresinden Python 3.12 kurun,")
             log("       sonra bu paneli kapatıp yeniden açın.")
             return
@@ -598,8 +673,13 @@ def arayuzu_baslat():
         return True
 
     def sistemi_baslat():
-        if sunucu_ayakta():
+        hal = sunucu_durumu()
+        if hal == CALISIYOR:
             log("[!] Sistem zaten çalışıyor.")
+            return
+        if hal == BASKASINDA:
+            for satir in port_dolu_mesaji():
+                log(satir)
             return
         klasorleri_hazirla()
         log("=" * 60)
@@ -731,7 +811,12 @@ def metin_modu(hata):
         print(f"  Python         : {'tamam' if python_ok() else 'SÜRÜM ESKİ'}")
         print(f"  Paketler       : {'kurulu' if paketler_hazir() else 'eksik'}")
         print(f"  Sistem kodu    : {'hazır' if kod_hazir() else 'henüz yok'}")
-    print(f"  Sistem         : {'çalışıyor' if sunucu_ayakta() else 'durdu'}")
+    hal = sunucu_durumu()
+    print("  Sistem         : " + {
+        CALISIYOR: "çalışıyor",
+        BASKASINDA: f"{PORT} portunu BAŞKA bir program tutuyor",
+        DURDU: "durdu",
+    }[hal])
     print()
     input("  Kapatmak için Enter'a basın…")
 

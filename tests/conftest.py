@@ -11,9 +11,68 @@ klasörüne dokunulmaz, kamera/tespit iş parçacığı başlamaz.
 
 from __future__ import annotations
 
+import importlib.util
+import subprocess
 from pathlib import Path
 
 import pytest
+
+KOK = Path(__file__).resolve().parents[1]
+
+
+# ---------------------------------------------------------------------------
+# Ortamı olmayan testler ATLANIR, KIRILMAZ
+#
+# NEDEN — bu testlerin bir kısmı kodu değil, DEPONUN ve GELİŞTİRME
+# ORTAMININ özelliklerini korur: .bat dosyalarının CRLF kalması, Mac
+# başlatıcısının çalıştırma izni, üretim tarifinin çalışması. Program ZIP
+# olarak indirildiyse `.git` klasörü yoktur; PyInstaller da bilerek
+# backend/requirements.txt'te değildir.
+#
+# O ortamlarda bu testler eskiden ham `CalledProcessError` ya da
+# "üretilen uygulama depoya girmemeli" gibi YANILTICI bir hatayla
+# kırılıyordu. `pytest` çıktısı CLAUDE.md §9 gereği kullanıcıya
+# gösterildiği için, ilgisiz 16 kırmızı satır "sistemim bozuk" demekti.
+# Koşul gerçekten varken test yine tam olarak çalışır.
+# ---------------------------------------------------------------------------
+
+
+def _git_deposu_mu() -> bool:
+    """Bu klasör gerçek bir git çalışma kopyası mı?"""
+    try:
+        sonuc = subprocess.run(
+            ["git", "rev-parse", "--is-inside-work-tree"],
+            cwd=KOK,
+            capture_output=True,
+            text=True,
+            timeout=15,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return False  # git kurulu değil
+    return sonuc.stdout.strip() == "true"
+
+
+def _pyinstaller_var_mi() -> bool:
+    return importlib.util.find_spec("PyInstaller") is not None
+
+
+git_gerekli = pytest.mark.skipif(
+    not _git_deposu_mu(),
+    reason=(
+        "Bu klasör bir git deposu değil (program ZIP olarak indirilmiş olabilir). "
+        "Satır sonu ve çalıştırma izni kuralları yalnızca depoda anlamlıdır; "
+        "sistemin kodu bu testlerden bağımsız olarak çalışır."
+    ),
+)
+
+pyinstaller_gerekli = pytest.mark.skipif(
+    not _pyinstaller_var_mi(),
+    reason=(
+        "PyInstaller kurulu değil. Uygulama ÜRETMEK için gereken araçtır ve "
+        "backend/requirements.txt'e bilerek girmez (docs/13). Kurmak için: "
+        "pip install -r paketleme/requirements-paketleme.txt"
+    ),
+)
 
 
 @pytest.fixture

@@ -1,18 +1,20 @@
-"""Windows uygulamasında açılış hatalarını GÖRÜNÜR kılar.
+"""Paketlenmiş uygulamada açılış hatalarını GÖRÜNÜR kılar (Windows + macOS).
 
 Bu dosya PyInstaller'ın "runtime hook"udur: paketlenmiş programda, asıl
 program başlamadan ÖNCE çalışır.
 
 NEDEN GEREKLİ
 -------------
-Windows'ta uygulama pencereli üretilir (`console=False`): kullanıcı çift
-tıklayınca arkasında siyah bir komut penceresi açılmaz. Bedeli şudur:
+İki platformda da uygulama pencereli üretilir (`console=False`): kullanıcı
+çift tıklayınca arkasında siyah bir komut penceresi açılmaz. macOS'ta bir
+`.app` Finder'dan açıldığında da durum aynıdır. Bedeli şudur:
 
 1. `sys.stdout` ve `sys.stderr` YOKTUR (ikisi de None). Programın ekrana
    yazdığı her satır — hata mesajları dahil — hiçbir yere gitmez.
 2. Program açılırken çökerse kullanıcı HİÇBİR ŞEY görmez: simgeye çift
    tıklar, bir saniye bekler, hiçbir şey olmaz. Ne söyleyeceğini bilemez,
-   biz de sebebi öğrenemeyiz.
+   biz de sebebi öğrenemeyiz. (Bu gerçekten yaşandı: tkinter'ı olmayan bir
+   Python'la üretilen .app Finder'da sessizce hiç açılmıyordu.)
 
 Bu kanca üç işi yapar:
 
@@ -126,11 +128,47 @@ def hatayi_yaz(metin: str, kok: Path | None = None) -> Path | None:
         return None
 
 
+def _mac_penceresi(mesaj: str) -> bool:
+    """macOS'un kendi uyarı penceresi (osascript). Gösterildiyse True.
+
+    Mesaj ARGÜMAN olarak geçirilir, betiğin içine gömülmez: tırnak, ters
+    bölü ve satır sonu içeren bir metni AppleScript kaynağına yapıştırmak
+    betiği bozar ve pencere hiç açılmaz — yani tam da işe yaraması gereken
+    anda susardı.
+    """
+    if sys.platform != "darwin":
+        return False
+    if not getattr(sys, "frozen", False):
+        # Paketlenmemiş çalışmada (geliştirme, test) stderr GÖRÜNÜR durumdadır;
+        # pencereye gerek yoktur. Dahası: modal bir pencere test çalıştırmasını
+        # kilitler ve ekranın ortasında beklemeye başlar — bu gerçekten oldu.
+        return False
+    betik = (
+        "on run argv\n"
+        f'  display dialog (item 1 of argv) with title "{UYGULAMA_ADI} — hata" '
+        'buttons {"Tamam"} default button 1 with icon stop\n'
+        "end run"
+    )
+    try:
+        import subprocess
+
+        subprocess.run(
+            ["osascript", "-e", betik, mesaj],
+            capture_output=True,
+            timeout=120,
+            check=False,
+        )
+        return True
+    except (OSError, subprocess.SubprocessError):
+        return False
+
+
 def pencerede_goster(dosya_yolu: Path | None) -> None:
     """Kullanıcıya Türkçe bir uyarı penceresi gösterir.
 
-    Windows'un kendi ileti penceresi kullanılır (ctypes): tkinter açılamadığı
-    için çökmüş olabiliriz, ona güvenilmez.
+    İşletim sisteminin KENDİ ileti penceresi kullanılır (Windows'ta ctypes,
+    macOS'ta osascript). tkinter BİLEREK kullanılmaz: çökme sebebimiz tam da
+    tkinter'ın açılamaması olabilir — nitekim bir kez öyle oldu.
     """
     if dosya_yolu is None:
         mesaj = (
@@ -145,6 +183,8 @@ def pencerede_goster(dosya_yolu: Path | None) -> None:
             f"{dosya_yolu}\n\n"
             "Bu dosyayı destek için gönderebilirsiniz."
         )
+    if _mac_penceresi(mesaj):
+        return
     try:
         import ctypes
 

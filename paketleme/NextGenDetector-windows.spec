@@ -35,7 +35,7 @@ WINDOWS'A ÖZGÜ ÜÇ NOKTA (Mac tarifinden farkı budur):
 3. KONSOL PENCERESİ GİZLİ (`console=False`) AMA HATA GÖRÜNÜR. Gizli konsolun
    bedeli ağırdır: `sys.stdout` ve `sys.stderr` yok olur, program açılırken
    çökerse kullanıcı EKRANDA HİÇBİR ŞEY GÖRMEZ. Bu yüzden bir açılış
-   kancası takılıyor (paketleme/windows_acilis_kancasi.py): kayıp çıkış
+   kancası takılıyor (paketleme/acilis_kancasi.py): kayıp çıkış
    akışlarını dosyaya bağlar, yakalanmamış hatayı ayrıntısıyla
    veri/loglar/acilis-hatasi.log dosyasına yazar ve kullanıcıya Türkçe bir
    uyarı penceresi gösterip dosyanın yerini söyler.
@@ -80,7 +80,7 @@ analiz = Analysis(                                          # noqa: F821
     hooksconfig={},
     # Asıl program başlamadan önce çalışır: gizli konsolun yuttuğu hataları
     # dosyaya ve kullanıcının ekranına çıkarır (3. nokta).
-    runtime_hooks=[str(DEPO / "paketleme" / "windows_acilis_kancasi.py")],
+    runtime_hooks=[str(DEPO / "paketleme" / "acilis_kancasi.py")],
     excludes=ortak.disarida,
     noarchive=False,
     optimize=0,

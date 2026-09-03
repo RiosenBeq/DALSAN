@@ -220,7 +220,7 @@ terminale de yazılır:
 | `paketleme/paketleme_ortak.py` | **İki tarifin ortak bölümü** — pakete ne konacağı burada yazılıdır |
 | `paketleme/NextGenDetector-mac.spec` | macOS'a özel olanlar (`.app` kabuğu, kamera izni, OpenSSL düzeltmesi) |
 | `paketleme/NextGenDetector-windows.spec` | Windows'a özel olanlar (`.ico` simge, gizli konsol, açılış kancası) |
-| `paketleme/windows_acilis_kancasi.py` | Gizli konsolun yuttuğu hataları görünür kılar (§7) |
+| `paketleme/acilis_kancasi.py` | Gizli konsolun yuttuğu hataları görünür kılar (§7) |
 | `paketleme/requirements-paketleme.txt` | Paketleme aracının kendisi |
 
 Ortak bölümün ayrı bir dosyada olması bilinçlidir: iki tarif aynı listeleri

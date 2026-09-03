@@ -29,13 +29,14 @@ from pathlib import Path
 from types import ModuleType
 
 import pytest
+from conftest import _pyinstaller_var_mi, git_gerekli, pyinstaller_gerekli
 
 KOK = Path(__file__).resolve().parents[1]
 PAKETLEME = KOK / "paketleme"
 ORTAK = PAKETLEME / "paketleme_ortak.py"
 MAC_SPEC = PAKETLEME / "NextGenDetector-mac.spec"
 WIN_SPEC = PAKETLEME / "NextGenDetector-windows.spec"
-KANCA = PAKETLEME / "windows_acilis_kancasi.py"
+KANCA = PAKETLEME / "acilis_kancasi.py"
 BAT = PAKETLEME / "Windows-Uygulama-Uret.bat"
 IKON = PAKETLEME / "NextGenDetector.ico"
 BELGE = KOK / "docs" / "13-UYGULAMA-PAKETLEME.md"
@@ -90,6 +91,11 @@ def _tarifi_calistir(spec: Path) -> _SahtePyInstaller:
 
 @pytest.fixture(scope="module")
 def windows_tarifi() -> _SahtePyInstaller:
+    # Tarif, gizli modül listesini PyInstaller'dan okur. Araç kurulu değilse
+    # test KIRILMAZ, atlanır: PyInstaller bir ÜRETİM aracıdır ve bilerek
+    # backend/requirements.txt'te değildir (docs/13).
+    if not _pyinstaller_var_mi():
+        pytest.skip(pyinstaller_gerekli.kwargs["reason"])
     return _tarifi_calistir(WIN_SPEC)
 
 
@@ -101,7 +107,7 @@ def kanca() -> ModuleType:
     (dosyanın sonundaki `sys.frozen` kontrolü). Aksi hâlde bu satır pytest'in
     kendi hata yakalayıcısını değiştirirdi.
     """
-    tanim = importlib.util.spec_from_file_location("windows_acilis_kancasi", KANCA)
+    tanim = importlib.util.spec_from_file_location("acilis_kancasi", KANCA)
     modul = importlib.util.module_from_spec(tanim)
     tanim.loader.exec_module(modul)
     return modul
@@ -404,6 +410,41 @@ def test_betik_windows_satir_sonlariyla_yazilmis():
     assert ham.replace(b"\r\n", b"").count(b"\n") == 0, "bazı satırlar LF kalmış"
 
 
+def test_mac_tarifi_de_acilis_kancasini_takiyor():
+    """`.app` Finder'dan açıldığında stdout/stderr hiçbir yere gitmez.
+    Kanca takılı değilse, açılışta çöken uygulama SESSİZCE hiç açılmamış
+    gibi görünür — bu gerçekten yaşandı (tkinter'sız üretilen .app)."""
+    metin = MAC_SPEC.read_text(encoding="utf-8")
+    assert "acilis_kancasi.py" in metin, "Mac tarifine açılış kancası takılmalı"
+    assert "runtime_hooks=[]" not in metin, "kanca listesi boş bırakılmış"
+
+
+def test_kanca_macos_penceresini_tkinter_olmadan_aciyor(kanca):
+    """Çökme sebebi tkinter'ın açılamaması OLABİLİR; uyarı penceresi ona
+    güvenemez. macOS'ta işletim sisteminin kendi penceresi kullanılır."""
+    kaynak = KANCA.read_text(encoding="utf-8")
+    assert "osascript" in kaynak, "macOS uyarı penceresi yok"
+    assert "import tkinter" not in kaynak, "uyarı penceresi tkinter'a güvenmemeli"
+    assert callable(kanca._mac_penceresi)
+
+
+def test_kanca_macos_disinda_mac_penceresi_denemiyor(kanca, monkeypatch):
+    """Windows'ta osascript yoktur; boşuna çağrılmamalı."""
+    monkeypatch.setattr(kanca.sys, "platform", "win32")
+    monkeypatch.setattr(kanca.sys, "frozen", True, raising=False)
+    assert kanca._mac_penceresi("deneme") is False
+
+
+def test_kanca_paketlenmemisken_pencere_acmiyor(kanca, monkeypatch):
+    """Geliştirme ve TEST çalıştırmasında ekranın ortasına modal bir pencere
+    açılmamalı: test paketi orada kilitlenir ve kimse sebebini anlamaz.
+    Paketlenmemiş çalışmada stderr zaten görünür."""
+    monkeypatch.setattr(kanca.sys, "platform", "darwin")
+    monkeypatch.delattr(kanca.sys, "frozen", raising=False)
+    assert kanca._mac_penceresi("deneme") is False
+
+
+@git_gerekli
 def test_gitattributes_bat_dosyalarini_crlf_tutuyor():
     """Depodan klonlayan kişi de CRLF almalı — yoksa yukarıdaki hata geri gelir."""
     cikti = _git("git", "check-attr", "eol", "--", "paketleme/Windows-Uygulama-Uret.bat").stdout
@@ -513,6 +554,7 @@ def test_betik_paketleme_aracini_kuruyor(bat_metni):
 # --------------------------------------------------------------- depo ayarları
 
 
+@git_gerekli
 def test_uretilen_uygulama_depoya_girmiyor_tarif_ve_simge_giriyor():
     def yoksayiliyor(yol: str) -> bool:
         return _git("git", "check-ignore", "-q", yol).returncode == 0
@@ -522,13 +564,14 @@ def test_uretilen_uygulama_depoya_girmiyor_tarif_ve_simge_giriyor():
     for kaynak in (
         "paketleme/NextGenDetector-windows.spec",
         "paketleme/paketleme_ortak.py",
-        "paketleme/windows_acilis_kancasi.py",
+        "paketleme/acilis_kancasi.py",
         "paketleme/Windows-Uygulama-Uret.bat",
         "paketleme/NextGenDetector.ico",
     ):
         assert not yoksayiliyor(kaynak), f"{kaynak} KAYNAK dosyadır, depoda durmalı"
 
 
+@git_gerekli
 def test_gitattributes_simgeleri_ikili_sayiyor():
     """Simge dosyasına satır sonu dönüşümü uygulanırsa içi bozulur ve üretim,
     "geçersiz simge" diye durur."""

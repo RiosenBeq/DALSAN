@@ -90,6 +90,25 @@ def modeli_indir(model_dosyasi: Path, ilerleme: Callable[[int, int], None] | Non
         raise ModelIndirmeHatasi(kullanici_mesaji, teknik_ayrinti) from hata
 
 
+def _saat_hatasi_mi(hata: Exception) -> bool:
+    """Sertifika doğrulaması SAAT yüzünden mi başarısız oldu?
+
+    OpenSSL bu iki durumu ayrı metinlerle bildirir: sertifika henüz
+    başlamamış ("is not yet valid") ya da süresi geçmiş ("has expired").
+    İkisi de bilgisayarın saatinin gerçek zamandan sapmasıyla oluşur — yeni
+    kurulan, CMOS pili bitmiş ya da saat dilimi hiç ayarlanmamış makinelerde
+    sık görülür. Metne bakılır çünkü `verify_code` sayıları OpenSSL sürümüne
+    göre değişebilir; bu iki ifade değişmez.
+    """
+    metin = str(hata).lower()
+    return (
+        "not yet valid" in metin
+        or "has expired" in metin
+        or "is expired" in metin
+        or "system clock" in metin
+    )
+
+
 def _indirme_hata_metinleri(adres: str, model_dosyasi: Path, hata: Exception) -> tuple[str, str]:
     """(ekrana çıkan sade mesaj, günlüğe yazılan tam ayrıntı) döndürür.
 
@@ -102,12 +121,30 @@ def _indirme_hata_metinleri(adres: str, model_dosyasi: Path, hata: Exception) ->
     doğru teşhis değildir.
     """
     sebep = getattr(hata, "reason", hata)
-    if isinstance(sebep, ssl.SSLCertVerificationError) or "CERTIFICATE_VERIFY_FAILED" in str(hata):
+    sertifika_hatasi = isinstance(sebep, ssl.SSLCertVerificationError) or (
+        "CERTIFICATE_VERIFY_FAILED" in str(hata)
+    )
+    if sertifika_hatasi and _saat_hatasi_mi(hata):
+        # Bu, sertifika DEPOSU sorunu DEĞİLDİR: sertifika sağlamdır, bilgisayarın
+        # saati onun geçerlilik aralığının dışındadır. Buraya "Install
+        # Certificates.command'a çift tıklayın" yazmak kullanıcıyı saatlerce
+        # yanlış yerde uğraştırır — üstelik o dosya Windows'ta hiç yoktur.
+        # Doğru çözüm tek satırdır: saati düzelt.
+        kullanici_mesaji = (
+            f"{MARKA} indirilemedi: bu bilgisayarın tarih/saat ayarı yanlış olduğu için "
+            "güvenlik sertifikası geçersiz görünüyor. Çözüm: bilgisayarın tarih, saat ve "
+            "saat dilimi ayarını açıp 'otomatik ayarla' seçeneğini işaretleyin (Windows: "
+            "Ayarlar → Saat ve dil → Tarih ve saat; Mac: Sistem Ayarları → Genel → Tarih "
+            "ve Saat), sonra Kontrol Panelinden yeniden başlatın."
+        )
+    elif sertifika_hatasi:
         kullanici_mesaji = (
             f"{MARKA} indirilemedi: güvenlik sertifikaları doğrulanamadı. "
             "Mac'te python.org'dan kurulan Python'da bu sık görülür. Çözüm: Uygulamalar → "
             "Python 3.x klasöründeki 'Install Certificates.command' dosyasına çift tıklayın, "
-            "sonra Kontrol Panelinden yeniden başlatın."
+            "sonra Kontrol Panelinden yeniden başlatın. Şirket ağındaysanız internet "
+            "trafiğini denetleyen bir güvenlik duvarı da bu hatayı verir; bu durumda "
+            "bilgi işlem biriminden yardım isteyin."
         )
     else:
         kullanici_mesaji = (

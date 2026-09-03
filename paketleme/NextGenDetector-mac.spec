@@ -125,7 +125,11 @@ analiz = Analysis(                                          # noqa: F821
     hiddenimports=ortak.gizli_moduller(DEPO),
     hookspath=[],
     hooksconfig={},
-    runtime_hooks=[],
+    # Açılış kancası: `.app` Finder'dan açıldığında stdout/stderr HİÇBİR YERE
+    # gitmez. Kanca olmadan, açılışta çöken uygulama sessizce hiç açılmıyor
+    # gibi görünür — kullanıcı "uygulamayı göremedim" der, sebep hiçbir yerde
+    # yazmaz. Kanca hatayı dosyaya yazar ve macOS uyarı penceresi gösterir.
+    runtime_hooks=[str(DEPO / "paketleme" / "acilis_kancasi.py")],
     excludes=ortak.disarida,
     noarchive=False,
     optimize=0,
