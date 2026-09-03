@@ -57,6 +57,7 @@ TAM_FORM = {
     "KKD_HAM_VERI_SAKLAMA_GUN": "30",
     "SISTEM_OLAY_SAKLAMA_GUN": "90",
     "DISK_UYARI_GB": "5",
+    "NESNE_ESLESME_ESIGI": "0.24",
 }
 
 
@@ -130,6 +131,38 @@ def test_gecerli_deger_kaydediliyor(ayarli_istemci):
     metin = ayarlar.env_yolu.read_text(encoding="utf-8")
     assert "TESPIT_INSAN_GUVEN_ESIGI=0.22" in metin
     assert "OLAY_SAKLAMA_GUN=365" in metin
+
+
+def test_nesne_arama_citasi_ekrandan_degistirilebiliyor(ayarli_istemci):
+    """Nesneler sayfasındaki "Ayar notu" bu kutuyu tarif eder — kutu OLMALI.
+
+    .env git'e girmediği için eski bir kurulum kendi çıtasıyla kalır. Not
+    kullanıcıya "Ayarlar sayfasındaki Nesne arama titizliği kutusuna 0.24
+    yazın" der; o kutu yoksa not, yapılamayacak bir şey söylemiş olur.
+    """
+    istemci, ayarlar = ayarli_istemci
+    assert 'name="NESNE_ESLESME_ESIGI"' in istemci.get("/ayarlar").text
+
+    yanit = istemci.post(
+        "/ayarlar/kaydet", data=_form(NESNE_ESLESME_ESIGI="0.24"), follow_redirects=False
+    )
+    assert yanit.status_code == 303
+    assert "NESNE_ESLESME_ESIGI=0.24" in ayarlar.env_yolu.read_text(encoding="utf-8")
+
+
+def test_nesne_arama_citasi_sinir_disinda_kaydedilmez(ayarli_istemci):
+    """Doğrulama açılıştakiyle aynı: kaydedilen bir değer sistemi bozamaz."""
+    istemci, ayarlar = ayarli_istemci
+    onceki = ayarlar.env_yolu.read_text(encoding="utf-8")
+
+    yanit = istemci.post(
+        "/ayarlar/kaydet",
+        data=_form(NESNE_ESLESME_ESIGI="1.5"),
+        headers={"accept": "text/html"},
+    )
+
+    assert yanit.status_code == 400
+    assert ayarlar.env_yolu.read_text(encoding="utf-8") == onceki
 
 
 def test_kaydettikten_sonra_yeniden_baslatma_hatirlatiliyor(ayarli_istemci):

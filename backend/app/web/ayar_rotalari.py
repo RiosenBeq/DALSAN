@@ -204,6 +204,33 @@ AYAR_GRUPLARI: tuple[AyarGrubu, ...] = (
         ),
     ),
     AyarGrubu(
+        baslik="Nesne arama (Nesneler sayfası)",
+        aciklama=(
+            "Yalnızca Nesneler sayfasında, sizin yüklediğiniz fotoğraflarda yapılan "
+            "aramayı etkiler. Canlı kameralara, kurallara ve olay kayıtlarına DOKUNMAZ."
+        ),
+        alanlar=(
+            AyarAlani(
+                anahtar="NESNE_ESLESME_ESIGI",
+                alan="nesne_eslesme_esigi",
+                etiket="Nesne arama titizliği",
+                tur="ondalik",
+                en_az="0.05",
+                en_cok="0.95",
+                adim="0.01",
+                aciklama=(
+                    "Sistemin bir yere nesne adı yazmak için aradığı benzerlik. "
+                    "Ölçümle bulunan değer 0.24'tür: 264 sorguluk ölçümde hiç yanlış "
+                    "isim yazmadan en çok nesnenin bulunduğu nokta. Yükseltmek yanlış "
+                    "isimden korumaz (0.24 ve üstündeki her kademede yanlış isim zaten "
+                    "sıfır), yalnızca daha az nesne buldurur — 0.36'da hiçbir nesne "
+                    "bulunmaz. Düşürmek ise tehlikelidir: 0.22'de sistem yanlış isim "
+                    "yazmaya başlar. Bilerek değiştirmiyorsanız 0.24'te bırakın."
+                ),
+            ),
+        ),
+    ),
+    AyarGrubu(
         baslik="Saklama süreleri ve disk",
         aciklama=(
             "Kayıtların ne kadar süre tutulacağı. KVKK politikanızla uyumlu "

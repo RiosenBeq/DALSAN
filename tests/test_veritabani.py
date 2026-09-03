@@ -23,6 +23,8 @@ BEKLENEN_TABLOLAR = {
     # 003 — nesne kütüphanesi: kullanıcının fotoğrafla tanıttığı kendi nesneleri
     "library_objects",
     "library_object_photos",
+    # 004 — nesne teşhisi: "bu nesne ne kadar tanınabilir" ölçümünün önbelleği
+    "library_object_diagnosis",
 }
 
 

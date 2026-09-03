@@ -20,7 +20,8 @@ import cv2
 
 from app import zaman
 from app.hatalar import DogrulamaHatasi
-from app.nesneler.kutuphane import Nesne, parmakizi_cikar
+from app.nesneler import teshis
+from app.nesneler.kutuphane import Nesne, Parmakizi, parmakizi_cikar
 
 # Ad alanının sınırı: ekranda tek satırda görünmeli
 EN_UZUN_AD = 60
@@ -157,6 +158,67 @@ def nesneleri_listele(baglanti: sqlite3.Connection) -> list[dict]:
     return nesneler
 
 
+def teshisleri_al(baglanti: sqlite3.Connection, klasor: Path) -> dict[int, teshis.NesneTeshisi]:
+    """Nesne id → "ne kadar tanınabilir" karnesi.
+
+    ÖNBELLEKLİ. Ölçüm, fotoğrafları diskten okuyup parmak izi çıkarmayı
+    gerektirir (ölçüldü: fotoğraf başına ~19 ms); 10 nesne × 8 fotoğraf 1,6
+    saniye eder ve bu sayfa her ekleme/silmeden sonra yeniden yüklenir.
+    Sonuç bu yüzden `library_object_diagnosis` tablosunda tutulur.
+
+    BAYATLAMAYA KARŞI: satırda ölçümün dayandığı fotoğraf id'leri de yazar.
+    Fotoğraf eklenir/silinirse anahtar tutmaz ve teşhis kendiliğinden yeniden
+    hesaplanır — elle "geçersiz kıl" adımı yoktur, unutulacak adım da yoktur.
+    """
+    onbellek = {
+        satir["object_id"]: satir
+        for satir in baglanti.execute("SELECT * FROM library_object_diagnosis")
+    }
+    karneler: dict[int, teshis.NesneTeshisi] = {}
+    yazilacak: list[tuple] = []
+    for satir in baglanti.execute("SELECT id FROM library_objects ORDER BY id"):
+        nesne_id = int(satir["id"])
+        foto_adlari = [
+            (int(f["id"]), f["file"])
+            for f in baglanti.execute(
+                "SELECT id, file FROM library_object_photos WHERE object_id = ? ORDER BY id",
+                (nesne_id,),
+            )
+        ]
+        anahtar = ",".join(str(foto_id) for foto_id, _ in foto_adlari)
+        kayit = onbellek.get(nesne_id)
+        if kayit is not None and kayit["photo_key"] == anahtar:
+            karneler[nesne_id] = teshis.teshisi_kur(
+                len(foto_adlari), int(kayit["keypoints"]), float(kayit["consistency"])
+            )
+            continue
+        izler = _parmakizleri_oku(klasor, [ad for _, ad in foto_adlari])
+        nokta, tutarlilik = teshis.olcumler(izler)
+        karneler[nesne_id] = teshis.teshisi_kur(len(izler), nokta, tutarlilik)
+        yazilacak.append((nesne_id, anahtar, nokta, tutarlilik, zaman.simdi_utc()))
+    if yazilacak:
+        baglanti.executemany(
+            "INSERT OR REPLACE INTO library_object_diagnosis "
+            "(object_id, photo_key, keypoints, consistency, computed_at) VALUES (?, ?, ?, ?, ?)",
+            yazilacak,
+        )
+        baglanti.commit()
+    return karneler
+
+
+def _parmakizleri_oku(klasor: Path, dosya_adlari: list[str]) -> list[Parmakizi]:
+    """Okunabilen fotoğrafların parmak izleri; bozuk/kayıp dosya atlanır."""
+    izler = []
+    for ad in dosya_adlari:
+        gorsel = cv2.imread(str(klasor / ad))
+        if gorsel is None:
+            continue
+        izi = parmakizi_cikar(gorsel)
+        if izi is not None:
+            izler.append(izi)
+    return izler
+
+
 def nesneleri_yukle(baglanti: sqlite3.Connection, klasor: Path) -> list[Nesne]:
     """Eşleştirme için parmak izleriyle birlikte nesneler.
 
@@ -166,16 +228,13 @@ def nesneleri_yukle(baglanti: sqlite3.Connection, klasor: Path) -> list[Nesne]:
     """
     nesneler: list[Nesne] = []
     for satir in baglanti.execute("SELECT * FROM library_objects ORDER BY id"):
-        nesne = Nesne(id=satir["id"], ad=satir["name"])
-        for foto in baglanti.execute(
-            "SELECT file FROM library_object_photos WHERE object_id = ?", (satir["id"],)
-        ):
-            gorsel = cv2.imread(str(klasor / foto["file"]))
-            if gorsel is None:
-                continue
-            izi = parmakizi_cikar(gorsel)
-            if izi is not None:
-                nesne.parmakizleri.append(izi)
-        if nesne.parmakizleri:
-            nesneler.append(nesne)
+        adlar = [
+            foto["file"]
+            for foto in baglanti.execute(
+                "SELECT file FROM library_object_photos WHERE object_id = ?", (satir["id"],)
+            )
+        ]
+        izler = _parmakizleri_oku(klasor, adlar)
+        if izler:
+            nesneler.append(Nesne(id=satir["id"], ad=satir["name"], parmakizleri=izler))
     return nesneler

@@ -26,13 +26,16 @@ from app import veritabani
 from app.hatalar import DogrulamaHatasi
 from app.nesneler import arama, depo
 from app.nesneler.kutuphane import (
+    TEK_KANIT_TAVAN_ORANI,
     VARSAYILAN_ESIK,
     Nesne,
     benzerlik,
+    benzerlik_ayrintili,
     en_iyi_eslesme,
     parmakizi_cikar,
     renk_alt_siniri,
     renk_benzerligi,
+    tek_kanit_tavani,
 )
 
 # ---------------------------------------------------------------- yardımcılar
@@ -109,12 +112,61 @@ def test_celiskili_kanit_eslesme_saydirmaz():
     assert baska_renk_ayni_desen < VARSAYILAN_ESIK
 
 
-def test_desensiz_nesne_yalniz_renkle_kolay_eslesemez():
+def test_desensiz_nesne_kendisiyle_bile_isim_yazdiramaz():
+    """DEĞİŞMEZ KURAL: yalnız renge dayanan kanıt tek başına isim yazdıramaz.
+
+    Buradaki ikinci satır 2026-09'da BİLEREK tersine çevrildi. Eskiden "düz
+    nesne kendisiyle eşleşebilmeli, yoksa hiç tanınamazdı" yazıyordu ve motor
+    o vaadi tutuyordu: düz-düz dalının tavanı 0,62'ydi, çıta ise 0,24. Bedeli
+    ölçüldü — kütüphanede OLMAYAN düz mavi bir kasa "Düz mavi bidon" adını
+    alıyordu (%43), düz gri bir sac levha "Gri boru" (%45). Renk, iki düz
+    nesneyi birbirinden ayıramaz; "kendisiyle eşleşme" ile "aynı renkteki
+    yabancıyla eşleşme" aynı hesaptır ve ikisi birlikte gelir.
+
+    Karar: düz nesne TANINMAZ. Kaçırmak sistemin bilinen sınırıdır; yanlış
+    isim yazmak güveni bitirir (docs/00-PROJE-BAGLAMI.md).
+    """
     duz = np.full((180, 180, 3), (40, 40, 200), dtype=np.uint8)
     desenli = desenli_nesne((40, 40, 200), tohum=1)
     assert benzerlik(parmakizi_cikar(duz), parmakizi_cikar(desenli)) < VARSAYILAN_ESIK
-    # Ama düz nesne KENDİSİYLE eşleşebilmeli (yoksa hiç tanınamazdı)
-    assert benzerlik(parmakizi_cikar(duz), parmakizi_cikar(duz.copy())) >= VARSAYILAN_ESIK
+    assert benzerlik(parmakizi_cikar(duz), parmakizi_cikar(duz.copy())) < VARSAYILAN_ESIK
+
+
+@pytest.mark.parametrize("esik", [0.05, 0.10, 0.24, 0.42, 0.60, 0.95])
+def test_renk_hicbir_citada_tek_basina_isim_yazdiramaz(esik):
+    """ÇITA .env'den DEĞİŞSE BİLE renk, skoru çıtanın üstüne TAŞIYAMAZ.
+
+    Bugünkü hata tam olarak buydu: güvence SABİT bir tavana yazılmıştı (0,62),
+    çıta 0,42'den 0,24'e indirildi, tavan yerinde kaldı ve kimse fark etmedi.
+    Bu test o sessiz çöküşü imkânsız kılar — güvence oransal olduğu için her
+    çıtada yeniden sınanır. Kırılırsa sırayla bakılacak yer: `desen_payi`
+    gerçekten skorun desenden gelen kısmı mı, `TEK_KANIT_TAVAN_ORANI` 1'in
+    altında mı, `Skor.ham` 0-1 aralığında mı.
+    """
+    assert 0.0 < TEK_KANIT_TAVAN_ORANI < 1.0
+    assert tek_kanit_tavani(esik) < esik
+
+    duz_mavi = np.full((180, 180, 3), (40, 40, 200), dtype=np.uint8)
+    izler = [
+        parmakizi_cikar(duz_mavi),
+        parmakizi_cikar(duz_mavi.copy()),
+        parmakizi_cikar(np.full((180, 180, 3), (44, 44, 205), dtype=np.uint8)),
+        parmakizi_cikar(np.full((180, 180, 3), (200, 200, 200), dtype=np.uint8)),
+        parmakizi_cikar(desenli_nesne((40, 40, 200), tohum=1)),
+        parmakizi_cikar(desenli_nesne((40, 40, 200), tohum=5)),
+    ]
+    tasimayan_gorulen = 0
+    for a in izler:
+        for b in izler:
+            ham = benzerlik_ayrintili(a, b)
+            assert 0.0 <= ham.ham <= 1.0, "ham skor 0-1 dışına çıktı: tavan güvencesi çöker"
+            assert 0.0 <= ham.desen_payi <= ham.ham + 1e-9, "desen payı ham skorun içinde değil"
+            if ham.desen_payi >= esik:
+                continue  # kararı desen taşıyor; renk yalnız doğruluyor
+            tasimayan_gorulen += 1
+            assert benzerlik(a, b, esik) <= tek_kanit_tavani(esik) + 1e-9
+            assert benzerlik(a, b, esik) < esik
+    assert tasimayan_gorulen >= 4, "bu takım 'renk taşıyamaz' dalını hiç sınamıyor"
 
 
 def test_cok_kucuk_gorselden_parmakizi_cikmaz():
@@ -159,7 +211,7 @@ def test_renk_on_elemesi_gercek_eslesmeyi_atmaz(esik):
     for a in izler:
         for b in izler:
             if renk_benzerligi(a.renk, b.renk) < taban:
-                assert benzerlik(a, b) < esik
+                assert benzerlik(a, b, esik) < esik
 
 
 # ================================================================ 2) depo
@@ -293,7 +345,10 @@ def test_kutuphane_bossa_tarama_yol_gosterir(test_ayarlari):
         sahne(None), "kare.jpg", [], test_ayarlari.nesne_tarama_klasoru, VARSAYILAN_ESIK
     )
     assert sonuc.bulgular == []
-    assert "Önce" in sonuc.uyari
+    assert "Kütüphanede tanıtılmış nesne yok" in sonuc.uyari
+    # Yol gösterme artık `eylem` alanındadır: "durum" ile "ne yapmalı" ayrı
+    # yazılır, çünkü kullanıcı ikincisini okumak zorunda kalmasın.
+    assert "Önce" in sonuc.eylem
     assert (test_ayarlari.nesne_tarama_klasoru / sonuc.sonuc_gorseli).is_file()
 
 

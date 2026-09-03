@@ -23,7 +23,7 @@ from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, Resp
 from starlette.concurrency import run_in_threadpool
 
 from app.hatalar import DogrulamaHatasi
-from app.nesneler import arama, depo
+from app.nesneler import arama, depo, teshis
 from app.web.komuta import kabuk_baglami
 from app.web.ortak import baglanti_al
 from app.web.rotalar import sablonlar
@@ -50,16 +50,32 @@ def _sayfa_baglami(
     mesaj: str = "",
     sonuclar: list | None = None,
     esik: float | None = None,
+    cita_secimi: str = teshis.VARSAYILAN_CITA_SECIMI,
 ) -> dict:
     ayarlar = istek.app.state.ayarlar
     baglam = kabuk_baglami(istek, baglanti, "nesneler")
+    nesneler = depo.nesneleri_listele(baglanti)
+    # Her nesnenin "ne kadar tanınabilir" karnesi. Önbelleklidir: ölçüm yalnız
+    # o nesnenin fotoğrafları değiştiğinde yeniden yapılır (depo.teshisleri_al).
+    karneler = depo.teshisleri_al(baglanti, ayarlar.nesne_klasoru)
+    for nesne in nesneler:
+        nesne["teshis"] = karneler.get(nesne["id"])
+        nesne["fotograf_notu"] = teshis.fotograf_notu(len(nesne["fotolar"]))
     baglam.update(
         {
-            "nesneler": depo.nesneleri_listele(baglanti),
+            "nesneler": nesneler,
             "hata": hata,
             "mesaj": mesaj,
             "sonuclar": sonuclar or [],
             "esik_yuzde": round((esik if esik is not None else ayarlar.nesne_eslesme_esigi) * 100),
+            # Sunucunun çıtası ölçülen değerden farklıysa (tipik olarak eski
+            # bir kurulumdan kalan .env) ekranda Türkçe not çıkar. Olağan
+            # durumda boştur ve sayfada hiçbir şey görünmez.
+            "cita_notu": teshis.cita_notu(ayarlar.nesne_eslesme_esigi),
+            "cita_secenekleri": teshis.CITA_SECENEKLERI,
+            "cita_secimi": cita_secimi,
+            "olculen_fotograf": teshis.OLCULEN_FOTOGRAF,
+            "fotograf_egrisi": teshis.FOTOGRAF_EGRISI,
             "en_cok_dosya": ayarlar.nesne_tarama_en_cok_dosya,
             "en_buyuk_mb": ayarlar.nesne_foto_en_buyuk_mb,
             "izinli_uzantilar": ", ".join(
@@ -140,7 +156,10 @@ async def nesne_olustur(
     dosyalar = [d for d in fotograflar or [] if d.filename]
     if not dosyalar:
         return _sayfaya_don(
-            hata="Fotoğraf seçilmedi. Nesneyi tanıtmak için farklı açılardan 3-8 fotoğraf yükleyin."
+            hata=(
+                "Fotoğraf seçilmedi. Nesneyi tanıtmak için en az 2, tercihen "
+                f"{teshis.OLCULEN_FOTOGRAF} fotoğraf yükleyin."
+            )
         )
     try:
         nesne_id = depo.nesne_ekle(baglanti, ad, aciklama)
@@ -165,7 +184,7 @@ async def fotograf_yukle(
 ):
     dosyalar = [d for d in fotograflar or [] if d.filename]
     if not dosyalar:
-        return _sayfaya_don(hata="Fotoğraf seçilmedi. Farklı açılardan 3-8 fotoğraf önerilir.")
+        return _sayfaya_don(hata=f"Fotoğraf seçilmedi. {teshis.fotograf_notu(0)}")
     eklendi, atlanan = await _fotograflari_kaydet(istek, baglanti, nesne_id, dosyalar)
     if eklendi == 0:
         return _sayfaya_don(hata=atlanan[0])
@@ -226,7 +245,7 @@ async def tarama_yap(
             f"işlenir; {len(dosyalar)} dosya seçilmiş."
         )
 
-    esik = _esigi_coz(esik_yuzde, ayarlar.nesne_eslesme_esigi)
+    esik, secim = _esigi_coz(esik_yuzde, ayarlar.nesne_eslesme_esigi)
 
     yukler: list[tuple[str, bytes | None]] = []
     for dosya in dosyalar:
@@ -254,23 +273,42 @@ async def tarama_yap(
                     )
                 )
                 continue
-            sonuclar.append(arama.tara(gorsel, ad, nesneler, ayarlar.nesne_tarama_klasoru, esik))
+            sonuclar.append(
+                arama.tara(
+                    gorsel,
+                    ad,
+                    nesneler,
+                    ayarlar.nesne_tarama_klasoru,
+                    esik,
+                    otomatik_esik=ayarlar.nesne_eslesme_esigi,
+                )
+            )
         arama.eski_taramalari_temizle(ayarlar.nesne_tarama_klasoru)
         return sonuclar
 
     sonuclar = await run_in_threadpool(_isle)
     return sablonlar.TemplateResponse(
-        istek, "komuta_nesneler.html", _sayfa_baglami(istek, baglanti, sonuclar=sonuclar, esik=esik)
+        istek,
+        "komuta_nesneler.html",
+        _sayfa_baglami(istek, baglanti, sonuclar=sonuclar, esik=esik, cita_secimi=secim),
     )
 
 
-def _esigi_coz(ham: str, varsayilan: float) -> float:
-    """Formdaki yüzdeyi 0-1 arası orana çevirir; boş/bozuksa .env değerine düşer."""
+def _esigi_coz(ham: str, varsayilan: float) -> tuple[float, str]:
+    """Formdaki titizlik seçimini (çıta, seçim anahtarı) çiftine çevirir.
+
+    Ekranda artık yüzde girilmez; "Otomatik" / "Daha temkinli" seçilir
+    (teshis.CITA_SECENEKLERI). Sayı biçimi yine de KABUL EDİLİR: eski bir form
+    ya da kayıtlı bir bağlantı elde sayıyla gelirse sessizce hata vermek yerine
+    o sayı kullanılır. Boş ya da tanınmayan değer Otomatik'e döner — kullanıcı
+    ne yaparsa yapsın sistem ölçülmüş ayarına geri gelir.
+    """
     metin = (ham or "").replace(",", ".").strip()
     if not metin:
-        return varsayilan
+        return varsayilan, teshis.VARSAYILAN_CITA_SECIMI
     try:
         yuzde = float(metin)
     except ValueError:
-        return varsayilan
-    return min(max(yuzde, 5.0), 95.0) / 100
+        secenek = teshis.cita_secenegi(metin)
+        return min(varsayilan * secenek.carpan, 0.95), secenek.anahtar
+    return min(max(yuzde, 5.0), 95.0) / 100, teshis.VARSAYILAN_CITA_SECIMI

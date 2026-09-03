@@ -242,7 +242,6 @@
     </section>
 
     {# ---------------------------------------------------------------- 7 #}
-    {# ---------------------------------------------------------------- 7 #}
     <section class="komuta-panel kilavuz-bolum" id="nesne">
       <div class="panel-basligi">
         <h2>7 · Kendi nesnenizi tanıtma</h2>
@@ -261,22 +260,67 @@
       <p><b>Nasıl tanıtılır:</b></p>
       <ul>
         <li>Soldaki raftan <b>Nesneler</b>'i açın.</li>
-        <li>Nesnenin <b>önden, yandan, üstten</b> ve varsa yazılı/logolu yüzünden
-          fotoğrafını çekin — toplam <b>3-8 fotoğraf</b>. Nesne karede büyük ve
-          net olsun, arka plan sade olsun.</li>
+        <li>Nesnenin <b>en az 2, tercihen 4</b> fotoğrafını çekin. Nesne karede
+          büyük ve net olsun, arka plan sade olsun. Nesnenin <b>yazılı, etiketli
+          ya da logolu</b> bir yüzü varsa mutlaka ondan da çekin.</li>
         <li>Bir <b>ad</b> yazıp fotoğrafları seçin, <b>Nesneyi Ekle</b>'ye basın.</li>
+        <li>Nesne eklenince kartının üstünde <b>“Kolay tanınır”</b>, <b>“Düz
+          renkli — bulunamaz”</b> ya da <b>“Zor tanınır”</b> yazan bir rozet
+          çıkar. Bu bir tahmin değil, sizin yüklediğiniz fotoğrafların
+          birbiriyle karşılaştırılmasından çıkan bir ölçümdür; altında ne
+          yapmanız gerektiği yazar.</li>
         <li>Denemek için aynı sayfadaki <b>Fotoğrafta ara</b> bölümüne bir kare
           yükleyip <b>Fotoğrafta Ara</b>'ya basın. Bulunan yerler mor kutuyla
           işaretlenir; kutunun numarası altındaki listede nesnenin adını gösterir.</li>
       </ul>
 
-      <p><b>Ne beklemelisiniz:</b> sistem fotoğraflardan <b>renk ve desen parmak
-        izi</b> çıkarır; bu bir <b>model eğitimi değildir</b>. Ayırt edici rengi ya
-        da deseni olan nesnelerde (sarı tüp, yazılı pano) iyi çalışır; düz gri ve
-        desensiz nesnelerde zayıftır. Benzerlik <b>kabul çıtasının</b> altında
-        kalırsa sistem isim uydurmaz, <b>“eşleşme yok”</b> der. Nesne
-        bulunamıyorsa önce o açıdan bir fotoğraf daha ekleyin; olmazsa kabul
-        çıtasını birkaç puan düşürüp yeniden deneyin.</p>
+      <p><b>Şaşırtıcı ama ölçüldü:</b> birbirinden <b>çok farklı</b> kareler
+        (biri önden, biri arkadan, biri tepeden) beklenenin tersine işe yaramıyor.
+        Sistem fotoğrafları birbiriyle karşılaştırarak karar verir; birbirini
+        tanımayan fotoğraflar nesneyi <b>zor tanınır</b> yapar. <b>Aynı yüzü
+        gösteren, birbirine yakın</b> kareler daha iyi sonuç veriyor.</p>
+
+      <p><b>Ne iyi çalışıyor:</b> <b>yazılı pano, barkod etiketi, logolu kutu</b>
+        gibi belirgin desenli nesneler. Ölçümde (12 nesne, 204 soru) bunların
+        <b>%16'sı bulundu</b> ve bulunanların <b>tamamında</b> işaret gerçekten
+        nesnenin üstündeydi.</p>
+
+      <p><b>Ne çalışmıyor — dürüst olmak gerekirse:</b></p>
+      <ul>
+        <li><b>Düz renkli, desensiz nesnelerde sistem isim yazmaz.</b> Ölçümde
+          böyle nesnelerin <b>hiçbiri</b> bulunmadı. Sebebi şu: geriye yalnız
+          renk kalınca sistem o nesneyi <b>aynı renkteki bambaşka bir şeyden</b>
+          ayıramaz. Daha önce böyle nesnelerin %36'sı "bulunuyordu" ama işaret
+          çoğunlukla fotoğrafın başka bir köşesine düşüyordu ve aynı yoldan
+          kütüphanede olmayan şeylere de isim yazılıyordu; o kapı kapatıldı.
+          <b>Bu eksik kapatılmaya çalışıldı ve kapatılamadı:</b> renge
+          bakmayan üç ayrı ölçü denendi (nesnenin renklerinin karede nasıl
+          dağıldığı, dış hattının biçimi, kenarlarının yönü) ve üçü de ayrı
+          ayrı, sonra birlikte ölçüldü. Hiçbiri işe yaramadı — üstelik hepsi
+          <b>ters yönde</b> çalıştı: bir nesne ne kadar desensizse, aynı
+          renkteki <i>başka</i> bir düz nesnenin temiz fotoğrafına o kadar
+          benziyor. Yani düz nesneler bu yöntemle bulunamıyor; bunu
+          gizlemektense yazıyoruz.</li>
+        <li><b>Birbirine çok benzeyen iki nesneyi ayırt edemiyor.</b> Aynı gri
+          panonun iki kardeşi ya da aynı kasanın iki rengi sorulduğunda ölçümde
+          isabet <b>%0</b> çıktı. Sistem bu durumda yanlış isim yazmıyor —
+          susuyor; ama bulmuyor da.</li>
+        <li><b>Bulanık ve karanlık fotoğraflarda</b> en çok kaybediyor. En az
+          etkilenen bozulmalar hafif açı değişikliği ve JPEG sıkıştırması.</li>
+      </ul>
+
+      <p><b>Nesne bulunamazsa:</b> ekranda <b>“Şunu deneyin”</b> diye tek cümlelik
+        bir öneri çıkar — sistem fotoğrafınıza bakıp bulanık mı, kıl payı mı
+        kaçtı, yoksa nesne mi küçük kalmış diye ayırt eder. Önce o cümledeki şeyi
+        yapın. Genel olarak en işe yarayan adım, <b>bulunamayan tam o kareyi</b>
+        nesnenin kütüphanesine yeni bir fotoğraf olarak eklemektir.</p>
+
+      <p class="kilavuz-alinti"><b>Sistemin “ne kadar emin olsun” ayarını
+        gevşetmeye çalışmayın.</b> Bugünkü ayar, ölçümle bulunmuş bir noktadır:
+        sistemin <b>hiç yanlış isim yazmadan</b> en çok nesneyi bulduğu yer. Bir
+        adım aşağısında yanlış isim yazmaya başlıyor. Bu yüzden ekranda “daha çok
+        işaret çıksın” diye bir seçenek yoktur — yalnızca <b>Otomatik</b> ve
+        <b>Daha temkinli</b> vardır.</p>
     </section>
 
     <section class="komuta-panel kilavuz-bolum" id="ayarlar">

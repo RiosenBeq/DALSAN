@@ -1095,6 +1095,66 @@
 .nesne-tablo .komuta-tablo-basligi,
 .nesne-tablo .komuta-tablo-satiri { grid-template-columns: 48px 1fr 110px; }
 
+/* Fotoğraf sayısı eğrisi: fotoğraf · bulunan · işaret yerinde */
+.nesne-egri-tablo .komuta-tablo-basligi,
+.nesne-egri-tablo .komuta-tablo-satiri { grid-template-columns: 90px 1fr 1fr; }
+
+/* Nesne teşhisi: "kolay tanınır" / "düz renkli" / "zor tanınır" kutusu.
+   Renk, rozetin rengiyle AYNI kaynaktan gelir; iki yerde farklı renk görünmesi
+   kullanıcıya iki ayrı şey söylüyormuş gibi gelirdi. */
+.nesne-teshis {
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: var(--radius-orta);
+  border: 1px solid var(--cam-sinir);
+  background: var(--cam-orta);
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+.nesne-teshis p { margin: 0; }
+.nesne-teshis.yesil { background: var(--basari-zemin); border-color: var(--basari-cizgi); }
+.nesne-teshis.sari { background: var(--uyari-zemin); border-color: var(--uyari-cizgi); }
+.nesne-teshis.kirmizi { background: var(--tehlike-zemin); border-color: var(--tehlike-cizgi); }
+
+/* "Eşleşme yok" çıktığında ne yapılacağını söyleyen kutu. Uyarı yazısından
+   AYRI durur ve önce o okunur: yüzde bilgi değildir, eylem bilgidir. */
+.nesne-eylem {
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: var(--radius-orta);
+  border: 1px solid var(--cam-sinir);
+  background: var(--cam-orta);
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+.nesne-eylem p { margin: 0; }
+
+/* Kaç fotoğraf gerekli — katlanır rehber. Kapalı başlar: sayfayı ilk açan
+   kişiyi metne boğmasın, ama arayan bulsun. */
+.nesne-rehber {
+  border: 1px solid var(--cam-sinir);
+  border-radius: var(--radius-orta);
+  padding: 10px 14px;
+  background: var(--cam-orta);
+}
+.nesne-rehber > summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--metin);
+}
+.nesne-rehber > *:not(summary) { margin-top: 8px; }
+
 @media (max-width: 900px) {
   .nesne-izgara { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); }
+}
+@media (max-width: 560px) {
+  /* Dar ekranda üç sütunlu eğri tablosu 375 px'e sığmaz: sütunlar daralır,
+     satır adı sarar. Ölçüldü: bu kural olmadan sayfa yatay kayıyor. */
+  .nesne-egri-tablo .komuta-tablo-basligi,
+  .nesne-egri-tablo .komuta-tablo-satiri { grid-template-columns: 60px 1fr 1fr; }
+  .nesne-tablo .komuta-tablo-basligi,
+  .nesne-tablo .komuta-tablo-satiri { grid-template-columns: 34px 1fr 62px; }
 }

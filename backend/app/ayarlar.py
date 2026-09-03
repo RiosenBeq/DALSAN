@@ -236,7 +236,7 @@ def ayarlari_coz(
         nesne_tarama_en_cok_dosya=_tam_sayi(degerler, "NESNE_TARAMA_EN_COK_DOSYA", 6, 1, 30),
         # Bu skorun altındaki en iyi benzerlik "eşleşme yok" sayılır: sistem
         # emin olmadığı yere isim YAZMAZ (docs/12'deki üç durum ilkesiyle aynı).
-        nesne_eslesme_esigi=_ondalik(degerler, "NESNE_ESLESME_ESIGI", 0.42, 0.05, 0.95),
+        nesne_eslesme_esigi=_ondalik(degerler, "NESNE_ESLESME_ESIGI", 0.24, 0.05, 0.95),
         env_yolu=kok / ".env",
         veri_konumu_notu=konum.gunluk_notu,
         veri_konumu_ayrintisi=konum.gunluk_ayrintisi,

@@ -29,11 +29,14 @@ from pathlib import Path
 import cv2
 import numpy as np
 
+from app.nesneler import teshis
 from app.nesneler.kutuphane import (
+    EN_AZ_ANAHTAR_NOKTA,
     Nesne,
     Parmakizi,
     desen_izi,
     en_iyi_eslesme_izinden,
+    nokta_sayisi,
     renk_alt_siniri,
     renk_benzerligi,
     renk_izi,
@@ -88,6 +91,10 @@ class TaramaSonucu:
     bulgular: list[Bulgu] = field(default_factory=list)
     en_yuksek_skor: float = 0.0
     uyari: str = ""
+    # "Eşleşme yok" dendiğinde kullanıcının ATABİLECEĞİ tek adım. Yüzde
+    # göstermek yetmiyor: "%18 benzerlik, çıta %24" cümlesi yazılım bilmeyen
+    # birine hiçbir şey söylemez, ne yapacağını söylemez (teshis.py).
+    eylem: str = ""
 
     @property
     def en_yuksek_yuzde(self) -> int:
@@ -100,32 +107,40 @@ def tara(
     nesneler: list[Nesne],
     hedef_klasor: Path,
     esik: float,
+    otomatik_esik: float | None = None,
 ) -> TaramaSonucu:
-    """Tek bir fotoğrafı tarar ve işaretlenmiş sonucu diske yazar."""
+    """Tek bir fotoğrafı tarar ve işaretlenmiş sonucu diske yazar.
+
+    `otomatik_esik`: .env'deki ÖNERİLEN çıta. Kullanıcı "Daha temkinli"yi
+    seçtiyse `esik` ondan yüksektir; eşleşme yoksa "önerilen ayarda
+    bulunuyordu" diyebilmek için ikisi de gerekir (teshis.tarama_eylemi).
+    """
     kucuk = _olcekle(gorsel)
     if not nesneler:
         return TaramaSonucu(
             dosya_adi=dosya_adi,
             sonuc_gorseli=_gorseli_yaz(kucuk, hedef_klasor),
-            uyari=(
-                "Kütüphanede tanıtılmış nesne yok. Önce yukarıdan bir nesne ekleyip "
-                "farklı açılardan 3-8 fotoğrafını yükleyin."
-            ),
+            uyari="Kütüphanede tanıtılmış nesne yok.",
+            eylem=teshis.tarama_eylemi(kucuk, 0.0, esik, kutuphane_bos=True),
         )
 
     bulgular, en_yuksek = _pencereleri_tara(kucuk, nesneler, esik)
     isaretli = _isaretle(kucuk, bulgular)
 
-    if bulgular:
-        uyari = ""
-    elif en_yuksek > 0:
+    uyari = eylem = ""
+    if not bulgular:
         uyari = (
-            f"Eşleşme bulunamadı. Bu fotoğraftaki en yüksek benzerlik %{round(en_yuksek * 100)}, "
-            f"kabul çıtası ise %{round(esik * 100)}. Nesnenin bu açıdan ve bu ışıkta bir "
-            "fotoğrafını kütüphaneye eklemeyi deneyin."
+            f"Eşleşme bulunamadı. Bu fotoğrafta bulunan en yüksek benzerlik "
+            f"%{round(en_yuksek * 100)}; sistemin isim yazmak için aradığı benzerlik "
+            f"%{round(esik * 100)}."
         )
-    else:
-        uyari = "Eşleşme bulunamadı; bu fotoğrafta kütüphanedeki nesnelere benzeyen bir yer yok."
+        eylem = teshis.tarama_eylemi(
+            kucuk,
+            en_yuksek,
+            esik,
+            duz_kutuphane=_duz_kutuphane(nesneler),
+            otomatik_esik=otomatik_esik,
+        )
 
     return TaramaSonucu(
         dosya_adi=dosya_adi,
@@ -133,6 +148,16 @@ def tara(
         bulgular=bulgular,
         en_yuksek_skor=en_yuksek,
         uyari=uyari,
+        eylem=eylem,
+    )
+
+
+def _duz_kutuphane(nesneler: list[Nesne]) -> bool:
+    """Kütüphanedeki nesnelerin HEPSİ desensiz mi? (o zaman sınır motorun değil,
+    kütüphanenin kendisidir ve önerilecek şey başkadır)"""
+    return all(
+        max((nokta_sayisi(izi) for izi in nesne.parmakizleri), default=0) < EN_AZ_ANAHTAR_NOKTA
+        for nesne in nesneler
     )
 
 

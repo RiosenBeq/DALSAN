@@ -142,3 +142,84 @@ Bu, kameralar arttıkça değil, **sisteme bağımlılık arttıkça** gündeme 
 | GraphQL | İstemci tek ve sabit; REST + OpenAPI yeterli |
 | Elasticsearch | Olay hacmi PostgreSQL'in çok altında |
 | Multi-tenancy | Tek şirket, tek tesis; fabrika geneli yayılım multi-tenancy değil, alan gruplamadır |
+
+---
+
+## 5. Nesne kütüphanesi — isabeti geri kazanma (2026-09'da açılan başlık)
+
+"Renk taşımaz" kuralı yanlış ismi sıfıra indirdi (bkz.
+`backend/app/nesneler/kutuphane.py` → `kabul_skoru`), bedeli isabette ödendi:
+tam kıyas takımında 61/204 → 8/204. Kaybın bir kısmı zaten sahteydi (eski 61
+bulgunun yalnız 38'inde işaret gerçekten nesnenin üstündeydi; bugün 8'in
+8'inde), ama gerçek kayıp da var. Sıradaki iş, yanlış ismi sıfırda tutarak
+isabeti yukarı taşımaktır.
+
+**Ölçülmüş ilk aday: referansın deseni AYIRT EDİCİ mi?**
+Kuralı gevşetmenin bedeli ölçüldü (12 nesne, 264 sorgu, çıta 0,24): desen
+payından çıtanın tamamı yerine 0,8'i istenirse isabet 8 → 21 çıkıyor ama 1
+yanlış isim geri geliyor; 0,5'te isabet 30 / yanlış isim 3; hiç istenmezse
+isabet 33 / yanlış isim 4. **Yanlış isimlerin tamamı tek bir kütüphane
+nesnesinden geliyor:** "Düz beyaz baret". O nesne aslında düz, ama gölgesinden
+23-51 ORB noktası çıkardığı için motor onu "desenli" sayıyor ve beyaz bir
+çuvalın 9 gürültü noktası geometri sınamasını geçebiliyor.
+
+Yani doğru soru "çıtayı/oranı kaça çekelim" değil, **"bu referansın anahtar
+noktaları desen mi, gürültü mü?"**dir. Ölçülebilir biçimi: bir referansın
+noktaları kendi diğer fotoğraflarında da aynı yerlerde çıkıyor mu (teşhisin
+tutarlılık ölçüsü zaten bunu yapıyor — "Düz beyaz baret" 0,023). Bu ölçü
+`benzerlik()` kararına girerse, gürültülü referanslar kendiliğinden elenir ve
+gerçek desenliler için kural gevşetilebilir.
+
+Yapılmadan önce ölçülmesi gerekenler: kural gevşetildiğinde yanlış isim gerçekten
+sıfır kalıyor mu (tam takım), ve isabet 8'den kaça çıkıyor.
+
+### 5.1 Düz nesnelere "ikinci kanıt" — DENENDİ, OLMADI (2026-09)
+
+Düz/desensiz nesnelerin isabeti sıfırdır. Bunu kurtarmanın tek meşru yolu,
+renge dayanmayan **ikinci bir kanıt** bulmaktır ("renk taşımaz" kuralı
+gevşetilemez). Üç aile ayrı ayrı ve birlikte ölçüldü; **üçü de reddedildi.**
+
+Ölçüm: düz nesnelerin sorguları ile kütüphanedekiyle **aynı renkteki** yabancı
+nesnelerin sorguları, ikisi de aynı bozulmalarla ve **ideal çerçeveyle** (yani
+adaylara sahada hiç olmayacak kadar iyi bir şans tanınarak). Ölçülen sayı ayırt
+gücüdür (AUC): "düz nesnenin kendi sorgusu, aynı renkteki yabancıdan yüksek
+skor alıyor mu?" 0,50 yazı-turadır.
+
+| aday ikinci kanıt | adil AUC |
+|---|---|
+| A — uzamsal renk düzeni (2x2 + merkez histogramları) | 0,190 |
+| A' — baskın renk bölgesinin halka profili + doluluğu | 0,222 |
+| B — kenar/siluet haritası (8x8) | 0,000 |
+| B' — satır/sütun kenar profili | 0,000 |
+| B'' — Hu momentleri (Otsu + en büyük kontur) | elendi (aşağıda) |
+| C — kenar yönelim dağılımı 3x3x8 (HOG) | 0,381 |
+| C' — kenar yönelim dağılımı 2x2x8 | 0,508 |
+| P — parlaklık düzeni (8x8) | 0,143 |
+| A+B+C birlikte | 0,016 |
+| hepsi birlikte | 0,000 |
+| ORACLE (her sorguda en iyi aday seçilse) | 0,333 |
+
+**Hepsi 0,50'nin altında: bu kanıtlar zayıf değil, TERSİNE çalışıyor.** Sebebi
+ölçülünce anlaşıldı: bir nesne ne kadar desensizse, aynı renkteki *başka* bir
+desensiz nesnenin temiz referans fotoğrafına o kadar benzer. Yabancı düz
+nesneler (mavi kasa, mavi örtü, gri sac levha) pürüzsüz oldukları için
+referansa, sahnede dönmüş/bulanıklaşmış/yarısı örtülmüş **gerçek** nesneden
+daha çok benziyor. Bu yüzden aynı nesnenin dört referansı birbirini, ikizini
+tanıdığından daha az tanıyor (HOG: kendi 0,827 — ikizi 0,850). Sıralaması ters
+olan bir kanıt hiçbir eşik, ağırlık ya da birleşimle düzelmez.
+
+Hu momentleri ayrıca elendi: aynı nesnenin dört referansı arasındaki tutarlılık
+0,110 çıktı (nesne kendini bile tanımıyor), çünkü Otsu eşiklemesi tarama
+penceresinde nesneyi zeminden ayıramıyor.
+
+**Bugünkü durum dürüstçe yazılıdır:** Nesneler sayfasındaki rozet "Düz renkli —
+bulunamaz" der, sayfanın "Bu yöntem ne yapar, ne yapmaz" bölümü ve kılavuz da
+bu denemenin yapıldığını ve başarısız olduğunu söyler.
+
+**Sıradaki fikir (ölçülmedi): tarama penceresini nesnenin silüetine oturtmak.**
+Bugün kare pencere ızgarası nesneyi hiçbir zaman referanstaki gibi
+çerçevelemiyor; üstelik referans nesnenin kendi en-boy oranıyla kırpılıp
+160x160'a **eziliyor**, yani yatık bir boru referansta ezilirken tarama
+penceresinde ezilmiyor. Biçim kanıtı daha hesaplanmadan bozuluyor. Önce bu
+çerçeveleme uyumsuzluğu giderilmeden biçim kanıtına yeniden girmenin anlamı
+yok.

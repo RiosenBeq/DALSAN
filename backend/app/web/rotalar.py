@@ -13,7 +13,7 @@ from fastapi.templating import Jinja2Templates
 from app import kaynaklar, veritabani, zaman
 from app.analiz.model_adi import gorunen_model_adi
 from app.hatalar import VeritabaniHatasi
-from app.web.ortak import SINIFLAR, baglanti_al
+from app.web.ortak import SINIFLAR, baglanti_al, sayi_eki
 
 router = APIRouter()
 
@@ -21,6 +21,9 @@ router = APIRouter()
 # dosyalar depoda değil, paketin açıldığı geçici klasördedir).
 SABLON_DIZINI = kaynaklar.kaynak_yolu("backend", "app", "web", "templates")
 sablonlar = Jinja2Templates(directory=str(SABLON_DIZINI))
+# Türkçe ek süzgeci: "%{{ x }}{{ x|sayi_eki }}" → "%36'sı". Ek sabit yazılamaz,
+# sayının okunuşuna göre değişir (bkz. web/ortak.py sayi_eki).
+sablonlar.env.filters["sayi_eki"] = sayi_eki
 
 
 @router.get("/", response_class=HTMLResponse)

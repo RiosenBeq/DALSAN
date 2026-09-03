@@ -79,6 +79,78 @@ def sayi_metni(deger, birim: str = "", basamak: int = 1) -> str:
     return f"{metin.replace('.', ',')} {birim}".strip()
 
 
+# --------------------------------------------------------------- Türkçe ekler
+#
+# Sayıdan sonra gelen ek, sayının OKUNUŞUNA göre değişir: "%36'sı" ama "%69'u",
+# "%7'sinde" ama "%64'ünde". Şablona sabit yazılırsa er ya da geç yanlış olur —
+# ve bir kez oldu: Nesneler sayfasındaki kart "%36'i bulundu ve %7'inde" diyor,
+# aynı sayfanın alt paragrafı ise doğru yazıyordu. Sayı ölçümden geldiği için
+# yarın 36 değil 69 olabilir; ek de onunla değişmelidir.
+#
+# Ek son RAKAMA değil, okunuşun son KELİMESİNE bağlıdır: 14 "on dört"tür ve eki
+# dörtten gelir ("%14'ü"), 40 "kırk"tır ve eki kırktan gelir ("%40'ı").
+
+# okunuşun son kelimesi → (iyelik, iyelik+bulunma, ayrılma)
+#   iyelik          : "%36'sı bulundu"
+#   iyelik+bulunma  : "%7'sinde işaret nesnenin üstündeydi"
+#   ayrılma         : "4'ten fazlası"
+_SAYI_EKLERI = {
+    "sıfır": ("ı", "ında", "dan"),
+    "bir": ("i", "inde", "den"),
+    "iki": ("si", "sinde", "den"),
+    "üç": ("ü", "ünde", "ten"),
+    "dört": ("ü", "ünde", "ten"),
+    "beş": ("i", "inde", "ten"),
+    "altı": ("sı", "sında", "dan"),
+    "yedi": ("si", "sinde", "den"),
+    "sekiz": ("i", "inde", "den"),
+    "dokuz": ("u", "unda", "dan"),
+    "on": ("u", "unda", "dan"),
+    "yirmi": ("si", "sinde", "den"),
+    "otuz": ("u", "unda", "dan"),
+    "kırk": ("ı", "ında", "tan"),
+    "elli": ("si", "sinde", "den"),
+    "altmış": ("ı", "ında", "tan"),
+    "yetmiş": ("i", "inde", "ten"),
+    "seksen": ("i", "inde", "den"),
+    "doksan": ("ı", "ında", "dan"),
+    "yüz": ("ü", "ünde", "den"),
+}
+_BIRLER = ("sıfır", "bir", "iki", "üç", "dört", "beş", "altı", "yedi", "sekiz", "dokuz")
+_ONLAR = ("", "on", "yirmi", "otuz", "kırk", "elli", "altmış", "yetmiş", "seksen", "doksan")
+_HALLER = {"iyelik": 0, "bulunma": 1, "ayrilma": 2}
+
+
+def sayi_okunusu(sayi: int) -> str:
+    """Ekin bağlı olduğu son kelime: 14 → 'dört', 40 → 'kırk', 100 → 'yüz'.
+
+    Yüzdeler (0-100) için yazıldı; daha büyük sayılarda son iki basamağa bakar,
+    yani 1500 doğru ("yüz"), 1000 yanlış olurdu — bu fonksiyona öyle bir sayı
+    gelmez ve gelirse de ek üretmek yerine yanlış ek yazmak istemeyiz.
+    """
+    kalan = abs(int(sayi)) % 100
+    if kalan == 0:
+        return "sıfır" if abs(int(sayi)) == 0 else "yüz"
+    if kalan % 10:
+        return _BIRLER[kalan % 10]
+    return _ONLAR[kalan // 10]
+
+
+def sayi_eki(sayi, hal: str = "iyelik") -> str:
+    """Sayıdan sonra gelen Türkçe eki kesme işaretiyle verir: 36 → "'sı".
+
+    Şablonda süzgeç olarak kullanılır (web/rotalar.py kaydeder):
+        %{{ yuzde }}{{ yuzde|sayi_eki }} bulundu
+        %{{ yuzde }}{{ yuzde|sayi_eki('bulunma') }} işaret nesnenin üstündeydi
+    Sayı okunamıyorsa BOŞ döner: eksiz bir cümle, yanlış ekli bir cümleden iyidir.
+    """
+    try:
+        okunus = sayi_okunusu(int(sayi))
+    except (TypeError, ValueError):
+        return ""
+    return "'" + _SAYI_EKLERI[okunus][_HALLER.get(hal, 0)]
+
+
 def olay_hazirla(satir) -> dict:
     """Veritabanı satırını ekrana hazır olay sözlüğüne çevirir."""
     olay = dict(satir)

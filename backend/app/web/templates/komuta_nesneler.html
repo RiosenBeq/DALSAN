@@ -6,7 +6,12 @@
 
    Kutuların üzerine nesne ADI yazılmaz, numara konur: OpenCV yazı tipleri
    Türkçe harfleri çizemez (bkz. nesneler/arama.py _isaretle). Numaranın
-   karşılığı görüntünün altındaki listede yazar. #}
+   karşılığı görüntünün altındaki listede yazar.
+
+   BU SAYFADA "EŞİK", "SKOR", "PARMAK İZİ EŞLEŞMESİ" GİBİ TERİMLER YOKTUR.
+   Kullanıcı yazılım bilmiyor; her sayının yanında ne anlama geldiği ve NE
+   YAPILACAĞI yazar. Sayıların kendisi uydurma değildir — hepsi
+   tests/nesne_kiyas ölçümünden gelir (bkz. app/nesneler/teshis.py). #}
 {% extends "komuta_temel.html" %}
 {% block icerik %}
 
@@ -23,6 +28,12 @@
   </span>
 </section>
 
+{# Sunucunun çıtası ölçülen değerden farklıysa (eski kurulumdan kalan ayar):
+   sessizce ezmek yerine söylenir ve ne yapılacağı yazar. Olağan durumda boş. #}
+{% if cita_notu %}
+<p class="komuta-sonuc uyari-tonu"><b>Ayar notu:</b> {{ cita_notu }}</p>
+{% endif %}
+
 {% if hata %}<p class="komuta-sonuc uyari-tonu">{{ hata }}</p>{% endif %}
 {% if mesaj %}<p class="komuta-sonuc">{{ mesaj }}</p>{% endif %}
 
@@ -30,14 +41,14 @@
 <section class="komuta-panel">
   <div class="panel-basligi">
     <h2>Kendi nesnenizi tanıtın</h2>
-    <span class="panel-notu">farklı açılardan 3-8 fotoğraf</span>
+    <span class="panel-notu">{{ olculen_fotograf }} fotoğraf yeter</span>
   </div>
 
   <p class="panel-notu">
     Nesnenin <b>önden, yandan, üstten</b> ve varsa <b>yazılı/logolu yüzünden</b>
     fotoğrafını çekin. Nesne karede büyük ve net olsun, arka plan sade olsun,
-    mümkünse farklı ışıklarda birer fotoğraf ekleyin. Sistem her fotoğraftan
-    <b>renk ve desen parmak izi</b> çıkarır — bu bir model eğitimi değildir.
+    mümkünse farklı ışıklarda birer fotoğraf ekleyin. Fotoğrafları yükledikten
+    sonra sistem size <b>bu nesnenin ne kadar kolay tanınacağını</b> söyleyecek.
   </p>
 
   <form method="post" action="/nesneler/ekle" enctype="multipart/form-data" class="dikey-form">
@@ -53,6 +64,43 @@
     <p class="panel-notu">{{ izinli_uzantilar }} · her biri en fazla {{ en_buyuk_mb }} MB</p>
     <div><button class="dugme" type="submit">Nesneyi Ekle</button></div>
   </form>
+
+  {# Kaç fotoğraf — ölçülmüş sayılarla, uydurma tavsiye değil. #}
+  <details class="nesne-rehber">
+    <summary>Kaç fotoğraf gerekli, hangi açılardan?</summary>
+    <p class="panel-notu">
+      <b>En az 2, tercihen {{ olculen_fotograf }} fotoğraf.</b> Tek fotoğrafla sistem
+      nesnenin ne kadar tanınacağını <b>ölçemez</b> — karşılaştıracak ikinci bir kare
+      yoktur.
+    </p>
+    <p class="panel-notu">
+      <b>Hangi açılardan:</b> aynı yüzü gösteren, birbirine yakın kareler işe yarıyor.
+      Birbirinden çok farklı kareler (bir önden, bir arkadan, bir tepeden) beklenenin
+      tersine işe yaramıyor: sistem fotoğrafları birbiriyle karşılaştırarak karar
+      verdiği için, birbirini tanımayan fotoğraflar nesneyi <b>zor tanınır</b> yapıyor.
+      Nesnenin <b>yazılı, etiketli ya da logolu</b> bir yüzü varsa mutlaka ondan
+      fotoğraf koyun — ölçümde en iyi sonuç veren nesneler bunlar oldu.
+    </p>
+    <div class="komuta-tablo nesne-egri-tablo">
+      <div class="komuta-tablo-basligi">
+        <span>Fotoğraf</span><span>Bulunan nesne</span><span>İşaret nesnenin üstünde</span>
+      </div>
+      {% for sayi, bulunan, yerinde in fotograf_egrisi %}
+      <div class="komuta-tablo-satiri">
+        <span class="sayisal">{{ sayi }}</span>
+        <span class="sayisal">168 sorguda {{ bulunan }}</span>
+        <span class="sayisal">{{ yerinde }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    <p class="panel-notu">
+      Bu tablo gerçek bir ölçümdür: 12 nesne, 168 soru. Her koşuda sistem
+      <b>hiç yanlış isim yazmadı</b>. Ölçüm {{ olculen_fotograf }} fotoğrafa kadar
+      yapıldı; daha fazlasının katkısı ölçülmedi, o yüzden
+      "{{ olculen_fotograf }}{{ olculen_fotograf|sayi_eki('ayrilma') }} fazlası boşuna"
+      demiyoruz.
+    </p>
+  </details>
 </section>
 
 {# --- 2) tanıtılmış nesneler ------------------------------------------- #}
@@ -61,14 +109,27 @@
   <section class="komuta-panel">
     <div class="panel-basligi">
       <h2>{{ n.ad }}</h2>
-      <span class="rozet {{ 'yesil' if n.fotolar|length >= 3 else 'sari' }}">
-        {{ n.fotolar|length }} fotoğraf</span>
+      {% if n.teshis %}<span class="rozet {{ n.teshis.rozet }}">{{ n.teshis.baslik }}</span>{% endif %}
+      <span class="panel-notu">{{ n.fotolar|length }} fotoğraf</span>
       {% if n.aciklama %}<span class="panel-notu">{{ n.aciklama }}</span>{% endif %}
     </div>
 
-    {% if n.fotolar|length < 3 %}
-    <p class="panel-notu">En az 3 farklı açı önerilir. Tek açıdan tanıtılan nesne,
-      başka açıdan çekilmiş bir fotoğrafta tanınmayabilir.</p>
+    {# Teşhis: nesnenin KENDİ fotoğraflarından ölçülür, uydurma değildir. #}
+    {% if n.teshis %}
+    <div class="nesne-teshis {{ n.teshis.rozet }}">
+      <p>{{ n.teshis.aciklama }}</p>
+      <p><b>Ne yapmalı:</b> {{ n.teshis.oneri }}</p>
+      <p class="panel-notu">{{ n.fotograf_notu }}</p>
+      {% if n.teshis.bulunma_yuzdesi is not none %}
+      <p class="panel-notu">
+        Ölçüldü: yüklediğiniz fotoğraflar birbirini <b>%{{ n.teshis.tutarlilik_yuzde }}</b>
+        oranında tanıyor. Bu düzeydeki nesnelerin ölçümde
+        <b>%{{ n.teshis.bulunma_yuzdesi }}</b>{{ n.teshis.bulunma_yuzdesi|sayi_eki }} bulundu ve
+        <b>%{{ n.teshis.yerinde_yuzdesi }}</b>{{ n.teshis.yerinde_yuzdesi|sayi_eki('bulunma') }}
+        işaret gerçekten nesnenin üstündeydi.
+      </p>
+      {% endif %}
+    </div>
     {% endif %}
 
     <div class="nesne-izgara">
@@ -102,7 +163,7 @@
   <div class="komuta-bos">
     <h3>Henüz nesne tanıtılmadı</h3>
     <p>Yukarıdaki formla ilk nesnenizi ekleyin: bir ad yazın ve nesnenin farklı
-      açılardan çekilmiş 3-8 fotoğrafını seçin.</p>
+      açılardan çekilmiş en az 2, tercihen {{ olculen_fotograf }} fotoğrafını seçin.</p>
   </div>
 </section>
 {% endif %}
@@ -118,14 +179,29 @@
     <label>Aranacak fotoğraflar
       <input type="file" name="kareler" accept="{{ kabul_ozniteligi }}" multiple required>
     </label>
-    <label class="yatay">Kabul çıtası (%)
-      <input type="number" name="esik_yuzde" value="{{ esik_yuzde }}" min="5" max="95" step="1">
+    <label>Sistem ne kadar emin olsun?
+      <select name="esik_yuzde">
+        {% for secenek in cita_secenekleri %}
+        <option value="{{ secenek.anahtar }}"
+                {% if secenek.anahtar == cita_secimi %}selected{% endif %}>{{ secenek.ad }}</option>
+        {% endfor %}
+      </select>
     </label>
+    {% for secenek in cita_secenekleri %}
+    <p class="panel-notu"><b>{{ secenek.ad }}:</b> {{ secenek.sonuc }}</p>
+    {% endfor %}
     <p class="panel-notu">
-      Bir taramada en fazla {{ en_cok_dosya }} fotoğraf işlenir. Çıtayı
-      <b>yükseltirseniz</b> daha az ama daha emin işaret çıkar; <b>düşürürseniz</b>
-      daha çok işaret çıkar ve yanlış eşleşme ihtimali artar. Çıtanın altında kalan
-      en iyi benzerlik bile kabul edilmez — sistem uydurma isim yazmaz.
+      <b>Geri almak için</b> bu listeyi “Otomatik (önerilen)” konumuna getirip yeniden
+      arayın; ayar hiçbir yere kaydedilmez, her arama kendi seçimiyle çalışır.
+    </p>
+    <p class="panel-notu">
+      Listede <b>“daha çok işaret çıksın” diye bir seçenek yok</b>, çünkü ölçüm şunu
+      gösterdi: sistemin bugünkü ayarı, hiç yanlış isim yazmadan en çok nesneyi bulduğu
+      noktadır. Bir adım aşağısında sistem <b>yanlış isim yazmaya başlıyor</b> — ve
+      yanlış isim, nesneyi kaçırmaktan çok daha ağır bir kusurdur.
+    </p>
+    <p class="panel-notu">
+      Bir taramada en fazla {{ en_cok_dosya }} fotoğraf işlenir.
     </p>
     <div><button class="dugme" type="submit">Fotoğrafta Ara</button></div>
   </form>
@@ -162,7 +238,16 @@
   <p class="panel-notu">Numaralar fotoğraftaki mor kutulara karşılık gelir.</p>
   {% endif %}
 
-  {% if s.uyari %}<p class="panel-notu">{{ s.uyari }}</p>{% endif %}
+  {# "Eşleşme yok" derken kullanıcı ne yapacağını da bilsin: yüzde bilgi
+     değildir, eylem bilgidir. #}
+  {% if s.eylem %}
+  <div class="nesne-eylem">
+    <p><b>Şunu deneyin:</b> {{ s.eylem }}</p>
+    {% if s.uyari %}<p class="panel-notu">{{ s.uyari }}</p>{% endif %}
+  </div>
+  {% elif s.uyari %}
+  <p class="panel-notu">{{ s.uyari }}</p>
+  {% endif %}
 </section>
 {% endfor %}
 
@@ -173,14 +258,33 @@
   </div>
   <p class="panel-notu">
     <b>Yapar:</b> nesnenin renk dağılımı ile yazı/logo/kenar desenini fotoğraftan
-    çıkarır ve yüklediğiniz karede benzeyen yerleri arar. Ayırt edici rengi ya da
-    deseni olan nesnelerde (sarı tüp, yazılı pano, markalı kutu) iyi çalışır.
+    çıkarır ve yüklediğiniz karede benzeyen yerleri arar. Yazılı pano, barkod
+    etiketi, logolu kutu gibi <b>belirgin desenli</b> nesnelerde çalışır: ölçümde
+    bu nesnelerin %16'sı bulundu ve bulunanların <b>tamamında</b> işaret gerçekten
+    nesnenin üstündeydi.
   </p>
   <p class="panel-notu">
     <b>Yapmaz:</b> yapay zeka modelini yeniden eğitmez, canlı kameralarda arama
-    yapmaz. Düz gri, desensiz nesnelerde ayırt etme zayıftır — renk dışında
-    tutunacak bir iz kalmaz. Emin olunamayan durumda isim yazmak yerine
-    "eşleşme yok" der.
+    yapmaz. <b>Düz renkli, desensiz nesnelerde sistem isim yazmaz</b> — ölçümde
+    böyle nesnelerin hiçbiri bulunmadı. Sebebi şudur: geriye yalnız renk kalınca
+    sistem o nesneyi aynı renkteki bambaşka bir şeyden ayıramaz, o yüzden
+    susmayı seçer. <b>Birbirine çok benzeyen iki nesneyi</b> (aynı gri panonun iki
+    kardeşi, aynı kasanın iki rengi) de ayırt edemez ve yine isim yazmaz.
+  </p>
+  <p class="panel-notu">
+    <b>Bu eksiği kapatmaya çalıştık, kapatamadık — dürüstçe yazıyoruz.</b> Düz
+    nesneleri kurtarmak için renge hiç bakmayan üç ayrı ölçü denendi: nesnenin
+    renklerinin karede nasıl dağıldığı, dış hattının biçimi ve kenarlarının
+    yönü. Üçü ayrı ayrı, sonra birlikte ölçüldü; hiçbiri işe yaramadı. Dahası,
+    üçü de <b>ters yönde</b> çalıştı: bir nesne ne kadar desensizse, aynı
+    renkteki <i>başka</i> bir düz nesnenin temiz fotoğrafına o kadar benziyor.
+    Bu yüzden düz nesneler bu yöntemle <b>bulunamıyor</b>; sistem onlara isim
+    yazmak yerine susuyor.
+  </p>
+  <p class="panel-notu">
+    Emin olunamayan durumda sistem <b>uydurma isim yazmaz</b>, "eşleşme yok" der.
+    Bu bilinçli bir tercihtir: kaçırılan bir nesne sistemin bilinen sınırıdır,
+    yanlış yazılan bir isim ise sisteme olan güveni bitirir.
   </p>
 </section>
 

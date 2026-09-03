@@ -56,6 +56,9 @@ def test_ayarlari(tmp_path: Path):
         nesne_izinli_uzantilar=(".jpg", ".jpeg", ".png", ".webp", ".bmp"),
         nesne_foto_en_buyuk_mb=12,
         nesne_tarama_en_cok_dosya=6,
+        # BİLEREK ölçülen değerden (kutuphane.VARSAYILAN_ESIK = 0,24) FARKLI:
+        # eski bir kurulumdan kalmış .env'i taklit eder, böylece "çıtanız eski
+        # sürümden kalma" notu gerçekten sınanır (test_nesne_teshisi.py).
         nesne_eslesme_esigi=0.42,
         env_yolu=tmp_path / ".env",
     )

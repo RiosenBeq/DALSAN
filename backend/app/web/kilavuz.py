@@ -95,8 +95,8 @@ EKRAN_ACIKLAMALARI: dict[str, dict[str, str]] = {
             "sonra bir fotoğraf yükleyip o nesnenin karede olup olmadığını sordurursunuz."
         ),
         "yap": (
-            "Nesnenin farklı açılardan 3-8 fotoğrafını yükleyip ad verin; sonra alttaki "
-            "“Fotoğrafta ara” bölümünden bir kare yükleyip deneyin."
+            "Nesnenin en az 2, tercihen 4 fotoğrafını yükleyip ad verin; kartın üstünde "
+            "çıkan “kolay/zor tanınır” rozetine bakıp altındaki öneriyi uygulayın."
         ),
     },
     "ayarlar": {
