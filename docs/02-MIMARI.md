@@ -130,6 +130,82 @@ Announcer (arayüz): play(message_key) -> None
 └── HttpAnnouncer        # IP hoparlör / anons sunucusu HTTP endpoint'i
 ```
 
-Seçim: `ANNOUNCER=null|audio|http`. Anons cooldown'u ekran uyarısından **bağımsız ve
-daha uzun** (ör. kamera başına 30 sn; KKD için 180 sn). Hoparlör sürekli bağırmamalı.
-Hangi somut sınıfın yazılacağı 1. hafta keşfinde belirlenir — yalnızca biri yazılır.
+Seçim: `.env` → `ANONS=null|ses_karti|http`. Anons cooldown'u ekran uyarısından
+**bağımsız ve daha uzun** (varsayılan 30 sn). Hoparlör sürekli bağırmamalı.
+
+**HTTP biçimi (`ANONS_HTTP_BICIMI`).** Sahadaki IP hoparlörlerin HTTP arayüzü tek
+tip değildir; tek bir JSON gövdesi cihazların çoğuyla konuşamaz. Üç biçim
+desteklenir:
+
+| Biçim | Gönderilen | Tipik cihaz |
+|---|---|---|
+| `json` *(varsayılan)* | Gövdede `{"key","text"}` | Anons sunucusu, yazılım geçidi |
+| `form` | Gövdede `key=…&text=…` | Gömülü web arayüzlü amfi, röle kartı |
+| `get` | Gövde yok; adres çağrılır | "Adresi çağır, sesi çal" hoparlörler |
+
+Adreste `{anahtar}` ve `{metin}` yer tutucuları doldurulur (URL kaçışlı).
+`get` biçiminde adresin `{anahtar}` taşıması **zorunludur** — yoksa her ihlalde
+aynı ses çalardı; ayarlar bunu açılışta reddeder.
+
+Yer tutucu doldurulurken `str.format` **kullanılmaz**: anons sisteminin kendi
+süslü parantezleri (`?q={id}`) `KeyError` fırlatıp anonsu tamamen susturur ve bu,
+sahada teşhisi en zor arızadır. Düz metin değişimi yalnız bilinen iki yer
+tutucuya dokunur.
+
+"Bu hoparlörü dene" düğmesi **aynı** `http_gonder` yolundan ve **aynı biçimle**
+gider; ayrılırlarsa deneme "başarılı" derken saha sessiz kalırdı.
+
+Bağlama tarifi, cihaz soruları ve sorun giderme: `14-ANONS-SISTEMI-BAGLAMA.md`.
+
+## 8. Bölge sayımı (`rules/sayim.py`) — kural DEĞİLDİR
+
+Sayım ayrı bir modüldür ve kural motorundan bağımsız çalışır: **ihlal üretmez,
+anons tetiklemez, olay yazmaz.** Ayrı tutulmasının gerekçesi bu ayrımdır —
+sayım yanlışsa kimse yanlış uyarı almaz, yalnızca bir sayı yanlış görünür.
+
+Üç sayı, üç ayrı soruyu cevaplar:
+
+| Alan | Soru |
+|---|---|
+| `anlik` | Şu anda bölgede kaç nesne var? |
+| `giren` | Sayaç sıfırlandığından beri kaç **ayrı** nesne girdi? |
+| `zirve` | Aynı anda en fazla kaç tane görüldü? |
+
+`giren` **takip bazlıdır**: aynı kişi bölgede on dakika dursa da bir kez sayılır.
+Kare bazlı sayım, saniyede altı kare işleyen bir sistemde on dakikada 3600
+"kişi" üretirdi.
+
+İki koruma vardır ve ikisi de `bolge_ihlali.py` ile aynı gerekçeye dayanır:
+sayılmadan önce **art arda birkaç karede** görülme şartı (sınırdaki titreyen
+kutu sayacı zıplatmasın) ve **kayıp toleransı** (tozlu sahnedeki tek karelik
+tespit kaçağı "çıktı" sayılmasın).
+
+Bölge çizilen her kamerada kural kurulmadan çalışır: kullanıcı çoğu zaman önce
+"kaç kişi geçiyor" sorusunun cevabını ister, uyarıyı sonra kurar.
+
+## 9. Alan tanıma (`analiz/alan_bulucu.py`) — öneri, karar değil
+
+Fabrika zemininde alan **zaten boyalıdır**: yaya yolu sarı çizgilerle, yükleme
+alanı beyaz çerçeveyle. Bu modül o boyayı bulup poligon **önerir**; veritabanına
+hiçbir şey yazmaz ve hiçbir kuralı etkilemez. Yanlış bir öneri, kullanıcının
+kabul etmediği bir çizimdir.
+
+İki geçiş vardır çünkü sahadaki iki işaretleme biçimi farklı davranır:
+
+1. **Kapama geçişi** — kesikli çizgiler ve çerçeveler birleştirilir; dolu bir
+   alan (beyaz çerçeveli yükleme sahası) tek konturdan çıkar.
+2. **Kümeleme geçişi** — yaya yolu İKİ PARALEL çizgiyle işaretlidir ve aradaki
+   boşluk kapama çekirdeğinden kat kat geniştir. Birinci geçiş iki çizgiyi ayrı
+   ayrı "çok ince" diye eler; ikinci geçiş birbirine yakın parça kümelerinin
+   dışbükey zarfını alır — aradaki yol da alana dahil olur.
+
+Kaynak iki türlüdür: kameranın canlı karesi ya da kullanıcının **yüklediği bir
+ekran görüntüsü**. İkincisi, kamera daha takılmadan bölge hazırlamayı mümkün
+kılar. **Yüklenen görüntü diske yazılmaz** — bellekte incelenir, tarayıcıya geri
+döner. Gerekçe KVKK (fabrika karesinde çalışan vardır; saklamadığımız görüntü
+saklama süresi ve silme sorusu doğurmaz) ve en az parçadır (kalıcı olsaydı yeni
+tablo, yeni klasör ve bakım döngüsüne yeni istisna gerekirdi).
+
+Alan bulunamadığında bir **teşhis görüntüsü** döner: sistemin "boya" saydığı
+pikseller işaretlidir. Kullanıcı "neden bulamadı" sorusunun cevabını ekranda
+görür; boş bir maske, eşik oynamaktan daha açık bir yanıttır.

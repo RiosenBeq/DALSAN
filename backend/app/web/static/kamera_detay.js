@@ -10,7 +10,13 @@
 //   · en az 3 köşe varken ilk nokta büyür; ona tıklamak alanı KAPATIR,
 //   · "Son köşeyi geri al" ve Esc ile iptal,
 //   · köşe sayacı + duruma göre değişen Türkçe kılavuz balonu,
-//   · çizilen bölge, seçilen tipin rengiyle çizilir (renkler stil.css'te).
+//   · çizilen bölge, seçilen tipin rengiyle çizilir (renkler stil.css'te),
+//   · DİKDÖRTGEN KİPİ: bir köşeden karşı köşeye sürükleyip bırakmak yeter
+//     (yükleme alanı, tır parkı ve KKD alanlarının çoğu dikdörtgendir),
+//   · KÖŞE SÜRÜKLEME: konmuş bir köşe fareyle tutulup taşınabilir — eskiden
+//     tek yanlış köşe için tüm çizimi baştan yapmak gerekiyordu,
+//   · ALANI OTOMATİK BUL: zemindeki boyalı alan sunucuda bulunur ve öneri
+//     kartına tıklanınca hazır çizim tuvale yüklenir (app/web/alan_rotalari.py).
 //
 // DÜZENLEME KİPİ: sayfa ?duzenle=<bölge id> ile açıldığında sunucu
 // window.DUZENLENEN_BOLGE'yi doldurur. O bölgenin kayıtlı köşeleri tuvale
@@ -21,6 +27,8 @@
   var BOLGE_RENGI = "#A03CC8";
   var BOLGE_DOLGU = saydam(BOLGE_RENGI, 0.12); // aynı morun saydam dolgusu
   var KAPATMA_YARICAPI = 14; // ilk noktaya bu kadar yakın tıklama alanı kapatır
+  var TUTMA_YARICAPI = 12;   // köşeyi sürüklemek için bu kadar yakın tutmak yeter
+  var SURUKLEME_ESIGI = 3;   // bu kadar pikselden az hareket "tıklama" sayılır
   var ILK_NOKTA_R = 8;       // kapatılabilir ilk köşe — büyük hedef
   var NOKTA_R = 5;           // diğer köşeler
   var KESIK = [7, 6];        // canlı kenar önizlemesinin kesik deseni
@@ -64,6 +72,9 @@
   var kalibrasyonNoktalari = [];
   var kapandi = false;  // ilk noktaya tıklanarak alan kapatıldı mı
   var imlec = null;     // farenin son konumu (0-1) — canlı kenar için
+  var suruklenen = null;    // taşınmakta olan köşenin sırası (yoksa null)
+  var tiklamaYut = false;   // sürükleme bitti → ardından gelen click yutulur
+  var dikdortgenBasi = null; // dikdörtgen kipinde basılan ilk köşe (0-1)
 
   // --- renk yardımcıları ---
 
@@ -161,6 +172,13 @@
 
   // Çizilmekte olan bölge: seçilen tipin rengiyle, canlı kenar önizlemesiyle.
   function cizilmekteOlaniCiz() {
+    // Dikdörtgen sürüklenirken: basılan köşeden imlece kadar canlı önizleme.
+    // Kullanıcı bırakmadan önce alanın nereye oturacağını görür.
+    if (dikdortgenBasi && imlec) {
+      var dRenk = seciliTipRengi();
+      var dDolgu = saydam(dRenk, 0.18);
+      cizPoligon(dikdortgenKoseleri(dikdortgenBasi, imlec), dRenk, dDolgu, null);
+    }
     if (bolgeNoktalari.length === 0) return;
     var renk = seciliTipRengi();
     var kapatilabilir = bolgeNoktalari.length >= 3 && !kapandi;
@@ -245,6 +263,16 @@
     var renk = seciliTipRengi();
     var sayi = bolgeNoktalari.length;
     if (balonNoktasi) balonNoktasi.style.background = renk;
+
+    if (mod === "dikdortgen") {
+      if (balonTipAdi) balonTipAdi.textContent = seciliTipAdi() + " — dikdörtgen";
+      if (balonAdim) {
+        balonAdim.textContent = "Alanın bir köşesine basılı tutun, karşı köşesine " +
+          "sürükleyip bırakın. Vazgeçmek için Esc.";
+      }
+      if (balonSayac) balonSayac.textContent = "sürükleyerek çizin";
+      return;
+    }
     if (balonTipAdi) {
       balonTipAdi.textContent = duzenlenen
         ? "\"" + duzenlenen.ad + "\" düzenleniyor — " + seciliTipAdi()
@@ -254,9 +282,10 @@
     var adim;
     if (kapandi) {
       adim = duzenlenen
-        ? "Kaydetmek için \"Değişikliği Kaydet\"e basın; köşeleri yeniden koymak için " +
-          "\"Yeniden çiz\". Esc kayıtlı çizime döndürür."
-        : "Alan kapandı. Şimdi \"Bölgeyi Kaydet\"e basın. Vazgeçmek için Esc.";
+        ? "Köşeleri sürükleyerek düzeltebilirsiniz. Kaydetmek için \"Değişikliği " +
+          "Kaydet\"e basın; baştan çizmek için \"Yeniden çiz\". Esc kayıtlı çizime döndürür."
+        : "Alan kapandı. Köşeleri sürükleyerek düzeltebilir, sonra \"Bölgeyi " +
+          "Kaydet\"e basabilirsiniz. Vazgeçmek için Esc.";
     } else if (sayi === 0) {
       adim = duzenlenen
         ? "Çizim temizlendi — kaydederseniz kayıtlı çizim olduğu gibi kalır. Yeni alan " +
@@ -298,6 +327,8 @@
     kalibrasyonNoktalari = [];
     kapandi = false;
     imlec = null;
+    suruklenen = null;
+    dikdortgenBasi = null;
     tuval.classList.remove("aktif");
     if (kalibrasyonSurerken) {
       var kutu = document.getElementById("kalibrasyon-noktalar");
@@ -312,9 +343,15 @@
   // --- fare ---
 
   tuval.addEventListener("click", function (olay) {
+    // Köşe sürüklendikten sonra tarayıcı ayrıca bir "click" üretir; yutulmazsa
+    // taşıdığınız köşenin yanına istemediğiniz yeni bir köşe konurdu.
+    if (tiklamaYut) { tiklamaYut = false; return; }
     if (!mod) return;
     boyutuEsitle();  // tıklama ile çizim aynı ölçüde olsun
     var konum = oranHesapla(olay);
+    if (mod === "dikdortgen") {
+      return;  // dikdörtgen sürüklemeyle çizilir; tıklama köşe eklemez
+    }
     if (mod === "bolge") {
       bolgeTiklamasi(konum);
     } else if (mod === "kalibrasyon" && kalibrasyonNoktalari.length < 4) {
@@ -342,17 +379,107 @@
     durumuGuncelle();
   }
 
+  // --- köşe sürükleme ve dikdörtgen çizimi ---
+  //
+  // Üçü de aynı üç olayı paylaşır (mousedown/mousemove/mouseup), bu yüzden
+  // hangi işin sürdüğü tek yerde ayrılır: `suruklenen` bir köşe taşınıyor,
+  // `dikdortgenBasi` bir dikdörtgen çiziliyor demektir.
+
+  tuval.addEventListener("mousedown", function (olay) {
+    if (!mod || mod === "kalibrasyon") return;
+    boyutuEsitle();
+    var konum = oranHesapla(olay);
+    if (mod === "dikdortgen") {
+      dikdortgenBasi = konum;
+      imlec = konum;
+      olay.preventDefault();  // sürüklerken görüntü "resim taşıma" başlatmasın
+      return;
+    }
+    var sira = tutulanKose(konum);
+    if (sira !== null) {
+      suruklenen = sira;
+      olay.preventDefault();
+    }
+  });
+
   tuval.addEventListener("mousemove", function (olay) {
+    if (suruklenen !== null) {
+      bolgeNoktalari[suruklenen] = sinirla(oranHesapla(olay));
+      tiklamaYut = true;  // bu bir sürükleme; ardından gelen click köşe eklemesin
+      durumuGuncelle();
+      ciz();
+      return;
+    }
+    if (dikdortgenBasi) {
+      imlec = oranHesapla(olay);
+      ciz();
+      return;
+    }
     if (mod !== "bolge" || kapandi || bolgeNoktalari.length === 0) return;
     imlec = oranHesapla(olay);
     ciz();
   });
 
+  tuval.addEventListener("mouseup", function (olay) {
+    if (suruklenen !== null) {
+      suruklenen = null;
+      durumuGuncelle();
+      ciz();
+      return;
+    }
+    if (!dikdortgenBasi) return;
+    var bitis = oranHesapla(olay);
+    // Yanlışlıkla tek tıklama: sürükleme sayılmayacak kadar küçükse alan
+    // kurulmaz. Aksi halde görünmeyen, sıfır alanlı bir bölge oluşurdu.
+    if (pikselUzakligi(dikdortgenBasi, bitis) < TUTMA_YARICAPI) {
+      dikdortgenBasi = null;
+      imlec = null;
+      ciz();
+      return;
+    }
+    bolgeNoktalari = dikdortgenKoseleri(dikdortgenBasi, bitis);
+    kapandi = true;
+    dikdortgenBasi = null;
+    imlec = null;
+    // Dikdörtgen bittiğinde normal çizim kipine dönülür: kullanıcı köşeleri
+    // sürükleyip düzeltebilsin (dikdörtgen kipinde tuval sürüklemeyi
+    // yeni bir dikdörtgenin başlangıcı sayardı).
+    mod = "bolge";
+    durumuGuncelle();
+    ciz();
+  });
+
   tuval.addEventListener("mouseleave", function () {
-    if (!imlec) return;
+    // Fare tuvalin dışına çıkarken sürükleme bırakılmış sayılır; aksi halde
+    // dışarıda bırakılan düğme yüzünden köşe imlece yapışık kalırdı.
+    if (suruklenen !== null) {
+      suruklenen = null;
+      durumuGuncelle();
+    }
+    dikdortgenBasi = null;
+    if (!imlec) { ciz(); return; }
     imlec = null;
     ciz();
   });
+
+  // Çizilmiş köşelerden imlecin tutma mesafesindeki İLKİ (yoksa null).
+  function tutulanKose(konum) {
+    for (var i = 0; i < bolgeNoktalari.length; i++) {
+      if (pikselUzakligi(bolgeNoktalari[i], konum) <= TUTMA_YARICAPI) return i;
+    }
+    return null;
+  }
+
+  function sinirla(konum) {
+    return [Math.min(Math.max(konum[0], 0), 1), Math.min(Math.max(konum[1], 0), 1)];
+  }
+
+  // İki karşıt köşeden saat yönünde dört köşe üretir.
+  function dikdortgenKoseleri(a, b) {
+    var x1 = Math.min(a[0], b[0]), x2 = Math.max(a[0], b[0]);
+    var y1 = Math.min(a[1], b[1]), y2 = Math.max(a[1], b[1]);
+    return [[x1, y1], [x2, y1], [x2, y2], [x1, y2]].map(sinirla);
+  }
 
   // Düzenlemede Esc: yarım kalan yeni çizimi atıp KAYITLI çizime döner.
   function kayitliCizimeDon() {
@@ -385,6 +512,20 @@
     durumuGuncelle();
     ciz();
   });
+
+  var dikdortgenDugmesi = document.getElementById("cizim-dikdortgen");
+  if (dikdortgenDugmesi) {
+    dikdortgenDugmesi.addEventListener("click", function () {
+      mod = "dikdortgen";
+      kapandi = false;
+      bolgeNoktalari = [];
+      imlec = null;
+      dikdortgenBasi = null;
+      tuval.classList.add("aktif");
+      durumuGuncelle();
+      ciz();
+    });
+  }
 
   if (geriDugmesi) {
     geriDugmesi.addEventListener("click", function () {
@@ -453,6 +594,138 @@
         "cinsinden yazın. Örn. 5 m sağdaki nokta: X=5, Y=0.";
       document.getElementById("kalibrasyon-noktalar").appendChild(ipucu);
     }
+  }
+
+  // --- ALANI OTOMATİK BUL ---
+  //
+  // Sunucu, zemindeki boyalı alanları bulup öneri listesi döner
+  // (app/web/alan_rotalari.py). Burada yapılan üç şey var: isteği atmak,
+  // önerileri kart olarak listelemek ve tıklanan kartın çizimini tuvale
+  // yüklemek. Yüklenen ekran görüntüsü tuvalin arka planı olur — kamera
+  // bağlı olmasa da bölge çizilebilsin diye.
+
+  var alanBulCanli = document.getElementById("alan-bul-canli");
+  var alanBulDosya = document.getElementById("alan-bul-dosya");
+  var alanBulDurum = document.getElementById("alan-bul-durum");
+  var alanOnerileri = document.getElementById("alan-onerileri");
+
+  function alanDurumu(metin, hataMi) {
+    if (!alanBulDurum) return;
+    alanBulDurum.textContent = metin;
+    alanBulDurum.className = hataMi ? "hata-mesaji" : "not";
+  }
+
+  function alanBul(dosya) {
+    if (!alanOnerileri) return;
+    var veri = new FormData();
+    if (dosya) veri.append("gorsel", dosya);
+    alanOnerileri.textContent = "";
+    alanDurumu(dosya ? "Yüklenen görüntü inceleniyor…" : "Canlı görüntü inceleniyor…", false);
+    if (alanBulCanli) alanBulCanli.disabled = true;
+
+    fetch("/kameralar/" + (alanBulCanli ? alanBulCanli.dataset.kamera : "") + "/alan-bul", {
+      method: "POST",
+      body: veri
+    })
+      .then(function (yanit) { return yanit.json(); })
+      .then(function (sonuc) {
+        alanDurumu(sonuc.mesaj || "", !sonuc.tamam);
+        // Yüklenen görüntü, öneri çıkmasa bile arka plan yapılır: kullanıcı
+        // yine de o görüntünün üstüne elle çizebilmeli.
+        if (sonuc.gorsel) arkaPlanaKoy(sonuc.gorsel);
+        onerileriListele(sonuc.oneriler || []);
+        teshisiGoster(sonuc.teshis);
+      })
+      .catch(function () {
+        alanDurumu("Alan aranırken bağlantı hatası oldu. Sayfayı yenileyip yeniden deneyin.", true);
+      })
+      .then(function () {
+        if (alanBulCanli) alanBulCanli.disabled = false;
+      });
+  }
+
+  // Yüklenen ekran görüntüsünü canlı önizlemenin YERİNE koyar ve tazelemeyi
+  // durdurur (onizleme.js data-donmus'u okur). Aksi halde bir sonraki saniyede
+  // canlı kare gelir ve kullanıcı başka bir görüntünün üstüne çizmiş olurdu.
+  function arkaPlanaKoy(veriAdresi) {
+    resim.dataset.donmus = "1";
+    resim.src = veriAdresi;
+    resim.classList.add("dolu");
+    var kutu = resim.closest(".onizleme-kutu");
+    if (kutu) kutu.classList.add("dolu");
+  }
+
+  // Alan bulunamadığında sistemin "boya" saydığı pikselleri gösterir.
+  // Boş bir teşhis görüntüsü, "eşiği kurcalayın" demekten daha açık bir
+  // cevaptır: zemindeki boya tanınmıyor demektir.
+  function teshisiGoster(veriAdresi) {
+    var eskisi = document.getElementById("alan-teshisi");
+    if (eskisi) eskisi.remove();
+    if (!veriAdresi || !alanOnerileri) return;
+    var kutu = document.createElement("figure");
+    kutu.id = "alan-teshisi";
+    kutu.className = "alan-teshisi";
+    var resim = document.createElement("img");
+    resim.src = veriAdresi;
+    resim.alt = "Sistemin boya saydığı yerler işaretli teşhis görüntüsü";
+    kutu.appendChild(resim);
+    kutu.appendChild(Object.assign(document.createElement("figcaption"), {
+      className: "not",
+      textContent: "Teşhis: turuncu = sarı boya sayılan yerler, mavi = beyaz boya " +
+        "sayılan yerler. Hiçbir yer işaretli değilse zemindeki boya soluk ya da " +
+        "görüntü fazla karanlık demektir."
+    }));
+    alanOnerileri.parentNode.appendChild(kutu);
+  }
+
+  function onerileriListele(oneriler) {
+    if (!alanOnerileri) return;
+    alanOnerileri.textContent = "";
+    oneriler.forEach(function (oneri) {
+      var kart = document.createElement("button");
+      kart.type = "button";
+      kart.className = "alan-oneri";
+      kart.appendChild(Object.assign(document.createElement("b"), {
+        textContent: oneri.tip_adi
+      }));
+      kart.appendChild(Object.assign(document.createElement("span"), {
+        className: "not",
+        textContent: "görüntünün %" + oneri.alan_yuzdesi + "'i · " +
+          oneri.poligon.length + " köşe · belirginlik %" + oneri.guven_yuzde
+      }));
+      kart.addEventListener("click", function () { oneriyiYukle(oneri); });
+      alanOnerileri.appendChild(kart);
+    });
+  }
+
+  // Öneriyi tuvale yükler ve bölge tipini de seçer. Kaydetme yapılmaz:
+  // karar kullanıcınındır, köşeleri düzeltip kendisi kaydeder.
+  function oneriyiYukle(oneri) {
+    mod = "bolge";
+    bolgeNoktalari = oneri.poligon.map(sinirla);
+    kapandi = bolgeNoktalari.length >= 3;
+    imlec = null;
+    dikdortgenBasi = null;
+    if (tipSecimi && oneri.tip) tipSecimi.value = oneri.tip;
+    tuval.classList.add("aktif");
+    durumuGuncelle();
+    ciz();
+    alanDurumu(
+      "Çizim tuvale yüklendi. Köşeleri sürükleyerek düzeltin, ad verip \"Bölgeyi " +
+      "Kaydet\"e basın.",
+      false
+    );
+    var adAlani = document.querySelector("#bolge-formu input[name=name]");
+    if (adAlani && !adAlani.value) adAlani.focus();
+  }
+
+  if (alanBulCanli) {
+    alanBulCanli.addEventListener("click", function () { alanBul(null); });
+  }
+  if (alanBulDosya) {
+    alanBulDosya.addEventListener("change", function () {
+      if (alanBulDosya.files && alanBulDosya.files[0]) alanBul(alanBulDosya.files[0]);
+    });
   }
 
   // Ölçü GÖRÜNTÜYE bağlanır, sabit bir bekleme süresine değil: görüntü gelene

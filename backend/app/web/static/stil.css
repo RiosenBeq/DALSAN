@@ -614,3 +614,63 @@ table.liste tr.pasif td { color: var(--metin-3); }
 @media (max-width: 620px) {
   .ipucu-balon { max-width: min(34ch, 74vw); }
 }
+
+/* --------------------------------------------------------------------------
+   ALANI OTOMATİK BUL (kamera sayfası) ve BÖLGE SAYIMI
+   -------------------------------------------------------------------------- */
+
+/* Zemindeki boyalı alanlardan üretilen öneriler. Çizim kutusunun içinde,
+   elle çizim düğmelerinin ÜSTÜNDE durur: kullanıcı önce "sistem bulsun"
+   yolunu görsün, elle çizim ikinci seçenek olsun. */
+.alan-bul {
+  margin-top: 10px; padding: 11px 13px; border-radius: var(--radius-kucuk);
+  background: var(--bilgi-zemin); border: 1px solid var(--bilgi-cizgi);
+}
+.alan-bul h5 { margin: 0 0 4px; font-size: 0.92rem; }
+.alan-bul .dugme-satiri { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+/* Dosya seçme kutusu görünmez (hidden); tıklanabilir olan onu saran etiket.
+   Tarayıcının kendi "Dosya Seç" düğmesi her işletim sisteminde farklı
+   görünür ve Türkçe olmaz. */
+.dosya-dugmesi { cursor: pointer; display: inline-flex; align-items: center; }
+
+.alan-onerileri { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 9px; }
+.alan-oneri {
+  display: grid; gap: 2px; justify-items: start; text-align: left;
+  padding: 8px 12px; border-radius: var(--radius-kucuk); cursor: pointer;
+  background: var(--cam-yogun); border: 1px solid var(--cam-sinir);
+  box-shadow: var(--cam-ic-isik); color: var(--metin);
+  font-family: inherit; font-size: 0.84rem;
+  transition: box-shadow 0.15s, transform 0.15s;
+}
+.alan-oneri:hover { transform: translateY(-1px); box-shadow: var(--cam-ic-isik), var(--golge); }
+.alan-oneri:focus-visible { outline: 2px solid var(--vurgu); outline-offset: 2px; }
+
+/* Bölge bölge sayım tablosu: her bölge bir satır, satırda "İçeride" ve
+   "Giren" grupları yan yana. */
+.sayim-listesi { display: grid; gap: 10px; }
+.sayim-satiri {
+  padding: 10px 12px; border-radius: var(--radius-kucuk);
+  background: var(--cam-hafif); border: 1px solid var(--cam-sinir);
+  box-shadow: var(--cam-ic-isik);
+  display: grid; gap: 8px;
+}
+.sayim-basligi { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.sayim-grubu { display: grid; gap: 4px; }
+.sayim-grubu .grup-basligi {
+  font-size: 0.78rem; font-weight: 600; color: var(--metin-3);
+  text-transform: uppercase; letter-spacing: 0.03em;
+}
+.sayim-grubu .sayim-izgara { margin-bottom: 0; }
+
+/* Geniş ekranda iki grup yan yana; dar ekranda alt alta iner. */
+@media (min-width: 720px) {
+  .sayim-satiri { grid-template-columns: 1fr auto auto; align-items: center; }
+}
+
+/* Alan bulunamadığında gösterilen teşhis görüntüsü. */
+.alan-teshisi { margin: 10px 0 0; display: grid; gap: 6px; }
+.alan-teshisi img {
+  max-width: 100%; border-radius: var(--radius-kucuk);
+  border: 1px solid var(--cam-sinir);
+}

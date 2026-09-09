@@ -104,6 +104,24 @@ AYAR_GRUPLARI: tuple[AyarGrubu, ...] = (
                 ),
             ),
             AyarAlani(
+                anahtar="ANONS_HTTP_BICIMI",
+                alan="anons_http_bicimi",
+                etiket="IP hoparlörün beklediği biçim",
+                tur="secim",
+                secenekler=(
+                    ("json", "JSON gövde — anons sunucusu / yazılım geçidi"),
+                    ("form", "Form alanı — gömülü web arayüzlü amfi, röle kartı"),
+                    ("get", "Yalnızca adres çağrılır — “çağır ve çal” hoparlörler"),
+                ),
+                aciklama=(
+                    "IP hoparlörler isteği aynı biçimde beklemez; cihazınızın "
+                    "belgesinde yazan biçimi seçin. “Yalnızca adres” seçilirse "
+                    "adreste {anahtar} yer tutucusu bulunmalıdır — örnek: "
+                    "http://10.0.0.9/play?file={anahtar} · Hangi cihaz için "
+                    "hangisi: docs/14-ANONS-SISTEMI-BAGLAMA.md"
+                ),
+            ),
+            AyarAlani(
                 anahtar="ANONS_BEKLEME_SN",
                 alan="anons_bekleme_sn",
                 etiket="Hoparlörün susma süresi (saniye)",

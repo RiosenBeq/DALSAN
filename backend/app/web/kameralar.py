@@ -244,10 +244,70 @@ def kamera_durumu(istek: Request, kamera_id: int, baglanti=Depends(baglanti_al))
         }
     supervizor = getattr(istek.app.state, "supervizor", None)
     if supervizor is None:
-        return {"durum": "kapali", "mesaj": "Analiz başlatılmadı.", "sayim": {}}
+        return {
+            "durum": "kapali",
+            "mesaj": "Analiz başlatılmadı.",
+            "sayim": {},
+            "bolge_sayimlari": [],
+        }
     durum = supervizor.kamera_durumu(kamera_id)
     durum["sayim_tr"] = {SINIFLAR.get(s, s): n for s, n in durum.get("sayim", {}).items()}
+    durum["bolge_sayimlari"] = _sayimlari_adlandir(
+        baglanti, kamera_id, durum.get("bolge_sayimlari", [])
+    )
     return durum
+
+
+def _sayimlari_adlandir(baglanti, kamera_id: int, sayimlar: list[dict]) -> list[dict]:
+    """Sayım tablosuna bölge ADINI ve Türkçe sınıf adlarını ekler.
+
+    Analiz katmanı bölgeyi yalnızca id ile bilir; ekranda id gösterilemez.
+    Adlar burada, ekrana en yakın yerde eklenir — böylece bir bölgenin adı
+    değişince analiz iş parçacığının yeniden yüklenmesi gerekmez.
+    """
+    if not sayimlar:
+        return []
+    adlar = {
+        satir["id"]: (satir["name"], satir["zone_type"])
+        for satir in baglanti.execute(
+            "SELECT id, name, zone_type FROM zones WHERE camera_id = ?", (kamera_id,)
+        )
+    }
+    zenginlestirilmis = []
+    for sayim in sayimlar:
+        ad, tip = adlar.get(sayim["bolge_id"], ("", ""))
+        if not ad:
+            continue  # bölge bu arada silinmiş: adsız satır ekranda anlamsızdır
+        zenginlestirilmis.append(
+            {
+                **sayim,
+                "ad": ad,
+                "tip_adi": BOLGE_TIPLERI.get(tip, tip),
+                "anlik_tr": {SINIFLAR.get(s, s): n for s, n in sayim.get("anlik", {}).items()},
+                "giren_tr": {SINIFLAR.get(s, s): n for s, n in sayim.get("giren", {}).items()},
+            }
+        )
+    return zenginlestirilmis
+
+
+@router.post("/kameralar/{kamera_id}/sayac-sifirla")
+def sayaci_sifirla(istek: Request, kamera_id: int, baglanti=Depends(baglanti_al)):
+    """Vardiya başı: 'kaç tane girdi' sayaçlarını sıfırlar.
+
+    ANLIK sayı sıfırlanmaz — o, o anda görülen gerçektir (rules/sayim.py).
+    """
+    _kamera_getir(baglanti, kamera_id)
+    supervizor = getattr(istek.app.state, "supervizor", None)
+    yapildi = supervizor.sayaci_sifirla(kamera_id) if supervizor is not None else False
+    return {
+        "tamam": yapildi,
+        "mesaj": (
+            "Giriş sayaçları sıfırlandı. Bölgede o anda bulunanlar sayılmaya devam eder."
+            if yapildi
+            else "Sayaç sıfırlanamadı: bu kameranın analizi çalışmıyor. Kontrol "
+            "Paneli'nde Sistemi Başlat'a basın."
+        ),
+    }
 
 
 @router.get("/kameralar/{kamera_id}/onizleme.jpg")

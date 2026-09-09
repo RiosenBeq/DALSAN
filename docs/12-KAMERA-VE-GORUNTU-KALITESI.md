@@ -147,3 +147,82 @@ dikdörtgen değil.
 
 Aynı kuralı elle kurmak isterseniz: Kurallar → Yeni Kural → Bölge ihlali →
 Koşul: **"Bölge DIŞINDA olmak ihlal"**.
+
+
+---
+
+## Zemindeki boyadan alan tanıma
+
+Kamera sayfasındaki **"Canlı görüntüde alanları bul"** düğmesi, zemindeki sarı ve
+beyaz boyayı arayıp hazır bir bölge çizimi önerir. Öneriyi kabul etmek zorunda
+değilsiniz: kartına tıklarsanız çizim tuvale yüklenir, köşelerini sürükleyip
+düzeltirsiniz. **Sistem hiçbir bölgeyi kendiliğinden kaydetmez.**
+
+### Ne bulur, ne bulamaz
+
+| Zemin | Sonuç |
+|---|---|
+| İki paralel sarı çizgiyle işaretli yaya yolu (kesikli de olur) | Bulunur — aradaki yol da alana dahil edilir |
+| Beyaz çerçeveyle işaretli yükleme sahası | Bulunur |
+| Sarı-siyah taramalı yasak bölge | Çoğu zaman bulunur (sarı baskınsa) |
+| Boyasız beton | **Bulunamaz** — elle çizmeniz gerekir |
+| Solmuş, tozla kaplanmış boya | Bulunamayabilir |
+| Karanlık ya da aşırı parlak görüntü | Bulunamaz — önce görüntü kalitesi düzeltilmeli |
+
+"Bulunamadı" bir arıza değildir; her fabrika zemininde boya yoktur.
+
+### Neden bulamadığını görmek
+
+Alan bulunamadığında ekranda bir **teşhis görüntüsü** çıkar: sistemin boya saydığı
+pikseller işaretlidir (turuncu = sarı sayılan, mavi = beyaz sayılan yerler).
+
+- **Hiçbir yer işaretli değilse:** boya soluk ya da görüntü fazla karanlık. Önce
+  bu sayfanın başındaki görüntü kalitesi adımlarını uygulayın; boya tanınmıyorsa
+  eşik oynamak işe yaramaz.
+- **Her yer işaretliyse:** görüntü aşırı parlak ya da zemin zaten beyaza yakın.
+  Kameranın pozlamasını kısın.
+- **Boya işaretli ama alan önerilmemişse:** işaretli bölge karenin %1,2'sinden
+  küçük ya da %82'sinden büyüktür. Kameranın açısı alanın tamamını görmüyor olabilir.
+
+### Kamera henüz takılmadıysa
+
+**"Ekran görüntüsü yükle"** ile NVR'dan aldığınız bir kareyi ya da telefonla
+çektiğiniz bir fotoğrafı verebilirsiniz. Sistem alanları o görüntüde arar ve
+görüntü, çizim yaparken arka plan olur — böylece **kamera bağlanmadan önce**
+bölgeler ve kurallar hazırlanabilir.
+
+Yüklediğiniz görüntü **sunucuya kaydedilmez**: yalnız o an incelenir. Kalıcı olan
+tek şey, kaydettiğiniz bölgedir.
+
+### Alan çizimini kolaylaştıran diğer davranışlar
+
+- **Dikdörtgen çiz:** bir köşeden karşı köşeye sürükleyip bırakın. Yükleme alanı,
+  tır park alanı ve KKD alanlarının çoğu dikdörtgendir; dört tıklamanın üçünde
+  hizayı tutturmak zordur.
+- **Köşe sürükleme:** çizim bittikten sonra köşeleri fareyle taşıyabilirsiniz.
+  Tek yanlış köşe için tüm çizimi baştan yapmanız gerekmez.
+- **İlk noktaya tıklayarak kapatma:** üç köşeden sonra ilk nokta büyür.
+
+---
+
+## Bölgedeki nesneleri sayma
+
+Bölge çizdiğiniz anda sayım başlar — **kural kurmanız gerekmez.** Sayılar hem
+kamera sayfasındaki *Bölge sayımı* bölümünde hem de canlı görüntünün üstünde,
+bölgenin köşesinde görünür.
+
+| Sayı | Cevapladığı soru |
+|---|---|
+| İçeride | Şu anda bölgede kaç nesne var? |
+| Giren | Sayaç sıfırlandığından beri kaç **ayrı** nesne girdi? |
+| En çok | Aynı anda en fazla kaç tane görüldü? |
+
+Aynı kişi bölgede ne kadar dursa da bir kez sayılır. Vardiya başında
+**"Giriş sayaçlarını sıfırla"** düğmesine basın; yalnız "giren" sıfırlanır.
+
+**Sayım hiçbir uyarı ya da anons üretmez.** İhlal için bölgeye bir kural
+bağlamanız gerekir.
+
+Sayının doğruluğu doğrudan tespit doğruluğuna bağlıdır: bu sayfadaki görüntü
+kalitesi adımları sayımı da iyileştirir. Kişiler kutulanmıyorsa sayı da düşük
+çıkar — önce canlı görüntüde kutulara bakın.

@@ -136,8 +136,30 @@ class AnalizSupervizoru:
             if kaynak.son_deneme_utc
             else "",
             "sayim": self.canli_sayim(kamera_id),
+            "bolge_sayimlari": self.bolge_sayimlari(kamera_id),
             "kalite": self._kalite(kamera_id),
         }
+
+    def bolge_sayimlari(self, kamera_id: int) -> list[dict]:
+        """Kameranın bölge bölge sayım tablosu (rules/sayim.py).
+
+        Kamera henüz başlamadıysa BOŞ liste döner; ekran bunu "sayım için
+        analiz başlatılmalı" diye gösterir, sıfır yazıp yanıltmaz.
+        """
+        hat = self._hatlar.get(kamera_id)
+        return hat.sayimlar() if hat is not None else []
+
+    def sayaci_sifirla(self, kamera_id: int, bolge_id: int | None = None) -> bool:
+        """Kümülatif 'giren' sayacını sıfırlar (vardiya başı düğmesi).
+
+        Döner: sıfırlama gerçekten yapıldı mı. Kamera çalışmıyorsa False —
+        ekran "sıfırlandı" yazıp hiçbir şey yapmamış olmamalı.
+        """
+        hat = self._hatlar.get(kamera_id)
+        if hat is None:
+            return False
+        hat.sayaci_sifirla(bolge_id)
+        return True
 
     def _kalite(self, kamera_id: int) -> dict:
         hat = self._hatlar.get(kamera_id)

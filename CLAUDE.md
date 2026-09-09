@@ -73,8 +73,9 @@ dalsan-isg/
 │       ├── veritabani.py       # SQLite bağlantısı, şema uygulama
 │       ├── modeller.py         # tablo tanımları
 │       ├── web/                # rotalar + templates/ + static/
-│       ├── analiz/             # kamera, tespit, takip, kkd_siniflandirici, boru_hatti
-│       ├── rules/              # SAF karar mantığı — aşağıya bak
+│       ├── analiz/             # kamera, tespit, takip, kkd_siniflandirici, boru_hatti,
+│       │                       #   alan_bulucu (zemindeki boyadan bölge önerisi)
+│       ├── rules/              # SAF karar mantığı — aşağıya bak (sayim.py dahil)
 │       ├── olaylar/            # olay yazımı, fotoğraf, anons
 │       └── egitim/             # veri seti, eğitim, HTML rapor
 ├── tests/
@@ -158,5 +159,6 @@ ruff check . && ruff format .
 | `11-BILGISAYAR-UYGULAMASI.md` | Kontrol Paneli kullanımı |
 | `12-KAMERA-VE-GORUNTU-KALITESI.md` | Kamera yerleşimi, görüntü kalitesi, hassasiyet ayarı, sınıf renkleri, yaya yolu kuralı |
 | `13-UYGULAMA-PAKETLEME.md` | Teslim edilecek uygulamayı üretme (Mac `.app` / Windows `.exe`), veri yeri, güncelleme, Windows tuzakları |
+| `14-ANONS-SISTEMI-BAGLAMA.md` | Anons altyapısına bağlanma: ses kartı / IP hoparlör, üç HTTP biçimi, devreye alma sırası, anons firmanıza soracaklarınız |
 
 Bir karar bu dosyalarda yoksa **uydurma — sor.**

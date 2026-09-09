@@ -17,11 +17,13 @@
     <a href="#baslat">2 · Başlatma ve durdurma</a>
     <a href="#kamera">3 · Kamera nasıl eklenir</a>
     <a href="#bolge">4 · Bölge nasıl çizilir</a>
-    <a href="#kural">5 · Kural nasıl kurulur</a>
-    <a href="#uyari">6 · Uyarı gelince ne yapılır</a>
-    <a href="#nesne">7 · Kendi nesnenizi tanıtma</a>
-    <a href="#ayarlar">8 · Ayarları değiştirme</a>
-    <a href="#sorun">9 · Bir şey çalışmazsa</a>
+    <a href="#sayim">5 · Bölgedeki nesneleri sayma</a>
+    <a href="#kural">6 · Kural nasıl kurulur</a>
+    <a href="#uyari">7 · Uyarı gelince ne yapılır</a>
+    <a href="#anons">8 · Anons sistemine bağlama</a>
+    <a href="#nesne">9 · Kendi nesnenizi tanıtma</a>
+    <a href="#ayarlar">10 · Ayarları değiştirme</a>
+    <a href="#sorun">11 · Bir şey çalışmazsa</a>
   </nav>
 
   <div class="kilavuz-bolumler">
@@ -146,6 +148,19 @@
       <p>Bölge, kameranın gördüğü alanın üzerine sizin çizdiğiniz kapalı bir
         şekildir: yaya yolu, yükleme alanı, yasak bölge gibi. <b>Kurallar bölgelerin
         üstünde çalışır</b>, bu yüzden önce bölge çizilir.</p>
+      <p class="kilavuz-alinti"><b>En hızlı yol — alanı sistem bulsun.</b> Fabrika
+        zemininde alan zaten boyalıdır: yaya yolu sarı çizgilerle, yükleme alanı
+        beyaz çerçeveyle işaretlidir. Kamera sayfasındaki <b>“Canlı görüntüde
+        alanları bul”</b> düğmesi o boyayı arar ve hazır bir çizim önerir.
+        Öneri kartına tıklayınca çizim görüntüye yüklenir; köşelerini
+        sürükleyip düzeltir, ad verip kaydedersiniz.</p>
+      <p><b>Kamera henüz takılmadıysa</b> yine de bölge çizebilirsiniz:
+        <b>“Ekran görüntüsü yükle”</b> ile NVR'dan aldığınız bir kareyi (ya da
+        telefonla çektiğiniz bir fotoğrafı) verin. Sistem alanları o görüntüde
+        arar ve görüntü, çizim yaparken arka plan olur.
+        <b>Yüklediğiniz görüntü sunucuya kaydedilmez</b> — yalnız o an incelenir.</p>
+      <p>Boya solmuşsa ya da zemin hiç boyalı değilse sistem “bulunamadı” der;
+        bu bir arıza değildir, alanı aşağıdaki gibi elle çizersiniz.</p>
       <ol>
         <li>Kameranın sayfasını açın ve <b>Yeni bölge çiz</b> bölümüne inin.</li>
         <li><b>Ad</b> yazın ve <b>tip</b> seçin. Tip, çizerken görünen rengi ve
@@ -156,8 +171,13 @@
           noktaya tıklamanız yeter — son köşeyi başa bağlamakla uğraşmazsınız.</li>
         <li>Yanlış tıkladıysanız <b>“Son köşeyi geri al”</b> düğmesini
           kullanın. Tüm çizimden vazgeçmek için <b>Esc</b> tuşuna basın.</li>
+        <li>Çizim bittikten sonra <b>köşeleri fareyle sürükleyerek</b>
+          düzeltebilirsiniz — tek yanlış köşe için baştan çizmeniz gerekmez.</li>
         <li><b>“Bölgeyi Kaydet”</b>e basın.</li>
       </ol>
+      <p><b>Alan dikdörtgense</b> <b>“Dikdörtgen çiz”</b> düğmesi daha hızlıdır:
+        bir köşeden karşı köşeye sürükleyip bırakmanız yeter. Yükleme alanı,
+        tır park alanı ve KKD alanlarının çoğu dikdörtgendir.</p>
       <p>Sonradan adını, tipini veya çizimini değiştirmek isterseniz <b>Sil</b>
         değil <b>Düzenle</b>'yi kullanın: silmek, o bölgeye bağlı kuralları da
         siler. Bir bölgeyi geçici olarak susturmak için <b>Kapat</b> düğmesi vardır;
@@ -169,9 +189,42 @@
     </section>
 
     {# ---------------------------------------------------------------- 5 #}
+    <section class="komuta-panel kilavuz-bolum" id="sayim">
+      <div class="panel-basligi">
+        <h2>5 · Bölgedeki nesneleri sayma</h2>
+        <span class="panel-notu">kamera sayfası → Bölge sayımı</span>
+      </div>
+      <p>Bir bölge çizdiğiniz anda sayım <b>kendiliğinden başlar</b> — kural
+        kurmanız gerekmez. Kamera sayfasındaki <b>Bölge sayımı</b> bölümünde her
+        bölge için üç sayı görürsünüz; sayılar canlı görüntünün üstünde, bölgenin
+        köşesinde de yazar.</p>
+      <table class="kilavuz-tablo">
+        <tr><th>Sayı</th><th>Cevapladığı soru</th></tr>
+        <tr><td><b>İçeride</b></td><td>Şu anda bölgede kaç nesne var?</td></tr>
+        <tr><td><b>Giren</b></td><td>Sayaç sıfırlandığından beri kaç <b>ayrı</b>
+          nesne girdi?</td></tr>
+        <tr><td><b>En çok</b></td><td>Aynı anda en fazla kaç tane görüldü?</td></tr>
+      </table>
+      <p><b>Aynı kişi iki kez sayılmaz.</b> Bölgede on dakika duran biri “giren”
+        sayısına bir kez eklenir; bölgeden çıkıp tekrar girerse sistem onu takip
+        ettiği sürece yine bir kez sayılır.</p>
+      <p>Vardiya başında <b>“Giriş sayaçlarını sıfırla”</b> düğmesine basın:
+        yalnız “giren” sayısı sıfırlanır, o anda bölgede olanlar sayılmaya
+        devam eder.</p>
+      <p class="kilavuz-alinti"><b>Sayım hiçbir uyarı ya da anons üretmez.</b>
+        Yalnızca bilgidir; ihlal üretmek için bölgeye bir <b>kural</b> bağlamanız
+        gerekir (sonraki bölüm). Sayım yanlışsa kimse yanlış uyarı almaz —
+        yalnızca bir sayı yanlış görünür.</p>
+      <p>Sayıların oturması yarım saniye sürer: sınırda duran bir kişinin
+        tespit kutusu titrediğinde sayaç zıplamasın diye, bir nesne sayılmadan
+        önce üst üste birkaç karede bölgede görülmelidir.</p>
+      <p class="kilavuz-bag"><a href="/kameralar">Kameralara git →</a></p>
+    </section>
+
+    {# ---------------------------------------------------------------- 6 #}
     <section class="komuta-panel kilavuz-bolum" id="kural">
       <div class="panel-basligi">
-        <h2>5 · Kural nasıl kurulur</h2>
+        <h2>6 · Kural nasıl kurulur</h2>
         <span class="panel-notu">en kolay yol: hazır kural düğmesi</span>
       </div>
       <p><b>Çizilen bölge tek başına uyarı üretmez.</b> Uyarıyı üreten kuraldır.
@@ -215,7 +268,7 @@
     {# ---------------------------------------------------------------- 6 #}
     <section class="komuta-panel kilavuz-bolum" id="uyari">
       <div class="panel-basligi">
-        <h2>6 · Uyarı gelince ne yapılır</h2>
+        <h2>7 · Uyarı gelince ne yapılır</h2>
         <span class="panel-notu">günde bir kez, birkaç dakika</span>
       </div>
       <p>Bir kural çiğnendiğinde ekranın üstünde uyarı bandı çıkar, olay kanıt
@@ -241,10 +294,85 @@
       </p>
     </section>
 
-    {# ---------------------------------------------------------------- 7 #}
+    {# ---------------------------------------------------------------- 8 #}
+    <section class="komuta-panel kilavuz-bolum" id="anons">
+      <div class="panel-basligi">
+        <h2>8 · Anons sistemine bağlama</h2>
+        <span class="panel-notu">Komuta → Anons sistemi</span>
+      </div>
+      <p><b>Anons zorunlu değildir.</b> Kapalıyken de sistem tam çalışır:
+        uyarılar ekranda görünür, olaylar kanıt fotoğrafıyla kaydedilir. Anons,
+        “sahadaki kişi de duysun” adımıdır.</p>
+
+      <h3>Önce karar: sizde hangi altyapı var?</h3>
+      <table class="kilavuz-tablo">
+        <tr><th>Fabrikadaki durum</th><th>Seçilecek yol</th></tr>
+        <tr><td>Hoparlörler bir <b>amfiye</b> bağlı, amfinin boş ses girişi var</td>
+          <td><b>Ses kartı</b> — en kolay</td></tr>
+        <tr><td>Hoparlörler <b>ağ üzerinden</b> çalışıyor (IP hoparlör)</td>
+          <td><b>IP hoparlör (HTTP)</b></td></tr>
+        <tr><td>Anonsu bir <b>program / anons sunucusu</b> yönetiyor</td>
+          <td><b>IP hoparlör (HTTP)</b></td></tr>
+        <tr><td>Bilinmiyor</td><td>Şimdilik <b>kapalı</b> bırakın</td></tr>
+      </table>
+      <p>Şüphedeyseniz <b>ses kartıyla başlayın</b>: sunucudan amfinin hat
+        girişine (LINE IN / AUX) bir ses kablosu çekmek çoğu fabrikada yarım
+        saatlik iştir ve hiçbir ağ ayarı gerektirmez.</p>
+
+      <h3>Ses kartı yolu</h3>
+      <ol>
+        <li>Sunucunun ses çıkışını amfinin <b>hat girişine</b> bağlayın —
+          hoparlör çıkışına <b>değil</b>; o, ses kartını bozar.</li>
+        <li>Ayarlar sayfasında anons yolunu <b>ses kartı</b> yapıp sistemi
+          yeniden başlatın.</li>
+        <li>Her mesaj için bir <b>.wav</b> dosyası hazırlayın (MP3 çalışmaz).
+          Telefonla kaydedip dosyayı program klasörüne koymanız yeter.</li>
+        <li>Anons sayfasında her mesajın yanına dosya yolunu yazın ve
+          <b>“Dene”</b> düğmesiyle sınayın.</li>
+      </ol>
+
+      <h3>IP hoparlör (HTTP) yolu</h3>
+      <p>Sistem ihlalde cihazın adresine bir istek gönderir. Cihazlar bu isteği
+        aynı biçimde beklemez; Ayarlar'daki <b>anons biçimi</b> üç değer alır:</p>
+      <table class="kilavuz-tablo">
+        <tr><th>Biçim</th><th>Ne zaman seçilir</th></tr>
+        <tr><td><b>json</b></td><td>Anons sunucusu / yazılım geçidi (varsayılan)</td></tr>
+        <tr><td><b>form</b></td><td>Gömülü web arayüzlü amfi, röle kartı</td></tr>
+        <tr><td><b>get</b></td><td>“Adresi çağır, sesi çal” diyen IP hoparlörler</td></tr>
+      </table>
+      <p>Adrese <b>{anahtar}</b> yazarsanız sistem oraya çalınacak mesajın adını
+        koyar. Örnek: <code>http://10.0.0.9/play?file={anahtar}</code> adresi baret
+        ihlalinde <code>…/play?file=helmet</code> olarak çağrılır. <b>get</b>
+        biçiminde bu yer tutucu zorunludur; yoksa her ihlalde aynı ses çalar.</p>
+
+      <h3>Bölüm bölüm anons</h3>
+      <p>Fabrikanın öbür ucundaki çalışan, kendisiyle ilgisi olmayan bir uyarıyı
+        duymasın diye <b>hoparlör bölgesi</b> tanımlayabilirsiniz. Bölgenin
+        <b>Bölüm</b> alanı, kameranın <b>Alan</b> alanıyla <b>birebir aynı</b>
+        yazılmalıdır — “Sevkiyat” ile “sevkiyat” eşleşmez.</p>
+
+      <h3>Devreye alma sırası — bu sırayı bozmayın</h3>
+      <ol>
+        <li>Kuralı kurun, <b>gölge modda</b> bırakın: olay yazılır, hoparlör susar.</li>
+        <li>En az <b>3 gün</b> böyle çalıştırın.</li>
+        <li>Olayları tek tek <b>“Doğru uyarı” / “Yanlış alarm”</b> diye işaretleyin.</li>
+        <li>Yanlış alarm çoksa eşikleri ayarlayıp 2. adıma dönün.</li>
+        <li>İkna olunca <b>Uyarı zinciri → “Anonsu aç”</b>.</li>
+      </ol>
+      <p class="kilavuz-alinti">İlk günden anonsla başlamak, sistem henüz
+        ayarlanmamışken çalışanı yanlış uyarır ve <b>bir daha düzelmeyen bir güven
+        kaybı</b> yaratır. Bir kez “bu sistem boşuna bağırıyor” denildiğinde
+        doğru uyarılar da dinlenmez.</p>
+      <p>Kablo, adres, cihaz soruları ve anons firmanıza soracaklarınızın listesi
+        için program klasöründeki <b>docs/14-ANONS-SISTEMI-BAGLAMA.md</b>
+        belgesine bakın.</p>
+      <p class="kilavuz-bag"><a href="/komuta/anons">Anons sistemine git →</a></p>
+    </section>
+
+    {# ---------------------------------------------------------------- 9 #}
     <section class="komuta-panel kilavuz-bolum" id="nesne">
       <div class="panel-basligi">
-        <h2>7 · Kendi nesnenizi tanıtma</h2>
+        <h2>9 · Kendi nesnenizi tanıtma</h2>
         <span class="panel-notu">yalnızca yüklenen fotoğrafta arar</span>
       </div>
 
@@ -325,7 +453,7 @@
 
     <section class="komuta-panel kilavuz-bolum" id="ayarlar">
       <div class="panel-basligi">
-        <h2>8 · Ayarları değiştirme</h2>
+        <h2>10 · Ayarları değiştirme</h2>
         <span class="panel-notu">yeniden başlatınca geçerli olur</span>
       </div>
 
@@ -354,7 +482,7 @@
 
     <section class="komuta-panel kilavuz-bolum" id="sorun">
       <div class="panel-basligi">
-        <h2>9 · Bir şey çalışmazsa</h2>
+        <h2>11 · Bir şey çalışmazsa</h2>
         <span class="panel-notu">en sık görülen üç durum</span>
       </div>
 

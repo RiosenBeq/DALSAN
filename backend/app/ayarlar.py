@@ -26,6 +26,12 @@ from app.hatalar import AyarHatasi
 # çalışmada veri klasörünün nereye taşındığını da bilmek zorunda değildir.
 
 _ANONS_SECENEKLERI = ("null", "ses_karti", "http")
+
+# IP hoparlörlerin/anons sunucularının HTTP arayüzü tek tip DEĞİLDİR: kimi
+# JSON gövde bekler, kimi form alanı, kimi de yalnızca adrese bir GET ister.
+# Bu üç seçenek sahada karşılaşılan neredeyse her cihazı karşılar ve yeni bir
+# kütüphane gerektirmez (CLAUDE.md §3). Ayrıntı: docs/14-ANONS-SISTEMI-BAGLAMA.md
+_ANONS_BICIM_SECENEKLERI = ("json", "form", "get")
 _CIHAZ_SECENEKLERI = ("cpu", "cuda")
 _IYILESTIRME_SECENEKLERI = ("kapali", "otomatik")
 
@@ -55,6 +61,7 @@ class Ayarlar:
     goruntu_iyilestirme: str
     anons: str
     anons_http_adresi: str
+    anons_http_bicimi: str
     anons_bekleme_sn: int
     model_dosyasi: Path
     nesne_izinli_uzantilar: tuple[str, ...]
@@ -165,6 +172,9 @@ def ayarlari_coz(
 
     anons = _secenek(degerler, "ANONS", varsayilan="null", secenekler=_ANONS_SECENEKLERI)
     anons_http_adresi = degerler.get("ANONS_HTTP_ADRESI", "")
+    anons_http_bicimi = _secenek(
+        degerler, "ANONS_HTTP_BICIMI", varsayilan="json", secenekler=_ANONS_BICIM_SECENEKLERI
+    )
     if anons == "http":
         if not anons_http_adresi:
             raise AyarHatasi(
@@ -177,6 +187,18 @@ def ayarlari_coz(
             raise AyarHatasi(
                 ".env dosyasında ANONS_HTTP_ADRESI http:// veya https:// ile başlamalı; "
                 f"şu an '{anons_http_adresi}' yazıyor. Örnek: http://10.0.0.9:8080/anons"
+            )
+        # GET biçiminde mesaj GÖVDEDE gönderilemez; adresin hangi mesajın
+        # çalınacağını taşıması gerekir. Yer tutucusuz bir adres, her ihlalde
+        # AYNI sesi çalardı ve kullanıcı bunu ancak sahada fark ederdi.
+        if anons_http_bicimi == "get" and not any(
+            yer in anons_http_adresi for yer in ("{anahtar}", "{metin}")
+        ):
+            raise AyarHatasi(
+                ".env dosyasında ANONS_HTTP_BICIMI=get seçilmiş ama ANONS_HTTP_ADRESI "
+                "hangi mesajın çalınacağını taşımıyor. Adrese {anahtar} yer tutucusunu "
+                "ekleyin. Örnek: http://10.0.0.9/play?file={anahtar}. "
+                "Ayrıntı: docs/14-ANONS-SISTEMI-BAGLAMA.md"
             )
 
     return Ayarlar(
@@ -219,6 +241,7 @@ def ayarlari_coz(
         ),
         anons=anons,
         anons_http_adresi=anons_http_adresi,
+        anons_http_bicimi=anons_http_bicimi,
         # Anons, ekran uyarısından bağımsız ve daha seyrek çalar (docs/02 §7):
         # hoparlör aynı kamera+mesaj için bu süre dolmadan tekrar bağırmaz.
         anons_bekleme_sn=_tam_sayi(degerler, "ANONS_BEKLEME_SN", 30, 5, 3600),

@@ -137,6 +137,18 @@ hoparlörün 3 kez bağırması sorundur.
 
 ---
 
+## 4.1 Sayım, kural DEĞİLDİR
+
+`rules/sayim.py` bu dosyadaki üç kural tipinin yanında durur ama onlardan
+**ayrıdır**: ihlal üretmez, cooldown'a girmez, anons tetiklemez, olay yazmaz.
+Yalnızca "bölgede kaç var" ve "kaç tanesi girdi" sorularını cevaplar.
+
+Neden ayrı: bir sayı yanlışsa kimse yanlış uyarı almaz. Kural mantığıyla aynı
+dosyaya konsaydı, sayım için yapılan her ayar ihlal kararını da riske atardı.
+
+Sayım kural gerektirmez: bölge çizilen her kamerada kendiliğinden çalışır.
+Ayrıntı ve üç sayının anlamı `02-MIMARI.md` §8'de.
+
 ## 5. Yeni kural tipi ekleme prosedürü
 
 1. `rules/` içine saf fonksiyon: `evaluate_<tip>(detections, zones, calibration, params) -> list[Violation]`

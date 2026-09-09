@@ -186,6 +186,7 @@ Sık kullanılan satırlar:
 | `CIKARIM_CIHAZI` | `cpu` veya `cuda` (yalnız NVIDIA'lı Linux sunucuda `cuda`) |
 | `KARE_ORNEKLEME_FPS` / `KARE_FPS` | Saniyede kaç kare analiz edilsin (3-6 yeterli) |
 | `ANONS` | `null` (kapalı), `ses_karti`, `http` |
+| `ANONS_HTTP_BICIMI` | IP hoparlörün beklediği biçim: `json`, `form`, `get` — hangi cihaz için hangisi: `docs/14-ANONS-SISTEMI-BAGLAMA.md` |
 | `OLAY_SAKLAMA_GUN` vb. | Verinin ne kadar saklanacağı (KVKK politikasıyla uyumlu olmalı) |
 
 Bölge, kural, mesafe eşiği gibi **sık değişen ayarlar .env'de değil ekrandadır**;

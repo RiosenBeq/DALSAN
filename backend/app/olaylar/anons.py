@@ -6,6 +6,12 @@ görünmesi sorun değil; hoparlörün 3 kez bağırması sorundur (docs/03 §4)
 
 Anons altyapısı yoksa (ANONS=null) sistem bundan tamamen bağımsız çalışır (K6).
 
+HTTP BİÇİMİ (.env → ANONS_HTTP_BICIMI): sahadaki IP hoparlörlerin HTTP
+arayüzü tek tip değildir. Üç biçim desteklenir — `json` (gövdede JSON,
+varsayılan), `form` (gövdede form alanı), `get` (adres çağrılır, mesaj adresteki
+{anahtar}/{metin} yer tutucularına yazılır). Hangi cihaz için hangisinin
+seçileceği docs/14-ANONS-SISTEMI-BAGLAMA.md'de tarif edilir.
+
 HOPARLÖR BÖLGELERİ (şema 002): ANONS=http iken anons, ihlalin olduğu BÖLÜMÜN
 hoparlörüne gönderilir (speaker_zones tablosu, `area` alanı cameras.area ile
 eşleşir). Bölüme ait bölge yoksa "tüm fabrika" bölgesi, o da yoksa .env'deki
@@ -22,6 +28,7 @@ import subprocess
 import sys
 import threading
 import urllib.error
+import urllib.parse
 import urllib.request
 
 from app import veritabani, zaman
@@ -126,18 +133,56 @@ class SesKartiAnonscu:
         _log.info(f"Anons çalındı: {metin}")
 
 
-def http_gonder(adres: str, anahtar: str, metin: str) -> None:
-    """Tek bir anons adresine HTTP POST atar; başarısızlıkta AnonsHatasi.
+def adresi_doldur(adres: str, anahtar: str, metin: str) -> str:
+    """Adresteki {anahtar} / {metin} yer tutucularını doldurur (URL kaçışlı).
 
-    Gövde: {"key": ..., "text": ...} JSON. Somut uç nokta biçimi, sahadaki
-    anons sistemi öğrenilince gerekirse uyarlanır (docs/08 R3).
+    `str.format` KULLANILMAZ: adres kullanıcıdan gelir ve içinde anons
+    sisteminin kendi süslü parantezleri olabilir ("...?q={id}"); format
+    bunlarda KeyError fırlatıp anonsu tamamen susturur. Düz metin değişimi
+    yalnızca bildiğimiz iki yer tutucuya dokunur, gerisini olduğu gibi bırakır.
+    """
+    return adres.replace("{anahtar}", urllib.parse.quote(anahtar, safe="")).replace(
+        "{metin}", urllib.parse.quote(metin, safe="")
+    )
+
+
+def _istek_hazirla(adres: str, anahtar: str, metin: str, bicim: str):
+    """Biçime göre urllib isteği kurar (json | form | get).
+
+    Üç biçim, sahadaki üç yaygın cihaz ailesine karşılık gelir:
+      json — anons sunucuları / yazılım geçitleri (varsayılan, eski davranış)
+      form — gömülü web arayüzlü amfi ve röle kartları
+      get  — "adresi çağır, sesi çal" diyen IP hoparlörler
+    """
+    dolu_adres = adresi_doldur(adres, anahtar, metin)
+    if bicim == "get":
+        # Gövde YOK: urllib, data verilmezse GET kullanır.
+        return urllib.request.Request(dolu_adres)
+    if bicim == "form":
+        veri = urllib.parse.urlencode({"key": anahtar, "text": metin}).encode("utf-8")
+        return urllib.request.Request(
+            dolu_adres,
+            data=veri,
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+        )
+    veri = json.dumps({"key": anahtar, "text": metin}).encode("utf-8")
+    return urllib.request.Request(
+        dolu_adres, data=veri, headers={"Content-Type": "application/json"}
+    )
+
+
+def http_gonder(adres: str, anahtar: str, metin: str, bicim: str = "json") -> None:
+    """Tek bir anons adresine HTTP isteği atar; başarısızlıkta AnonsHatasi.
+
+    `bicim` .env'deki ANONS_HTTP_BICIMI'dir: json (gövdede JSON, varsayılan),
+    form (gövdede form alanı) ya da get (adres çağrılır). Hangi cihaz için
+    hangisi seçilir: docs/14-ANONS-SISTEMI-BAGLAMA.md.
 
     Ayrı bir fonksiyon: hem ihlal anındaki otomatik anons hem de arayüzdeki
     "Bu hoparlörü dene" düğmesi AYNI yoldan gider. İkisi ayrı kod olsaydı
     deneme başarılı olup gerçek anons sessizce başarısız olabilirdi.
     """
-    veri = json.dumps({"key": anahtar, "text": metin}).encode("utf-8")
-    istek = urllib.request.Request(adres, data=veri, headers={"Content-Type": "application/json"})
+    istek = _istek_hazirla(adres, anahtar, metin, bicim)
     try:
         with urllib.request.urlopen(istek, timeout=5) as yanit:
             _log.info(f"Anons HTTP gönderildi ({yanit.status}): {metin}")
@@ -154,19 +199,24 @@ def http_gonder(adres: str, anahtar: str, metin: str) -> None:
 
 
 class HttpAnonscu:
-    """IP hoparlör / anons sunucusuna HTTP POST atar."""
+    """IP hoparlör / anons sunucusuna HTTP isteği atar (biçim .env'den)."""
 
     ad = "http"
 
-    def __init__(self, adres: str) -> None:
+    def __init__(self, adres: str, bicim: str = "json") -> None:
         self._adres = adres
+        self._bicim = bicim
 
     @property
     def adres(self) -> str:
         return self._adres
 
+    @property
+    def bicim(self) -> str:
+        return self._bicim
+
     def cal(self, anahtar: str, metin: str, ses_dosyasi: str | None) -> None:
-        http_gonder(self._adres, anahtar, metin)
+        http_gonder(self._adres, anahtar, metin, self._bicim)
 
 
 def bolge_sec(bolgeler: list[dict], kamera_alani: str | None) -> dict | None:
@@ -195,7 +245,7 @@ def anonscu_kur(ayarlar: Ayarlar):
     if ayarlar.anons == "ses_karti":
         return SesKartiAnonscu()
     if ayarlar.anons == "http":
-        return HttpAnonscu(ayarlar.anons_http_adresi)
+        return HttpAnonscu(ayarlar.anons_http_adresi, ayarlar.anons_http_bicimi)
     return NullAnonscu()
 
 
@@ -270,7 +320,10 @@ class AnonsYoneticisi:
         """
         if bolge is None or not isinstance(self._anonscu, HttpAnonscu):
             return self._anonscu
-        return HttpAnonscu(bolge["address"])
+        # Biçim .env'de tek yerde durur: bölge yalnızca ADRESİ değiştirir.
+        # Bölge başına ayrı biçim, kullanıcının öğrenmesi gereken ikinci bir
+        # kavram olurdu ve fabrikadaki hoparlörler zaten aynı marka olur.
+        return HttpAnonscu(bolge["address"], self._anonscu.bicim)
 
     def _cal_ve_kaydet(
         self, anahtar: str, metin: str, ses_yolu: str | None, bolge: dict | None = None

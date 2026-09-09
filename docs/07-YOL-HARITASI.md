@@ -30,9 +30,20 @@ Sıralama beklenen faydaya göre.
 | 15 | **Dördüncü kural tipi: ani hareket / forklift hızı** ("forklift 2,5 m/s üstünde") | Komuta tasarımının uyarı zincirinde örnek olarak geçiyor ama MVP'de YOK. Ertelenmesinin nedeni teknik: `rules.rule_type` bir CHECK kısıtıyla üç tipe kapalı ve SQLite'ta CHECK değiştirmek tabloyu yeniden kurmak demektir; şema betikleri işlem içinde çalıştığı için `PRAGMA foreign_keys` etkisiz kalır ve yeniden kurma, kullanıcının kurallarını sessizce silme riski taşır. Doğru yol: `rules` tablosunu güvenli biçimde taşıyan ayrı bir göç (yeni tablo + kopyala + eski tabloyu bırak) ve `rules/hiz.py` içinde saf bir kural fonksiyonu. Hız verisi zaten var: `Tespit.hiz_mps` kalibre kamerada hesaplanıyor. | Orta |
 | 17 | **Tanıtılan nesnenin CANLI kamerada aranması** | Nesne kütüphanesi (Nesneler sayfası, şema 003) bugün yalnızca kullanıcının YÜKLEDİĞİ fotoğrafta arıyor — kullanıcı kararıyla kapsam böyle sınırlandı. Canlıya taşımak ayrı bir iştir: parmak izi eşleştirmesi kare başına saniyeler sürer (kayan pencere), canlı boru hattı ise saniyede 6 kare işler. Doğru yol, tespit modeline nesne sınıfı öğretmek ya da eşleştirmeyi yalnızca model kutularıyla ve seyrek karelerde çalıştırmaktır. Ayrıca canlıda "yanlış eşleşme" artık bir uyarı/anons demektir; bugünkü doğruluk buna yetmiyor. | Orta-büyük |
 | 18 | **Nesne aramada video yükleme** | Bugün yalnızca fotoğraf yüklenebiliyor. Video, eşit aralıklı kare örnekleyip her kareyi taramak demektir; kayan pencere taraması kare başına saniyeler sürdüğü için tek videonun taraması dakikalara çıkar. Önce tarama hızlandırılmalı. | Orta |
+| 19 | **Sayımın kalıcı kaydı** (vardiya/gün raporu) | Bölge sayımı bugün BELLEKTE tutulur: sistem yeniden başlayınca "giren" sıfırlanır ve geçmiş gün karşılaştırılamaz. Kalıcı olması için sayaçları düzenli aralıkla yazan bir tablo gerekir. Bilerek ertelendi: önce sayının sahada DOĞRU olduğu görülmeli; yanlış bir sayıyı kalıcı kaydetmek, yanlışı rapora taşımaktır. | Küçük-orta |
+| 20 | **Çizgi geçiş sayımı** (kapıdan kaç kişi geçti) | Bugün sayım BÖLGE bazlıdır: "içeride kaç var" ve "kaç tanesi girdi". Yön bilgisi (içeri mi çıktı mı) için çizgi ve geçiş yönü gerekir. Bölge sayımı çoğu İSG sorusuna yettiği için önce o yapıldı. | Orta |
+| 21 | **Alan tanımada boya dışı ipuçları** | `alan_bulucu` bugün yalnız SARI ve BEYAZ boyayı arar. Zemini boyasız fabrikada hiçbir şey bulamaz. Bariyer, korkuluk, raf sırası gibi ipuçları için ayrı bir yaklaşım (çizgi/derinlik analizi) gerekir ve yanlış öneri oranı ölçülmeden açılmamalı. | Orta |
 | 16 | **Anons kayıt defteri** (hoparlör gerçekten kaç kez çaldı) | Anons ekranı bugün "anons tetikleyen ihlal" sayıyor; tekrar aralığı bir kısmını bastırdığı için gerçek anons sayısı bundan azdır ve ekran bunu açıkça yazıyor. Kesin sayı için her başarılı/başarısız anonsu yazan küçük bir tablo gerekir. | Küçük |
 
 ---
+
+### 1.1 Kapanan başlıklar (bu turda yapıldı)
+
+| Eski başlık | Bugünkü durum |
+|---|---|
+| Anons uç noktasının somut biçimi (R3) | Kapandı: üç HTTP biçimi (`json`/`form`/`get`) ve adres yer tutucuları eklendi; hangi cihaz için hangisinin seçileceği `14-ANONS-SISTEMI-BAGLAMA.md`'de. Sahadaki cihaz öğrenilince kod DEĞİL, ayar değişir. |
+| Bölge çiziminin zahmeti | Kapandı: zemindeki boyadan otomatik alan önerisi, dikdörtgen kipi, köşe sürükleme ve ekran görüntüsü üzerine çizim. |
+| "Kaç kişi geçti" sorusu | Kısmen: bölge bazlı canlı sayım eklendi (`rules/sayim.py`). Kalıcı kayıt ve yön bilgisi hâlâ açık — #19 ve #20. |
 
 ## 2. Phase 3 — Alçı Stokholü
 

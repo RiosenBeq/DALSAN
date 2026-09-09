@@ -1158,3 +1158,19 @@
   .nesne-tablo .komuta-tablo-basligi,
   .nesne-tablo .komuta-tablo-satiri { grid-template-columns: 34px 1fr 62px; }
 }
+
+/* Kılavuzdaki karar tabloları ("sizde hangi altyapı var", "hangi sayı neyi
+   söyler"). Düz metin yerine tablo: kullanıcı kendi durumunu satırda bulup
+   karşısındaki cevabı okur, paragraf taramak zorunda kalmaz. */
+.kilavuz-tablo {
+  width: 100%; border-collapse: collapse; font-size: 13px; margin: 4px 0 2px;
+}
+.kilavuz-tablo th,
+.kilavuz-tablo td {
+  text-align: left; padding: 7px 10px; vertical-align: top;
+  border-bottom: 1px solid var(--cizgi); color: var(--metin-2); line-height: 1.5;
+}
+.kilavuz-tablo th { color: var(--metin-3); font-weight: 600; font-size: 12px; }
+.kilavuz-tablo td b { color: var(--metin); }
+.kilavuz-tablo tr:last-child td { border-bottom: 0; }
+.kilavuz-bolum h3 { margin: 12px 0 2px; font-size: 14px; color: var(--metin); }

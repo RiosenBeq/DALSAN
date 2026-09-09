@@ -23,6 +23,17 @@ SINIF_INSAN = "person"
 SINIF_FORKLIFT = "forklift"
 SINIF_TIR = "truck"
 
+# Sistemin TANIDIĞI sınıfların tam listesi (web/ortak.py'deki SINIFLAR
+# tablosu bunların TÜRKÇE ADLARIDIR; ikisi karıştırılmasın) — sıra ANLAMLIDIR: takip katmanı
+# (analiz/takip.py) sınıf numarasını bu sıradan üretir.
+#
+# NEDEN TEK LİSTE: eskiden sınıf→numara eşlemesi takip.py içinde ayrı bir
+# sözlüktü. Tespit modeline yeni bir sınıf eklendiğinde (ör. saha verisiyle
+# ince ayar yapılmış gerçek bir forklift modeli) o sözlük unutulur ve takip
+# katmanı KeyError verirdi; hata her karede tekrarlandığı için o kamera
+# kalıcı olarak körleşirdi. Artık iki taraf da bu listeyi okur.
+TANINAN_SINIFLAR: tuple[str, ...] = (SINIF_INSAN, SINIF_TIR, SINIF_FORKLIFT)
+
 
 @dataclass
 class KkdGozlem:

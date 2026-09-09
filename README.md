@@ -38,6 +38,10 @@ onu kamera gibi izler. Kamera sayfasındaki durum satırı bağlanamama sebebini
 | İhlalde ekran bandı + sesli uyarı + Türkçe seslendirme, anons deneme düğmesi | ✅ |
 | İnsan / araç tespiti (**NextGen AI** tespit motoru) + ByteTrack takip | ✅ |
 | Bölge çizimi (tarayıcıda poligon) ve bölge ihlali kuralı | ✅ |
+| **Zemindeki boyadan otomatik alan tanıma** — sarı/beyaz işaretli alanı bulup çizim önerir | ✅ |
+| **Ekran görüntüsü üzerine bölge çizme** — kamera takılmadan önce hazırlık | ✅ |
+| **Dikdörtgen çizim + köşe sürükleme** ile kolay alan düzeltme | ✅ |
+| **Bölge sayımı** — içeride kaç var, vardiyada kaç girdi (video üstünde de yazar) | ✅ |
 | Güvenli mesafe kuralı (4 nokta zemin kalibrasyonu, metre cinsinden) | ✅ |
 | Olay kaydı + kanıt fotoğrafı + canlı uyarı ekranı (SSE) + CSV | ✅ |
 | Anons altyapısı (ses kartı / HTTP IP hoparlör / kapalı) | ✅ arayüz hazır, saha entegrasyonu bekliyor |

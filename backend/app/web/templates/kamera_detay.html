@@ -44,6 +44,27 @@
     {% include "renk_anahtari.html" %}
   </section>
 
+  {# BÖLGE SAYIMI — kural gerektirmez. Bölge çizilen her kamerada çalışır;
+     kullanıcı çoğu zaman önce "kaç kişi geçiyor" sorusunun cevabını ister,
+     uyarıyı sonra kurar. Sayılar 2 sn'de bir durum.json'dan tazelenir. #}
+  <section class="kart" id="sayim-karti"{% if not bolgeler %} hidden{% endif %}>
+    <h3>Bölge sayımı
+      {{ ipucu('sayim', 'Şu anda bölgede kaç nesne var ve sayaç sıfırlandığından beri kaç tane girdi. Aynı kişi bölgede ne kadar dursa da bir kez sayılır.') }}
+    </h3>
+    <div id="bolge-sayim-listesi" class="sayim-listesi">
+      <p class="not">Sayım bilgisi bekleniyor…</p>
+    </div>
+    <div class="dugme-satiri">
+      <button type="button" class="dugme ikincil kucuk" id="sayac-sifirla"
+              data-kamera="{{ kamera.id }}">Giriş sayaçlarını sıfırla</button>
+      <span class="not" id="sayac-sonuc"></span>
+    </div>
+    <p class="not"><b>Giren</b>, sayaç sıfırlandığından beri bölgeye giren ayrı
+      nesne sayısıdır — vardiya başında sıfırlayın. <b>İçeride</b> o anda
+      görünendir. <b>En çok</b>, aynı anda görülen en yüksek sayıdır.
+      Sayım hiçbir uyarı ya da anons üretmez; yalnız bilgidir.</p>
+  </section>
+
   <section class="kart">
     <h3>Bölgeler</h3>
     {% if bolgeler %}
@@ -124,7 +145,31 @@
         3) Yukarıdaki görüntüde köşelere sırayla tıklayın (en az 3) ·
         4) Bitirmek için ilk (büyük) noktaya tıklayın · 5) "Bölgeyi Kaydet".
         Vazgeçmek için <b>Esc</b>.</p>
+      <p class="not">Alan dikdörtgense <b>"Dikdörtgen çiz"</b> daha hızlıdır: bir köşeden
+        karşı köşeye sürüklemeniz yeter. Çizim bittikten sonra <b>köşeleri fareyle
+        sürükleyerek</b> düzeltebilirsiniz.</p>
       {% endif %}
+      {# ALANI OTOMATİK BUL — fabrika zemininde alan zaten boyalıdır (sarı yaya
+         yolu, beyaz yükleme çerçevesi). Sistem o boyayı bulup hazır bir çizim
+         önerir; kullanıcı kabul edip köşelerini düzeltir. Kamera henüz bağlı
+         değilse NVR'dan alınmış bir ekran görüntüsü yüklenebilir — böylece
+         kamera takılmadan önce de bölgeler hazırlanabilir.
+         Yüklenen görüntü diske YAZILMAZ (app/web/alan_rotalari.py). #}
+      <div class="alan-bul" id="alan-bul">
+        <h5>Elle çizmek yerine: alanı sistem bulsun</h5>
+        <p class="not">Zemindeki sarı/beyaz boyalı alanları arar ve hazır çizim önerir.
+          Kamera bağlı değilse NVR'dan aldığınız bir ekran görüntüsünü yükleyin.</p>
+        <div class="dugme-satiri">
+          <button type="button" class="dugme ikincil" id="alan-bul-canli"
+                  data-kamera="{{ kamera.id }}">Canlı görüntüde alanları bul</button>
+          <label class="dosya-dugmesi dugme ikincil" for="alan-bul-dosya">
+            Ekran görüntüsü yükle
+            <input type="file" id="alan-bul-dosya" accept="image/*" hidden>
+          </label>
+          <span class="not" id="alan-bul-durum"></span>
+        </div>
+        <div id="alan-onerileri" class="alan-onerileri"></div>
+      </div>
       <form method="post" class="bolge-formu" id="bolge-formu"
             action="{% if duzenlenen %}/bolgeler/{{ duzenlenen.id }}/duzenle{% else %}/kameralar/{{ kamera.id }}/bolgeler{% endif %}">
         <div class="alan-satiri">
@@ -148,6 +193,10 @@
         <div class="dugme-satiri">
           <button type="button" class="dugme ikincil" id="cizim-baslat">
             {% if duzenlenen %}Yeniden çiz{% else %}Çizime başla{% endif %}</button>
+          {# Dikdörtgen kipi: yükleme alanı, tır parkı ve KKD alanlarının çoğu
+             dikdörtgendir. Dört köşeye ayrı ayrı tıklamak yerine tek sürükleme
+             yeter — dört tıklamanın üçünde hizayı tutturmak zordur. #}
+          <button type="button" class="dugme ikincil" id="cizim-dikdortgen">Dikdörtgen çiz</button>
           <button type="button" class="dugme ikincil" id="cizim-geri" disabled>Son köşeyi geri al</button>
           <button type="button" class="dugme ikincil" id="cizim-temizle" disabled>Temizle</button>
           <button type="submit" class="dugme" id="bolge-kaydet" disabled>
@@ -242,6 +291,6 @@
 {% block betikler %}
 <script>window.MEVCUT_BOLGELER = {{ bolgeler_json | safe }};
 window.DUZENLENEN_BOLGE = {{ duzenlenen_json | safe }};</script>
-<script src="/static/onizleme.js?v=19"></script>
-<script src="/static/kamera_detay.js?v=19"></script>
+<script src="/static/onizleme.js?v=20"></script>
+<script src="/static/kamera_detay.js?v=20"></script>
 {% endblock %}

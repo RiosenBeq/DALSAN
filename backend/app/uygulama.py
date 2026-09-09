@@ -17,6 +17,7 @@ from app import kaynaklar, loglama, veritabani
 from app.ayarlar import Ayarlar
 from app.hatalar import VeritabaniHatasi, hata_yakalayicilari_kur
 from app.web import (
+    alan_rotalari,
     anons_web,
     ayar_rotalari,
     hoparlorler,
@@ -94,6 +95,9 @@ def uygulama_olustur(ayarlar: Ayarlar, analiz: bool = True) -> FastAPI:
     # bağlı çalışır. Fabrika sunucusuna çıkmadan önce tek yetki kapısı geri eklenir.
     uygulama.include_router(rotalar.router)
     uygulama.include_router(kameralar.router)
+    # Alan tanıma ("Alanları Otomatik Bul"): kamera sayfasının yanında durur.
+    # Yüklenen ekran görüntüsü DİSKE YAZILMAZ; ayrıntısı alan_rotalari.py'de.
+    uygulama.include_router(alan_rotalari.router)
     uygulama.include_router(kurallar.router)
     uygulama.include_router(olaylar_web.router)
     uygulama.include_router(kkd_web.router)

@@ -110,6 +110,7 @@ def test_ayarlari(tmp_path: Path):
         goruntu_iyilestirme="kapali",
         anons="null",
         anons_http_adresi="",
+        anons_http_bicimi="json",
         anons_bekleme_sn=30,
         model_dosyasi=tmp_path / "models" / "olmayan-model.onnx",
         nesne_izinli_uzantilar=(".jpg", ".jpeg", ".png", ".webp", ".bmp"),

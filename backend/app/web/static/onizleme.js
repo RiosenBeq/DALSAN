@@ -28,6 +28,11 @@
   }
 
   function yenile(resim) {
+    // DONMUŞ GÖRÜNTÜ: kullanıcı bölge çizmek için bir ekran görüntüsü
+    // yüklediyse (kamera_detay.js → arkaPlanaKoy) canlı kare onun üstüne
+    // yazılmamalı; yoksa bir saniye sonra başka bir görüntünün üstüne
+    // çizmiş olurdu.
+    if (resim.dataset.donmus === "1") return;
     fetch(adres(resim), { cache: "no-store" })
       .then(function (yanit) {
         if (yanit.status !== 200) return null;
@@ -56,6 +61,7 @@
   if (!durumSatiri || !durumSatiri.dataset.kamera) return;
   var rozet = document.getElementById("durum-rozeti");
   var sayimKutusu = document.getElementById("canli-sayim");
+  var bolgeSayimKutusu = document.getElementById("bolge-sayim-listesi");
   var kaliteKutusu = document.getElementById("kalite-uyarisi");
   var ROZETLER = {
     online: ["çevrimiçi", "yesil"],
@@ -77,6 +83,7 @@
         var r = ROZETLER[veri.durum];
         if (rozet && r) { rozet.textContent = r[0]; rozet.className = "rozet " + r[1]; }
         if (sayimKutusu) sayimiYaz(veri.sayim_tr || {});
+        if (bolgeSayimKutusu) bolgeSayimlariniYaz(veri.bolge_sayimlari || []);
         if (kaliteKutusu) {
           var kalite = veri.kalite || {};
           kaliteKutusu.textContent = kalite.mesaj || "";
@@ -105,6 +112,95 @@
         className: "sayi", textContent: String(sayim[ad]) }));
       kutu.appendChild(Object.assign(document.createElement("span"), { textContent: ad }));
       sayimKutusu.appendChild(kutu);
+    });
+  }
+
+  // --- bölge bölge sayım tablosu ---
+  //
+  // Üç sayı üç ayrı soruyu cevaplar (rules/sayim.py): İÇERİDE şu an kaç var,
+  // GİREN sayaç sıfırlandığından beri kaç ayrı nesne girdi, EN ÇOK aynı anda
+  // kaç tane görüldü. Sayım hiçbir uyarı üretmez; yalnız bilgidir.
+  function bolgeSayimlariniYaz(sayimlar) {
+    bolgeSayimKutusu.textContent = "";
+    if (sayimlar.length === 0) {
+      bolgeSayimKutusu.appendChild(Object.assign(document.createElement("p"), {
+        className: "not",
+        textContent: "Sayım için analizin çalışıyor olması gerekir. Kontrol " +
+          "Paneli'nde \"Sistemi Başlat\"a basın; bölgeler çizildiyse sayılar " +
+          "birkaç saniye içinde görünür."
+      }));
+      return;
+    }
+    sayimlar.forEach(function (sayim) {
+      var satir = document.createElement("div");
+      satir.className = "sayim-satiri";
+
+      var baslik = document.createElement("div");
+      baslik.className = "sayim-basligi";
+      baslik.appendChild(Object.assign(document.createElement("b"), {
+        textContent: sayim.ad }));
+      baslik.appendChild(Object.assign(document.createElement("span"), {
+        className: "not", textContent: sayim.tip_adi }));
+      satir.appendChild(baslik);
+
+      satir.appendChild(sayimGrubu("İçeride", sayim.anlik_tr || {}, sayim.anlik_toplam));
+      satir.appendChild(sayimGrubu("Giren", sayim.giren_tr || {}, sayim.giren_toplam));
+      bolgeSayimKutusu.appendChild(satir);
+    });
+  }
+
+  function sayimGrubu(baslik, sayim, toplam) {
+    var grup = document.createElement("div");
+    grup.className = "sayim-grubu";
+    grup.appendChild(Object.assign(document.createElement("span"), {
+      className: "grup-basligi", textContent: baslik }));
+    var kutu = document.createElement("div");
+    kutu.className = "sayim-izgara kucuk-sayim";
+    var adlar = Object.keys(sayim).sort();
+    if (adlar.length === 0) {
+      var bos = document.createElement("div");
+      bos.className = "sayim-kutu bos-sayim";
+      bos.appendChild(Object.assign(document.createElement("span"), {
+        className: "sayi", textContent: String(toplam || 0) }));
+      bos.appendChild(Object.assign(document.createElement("span"), {
+        textContent: "—" }));
+      kutu.appendChild(bos);
+    } else {
+      adlar.forEach(function (ad) {
+        var hucre = document.createElement("div");
+        hucre.className = "sayim-kutu";
+        hucre.appendChild(Object.assign(document.createElement("span"), {
+          className: "sayi", textContent: String(sayim[ad]) }));
+        hucre.appendChild(Object.assign(document.createElement("span"), { textContent: ad }));
+        kutu.appendChild(hucre);
+      });
+    }
+    grup.appendChild(kutu);
+    return grup;
+  }
+
+  // Vardiya başı: yalnız KÜMÜLATİF sayaç sıfırlanır, anlık sayı sıfırlanmaz.
+  var sifirlaDugmesi = document.getElementById("sayac-sifirla");
+  var sifirlaSonuc = document.getElementById("sayac-sonuc");
+  if (sifirlaDugmesi) {
+    sifirlaDugmesi.addEventListener("click", function () {
+      sifirlaDugmesi.disabled = true;
+      fetch("/kameralar/" + sifirlaDugmesi.dataset.kamera + "/sayac-sifirla", { method: "POST" })
+        .then(function (yanit) { return yanit.json(); })
+        .then(function (sonuc) {
+          if (sifirlaSonuc) {
+            sifirlaSonuc.textContent = sonuc.mesaj || "";
+            sifirlaSonuc.className = sonuc.tamam ? "not" : "hata-mesaji";
+          }
+          durumuGuncelle();
+        })
+        .catch(function () {
+          if (sifirlaSonuc) {
+            sifirlaSonuc.textContent = "Sayaç sıfırlanamadı: bağlantı hatası.";
+            sifirlaSonuc.className = "hata-mesaji";
+          }
+        })
+        .then(function () { sifirlaDugmesi.disabled = false; });
     });
   }
 

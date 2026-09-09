@@ -16,6 +16,7 @@ from app.analiz.takip import Takipci
 from app.analiz.tespit import SINIF_OVERLAY, Tespitci
 from app.rules.geometri import nokta_poligonda
 from app.rules.motor import KuralMotoru
+from app.rules.sayim import BolgeSayaci, BolgeSayimi
 from app.rules.tipler import (
     SINIF_INSAN,
     VAR,
@@ -64,6 +65,18 @@ _KKD_YOK_RENGI = (0, 0, 220)
 # Önizleme JPEG kalitesi: ağ trafiği ile okunabilirlik arasında denge
 _JPEG_KALITE = [int(cv2.IMWRITE_JPEG_QUALITY), 80]
 
+# SAYIM ROZETİ — bölgenin içine yazılan "3 insan · 1 tır" etiketi.
+# Sayı, kuralın ürettiği uyarıdan BAĞIMSIZ bir bilgidir; bu yüzden ihlal
+# kırmızısından da bölge morundan da farklı, nötr koyu bir zemine yazılır.
+_SAYIM_ZEMINI = (45, 40, 38)
+_SAYIM_YAZISI = (245, 245, 245)
+_SAYIM_YUKSEKLIGI = 22
+
+# Bölge sayacının "kararlı" saydığı ardışık kare sayısı. Kamera 6 kare/sn
+# örneklerken yarım saniye eder: sınırda titreyen kutu sayıyı zıplatmaz,
+# gerçekten giren kişi de yarım saniyede sayılır.
+_SAYIM_MIN_KARE = 3
+
 
 class KameraHatti:
     def __init__(self, kamera_id: int, fps: int, iyilestir: bool = False) -> None:
@@ -78,6 +91,11 @@ class KameraHatti:
         self._kalite_sayaci = 0
         self._takipci = Takipci(fps)
         self._motor = KuralMotoru(kamera_id)
+        # Sayım kuraldan AYRIDIR: ihlal üretmez, yalnız "kaç var / kaç girdi"
+        # sorusunu cevaplar (rules/sayim.py). Yanlış sayım kimseyi uyarmaz.
+        self._sayac = BolgeSayaci(min_kare=_SAYIM_MIN_KARE)
+        self._sayimlar: list[BolgeSayimi] = []
+        self._kare_sayimi: dict[str, int] = {}
         self._bolgeler: list[Bolge] = []
         self._kalibrasyon: Kalibrasyon | None = None
         self._kkd_sayac: dict[int, int] = {}  # takip_id -> işlenen kare sayısı
@@ -130,12 +148,46 @@ class KameraHatti:
             self._kalibrasyon,
         )
 
+        # Sayım kural motorundan SONRA ve ondan bağımsız çalışır: kural hiç
+        # kurulmamış bir kamerada da bölgeler sayılır. Kullanıcı çoğu zaman
+        # önce "kaç kişi geçiyor" sorusunun cevabını ister, uyarıyı sonra kurar.
+        self._sayimlar = self._sayac.guncelle(
+            (float(genislik), float(yukseklik)), tespitler, self._bolgeler
+        )
+        self._kare_sayimi = self._sayac.kare_sayimi(tespitler)
+
         self._overlay_guncelle(kare, tespitler, ihlaller)
         return tespitler, ihlaller
 
     def kalite(self) -> dict:
         """Son ölçülen görüntü kalitesi (kamera sayfasında gösterilir)."""
         return dict(self._kalite)
+
+    def sayimlar(self) -> list[dict]:
+        """Bölge bölge sayım tablosu (kamera sayfası ve Sayım ekranı okur).
+
+        Dataclass yerine dict döner: web katmanı bunu doğrudan JSON'a çevirir
+        ve arada bir dönüştürme adımı olmasın.
+        """
+        return [
+            {
+                "bolge_id": s.bolge_id,
+                "anlik": dict(s.anlik),
+                "giren": dict(s.giren),
+                "zirve": dict(s.zirve),
+                "anlik_toplam": s.anlik_toplam,
+                "giren_toplam": s.giren_toplam,
+            }
+            for s in self._sayimlar
+        ]
+
+    def kare_sayimi(self) -> dict[str, int]:
+        """Bölgeden bağımsız, karenin tamamındaki nesne sayısı."""
+        return dict(self._kare_sayimi)
+
+    def sayaci_sifirla(self, bolge_id: int | None = None) -> None:
+        """Kümülatif ('giren') sayaçları sıfırlar — vardiya başı içindir."""
+        self._sayac.sifirla(bolge_id)
 
     def son_islenmis_jpeg(self, bolgeler_dahil: bool = True) -> bytes | None:
         """Son işlenmiş kare (JPEG).
@@ -215,11 +267,13 @@ class KameraHatti:
         aktif_bolgeler = [b for b in self._bolgeler if b.aktif]
         if aktif_bolgeler:
             bolgeli = gorsel.copy()
+            sayim_tablosu = {s.bolge_id: s for s in self._sayimlar}
             for bolge in aktif_bolgeler:
                 noktalar = np.array(
                     [(int(x * genislik), int(y * yukseklik)) for x, y in bolge.poligon]
                 )
                 cv2.polylines(bolgeli, [noktalar], True, _BOLGE_RENGI, 2)
+                self._sayim_rozeti(bolgeli, noktalar, sayim_tablosu.get(bolge.id))
 
         tamam, jpeg = cv2.imencode(".jpg", bolgeli, _JPEG_KALITE)
         if tamam:
@@ -228,6 +282,60 @@ class KameraHatti:
                 # gorsel bir daha DEĞİŞTİRİLMEZ (sonraki kare yeni kopya açar),
                 # bu yüzden kilit dışında güvenle kodlanabilir.
                 self._son_kare_bolgesiz = gorsel if aktif_bolgeler else None
+
+    @staticmethod
+    def _sayim_rozeti(gorsel: np.ndarray, noktalar: np.ndarray, sayim) -> None:
+        """Bölgenin ÜST KENARINA "3 insan · 1 tir" rozeti çizer.
+
+        Sayı, videonun üstünde görünmelidir: kullanıcı sayıyı ayrı bir tabloda
+        değil, saydığı yerin üstünde görmek ister. Boş bölgeye rozet
+        ÇİZİLMEZ — altı bölgeli bir kamerada altı tane "0" yalnızca gürültüdür.
+
+        Yazı ASCII'dir (cv2.putText Türkçe harf çizemez, "tır" → "t?r"):
+        SINIF_OVERLAY tablosu tespit kutularıyla aynı karşılıkları verir.
+        """
+        if sayim is None or not sayim.anlik:
+            return
+        metin = " · ".join(
+            f"{adet} {SINIF_OVERLAY.get(sinif, sinif)}"
+            for sinif, adet in sorted(sayim.anlik.items())
+        )
+        (yazi_g, yazi_y), _ = cv2.getTextSize(metin, cv2.FONT_HERSHEY_SIMPLEX, 0.55, 1)
+
+        # Rozetin çıpası bölgenin EN ÜST köşesidir; poligon nasıl çizilmiş
+        # olursa olsun (saat yönü ya da tersi) rozet hep aynı yerde durur.
+        ust = noktalar[noktalar[:, 1].argmin()]
+        x = int(ust[0])
+        y = int(ust[1]) - 6
+        yukseklik, genislik = gorsel.shape[:2]
+        # Kare dışına taşarsa içeri al: taşan rozet hiç çizilmez ve sayı kaybolur
+        x = max(2, min(x, genislik - yazi_g - 12))
+        y = max(_SAYIM_YUKSEKLIGI + 2, min(y, yukseklik - 4))
+
+        cv2.rectangle(
+            gorsel,
+            (x, y - _SAYIM_YUKSEKLIGI),
+            (x + yazi_g + 10, y),
+            _SAYIM_ZEMINI,
+            -1,
+        )
+        cv2.rectangle(
+            gorsel,
+            (x, y - _SAYIM_YUKSEKLIGI),
+            (x + yazi_g + 10, y),
+            _BOLGE_RENGI,
+            1,
+        )
+        cv2.putText(
+            gorsel,
+            metin,
+            (x + 5, y - (_SAYIM_YUKSEKLIGI - yazi_y) // 2 - 2),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.55,
+            _SAYIM_YAZISI,
+            1,
+            cv2.LINE_AA,
+        )
 
     def _kkd_isaretle(
         self, gorsel: np.ndarray, tespit: Tespit, kutu: tuple[int, int, int, int]

@@ -1,5 +1,63 @@
 # İlerleme
 
+## Alan tanıma, bölge sayımı ve anons bağlama (09.09.2026)
+
+Üç konu birden ele alındı: fabrika alanının tanınması, videoda sayım ve anons
+sistemine bağlanma.
+
+**Fabrika alanını tanıma (`analiz/alan_bulucu.py` — yeni).** Fabrika zemininde
+alan zaten boyalıdır; sistem artık o boyayı bulup hazır bir bölge çizimi
+**önerir**. İki geçiş vardır: kapama geçişi dolu alanları (beyaz çerçeveli
+yükleme sahası) bulur, kümeleme geçişi ise iki paralel çizgiyle işaretli yaya
+yolunu bulur — aradaki yol da alana dahil edilir; ilk geçiş iki çizgiyi ayrı
+ayrı "çok ince" diye eliyordu. Öneri karar DEĞİLDİR: veritabanına hiçbir şey
+yazılmaz, kullanıcı kartına tıklayıp köşeleri düzelterek kendisi kaydeder.
+Ölçüldü: iki paralel kesikli sarı çizgi 4 köşeyle ~24 ms'de bulunuyor, boyasız
+betonda hiçbir öneri üretilmiyor (yanlış öneri yok).
+
+**Ekran görüntüsünden alan tanıma.** Kamera henüz takılmamışken de bölge
+hazırlanabilsin diye NVR'dan alınmış bir kare yüklenebiliyor; görüntü hem
+taranıyor hem çizim tuvalinin arka planı oluyor. **Yüklenen görüntü diske
+yazılmaz** (KVKK + en az parça) — kalıcı olan tek şey kaydedilen bölge.
+Alan bulunamadığında sistemin "boya" saydığı yerleri işaretleyen bir **teşhis
+görüntüsü** dönüyor; boş bir maske, eşik oynamaktan daha açık bir yanıttır.
+
+**Çizim kolaylıkları.** Dikdörtgen kipi (bir köşeden karşı köşeye sürükle) ve
+**köşe sürükleme** eklendi — eskiden tek yanlış köşe için tüm çizim baştan
+yapılıyordu.
+
+**Bölge sayımı (`rules/sayim.py` — yeni, SAF).** Bölge çizilen her kamerada
+kural gerektirmeden çalışır. Üç sayı üç ayrı soruyu cevaplar: içeride kaç var,
+sayaç sıfırlandığından beri kaç ayrı nesne girdi, aynı anda en çok kaç görüldü.
+Sayım **takip bazlıdır**: bölgede on dakika duran kişi bir kez sayılır (kare
+bazlı sayım 6 kare/sn ile on dakikada 3600 "kişi" üretirdi). Sayılar canlı
+görüntünün üstünde, bölgenin köşesinde de yazıyor. Sayım kural DEĞİLDİR: ihlal
+üretmez, anons tetiklemez — yanlış sayım kimseyi yanlış uyarmaz.
+
+**Anons sistemine bağlanma (R3 kapandı).** Eskiden tek bir JSON gövdesi
+gönderiliyordu ve sahadaki IP hoparlörlerin çoğu bunu anlamazdı. Artık üç biçim
+var (`json` / `form` / `get`) ve adreste `{anahtar}` / `{metin}` yer tutucuları
+dolduruluyor. `str.format` bilerek kullanılmadı: anons sisteminin kendi süslü
+parantezleri (`?q={id}`) `KeyError` fırlatıp anonsu tamamen susturur ve bu
+sahada teşhisi en zor arızadır. **Bulunan hata:** "Bu hoparlörü dene" düğmesi
+biçimi geçirmiyordu — GET bekleyen bir cihazda deneme "başarılı" derken gerçek
+anons sessizce başarısız olacaktı.
+
+**Yeni belge: `docs/14-ANONS-SISTEMI-BAGLAMA.md`** — hangi altyapıda hangi yol,
+kablo uyarıları (hat girişi, hoparlör çıkışı değil), ses dosyası hazırlama, üç
+biçimin örnekleri, bölüm bölüm anons, devreye alma sırası, sorun giderme tablosu
+ve **anons firmanıza soracaklarınızın listesi**. Kılavuz sayfasına da iki yeni
+bölüm eklendi (5 · Sayma, 8 · Anons).
+
+**Giderilen kırılganlık.** Takip katmanındaki sınıf→numara sözlüğü elle
+yazılıydı; modele yeni bir sınıf eklendiğinde (ör. saha verisiyle ince ayarlı
+gerçek forklift modeli) `KeyError` verip o kamerayı **her karede** çökertecekti.
+Artık `rules/tipler.py` içindeki tek kanonik listeden türetiliyor ve tanınmayan
+sınıf çökme yerine atlanıp bir kez günlüğe yazılıyor.
+
+786 test yeşil (öncesi 718), ruff temiz.
+
+
 ## Mac / Windows uyumu — baştan aşağı denetim (02.09.2026)
 
 Bağımsız bir denetimle bulunan ve giderilenler (en kritikten):

@@ -116,7 +116,15 @@ def hoparlor_dene(istek: Request, hoparlor_id: int, baglanti=Depends(baglanti_al
     if satir is None:
         raise DogrulamaHatasi("Hoparlör bölgesi bulunamadı. Silinmiş olabilir; sayfayı yenileyin.")
     try:
-        http_gonder(satir["address"], DENEME_ANAHTARI, DENEME_METNI)
+        # Biçim .env'den GEÇİRİLİR. Geçirilmezse deneme her zaman JSON gönderir
+        # ve GET bekleyen bir hoparlörde "deneme başarılı" yazarken gerçek
+        # anons sessizce başarısız olurdu — anons.http_gonder'ın uyardığı tuzak.
+        http_gonder(
+            satir["address"],
+            DENEME_ANAHTARI,
+            DENEME_METNI,
+            istek.app.state.ayarlar.anons_http_bicimi,
+        )
     except AnonsHatasi as hata:
         # Adres MASKELİ gösterilir: hata ekranı da bir ekrandır, şifre oraya
         # da basılmamalı (docs/01 §3.6).

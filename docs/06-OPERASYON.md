@@ -27,6 +27,7 @@ Ayrıntı: `NASIL-CALISIR.md`.
 ```bash
 git clone <depo-adresi> && cd DALSAN
 cp .env.example .env       # saklama süreleri, ANONS, tespit eşikleri
+                           # anons bağlama tarifi: docs/14-ANONS-SISTEMI-BAGLAMA.md
 bash models/indir.sh       # model ağırlıkları repoda yoktur
 docker compose up -d
 docker compose ps          # tek servis: dalsan — durum "healthy" olmalı
