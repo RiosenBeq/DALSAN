@@ -250,6 +250,7 @@ class AnalizSupervizoru:
                 insan_guven_esigi=self.ayarlar.tespit_insan_guven_esigi,
                 nms_esigi=self.ayarlar.tespit_nms_esigi,
                 en_kucuk_kenar_px=self.ayarlar.tespit_en_kucuk_kenar_px,
+                is_parcacigi=self.ayarlar.cikarim_is_parcacigi,
             )
             self.tespit_hatasi = None
             self.model_durumu = "hazir"

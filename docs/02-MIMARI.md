@@ -121,6 +121,42 @@ Kamera eklenmesi/kaldırılması thread başlatır/durdurur. Restart yok, broker
 - **Ayak noktası:** Bölge ve mesafe hesabı bbox'ın alt-orta noktasıyla (zemin teması) yapılır; merkez nokta perspektifte yanıltır.
 - **KKD çağrısı seyrek:** Kişi track'i başına 5 karede bir, yalnızca KKD bölgesinde, yalnızca piksel eşiği üstünde. Crop'lar kameralar arası toplu (batch) sınıflandırılır.
 
+### Önizleme JPEG'i TEMBELDİR (işlemci)
+
+Ölçüldü — kare işleme süresinin dağılımı (bölgeli, tespitsiz):
+
+| Çözünürlük | `isle()` toplam | JPEG kodlama | Payı |
+|---|---|---|---|
+| 1280x720 | 6,43 ms | 3,86 ms | %60 |
+| 1920x1080 | 14,33 ms | 8,95 ms | %62 |
+
+Bu kodlama eskiden **her karede** yapılıyordu — tarayıcıda hiç sayfa açık
+olmasa bile. 4 kamera x 6 kare/sn ile bir çekirdeğin **%20'si** karşılığı
+olmayan bir işe gidiyordu.
+
+Artık kare saklanır, JPEG **istendiğinde** üretilir ve kare sayacıyla
+önbelleklenir. Önizleme sayfası saniyede bir soruyor, hat saniyede altı kare
+işliyor: açık sayfada bile 6 kat az iş; sayfa kapalıyken sıfır.
+
+Ölçülen sonuç: `isle()` 1080p'de **14,33 → 6,01 ms** (2,4 kat).
+
+Kodlama kilit DIŞINDA yapılır (1080p'de ~9 ms; o süre analiz iş parçacığını
+bekletmenin anlamı yok) ve sonuç yalnızca kare sayacı hâlâ aynıysa
+önbelleğe yazılır — aksi halde eski kare yeni karenin yerine servis edilir ve
+ekranda donmuş görüntü görünürdü.
+
+### Çıkarım iş parçacığı sayısı
+
+`.env` → `CIKARIM_IS_PARCACIGI`. 0 = otomatik (ONNX Runtime tüm çekirdekleri
+kullanır, tek başına çalışan sunucuda en hızlısı). Sunucu başka işler de
+yapıyorsa sınırlanır: tespit TÜM kameralar için tek oturumda ve kilitle sıralı
+çalıştığı için tek bir çıkarım makinenin tamamını meşgul edebilir.
+
+GPU yolu ayrı bir kod değildir: `CIKARIM_CIHAZI=cuda` seçilince ONNX Runtime
+CUDA sağlayıcısını kullanır. Sağlayıcı yoksa **sessizce CPU'ya düşmez** —
+sistem bunu ana sayfada Türkçe bir uyarı olarak yazar (ADR-002), çünkü
+"cuda yazarken CPU'da sürünen sistem" teşhis edilemez bir yavaşlıktır.
+
 ## 7. Anons adaptörü
 
 ```

@@ -101,6 +101,7 @@ def test_ayarlari(tmp_path: Path):
         kkd_ornek_saat_limit=60,
         disk_uyari_gb=5,
         cikarim_cihazi="cpu",
+        cikarim_is_parcacigi=0,
         kare_ornekleme_fps=6,
         fps_uyari_orani=0.6,
         tespit_guven_esigi=0.35,

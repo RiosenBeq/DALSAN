@@ -219,3 +219,68 @@ def test_kare_disina_dusen_bolge_cokmez(kare):
     )
     hat.isle(kare, 0.0, SahteTespitci(np.empty((0, 4)), np.array([])), KkdSiniflandirici(None))
     assert hat.son_islenmis_jpeg() is not None
+
+
+# --------------------------------------------- tembel önizleme (CPU tasarrufu)
+
+
+def test_kare_islerken_jpeg_uretilmez(kare):
+    """Ölçüldü: JPEG kodlaması kare işleme süresinin %62'si (1080p'de
+    8,95/14,33 ms) ve eskiden tarayıcıda hiç sayfa açık olmasa bile her
+    karede yapılıyordu. 4 kamera x 6 kare/sn ile bir çekirdeğin %20'si."""
+    hat = _hat()
+    bos = SahteTespitci(np.empty((0, 4)), np.array([]))
+    hat.isle(kare, 0.0, bos, KkdSiniflandirici(None))
+    assert hat._jpeg_onbellek == {}, "kare işlenirken JPEG üretilmiş"
+
+
+def test_jpeg_istendiginde_uretilir(kare):
+    hat = _hat()
+    bos = SahteTespitci(np.empty((0, 4)), np.array([]))
+    hat.isle(kare, 0.0, bos, KkdSiniflandirici(None))
+    veri = hat.son_islenmis_jpeg()
+    assert veri is not None
+    assert cv2.imdecode(np.frombuffer(veri, np.uint8), cv2.IMREAD_COLOR) is not None
+
+
+def test_ayni_kare_ikinci_kez_kodlanmaz(kare):
+    """Canlı duvarda altı kamera aynı kareyi sorabilir; altı kez kodlamanın
+    anlamı yok."""
+    hat = _hat()
+    bos = SahteTespitci(np.empty((0, 4)), np.array([]))
+    hat.isle(kare, 0.0, bos, KkdSiniflandirici(None))
+    ilk = hat.son_islenmis_jpeg()
+    assert hat.son_islenmis_jpeg() is ilk  # AYNI nesne: yeniden kodlanmadı
+
+
+def test_yeni_kare_gelince_onbellek_duser(kare):
+    """Eski kareyi yeni karenin yerine servis etmek, ekranda DONMUŞ görüntü
+    demektir — teşhis edilmesi en zor arızalardan biri."""
+    hat = _hat()
+    kkd = KkdSiniflandirici(None)
+    hat.isle(kare, 0.0, SahteTespitci(np.empty((0, 4)), np.array([])), kkd)
+    bos_kare = hat.son_islenmis_jpeg()
+
+    # Yeni karelerde tespit kutusu var: görüntü gerçekten değişti.
+    # (ByteTrack bir takibi doğrulamak için birkaç kare ister; tek kare
+    # beslemek kutu çizdirmez ve test ürünü değil kendini sınardı.)
+    _besle(hat, kare, SahteTespitci([[290, 150, 350, 300]], ["person"]))
+    kutulu_kare = hat.son_islenmis_jpeg()
+
+    assert kutulu_kare != bos_kare, "yeni kare geldiği hâlde eski JPEG döndü"
+
+
+def test_kare_yokken_jpeg_none(kare):
+    hat = _hat()
+    assert hat.son_islenmis_jpeg() is None
+
+
+def test_bolgesiz_surum_de_onbelleklenir(kare):
+    """Bölge çizim sayfası bölgesiz sürüm ister; o da her istekte yeniden
+    kodlanmamalı."""
+    hat = _hat()
+    hat.isle(kare, 0.0, SahteTespitci(np.empty((0, 4)), np.array([])), KkdSiniflandirici(None))
+    ilk = hat.son_islenmis_jpeg(bolgeler_dahil=False)
+    assert hat.son_islenmis_jpeg(bolgeler_dahil=False) is ilk
+    # İki sürüm AYRI önbelleklenir: bölgeli sürüm bölgesizin yerine geçmemeli
+    assert hat.son_islenmis_jpeg(bolgeler_dahil=True) is not ilk

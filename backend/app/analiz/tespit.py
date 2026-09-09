@@ -64,6 +64,7 @@ class Tespitci:
         insan_guven_esigi: float | None = None,
         nms_esigi: float = 0.45,
         en_kucuk_kenar_px: int = 12,
+        is_parcacigi: int = 0,
     ) -> None:
         """Eşikler .env'den gelir (CLAUDE.md §7: koda gömülü eşik yasak).
 
@@ -87,8 +88,21 @@ class Tespitci:
             if cihaz == "cuda"
             else ["CPUExecutionProvider"]
         )
+        # 0 = ONNX Runtime kendi seçer (tüm çekirdekler) ve VARSAYILAN yol
+        # eskisiyle birebir aynı kalır — hiçbir oturum seçeneği verilmez.
+        # Sunucu başka işler de yapıyorsa .env'den sınırlanır; tek kamerada
+        # bile fark eder, çünkü tespit TÜM kameralar için tek oturumda ve
+        # kilitle sıralı çalışır: bir çıkarım makinenin tamamını meşgul edebilir.
+        ek_argumanlar = {}
+        if is_parcacigi > 0:
+            secenekler = onnxruntime.SessionOptions()
+            secenekler.intra_op_num_threads = is_parcacigi
+            secenekler.inter_op_num_threads = 1
+            ek_argumanlar["sess_options"] = secenekler
         try:
-            self._oturum = onnxruntime.InferenceSession(str(model_dosyasi), providers=saglayicilar)
+            self._oturum = onnxruntime.InferenceSession(
+                str(model_dosyasi), providers=saglayicilar, **ek_argumanlar
+            )
         except Exception as hata:  # onnxruntime kendi hata tipini garanti etmiyor
             # Bozuk dosya yerinde DURDUĞU için yeniden başlatmak tek başına
             # yetmeyebilir (dosya varsa indirme atlanır). Mesaj bunu saklamaz:

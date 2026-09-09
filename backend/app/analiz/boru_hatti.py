@@ -134,11 +134,23 @@ class KameraHatti:
         self._tarama_harman: np.ndarray | None = None
         self._kkd_sayac: dict[int, int] = {}  # takip_id -> işlenen kare sayısı
         self._kilit = threading.Lock()
-        self._son_jpeg: bytes | None = None
+        # ÖNİZLEME TEMBELDİR: kare saklanır, JPEG ancak İSTENDİĞİNDE üretilir.
+        #
+        # Ölçüldü: JPEG kodlaması kare işleme süresinin %62'si (1080p'de 8,95 ms
+        # / 14,33 ms). Eskiden her karede yapılıyordu — tarayıcıda hiç sayfa
+        # açık olmasa bile. 4 kamera x 6 kare/sn ile bu, bir çekirdeğin
+        # %21'inin karşılığı olmayan bir işe gitmesi demekti.
+        #
+        # Önizleme sayfası saniyede bir soruyor, hat saniyede altı kare
+        # işliyor: istendiğinde kodlama, açık sayfada bile 6 kat az iş demek.
+        self._son_kare_bolgeli: np.ndarray | None = None
         # Bölgeleri ÇİZİLMEMİŞ son kare. Bölge çizim sayfası bölgeleri kendi
         # tuvaline çizer; oraya bölgesi çizili kare giderse aynı bölge ekranda
         # iki kez görünür. None = bölge yok, iki sürüm zaten aynı.
         self._son_kare_bolgesiz: np.ndarray | None = None
+        # Kare sayacı, JPEG önbelleğinin hangi kareye ait olduğunu söyler.
+        self._kare_sayaci = 0
+        self._jpeg_onbellek: dict[bool, tuple[int, bytes]] = {}
 
     def yapilandir(
         self, bolgeler: list[Bolge], kurallar: list[Kural], kalibrasyon: Kalibrasyon | None
@@ -224,23 +236,42 @@ class KameraHatti:
         self._sayac.sifirla(bolge_id)
 
     def son_islenmis_jpeg(self, bolgeler_dahil: bool = True) -> bytes | None:
-        """Son işlenmiş kare (JPEG).
+        """Son işlenmiş kare (JPEG) — İSTENDİĞİNDE kodlanır.
 
         bolgeler_dahil=False → kayıtlı bölgelerin ÇİZİLMEDİĞİ sürüm. Bölge
         çizim sayfası bölgeleri kendi tuvaline çizdiği için oraya bu sürüm
         gider; aksi halde tek bölgenin iki ayrı çizgisi görünür.
 
-        Bölgesiz sürüm ancak İSTENDİĞİNDE kodlanır: her kare için ikinci bir
-        JPEG üretmek, sayfa açık değilken boşa harcanan işlemci demektir.
+        Aynı kare için ikinci istek önbellekten döner: canlı duvarda altı
+        kamera aynı kareyi sorabilir, altı kez kodlamanın anlamı yok.
         """
         with self._kilit:
-            if bolgeler_dahil:
-                return self._son_jpeg
-            kare = self._son_kare_bolgesiz
+            sayac = self._kare_sayaci
+            onbellek = self._jpeg_onbellek.get(bolgeler_dahil)
+            if onbellek is not None and onbellek[0] == sayac:
+                return onbellek[1]
+            kare = self._son_kare_bolgeli if bolgeler_dahil else self._son_kare_bolgesiz
             if kare is None:
-                return self._son_jpeg  # çizili bölge yok → iki sürüm aynı
+                # Bölgesiz sürüm istendi ama çizili bölge yok → iki sürüm aynı.
+                kare = self._son_kare_bolgeli
+            if kare is None:
+                return None
+
+        # Kodlama KİLİT DIŞINDA: 1080p'de ~9 ms sürer ve o süre boyunca analiz
+        # iş parçacığının yeni kare yazmasını engellemenin anlamı yok. Kareler
+        # yazıldıktan sonra bir daha DEĞİŞTİRİLMEZ (her kare yeni kopya açar),
+        # bu yüzden kilitsiz okumak güvenlidir.
         tamam, jpeg = cv2.imencode(".jpg", kare, _JPEG_KALITE)
-        return jpeg.tobytes() if tamam else None
+        if not tamam:
+            return None
+        veri = jpeg.tobytes()
+
+        with self._kilit:
+            # Bu arada yeni kare geldiyse önbelleğe KOYMA: eski kareyi yeni
+            # karenin yerine servis etmek, ekranda donmuş görüntü demektir.
+            if self._kare_sayaci == sayac:
+                self._jpeg_onbellek[bolgeler_dahil] = (sayac, veri)
+        return veri
 
     def kkd_bolgesinde_mi(self, tespit: Tespit, kare_boyutu: tuple[float, float]) -> bool:
         ayak = tespit.ayak_noktasi()
@@ -310,13 +341,13 @@ class KameraHatti:
                 cv2.polylines(bolgeli, [noktalar], True, _BOLGE_RENGI, 2)
                 self._sayim_rozeti(bolgeli, noktalar, sayim_tablosu.get(bolge.id))
 
-        tamam, jpeg = cv2.imencode(".jpg", bolgeli, _JPEG_KALITE)
-        if tamam:
-            with self._kilit:
-                self._son_jpeg = jpeg.tobytes()
-                # gorsel bir daha DEĞİŞTİRİLMEZ (sonraki kare yeni kopya açar),
-                # bu yüzden kilit dışında güvenle kodlanabilir.
-                self._son_kare_bolgesiz = gorsel if aktif_bolgeler else None
+        # JPEG BURADA ÜRETİLMEZ (bkz. son_islenmis_jpeg): kareler saklanır,
+        # kodlama isteyen olursa yapılır. Sayaç artınca önbellek kendiliğinden
+        # geçersizleşir — ayrıca temizlemek gerekmez.
+        with self._kilit:
+            self._son_kare_bolgeli = bolgeli
+            self._son_kare_bolgesiz = gorsel if aktif_bolgeler else None
+            self._kare_sayaci += 1
 
     def _taramayi_uygula(self, gorsel: np.ndarray, bolgeler: list[Bolge]) -> None:
         """Bölgelerin içini çapraz taramayla doldurur (yerinde değiştirir).

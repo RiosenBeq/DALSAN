@@ -52,6 +52,10 @@ class Ayarlar:
     kkd_ornek_saat_limit: int
     disk_uyari_gb: int
     cikarim_cihazi: str
+    # Tespit modelinin kullanacağı işlemci çekirdeği sayısı. 0 = otomatik
+    # (ONNX Runtime kendi seçer, tüm çekirdekler). Sunucu başka işler de
+    # yapıyorsa sınırlamak, sistemi makinenin tamamını yemekten alıkoyar.
+    cikarim_is_parcacigi: int
     kare_ornekleme_fps: int
     fps_uyari_orani: float
     tespit_guven_esigi: float
@@ -158,8 +162,10 @@ def ayarlari_coz(
     """
     konum = konum or kaynaklar.VeriKonumu(kok)
 
-    # Not: giriş şifresi bilerek YOK (docs/07 #0). Sistem tek makinede, yalnızca
-    # 127.0.0.1'e bağlı çalışır; fabrika sunucusuna çıkmadan önce geri eklenir.
+    # Giriş şifresi İSTEĞE BAĞLIDIR (YONETICI_SIFRESI): boşken giriş sorulmaz
+    # — tek makinede, 127.0.0.1'e bağlı çalışan kurulum. Sistem ağa açılırken
+    # (SUNUCU_ADRESI) şifre ZORUNLU olur; aşağıdaki emniyet kilidi bunu
+    # açılışta uygular. Ayrıntı: web/giris.py, docs/15-UZAKTAN-ERISIM.md
 
     # Not: sistemin portunu Kontrol Paneli belirler (8080). Bu yüzden .env'de
     # port ayarı YOKTUR — okunmayan bir ayar ekranda yanlış bilgi gösterirdi.
@@ -259,6 +265,7 @@ def ayarlari_coz(
         # Boş disk bu değerin altına inince sistem olayı üretilir (docs/08 R8)
         disk_uyari_gb=_tam_sayi(degerler, "DISK_UYARI_GB", 5, 1, 1000),
         cikarim_cihazi=_secenek(degerler, "CIKARIM_CIHAZI", "cpu", _CIHAZ_SECENEKLERI),
+        cikarim_is_parcacigi=_tam_sayi(degerler, "CIKARIM_IS_PARCACIGI", 0, 0, 64),
         # Yeni kameranın varsayılan örnekleme hızı (kamera formunda değiştirilebilir)
         kare_ornekleme_fps=_tam_sayi(degerler, "KARE_ORNEKLEME_FPS", 6, 1, 30),
         # Kamera sağlığı ekranı: ÖLÇÜLEN hız, ayarlanan hızın bu oranının
