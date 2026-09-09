@@ -31,6 +31,13 @@ from pathlib import Path
 PORT = 8080
 URL = f"http://127.0.0.1:{PORT}"
 
+# Sunucunun DINLEYECEGI adres. .env'deki SUNUCU_ADRESI belirler:
+#   127.0.0.1 (varsayilan) = yalniz bu bilgisayar
+#   0.0.0.0                = agdaki diger cihazlar da erisebilir
+# Backend, sifresiz bir sistemin aga acilmasini ACILISTA reddeder
+# (app/ayarlar.py); panel o hatayi gunluge olduğu gibi yazar.
+DINLEME_ADRESI_VARSAYILAN = "127.0.0.1"
+
 IS_WINDOWS = os.name == "nt"
 
 # Program, cift tiklanan bir uygulama (.app / .exe) olarak mi calisiyor?
@@ -94,6 +101,25 @@ ACCENT = "#1d4ed8"
 # ----------------------------------------------------------------------------
 # Yardimci fonksiyonlar (arayuzden bagimsiz)
 # ----------------------------------------------------------------------------
+def dinleme_adresi() -> str:
+    """.env dosyasindaki SUNUCU_ADRESI (yoksa 127.0.0.1).
+
+    .env'i tam ayrıştırmaya gerek yok: tek satir aranir. Boylece panel,
+    backend'in ayar yukleyicisini import etmek zorunda kalmaz (paketlenmemis
+    kurulumda venv henuz hazir olmayabilir).
+    """
+    try:
+        for satir in ENV_FILE.read_text(encoding="utf-8").splitlines():
+            temiz = satir.strip()
+            if temiz.startswith("SUNUCU_ADRESI") and "=" in temiz:
+                deger = temiz.split("=", 1)[1].split("#")[0].strip()
+                if deger:
+                    return deger
+    except (OSError, UnicodeDecodeError):
+        pass
+    return DINLEME_ADRESI_VARSAYILAN
+
+
 def venv_python() -> Path:
     """Sanal ortamdaki Python'un yolu."""
     return VENV / ("Scripts/python.exe" if IS_WINDOWS else "bin/python")
@@ -396,7 +422,9 @@ def _ic_surecte_baslat(log, gunluk_yaz=None):
     # log_config=None: uvicorn kendi log yapilandirmasini kurmasin, sistemin
     # kendi bicimi (JSON satirlari) bozulmasin.
     sunucu = uvicorn.Server(
-        uvicorn.Config(fastapi_uygulamasi, host="127.0.0.1", port=PORT, log_config=None)
+        uvicorn.Config(
+            fastapi_uygulamasi, host=dinleme_adresi(), port=PORT, log_config=None
+        )
     )
 
     def calistir():
@@ -719,7 +747,7 @@ def arayuzu_baslat():
     def alt_surecte_baslat():
         """Gelistirme kurulumu: sunucu, .venv'deki python ile ayri surecte."""
         komut = [str(venv_python()), "-m", "uvicorn", "app.main:app",
-                 "--host", "127.0.0.1", "--port", str(PORT)]
+                 "--host", dinleme_adresi(), "--port", str(PORT)]
 
         durum["surec"] = subprocess.Popen(
             komut, cwd=str(BACKEND),

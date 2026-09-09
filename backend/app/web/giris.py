@@ -18,6 +18,12 @@ tablosuna geçilirse (docs/07 #5) yalnızca bu dosya değişir.
 Çerez, şifrenin kendisini TAŞIMAZ: son kullanma zamanı + o zamanın şifreyle
 imzası tutulur. Şifre değişince eski çerezlerin imzası tutmaz ve tüm oturumlar
 kendiliğinden düşer.
+
+KABA KUVVET KORUMASI: tek şifreli bir sistemde sınırsız deneme, şifreyi
+fiilen yok sayar — saniyede yüzlerce deneme yapan bir betik altı haneli bir
+şifreyi kısa sürede bulur. Aynı adresten arka arkaya birkaç yanlış denemeden
+sonra o adres bir süre kilitlenir. Kilit ADRES BAZLIDIR: fabrikadaki bir
+kişinin yanlış yazması, başka bir bilgisayardan girişi engellemez.
 """
 
 from __future__ import annotations
@@ -30,12 +36,27 @@ from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from app.hatalar import YetkiHatasi
+from app.loglama import log_al
 from app.web.rotalar import sablonlar
 
 router = APIRouter()
+_log = log_al("giris")
 
 _CEREZ_ADI = "dalsan_oturum"
 _OTURUM_SURESI_SN = 12 * 3600  # bir vardiya + pay; dolunca yeniden giriş
+
+# Kaba kuvvet: bu kadar yanlış denemeden sonra adres kilitlenir.
+# 5 deneme, şifresini yanlış hatırlayan kullanıcıya yeter; saniyede yüzlerce
+# deneme yapan bir betiği ise fiilen durdurur.
+_EN_COK_DENEME = 5
+_KILIT_SURESI_SN = 300  # 5 dakika
+# Kilit defteri sınırsız büyümesin (7x24 çalışma): bu sayıya ulaşınca en eski
+# kayıtlar atılır. Aynı anda bu kadar farklı adresten deneme, zaten kendisi
+# bir saldırı işaretidir ve günlüğe düşer.
+_EN_COK_ADRES = 1000
+
+# adres -> (yanlış deneme sayısı, son deneme zamanı)
+_denemeler: dict[str, tuple[int, float]] = {}
 
 
 def _anahtar(sifre: str) -> bytes:
@@ -61,6 +82,53 @@ def cerez_gecerli(cerez: str | None, sifre: str, simdi: float | None = None) -> 
         return int(son_metni) > (time.time() if simdi is None else simdi)
     except ValueError:
         return False
+
+
+def _istemci_adresi(istek: Request) -> str:
+    """İsteğin geldiği adres.
+
+    Ters vekil (reverse proxy) arkasındaysa gerçek adres X-Forwarded-For'un
+    İLK değeridir. Sonraki değerler istemcinin uydurabileceği metinlerdir;
+    ilki, ilk vekilin yazdığıdır. Vekil yoksa doğrudan bağlantı adresi.
+    """
+    iletilen = istek.headers.get("x-forwarded-for", "")
+    if iletilen:
+        return iletilen.split(",")[0].strip()
+    return istek.client.host if istek.client else "bilinmeyen"
+
+
+def kilit_kalan_sn(adres: str, simdi: float | None = None) -> int:
+    """Bu adres kilitliyse kalan saniye, değilse 0."""
+    kayit = _denemeler.get(adres)
+    if kayit is None:
+        return 0
+    sayi, son = kayit
+    if sayi < _EN_COK_DENEME:
+        return 0
+    an = time.time() if simdi is None else simdi
+    kalan = int(_KILIT_SURESI_SN - (an - son))
+    return max(kalan, 0)
+
+
+def _yanlis_deneme_kaydet(adres: str, simdi: float | None = None) -> None:
+    an = time.time() if simdi is None else simdi
+    sayi, son = _denemeler.get(adres, (0, an))
+    # Kilit süresi dolduysa sayaç sıfırdan başlar: kullanıcı beklediyse
+    # cezasını çekmiştir, bir sonraki hatasında yeniden kilitlenmemeli.
+    if sayi >= _EN_COK_DENEME and (an - son) >= _KILIT_SURESI_SN:
+        sayi = 0
+    _denemeler[adres] = (sayi + 1, an)
+    if len(_denemeler) > _EN_COK_ADRES:
+        for eski in sorted(_denemeler, key=lambda a: _denemeler[a][1])[:_EN_COK_ADRES // 2]:
+            del _denemeler[eski]
+
+
+def denemeleri_sifirla(adres: str | None = None) -> None:
+    """Başarılı girişte (ya da testte) deneme sayacını temizler."""
+    if adres is None:
+        _denemeler.clear()
+    else:
+        _denemeler.pop(adres, None)
 
 
 def sifre_kurulu_mu(ayarlar) -> bool:
@@ -94,13 +162,23 @@ def _guvenli_yol(sonra: str) -> str:
 
 
 @router.get("/giris", response_class=HTMLResponse)
-def giris_sayfasi(istek: Request, sonra: str = "/", hata: str = ""):
+def giris_sayfasi(istek: Request, sonra: str = "/", hata: str = "", kilit: str = ""):
     # Şifre tanımlı değilken giriş sayfası anlamsızdır: kullanıcı boş bir
     # kutuya bakıp ne yazacağını arar. Doğrudan ana sayfaya alınır.
     if not istek.app.state.ayarlar.yonetici_sifresi:
         return RedirectResponse("/", status_code=303)
+    # Kilit süresi ADRESTEN yeniden okunur; sorgu dizesindeki sayı yalnızca
+    # yönlendirmeyi taşır ve kullanıcı tarafından değiştirilebilir.
+    kalan = kilit_kalan_sn(_istemci_adresi(istek))
     return sablonlar.TemplateResponse(
-        istek, "giris.html", {"sonra": _guvenli_yol(sonra), "hata": hata}
+        istek,
+        "giris.html",
+        {
+            "sonra": _guvenli_yol(sonra),
+            "hata": hata and not kalan,
+            "kilit_sn": kalan,
+            "kilit_dk": (kalan + 59) // 60,
+        },
     )
 
 
@@ -110,8 +188,24 @@ def giris_yap(istek: Request, sifre: str = Form(...), sonra: str = Form("/")):
     sonra = _guvenli_yol(sonra)
     if not ayarlar.yonetici_sifresi:
         return RedirectResponse(sonra, status_code=303)
+
+    adres = _istemci_adresi(istek)
+    kalan = kilit_kalan_sn(adres)
+    if kalan > 0:
+        return RedirectResponse(f"/giris?sonra={sonra}&kilit={kalan}", status_code=303)
+
     if not hmac.compare_digest(sifre, ayarlar.yonetici_sifresi):
+        _yanlis_deneme_kaydet(adres)
+        kalan = kilit_kalan_sn(adres)
+        _log.warning(
+            f"Yanlış şifre denemesi ({adres})"
+            + (f" — adres {kalan} sn kilitlendi." if kalan else "")
+        )
+        if kalan > 0:
+            return RedirectResponse(f"/giris?sonra={sonra}&kilit={kalan}", status_code=303)
         return RedirectResponse(f"/giris?sonra={sonra}&hata=1", status_code=303)
+
+    denemeleri_sifirla(adres)
     yanit = RedirectResponse(sonra, status_code=303)
     yanit.set_cookie(
         _CEREZ_ADI,
@@ -119,8 +213,18 @@ def giris_yap(istek: Request, sifre: str = Form(...), sonra: str = Form("/")):
         max_age=_OTURUM_SURESI_SN,
         httponly=True,
         samesite="lax",
+        # HTTPS üzerinden gelindiyse çerez YALNIZ HTTPS'te gönderilir. Uzaktan
+        # erişimde araya giren biri çerezi düz HTTP'de yakalayamaz. Ters vekil
+        # arkasında şema X-Forwarded-Proto ile bildirilir.
+        secure=_https_mi(istek),
     )
     return yanit
+
+
+def _https_mi(istek: Request) -> bool:
+    if istek.headers.get("x-forwarded-proto", "").split(",")[0].strip() == "https":
+        return True
+    return istek.url.scheme == "https"
 
 
 @router.post("/cikis")

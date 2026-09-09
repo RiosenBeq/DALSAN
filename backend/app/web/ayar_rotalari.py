@@ -77,6 +77,22 @@ AYAR_GRUPLARI: tuple[AyarGrubu, ...] = (
         ),
         alanlar=(
             AyarAlani(
+                anahtar="SUNUCU_ADRESI",
+                alan="sunucu_adresi",
+                tur="secim",
+                etiket="Sisteme nereden erişilebilsin?",
+                secenekler=(
+                    ("127.0.0.1", "Yalnız bu bilgisayar (varsayılan)"),
+                    ("0.0.0.0", "Ağdaki diğer cihazlar da (telefon, başka bilgisayar)"),
+                ),
+                aciklama=(
+                    "“Ağdaki diğer cihazlar” seçilirse ŞİFRE ZORUNLUDUR; şifre boşken "
+                    "sistem açılmayı reddeder. Fabrika dışından (evden, telefondan) "
+                    "erişim için önce docs/15-UZAKTAN-ERISIM.md belgesini okuyun — "
+                    "sistemi doğrudan internete açmak önerilmez."
+                ),
+            ),
+            AyarAlani(
                 anahtar="YONETICI_SIFRESI",
                 alan="yonetici_sifresi",
                 etiket="Yönetici şifresi",

@@ -64,6 +64,10 @@ class Ayarlar:
     # da sistem ağa açıldığında DOLDURULMALIDIR — kural değiştirebilen ve
     # anons tetikleyen bir sistem LAN'da bile şifresiz durmamalı.
     yonetici_sifresi: str
+    # Sunucunun DİNLEYECEĞİ adres. 127.0.0.1 = yalnız bu bilgisayar (varsayılan).
+    # 0.0.0.0 = ağdaki diğer cihazlar da erişebilir (uzaktan erişimin ön koşulu).
+    # Şifresiz bir sistemin ağa açılması AÇILIŞTA REDDEDİLİR — bkz. ayarlari_yukle.
+    sunucu_adresi: str
     anons: str
     anons_http_adresi: str
     anons_http_bicimi: str
@@ -80,6 +84,15 @@ class Ayarlar:
     # eski yerde bulundu) açılışta günlüğe düşecek cümle. Olağan durumda boş.
     veri_konumu_notu: str = ""
     veri_konumu_ayrintisi: str = ""
+
+
+def _yerel_adres_mi(adres: str) -> bool:
+    """Adres yalnızca BU bilgisayardan mı erişilebilir?
+
+    127.x.x.x ve ::1 yereldir; 0.0.0.0, :: ve gerçek bir IP ağa açar.
+    """
+    temiz = adres.strip().strip("[]").lower()
+    return temiz.startswith("127.") or temiz in ("localhost", "::1")
 
 
 def env_degerlerini_oku(env_yolu: Path) -> dict[str, str]:
@@ -182,6 +195,21 @@ def ayarlari_coz(
             "Şifre istemiyorsanız satırı boş bırakın (giriş sorulmaz)."
         )
 
+    sunucu_adresi = degerler.get("SUNUCU_ADRESI", "127.0.0.1").strip() or "127.0.0.1"
+    # EMNİYET KİLİDİ: sistemi ağa açıp şifresiz bırakmak, ağdaki herkese
+    # kamera silme ve anons yaptırma yetkisi vermektir. Bu, uyarıyla
+    # geçiştirilecek bir durum değil — açılış DURDURULUR.
+    if not _yerel_adres_mi(sunucu_adresi) and not yonetici_sifresi:
+        raise AyarHatasi(
+            f".env dosyasında SUNUCU_ADRESI={sunucu_adresi} yazıyor: sistem ağdaki "
+            "diğer cihazlara açılacak. Ama YONETICI_SIFRESI boş — bu haliyle ağdaki "
+            "herkes kamera silebilir, kural değiştirebilir ve hoparlörden anons "
+            "yaptırabilir.\n\n"
+            "Ya YONETICI_SIFRESI satırına bir şifre yazın (en az 6 karakter), "
+            "ya da SUNUCU_ADRESI satırını 127.0.0.1 yapın. "
+            "Uzaktan erişim tarifi: docs/15-UZAKTAN-ERISIM.md"
+        )
+
     anons = _secenek(degerler, "ANONS", varsayilan="null", secenekler=_ANONS_SECENEKLERI)
     anons_http_adresi = degerler.get("ANONS_HTTP_ADRESI", "")
     anons_http_bicimi = _secenek(
@@ -252,6 +280,7 @@ def ayarlari_coz(
             degerler, "GORUNTU_IYILESTIRME", "kapali", _IYILESTIRME_SECENEKLERI
         ),
         yonetici_sifresi=yonetici_sifresi,
+        sunucu_adresi=sunucu_adresi,
         anons=anons,
         anons_http_adresi=anons_http_adresi,
         anons_http_bicimi=anons_http_bicimi,

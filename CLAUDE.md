@@ -159,6 +159,7 @@ ruff check . && ruff format .
 | `11-BILGISAYAR-UYGULAMASI.md` | Kontrol Paneli kullanımı |
 | `12-KAMERA-VE-GORUNTU-KALITESI.md` | Kamera yerleşimi, görüntü kalitesi, hassasiyet ayarı, sınıf renkleri, yaya yolu kuralı |
 | `13-UYGULAMA-PAKETLEME.md` | Teslim edilecek uygulamayı üretme (Mac `.app` / Windows `.exe`), veri yeri, güncelleme, Windows tuzakları |
+| `15-UZAKTAN-ERISIM.md` | Fabrika ağına ve fabrika dışına açma: üç seviye, VPN/Tailscale önerisi, kaba kuvvet koruması, KVKK uyarısı |
 | `14-ANONS-SISTEMI-BAGLAMA.md` | Anons altyapısına bağlanma: ses kartı / IP hoparlör, üç HTTP biçimi, devreye alma sırası, anons firmanıza soracaklarınız |
 
 Bir karar bu dosyalarda yoksa **uydurma — sor.**

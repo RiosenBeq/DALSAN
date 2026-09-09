@@ -109,6 +109,7 @@ def test_ayarlari(tmp_path: Path):
         tespit_en_kucuk_kenar_px=12,
         goruntu_iyilestirme="kapali",
         yonetici_sifresi="",
+        sunucu_adresi="127.0.0.1",
         anons="null",
         anons_http_adresi="",
         anons_http_bicimi="json",

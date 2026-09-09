@@ -14,8 +14,9 @@ services:
     restart: unless-stopped          # sunucu yeniden başlarsa sistem kendiliğinden kalkar (K8)
     ports:
       # Yalnızca sunucunun kendisine açık. Ağdaki diğer bilgisayarlardan
-      # erişilmesi gerekiyorsa "8080:8080" yapın — ama giriş şifresi henüz
-      # yok (docs/07 #0), o yüzden önce şifreyi geri ekleyin.
+      # erişilmesi gerekiyorsa "8080:8080" yapın — ama ÖNCE .env dosyasındaki
+      # YONETICI_SIFRESI satırını doldurun. Fabrika dışından (evden, telefondan)
+      # erişim için doğrudan internete açmayın: docs/15-UZAKTAN-ERISIM.md
       - "127.0.0.1:8080:8080"
     volumes:
       # TÜM veri container dışında durur: container silinse de kaybolmaz
