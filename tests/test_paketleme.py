@@ -610,5 +610,8 @@ def test_belge_kullanicinin_soracagi_her_seyi_kapsiyor():
         "Defender",
         "acilis-hatasi.log",
         "Güncelleme",
+        # Mac'te üretim Apple'ın komut satırı araçlarını ister; kurulu değilse
+        # üretim durur. Kullanıcı tek satırlık çözümü belgede bulmalı.
+        "xcode-select --install",
     ):
         assert konu in metin, f"belgede eksik konu: {konu}"

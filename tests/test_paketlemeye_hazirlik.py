@@ -229,3 +229,110 @@ def test_gelistirmede_env_kendiliginden_olusturulmaz(tmp_path):
         ayarlari_yukle(tmp_path)
     assert ".env.example" in hata.value.kullanici_mesaji
     assert not (tmp_path / ".env").exists()
+
+
+# ==================================================================
+# UÇTAN UCA: TARİFİN DEDİĞİ PAKET GERÇEKTEN AÇILIYOR MU?
+# ==================================================================
+#
+# Yukarıdaki testler `kaynak_yolu` fonksiyonunu tek tek sınıyor; üretim
+# tarifi (paketleme/) de "şu klasörler pakete konacak" diyor. Ama ikisi
+# birbirini TUTUYOR MU sorusu hiçbir yerde sorulmuyordu — ve tutmadığında
+# ortaya çıkan hata tam olarak şudur: uygulama açılır açılmaz "şablon
+# bulunamadı" ile çöker, çıktı hiçbir ekrana düşmez, kullanıcı yalnızca
+# "açılmıyor" der.
+#
+# Burada paket GERÇEKTEN kuruluyor: tarifin `veri_dosyalari()` listesi ne
+# diyorsa o kopyalanıyor, `sys._MEIPASS` o klasöre kuruluyor ve sistem AYRI
+# BİR SÜREÇTE açılıyor. Ayrı süreç şart: şablon/şema yolları modül seviyesinde
+# bir kez çözülür, aynı süreçte yeniden çözdürülemez.
+
+
+def _sahte_paketi_kur(hedef: Path) -> None:
+    """Üretim tarifinin `datas` listesini gerçekten uygular.
+
+    PyInstaller kuralı: kaynak bir KLASÖRSE içeriği hedef klasöre, DOSYAYSA
+    dosyanın kendisi hedef klasöre kopyalanır.
+    """
+    import shutil
+
+    sys.path.insert(0, str(KOK / "paketleme"))
+    try:
+        import paketleme_ortak as ortak
+    finally:
+        sys.path.pop(0)
+
+    for kaynak_metni, hedef_metni in ortak.veri_dosyalari(KOK):
+        kaynak = Path(kaynak_metni)
+        varis = hedef / hedef_metni
+        if kaynak.is_dir():
+            shutil.copytree(kaynak, varis, dirs_exist_ok=True)
+        else:
+            varis.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(kaynak, varis / kaynak.name)
+
+
+_PAKET_ACILIS_BETIGI = """
+import sys
+from pathlib import Path
+
+sys._MEIPASS = {paket!r}          # PyInstaller'ın yaptığı: kaynaklar burada
+sys.frozen = True
+sys.path.insert(0, {backend!r})
+
+from fastapi.testclient import TestClient
+
+from app.ayarlar import ayarlari_yukle
+from app.uygulama import uygulama_olustur
+
+# .env YOK: paketlenmiş programda örnekten BİR KEZ üretilmesi gerekir.
+ayarlar = ayarlari_yukle(Path({veri_koku!r}))
+with TestClient(uygulama_olustur(ayarlar, analiz=False)) as istemci:
+    for yol in ("/saglik", "/kurallar", "/komuta", "/komuta/rapor", "/kameralar"):
+        yanit = istemci.get(yol)
+        assert yanit.status_code == 200, (yol, yanit.status_code)
+    # Statik dosya paketten servis ediliyor mu
+    assert istemci.get("/static/komuta.css").status_code == 200
+print("ACILDI")
+"""
+
+
+def _paketlenmis_sistemi_baslat(tmp_path: Path):
+    import subprocess
+
+    paket = tmp_path / "paket"
+    paket.mkdir()
+    _sahte_paketi_kur(paket)
+    veri_koku = tmp_path / "kullanici"
+    veri_koku.mkdir()
+
+    betik = _PAKET_ACILIS_BETIGI.format(
+        paket=str(paket), backend=str(KOK / "backend"), veri_koku=str(veri_koku)
+    )
+    sonuc = subprocess.run(
+        [sys.executable, "-c", betik], capture_output=True, text=True, timeout=180
+    )
+    return sonuc, paket, veri_koku
+
+
+def test_tarifin_kopyaladigi_paketle_sistem_gercekten_aciliyor(tmp_path):
+    """Şablon, stil ve şema betikleri pakette bulunuyor mu — uçtan uca."""
+    sonuc, _, _ = _paketlenmis_sistemi_baslat(tmp_path)
+    assert sonuc.returncode == 0, (
+        "Paketlenmiş sistem açılamadı. Üretim tarifindeki `veri_dosyalari()` "
+        "listesi ile app/kaynaklar.py'nin aradığı yollar uyuşmuyor olabilir.\n"
+        f"--- stdout ---\n{sonuc.stdout}\n--- stderr ---\n{sonuc.stderr}"
+    )
+    assert "ACILDI" in sonuc.stdout
+
+
+def test_paketten_acilinca_veritabani_ve_env_kullanici_klasorune_yaziliyor(tmp_path):
+    """Uygulama paketi SALT OKUNURDUR (imzalı .app / Program Files): kayıtlar
+    pakete değil kullanıcı klasörüne gitmelidir."""
+    sonuc, paket, veri_koku = _paketlenmis_sistemi_baslat(tmp_path)
+    assert sonuc.returncode == 0, sonuc.stderr
+
+    assert (veri_koku / ".env").is_file(), ".env örnekten üretilmemiş"
+    assert (veri_koku / "veri" / "dalsan.db").is_file(), "veritabanı kullanıcı klasöründe yok"
+    assert not (paket / "veri").exists(), "pakete yazılmış — paket salt okunur olmalı"
+    assert not (paket / ".env").exists(), "ayar dosyası pakete yazılmış"

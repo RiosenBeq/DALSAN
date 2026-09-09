@@ -29,6 +29,12 @@ klonlama — hangisi kolaysa).
 
 ## 2. Mac'te nasıl üretilir
 
+> **Önce bir kez:** Mac'te uygulama üretmek Apple'ın komut satırı araçlarını
+> ister (`otool`). Kurulu değilse üretim durur ve ekranda ne yapılacağı yazar.
+> Kurmak için Terminal'e tek satır: `xcode-select --install` — açılan
+> pencerede "Yükle" deyip bitmesini bekleyin, sonra aşağıdan devam edin.
+> Daha önce Xcode kurduysanız bu adım gerekmez.
+
 1. `paketleme/Mac-Uygulama-Uret.command` dosyasına **çift tıklayın**.
 2. Bir terminal penceresi açılır ve satırlar akmaya başlar. **2-5 dakika**
    sürer; ekran arada sessiz kalabilir, bu normaldir.
@@ -263,3 +269,26 @@ Ortak bölümün ayrı bir dosyada olması bilinçlidir: iki tarif aynı listele
 kopyala-yapıştır taşısaydı zamanla ayrışır, biri güncellenip diğeri
 unutulurdu — ve hata yalnızca o platformda, üstelik ancak uygulama
 açılmayınca görülürdü.
+
+### 8.1 Üretimin ne kadarı önceden sınanıyor
+
+`.app` ve `.exe` bu depoda **üretilemez** (PyInstaller çapraz derleme yapmaz),
+ama üretimin sınanabilir her parçası `pytest` ile sınanıyor:
+
+| Sınanan | Nasıl |
+|---|---|
+| İki tarif de hatasız **çalışıyor** | Sahte bir PyInstaller ile gerçekten koşturulur; yazım hatası, tanımsız değişken, bozuk yol burada görünür |
+| Pakete konacak klasörler **var** | Tarifin listesindeki her yol diskte aranır |
+| Yeni eklenen modüller **pakete giriyor** | Liste `collect_submodules("app")` ile üretilir; test bunun çalıştığını doğrular |
+| Paketten sistem **gerçekten açılıyor** | Tarifin listesi geçici bir klasöre kopyalanır, `sys._MEIPASS` oraya kurulur ve sistem ayrı bir süreçte açılıp sayfaları istenir |
+| Kayıtlar **pakete yazılmıyor** | Aynı testte: veritabanı ve `.env` kullanıcı klasöründe, paket klasörü el değmemiş olmalı |
+| `.env.example` **eksiksiz** | Sistemin okuduğu her ayar örnekte yazıyor mu; örnekte okunmayan ayar var mı |
+
+Bu testler yalnızca **PyInstaller kuruluysa** çalışır (araç bilerek
+`backend/requirements.txt`'te değildir); kurulu değilse atlanır, kırılmaz.
+Çalıştırmak için:
+
+```bash
+pip install -r paketleme/requirements-paketleme.txt
+pytest tests/test_paketleme.py tests/test_mac_uygulamasi.py tests/test_paketlemeye_hazirlik.py
+```

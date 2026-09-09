@@ -18,7 +18,7 @@ import sys
 from pathlib import Path
 
 import pytest
-from conftest import git_gerekli
+from conftest import _pyinstaller_var_mi, git_gerekli, pyinstaller_gerekli
 
 KOK = Path(__file__).resolve().parents[1]
 SPEC = KOK / "paketleme" / "NextGenDetector-mac.spec"
@@ -44,7 +44,66 @@ def baslatici_metni() -> str:
     return BASLATICI.read_text(encoding="utf-8")
 
 
+@pytest.fixture(scope="module")
+def mac_tarifi():
+    """Tarifi SAHTE bir PyInstaller ile GERÇEKTEN çalıştırır.
+
+    Metin araması bir yazım hatasını, tanımsız bir değişkeni ya da bozulmuş
+    bir yolu YAKALAYAMAZ. Windows tarifi bu şekilde koşturuluyordu; Mac tarifi
+    koşturulamıyordu çünkü OpenSSL düzeltmesi `otool` çağırıyor ve o araç
+    yalnızca macOS'ta var. Düzeltme artık macOS dışında kendini atlıyor
+    (tarifin kendi yorumuna bakın), bu yüzden tarif her yerde çalıştırılabilir
+    — ve bir yazım hatası KULLANICININ Mac'inde değil burada görünür.
+    """
+    if not _pyinstaller_var_mi():
+        pytest.skip(pyinstaller_gerekli.kwargs["reason"])
+    from test_paketleme import _tarifi_calistir
+
+    return _tarifi_calistir(SPEC)
+
+
 # --------------------------------------------------------------- üretim tarifi
+
+
+def test_mac_tarifi_calistirilabiliyor(mac_tarifi):
+    """Tarif baştan sona hatasız koşuyor ve dört PyInstaller adımını da
+    çağırıyor: Analysis → PYZ → EXE → COLLECT → BUNDLE."""
+    for adim in ("Analysis", "PYZ", "EXE", "COLLECT", "BUNDLE"):
+        assert adim in mac_tarifi.cagrilar, f"tarif {adim} adımını çağırmıyor"
+
+
+def test_mac_tarifi_app_kabugu_uretiyor(mac_tarifi):
+    """Windows tarifinin AKSİNE: Mac'te kullanıcı bir .app'e çift tıklar."""
+    paket = mac_tarifi.kwargs("BUNDLE")
+    assert paket["name"].endswith(".app")
+    assert paket["icon"].endswith(".icns")
+    assert Path(paket["icon"]).is_file(), "tarifin işaret ettiği simge dosyası yok"
+
+
+def test_mac_tarifinde_kamera_izni_gercekten_uretiliyor(mac_tarifi):
+    """Metin araması Info.plist'i sözlük olarak GÖREMEZ; burada tarif
+    çalıştırılıp gerçek değer okunuyor. Bu anahtar olmadan macOS kamera
+    erişimini kullanıcıya HİÇ sormadan reddeder."""
+    plist = mac_tarifi.kwargs("BUNDLE")["info_plist"]
+    assert plist["NSCameraUsageDescription"]
+    assert plist["NSLocalNetworkUsageDescription"]
+    assert plist["CFBundleName"]
+
+
+def test_mac_paketine_konan_veri_dosyalari_gercekten_var(mac_tarifi):
+    """Tarif olmayan bir klasörü gösteriyorsa üretim sessizce eksik paket
+    üretir ve uygulama "şablon bulunamadı" ile çöker."""
+    for kaynak, _ in mac_tarifi.kwargs("Analysis")["datas"]:
+        assert Path(kaynak).exists(), f"pakete konacak dosya yok: {kaynak}"
+
+
+def test_yeni_eklenen_moduller_de_pakete_giriyor(mac_tarifi):
+    """Gizli modül listesi collect_submodules("app") ile üretilir; yeni bir
+    dosya eklendiğinde listeye elle eklemek GEREKMEZ. Bu test o mekanizmanın
+    çalıştığını, dolayısıyla listenin bayatlamayacağını kilitler."""
+    gizli = set(mac_tarifi.kwargs("Analysis")["hiddenimports"])
+    for modul in ("app.main", "app.uygulama", "app.web.rapor", "app.rules.hiz"):
+        assert modul in gizli, f"pakete girmeyen modül: {modul}"
 
 
 def test_sablon_stil_ve_sema_pakete_konuyor(spec_metni):
@@ -102,9 +161,18 @@ def test_supervisionun_zorunlu_bagimliliklari_disarida_birakilmiyor(spec_metni):
 def test_openssl_cakismasi_sessizce_gecilemiyor(spec_metni):
     """opencv'nin eski OpenSSL'i Python'un `_ssl` modülünü kırıyordu; düzeltme
     uygulanamazsa ÜRETİM DURMALI, yoksa hata ancak uygulama açılmayınca
-    fark edilir."""
+    fark edilir. İki çıkış yolu da durdurmalı: kısayol bulunamaması VE
+    `_ssl`'in bağımlılığının hiç çözülememesi."""
     assert "_openssl_cakismasini_gider" in spec_metni
-    assert "raise SystemExit" in spec_metni
+    assert spec_metni.count("raise SystemExit") >= 2
+
+
+def test_xcode_araclari_yoksa_ne_yapilacagi_yaziyor(spec_metni):
+    """`otool` Xcode komut satırı araçlarıyla gelir. Kurulu değilse üretim ham
+    bir İngilizce traceback ile ölüyordu; kullanıcı ne yapacağını okumalı
+    (CLAUDE.md §8)."""
+    assert "xcode-select --install" in spec_metni
+    assert "FileNotFoundError" in spec_metni
 
 
 def test_ikon_dosyasi_var_ve_gecerli():

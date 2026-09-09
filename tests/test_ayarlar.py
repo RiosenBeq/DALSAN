@@ -68,3 +68,61 @@ def test_bos_birakilan_yol_varsayilana_dusuyor(tmp_path):
     ayarlar = ayarlari_yukle(tmp_path)
     assert ayarlar.veritabani_yolu == tmp_path / "veri" / "dalsan.db"
     assert ayarlar.goruntu_klasoru == tmp_path / "veri" / "goruntuler"
+
+
+# ------------------------------------------------- .env.example eksiksizliği
+#
+# NEDEN ÖNEMLİ: paketlenmiş programda kullanıcının kopyalayabileceği bir
+# .env.example YOKTUR — dosya paketin içindedir ve sistem ilk açılışta ondan
+# BİR KEZ .env üretir (app/ayarlar.py → _ornek_envden_olustur). Örnekte
+# yazmayan bir ayarı o kullanıcı hiçbir zaman göremez ve değiştiremez;
+# .env dosyası da kullanıcı profilindedir, elle bulunması kolay değildir.
+#
+# Ters yönü de yanlıştır: örnekte yazan ama sistemin OKUMADIĞI bir satır,
+# kullanıcıya "bunu ayarlayabilirim" der ve hiçbir şey değişmez.
+
+
+def _env_anahtarlari_koddan() -> set[str]:
+    """ayarlar.py'nin .env'den okuduğu anahtar adları.
+
+    Kaynak AST olarak taranır: anahtarlar kod içinde düz metindir ve
+    listeyi elle tutmak, tam da unutulacak yeri ikiye çıkarırdı.
+    """
+    import ast
+    import re
+    from pathlib import Path
+
+    kaynak = (Path(__file__).resolve().parents[1] / "backend/app/ayarlar.py").read_text(
+        encoding="utf-8"
+    )
+    return {
+        dugum.value
+        for dugum in ast.walk(ast.parse(kaynak))
+        if isinstance(dugum, ast.Constant)
+        and isinstance(dugum.value, str)
+        and re.fullmatch(r"[A-Z][A-Z0-9_]{3,}", dugum.value)
+    }
+
+
+def _env_anahtarlari_ornekten() -> set[str]:
+    import re
+    from pathlib import Path
+
+    ornek = (Path(__file__).resolve().parents[1] / ".env.example").read_text(encoding="utf-8")
+    return set(re.findall(r"^([A-Z][A-Z0-9_]*)=", ornek, re.M))
+
+
+def test_her_ayar_ornek_dosyada_yaziyor():
+    eksik = _env_anahtarlari_koddan() - _env_anahtarlari_ornekten()
+    assert not eksik, (
+        "Sistemin okuduğu ama .env.example'da yazmayan ayar var. Paketlenmiş "
+        "programda kullanıcı bu ayarı hiç göremez:\n  " + "\n  ".join(sorted(eksik))
+    )
+
+
+def test_ornek_dosyada_okunmayan_ayar_yok():
+    fazla = _env_anahtarlari_ornekten() - _env_anahtarlari_koddan()
+    assert not fazla, (
+        "'.env.example' okunmayan bir ayar vaat ediyor; kullanıcı değeri "
+        "değiştirir, hiçbir şey olmaz:\n  " + "\n  ".join(sorted(fazla))
+    )

@@ -72,9 +72,20 @@ def _sslin_kullandigi_openssl() -> dict:
     tanim = importlib.util.find_spec("_ssl")
     if tanim is None or not tanim.origin:
         return {}
-    cikti = subprocess.run(
-        ["otool", "-L", tanim.origin], capture_output=True, text=True, check=False
-    ).stdout
+    try:
+        cikti = subprocess.run(
+            ["otool", "-L", tanim.origin], capture_output=True, text=True, check=False
+        ).stdout
+    except FileNotFoundError:
+        # `otool` Xcode komut satırı araçlarıyla gelir. Yoksa ham İngilizce
+        # bir traceback yerine ne yapılacağı yazılır (CLAUDE.md §8).
+        raise SystemExit(
+            "[paketleme] HATA: 'otool' bulunamadi.\n"
+            "Bu arac Xcode komut satiri araclariyla gelir ve uygulama uretimi\n"
+            "icin gereklidir. Terminal'e su satiri yazip kurulumu tamamlayin,\n"
+            "sonra Mac-Uygulama-Uret.command dosyasina yeniden cift tiklayin:\n"
+            "    xcode-select --install"
+        ) from None
     bulunan = {}
     for satir in cikti.splitlines()[1:]:
         yol = Path(satir.strip().split(" (")[0])
@@ -94,10 +105,25 @@ def _openssl_cakismasini_gider(analiz_nesnesi) -> None:
     gerçek dosya olarak konur; opencv'nin kendi kopyası cv2/.dylibs altında
     el değmeden kalır, yani iki tüketici de doğru sürümü kullanır.
     """
+    if sys.platform != "darwin":
+        # Bu tuzak macOS'a özeldir (.dylib) ve düzeltme yalnızca Mac'te
+        # ÜRETİM yaparken anlamlıdır. Çıkış burada duruyor ki tarif başka bir
+        # işletim sisteminde de ÇALIŞTIRILABİLSİN: testler tarifi sahte bir
+        # PyInstaller ile koşturup yazım hatası / eksik değişken arıyor
+        # (tests/test_mac_uygulamasi.py). Windows tarifi için bu zaten
+        # yapılıyordu; Mac tarifi otool'a takıldığı için yapılamıyordu ve
+        # tarifteki bir yazım hatası ancak KULLANICININ Mac'inde görülürdü.
+        return
     dogru = _sslin_kullandigi_openssl()
     if not dogru:
-        ortak.yaz("[paketleme] UYARI: _ssl'in OpenSSL bağımlılığı çözülemedi.")
-        return
+        # Sessizce geçilirse uygulama üretilir ama AÇILMAZ: `_ssl` yüklenemez,
+        # model de inemez (indirme HTTPS'tir). Üretimi burada durdurmak, hatayı
+        # kullanıcının bilgisayarında keşfetmekten çok daha ucuzdur.
+        raise SystemExit(
+            "[paketleme] HATA: Python'un `_ssl` modulunun OpenSSL bagimliligi\n"
+            "cozulemedi; opencv'nin eski OpenSSL kopyasi onu ezer ve uygulama\n"
+            "acilmaz. .spec dosyasindaki 2. tuzagi okuyun."
+        )
     degisen = []
     kalan_datas = []
     for hedef, kaynak, tur in analiz_nesnesi.datas:
