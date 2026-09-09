@@ -206,6 +206,41 @@ döner. Gerekçe KVKK (fabrika karesinde çalışan vardır; saklamadığımız 
 saklama süresi ve silme sorusu doğurmaz) ve en az parçadır (kalıcı olsaydı yeni
 tablo, yeni klasör ve bakım döngüsüne yeni istisna gerekirdi).
 
+### Bölgelerin taralı çizilmesi
+
+Bölgeler hem tarayıcıdaki çizim tuvalinde hem **videonun üstünde** çapraz
+taramayla doldurulur. Yalnız çerçeve çizmek yetmiyordu: "alanın içi neresi"
+sorusu görüntüye bakılarak cevaplanamıyor, yan yana iki bölgede hangi çizginin
+hangisine ait olduğu anlaşılmıyordu. İki taraf aynı deseni kullanır, böylece
+ekran ile video aynı şeyi söyler.
+
+Tarama bir **vurgu**, örtü değildir: çizgiler alanın ~%8'ini kaplar ve altındaki
+tespit kutuları okunur kalır (`test_tarama_alttaki_goruntuyu_ortmez`).
+
+Sunucu tarafında hız kritiktir — 7x24, kamera başına saniyede 6 kare. Üç yol
+ölçüldü (1080p, bölgenin sınır kutusu karenin ~%65'i):
+
+| Yöntem | Kare başına |
+|---|---|
+| Tam kare boolean maskesi + numpy | 22,2 ms |
+| Dağınık koordinatlarla fancy-index | 7,2 ms |
+| **Sınır kutusunda `cv2.addWeighted` + `copyTo`** | **1,1 ms** |
+
+Fark aritmetikte değil **bellek erişimindedir**: 164 bin dağınık koordinata tek
+tek gitmek, bitişik bir bloğu baştan sona taramaktan pahalıdır. Maske, renk katı
+ve harman tamponu bölge çizimi değişmedikçe yeniden üretilmez.
+
+Tarama aralığı ve çizgi kalınlığı karenin kısa kenarına **oranlıdır**: sabit
+piksel, 480p'de seyrek görünürken 1080p'de saç teli gibi sıklaşıyordu — hem
+çirkin hem gereksiz pahalıydı.
+
+### Çizim arka planı
+
+Kullanıcı çizim yaparken arka planı seçebilir: canlı akış (varsayılan), **dondurulmuş
+kare** ya da **yüklenen ekran görüntüsü**. Dondurma, önizleme betiğinin okuduğu
+`data-donmus` özniteliğiyle yapılır — tazeleme durur, kare ekranda kalır. Canlı
+akış saniyede yenilendiği için köşe tıklamak aksi halde zordur.
+
 Alan bulunamadığında bir **teşhis görüntüsü** döner: sistemin "boya" saydığı
 pikseller işaretlidir. Kullanıcı "neden bulamadı" sorusunun cevabını ekranda
 görür; boş bir maske, eşik oynamaktan daha açık bir yanıttır.

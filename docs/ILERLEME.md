@@ -1,5 +1,49 @@
 # İlerleme
 
+## Taralı alan gösterimi ve çizim arka planı (09.09.2026)
+
+Bölge çiziminde üç eksik kapatıldı; hepsi "hangi alanı seçtim, sistem neyi
+görüyor" sorusunun cevabını ekranda vermeye yönelik.
+
+**Taralı alan.** Bölgeler artık çapraz taramayla dolu çiziliyor — hem tarayıcı
+tuvalinde hem **videonun üstünde**. Yalnız çerçeve çizmek yetmiyordu: alanın içi
+neresi belli olmuyor, yan yana iki bölgede hangi çizginin hangisine ait olduğu
+anlaşılmıyordu. İki taraf aynı deseni kullanıyor, böylece ekran ile video aynı
+şeyi söylüyor. Tarama bir vurgu, örtü değil: çizgiler alanın ~%8'ini kaplıyor,
+altındaki tespit kutuları okunur kalıyor (test bunu koruyor).
+
+**Sunucu tarafında hız ölçüldü** (1080p, bölge sınır kutusu karenin ~%65'i):
+tam kare boolean maskesi 22,2 ms/kare, dağınık koordinatlarla fancy-index
+7,2 ms, sınır kutusunda `cv2.addWeighted` + `copyTo` **1,1 ms**. Fark
+aritmetikte değil bellek erişiminde: 164 bin dağınık koordinata tek tek gitmek,
+bitişik bir bloğu taramaktan pahalı. Maske ve tamponlar bölge çizimi
+değişmedikçe yeniden üretilmiyor; tarama aralığı ve kalınlığı da çözünürlüğe
+oranlı (sabit piksel 480p'de seyrek, 1080p'de saç teli gibi çıkıyordu).
+
+**Bölgeye tıklayıp seçme.** Görüntüde bir bölgenin içine tıklamak onu seçiyor:
+taralı görünüyor, adı ve tipi yazıyor, yanında Düzenle / Kapat / Sil çıkıyor.
+Üst üste binen bölgelerde küçük olan seçiliyor — büyük bir bölgenin içindeki
+küçüğe başka türlü tıklanamazdı.
+
+**Çizim arka planı ayrıldı.** Ekran görüntüsü yükleme, "otomatik alan bul"
+akışına bağlıydı; artık kendi başına bir seçim. Üç düğme: **Kareyi dondur**
+(canlı akış saniyede yenilenirken köşe tıklamak zordu), **Ekran görüntüsü yükle**
+(kamera takılmadan önce hazırlık), **Canlıya dön**. Yüklenen görüntü yine diske
+yazılmıyor.
+
+**Giderilen hata.** Tarayıcı, HTML olmayan yanıtlarda (ör. `/saglik` JSON'u)
+`<link rel="icon">` etiketini göremediği için kök dizinden `/favicon.ico`
+istiyor ve her seferinde konsola 404 düşüyordu — sistemde arıza varmış izlenimi
+veren, aslında olmayan bir hata. Rota eklendi.
+
+**Gerçek tarayıcıda doğrulandı** (Chromium): 19 sayfanın hepsi 200; bölge
+seçme, kare dondurma, ekran görüntüsü yükleme, öneri yükleme, dikdörtgen çizme
+ve köşe sürükleme tek tek denendi. **JavaScript hatası 0, konsol hatası 0,
+4xx yanıt 0.**
+
+804 test yeşil (öncesi 795), ruff temiz.
+
+
 ## Alan tanıma, bölge sayımı ve anons bağlama (09.09.2026)
 
 Üç konu birden ele alındı: fabrika alanının tanınması, videoda sayım ve anons

@@ -674,3 +674,26 @@ table.liste tr.pasif td { color: var(--metin-3); }
   max-width: 100%; border-radius: var(--radius-kucuk);
   border: 1px solid var(--cam-sinir);
 }
+
+/* --------------------------------------------------------------------------
+   ÇİZİM ARKA PLANI ve GÖRÜNTÜDE SEÇİLEN BÖLGE
+   -------------------------------------------------------------------------- */
+
+/* Canlı görüntünün hemen altındaki denetim satırı: kareyi dondur, ekran
+   görüntüsü yükle, canlıya dön. Çizim yapmadan önce bakılacak ilk yer. */
+.arkaplan-secimi {
+  display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+  margin: 8px 0 4px;
+}
+
+/* Görüntüde bir bölgeye tıklayınca çıkan çubuk: hangi bölge seçildi ve
+   onunla ne yapılabilir. Bölge listesinde satır aramaya gerek kalmaz. */
+.secili-bolge {
+  display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+  margin: 8px 0; padding: 8px 12px; border-radius: var(--radius-kucuk);
+  background: var(--cam-yogun); border: 1px solid var(--cam-sinir);
+  box-shadow: var(--cam-ic-isik);
+}
+.secili-bolge[hidden] { display: none; }
+.secili-bolge .secili-adi { margin-right: auto; }
+.secili-bolge .satir-form { display: inline; }

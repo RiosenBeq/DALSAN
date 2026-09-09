@@ -161,6 +161,9 @@ def kamera_detay(istek: Request, kamera_id: int, duzenle: int = 0, baglanti=Depe
                         "id": b["id"],
                         "poligon": b["noktalar"],
                         "ad": b["name"],
+                        # Görüntüde bölgeye tıklanınca çıkan kutu tipi de yazar:
+                        # "Rampa önü · Yükleme alanı" (kamera_detay.js).
+                        "tip_adi": b["tip_adi"],
                         "aktif": bool(b["enabled"]),
                     }
                     for b in bolgeler

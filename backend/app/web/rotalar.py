@@ -7,7 +7,7 @@ import sqlite3
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 
 from app import kaynaklar, veritabani, zaman
@@ -88,6 +88,22 @@ def ana_sayfa(istek: Request, yedek: str = "", baglanti=Depends(baglanti_al)):
             else "",
         },
     )
+
+
+@router.get("/favicon.ico", include_in_schema=False)
+def favicon():
+    """Tarayıcının kök dizinden istediği simge.
+
+    Sayfa şablonları simgeyi zaten <link rel="icon"> ile bildiriyor, ama
+    tarayıcı HTML OLMAYAN yanıtlarda (ör. /saglik'in JSON'u) o etiketi
+    göremez ve /favicon.ico'yu dener. Bu rota olmadan her böyle istekte
+    tarayıcı konsoluna 404 düşüyordu — sistemde bir arıza olduğu izlenimi
+    veren, aslında olmayan bir hata.
+    """
+    simge = kaynaklar.kaynak_yolu("backend", "app", "web", "static", "logo.svg")
+    if not simge.is_file():
+        return Response(status_code=204)
+    return FileResponse(simge, media_type="image/svg+xml")
 
 
 @router.get("/saglik")

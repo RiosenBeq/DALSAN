@@ -40,6 +40,9 @@ onu kamera gibi izler. Kamera sayfasındaki durum satırı bağlanamama sebebini
 | Bölge çizimi (tarayıcıda poligon) ve bölge ihlali kuralı | ✅ |
 | **Zemindeki boyadan otomatik alan tanıma** — sarı/beyaz işaretli alanı bulup çizim önerir | ✅ |
 | **Ekran görüntüsü üzerine bölge çizme** — kamera takılmadan önce hazırlık | ✅ |
+| **Kareyi dondurup çizme** — canlı akış yenilenirken köşe tıklama zahmeti biter | ✅ |
+| **Bölgeye tıklayıp seçme** — seçili alan taralı görünür, Düzenle/Kapat/Sil yanında çıkar | ✅ |
+| **Bölgeler videonun üstünde de taralı** — sistemin gördüğü alan ekrandakiyle aynı | ✅ |
 | **Dikdörtgen çizim + köşe sürükleme** ile kolay alan düzeltme | ✅ |
 | **Bölge sayımı** — içeride kaç var, vardiyada kaç girdi (video üstünde de yazar) | ✅ |
 | Güvenli mesafe kuralı (4 nokta zemin kalibrasyonu, metre cinsinden) | ✅ |

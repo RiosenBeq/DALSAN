@@ -14,16 +14,16 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block baslik %}{{ ekran_basligi }} — DALSAN İSG{% endblock %}</title>
-  <link rel="icon" href="/static/logo.svg?v=20">
-  <link rel="stylesheet" href="/static/stil.css?v=20">
-  <link rel="stylesheet" href="/static/komuta.css?v=20">
+  <link rel="icon" href="/static/logo.svg?v=21">
+  <link rel="stylesheet" href="/static/stil.css?v=21">
+  <link rel="stylesheet" href="/static/komuta.css?v=21">
 </head>
 <body>
 <div class="komuta-kabuk">
 
   <aside class="komuta-raf">
     <a class="raf-marka" href="/komuta" title="NextGen Detector — DALSAN İSG">
-      <img src="/static/logo.svg?v=20" alt="NextGen Detector" width="26" height="26">
+      <img src="/static/logo.svg?v=21" alt="NextGen Detector" width="26" height="26">
     </a>
 
     <a class="raf-dugme {% if ekran == 'ana' %}aktif{% endif %}" href="/komuta">
@@ -139,7 +139,7 @@
       {% endif %}
       {# Betik BURADA yüklenir (sayfanın sonunda değil): şerit öğesi çözümlenmiş
          olduğu için, kapatılmış bir şerit ekranda bir an görünüp kaybolmaz. #}
-      <script src="/static/kilavuz.js?v=20"></script>
+      <script src="/static/kilavuz.js?v=21"></script>
 
       {% block icerik %}{% endblock %}
     </main>
@@ -147,7 +147,7 @@
 
 </div>
 {# Silme onayı: eski kabukla AYNI dosya — iki ekranda farklı davranmasın. #}
-<script src="/static/onay.js?v=20"></script>
+<script src="/static/onay.js?v=21"></script>
 {% block betikler %}{% endblock %}
 </body>
 </html>

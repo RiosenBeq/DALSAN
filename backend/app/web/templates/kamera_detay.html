@@ -10,7 +10,8 @@
   </div>
 
   <section class="kart">
-    <h3>Canlı görüntü <span class="not">(1 sn'de bir yenilenir; kutular tespitleri gösterir)</span></h3>
+    <h3>Canlı görüntü <span class="not">(1 sn'de bir yenilenir; kutular tespitleri,
+      <b>taralı alanlar</b> çizdiğiniz bölgeleri gösterir — bir bölgeye tıklayın)</span></h3>
     {# Sarmal: kılavuz balonu .cizim-alani'nın DIŞINDA durmalı. İçinde olsaydı
        dar ekranda (balon görüntünün altına inerken) kutuyu uzatır, inset:0 olan
        tuval de görüntüden taşardı — tıkladığınız yer ile çizilen nokta kayardı. #}
@@ -39,6 +40,32 @@
     <p id="kare-durumu" class="not" data-kamera="{{ kamera.id }}">
       {% if kamera.enabled %}Durum alınıyor…{% else %}Kamera pasif — izlenmiyor.{% endif %}
     </p>
+    {# ÇİZİM ARKA PLANI — canlı akış saniyede yenilenirken köşe tıklamak zordur.
+       "Kareyi dondur" o anki kareyi sabitler; "Ekran görüntüsü yükle" ise kamera
+       hiç bağlı değilken bile (NVR'dan alınmış bir kare ile) çizim yapılmasını
+       sağlar. Yüklenen görüntü diske YAZILMAZ (app/web/alan_rotalari.py). #}
+    <div class="arkaplan-secimi" id="arkaplan-secimi">
+      <span class="not">Çizim arka planı:</span>
+      <button type="button" class="dugme ikincil kucuk" id="kare-dondur"
+              data-kamera="{{ kamera.id }}">Kareyi dondur</button>
+      <label class="dosya-dugmesi dugme ikincil kucuk" for="arkaplan-dosya">
+        Ekran görüntüsü yükle
+        <input type="file" id="arkaplan-dosya" accept="image/*" hidden>
+      </label>
+      <button type="button" class="dugme ikincil kucuk" id="canliya-don" hidden>Canlıya dön</button>
+      <span class="rozet gri" id="arkaplan-rozeti" hidden>donduruldu</span>
+      <span class="not" id="arkaplan-durumu"></span>
+    </div>
+    <p class="not">Canlı görüntü her saniye yenilendiği için köşe tıklamak zor olabilir:
+      <b>Kareyi dondur</b> o anki kareyi sabitler. Kamera henüz takılmadıysa
+      <b>Ekran görüntüsü yükle</b> ile NVR'dan aldığınız bir kareyi (ya da telefonla
+      çektiğiniz bir fotoğrafı) kullanabilirsiniz — yüklediğiniz görüntü sunucuya
+      <b>kaydedilmez</b>, yalnız çizim yaparken arka plan olur.</p>
+
+    {# Görüntüde bir bölgeye tıklayınca burası dolar: hangi bölge seçildi ve
+       onunla ne yapılabilir. Listeden bölge aramaya gerek kalmaz. #}
+    <div class="secili-bolge" id="secili-bolge" hidden></div>
+
     <p id="kalite-uyarisi" class="kalite-uyarisi" hidden></p>
     <div class="sayim-izgara kucuk-sayim" id="canli-sayim"></div>
     {% include "renk_anahtari.html" %}
@@ -158,14 +185,10 @@
       <div class="alan-bul" id="alan-bul">
         <h5>Elle çizmek yerine: alanı sistem bulsun</h5>
         <p class="not">Zemindeki sarı/beyaz boyalı alanları arar ve hazır çizim önerir.
-          Kamera bağlı değilse NVR'dan aldığınız bir ekran görüntüsünü yükleyin.</p>
+          Yukarıda bir <b>ekran görüntüsü</b> yüklediyseniz arama onun üzerinde yapılır.</p>
         <div class="dugme-satiri">
           <button type="button" class="dugme ikincil" id="alan-bul-canli"
-                  data-kamera="{{ kamera.id }}">Canlı görüntüde alanları bul</button>
-          <label class="dosya-dugmesi dugme ikincil" for="alan-bul-dosya">
-            Ekran görüntüsü yükle
-            <input type="file" id="alan-bul-dosya" accept="image/*" hidden>
-          </label>
+                  data-kamera="{{ kamera.id }}">Alanları otomatik bul</button>
           <span class="not" id="alan-bul-durum"></span>
         </div>
         <div id="alan-onerileri" class="alan-onerileri"></div>
@@ -289,8 +312,9 @@
   </section>
 {% endblock %}
 {% block betikler %}
-<script>window.MEVCUT_BOLGELER = {{ bolgeler_json | safe }};
+<script>window.KAMERA_ID = {{ kamera.id }};
+window.MEVCUT_BOLGELER = {{ bolgeler_json | safe }};
 window.DUZENLENEN_BOLGE = {{ duzenlenen_json | safe }};</script>
-<script src="/static/onizleme.js?v=20"></script>
-<script src="/static/kamera_detay.js?v=20"></script>
+<script src="/static/onizleme.js?v=21"></script>
+<script src="/static/kamera_detay.js?v=21"></script>
 {% endblock %}

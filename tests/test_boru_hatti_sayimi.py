@@ -145,3 +145,77 @@ def test_tanimayan_sinif_kamerayi_korletmez(kare):
     _besle(hat, kare, tespitci)
     # Bilinmeyen sınıf atlandı, insan yine sayıldı
     assert hat.sayimlar()[0]["anlik"] == {"person": 1}
+
+
+# --------------------------------------------------------------- tarama
+
+
+def test_bolge_ici_tarali_cizilir(kare):
+    """Kullanıcı "alanın içi neresi" sorusunu VİDEOYA bakarak cevaplamalı.
+
+    Yalnız çerçeve çizmek yetmiyordu: yan yana iki bölgede hangi çizginin
+    hangisine ait olduğu anlaşılmıyordu.
+    """
+    hat = _hat()
+    kkd = KkdSiniflandirici(None)
+    bos = SahteTespitci(np.empty((0, 4)), np.array([]))
+    hat.isle(kare, 0.0, bos, kkd)
+    gorsel = cv2.imdecode(np.frombuffer(hat.son_islenmis_jpeg(), np.uint8), cv2.IMREAD_COLOR)
+
+    # Bölgenin İÇİ (0,25-0,75 x, 0,25-0,85 y) taralı → renk değişkenliği var.
+    ic = gorsel[
+        int(0.35 * YUKSEKLIK) : int(0.7 * YUKSEKLIK), int(0.35 * GENISLIK) : int(0.65 * GENISLIK)
+    ]
+    dis = gorsel[0 : int(0.15 * YUKSEKLIK), 0 : int(0.9 * GENISLIK)]
+    assert ic.std() > 5.0, "bölge içi taranmamış"
+    assert dis.std() < 3.0, "bölge dışına taşmış"
+
+
+def test_tarama_alttaki_goruntuyu_ortmez(kare):
+    """Tarama bir VURGU, örtü değil: alandaki insan görünmeye devam etmeli."""
+    hat = _hat()
+    _besle(hat, kare, SahteTespitci([[290, 150, 350, 300]], ["person"]))
+    gorsel = cv2.imdecode(np.frombuffer(hat.son_islenmis_jpeg(), np.uint8), cv2.IMREAD_COLOR)
+    # Kişi kutusunun YEŞİL kenarı hâlâ bulunabilmeli (G kanalı baskın piksel)
+    dilim = gorsel[150:300, 285:355].astype(int)
+    yesil_baskin = (
+        (dilim[:, :, 1] > dilim[:, :, 0] + 25) & (dilim[:, :, 1] > dilim[:, :, 2] + 25)
+    ).sum()
+    assert yesil_baskin > 50, "tespit kutusu taramanın altında kaybolmuş"
+
+
+def test_tarama_maskesi_onbelleklenir(kare):
+    """Her karede yeniden üretmek 7x24 çalışmada boşa harcanan işlemcidir."""
+    hat = _hat()
+    kkd = KkdSiniflandirici(None)
+    bos = SahteTespitci(np.empty((0, 4)), np.array([]))
+    hat.isle(kare, 0.0, bos, kkd)
+    ilk = hat._tarama_maskesi
+    hat.isle(kare, 1.0, bos, kkd)
+    assert hat._tarama_maskesi is ilk, "maske yeniden üretilmiş"
+
+
+def test_bolge_degisince_tarama_yenilenir(kare):
+    """Bölge yeniden çizilince tarama eski çizime takılı kalmamalı."""
+    hat = _hat()
+    kkd = KkdSiniflandirici(None)
+    bos = SahteTespitci(np.empty((0, 4)), np.array([]))
+    hat.isle(kare, 0.0, bos, kkd)
+    ilk = hat._tarama_maskesi
+    hat.yapilandir(
+        [Bolge(id=1, tip="loading_area", poligon=[(0.1, 0.1), (0.4, 0.1), (0.4, 0.4), (0.1, 0.4)])],
+        [],
+        None,
+    )
+    hat.isle(kare, 1.0, bos, kkd)
+    assert hat._tarama_maskesi is not ilk
+
+
+def test_kare_disina_dusen_bolge_cokmez(kare):
+    """Poligon tümüyle kare dışındaysa tarama sessizce atlanmalı."""
+    hat = KameraHatti(kamera_id=1, fps=6)
+    hat.yapilandir(
+        [Bolge(id=1, tip="restricted", poligon=[(0.0, 0.0), (0.0, 0.0), (0.0, 0.0)])], [], None
+    )
+    hat.isle(kare, 0.0, SahteTespitci(np.empty((0, 4)), np.array([])), KkdSiniflandirici(None))
+    assert hat.son_islenmis_jpeg() is not None

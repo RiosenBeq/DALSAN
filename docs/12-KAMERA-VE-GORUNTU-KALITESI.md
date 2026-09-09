@@ -184,6 +184,38 @@ pikseller işaretlidir (turuncu = sarı sayılan, mavi = beyaz sayılan yerler).
 - **Boya işaretli ama alan önerilmemişse:** işaretli bölge karenin %1,2'sinden
   küçük ya da %82'sinden büyüktür. Kameranın açısı alanın tamamını görmüyor olabilir.
 
+### Çizim arka planını siz seçersiniz
+
+Canlı görüntü her saniye yenilendiği için köşe tıklamak zor olabilir: tam
+tıkladığınız an kare değişir. Canlı görüntünün altındaki satırdan arka planı
+kendiniz seçersiniz.
+
+| Düğme | Ne yapar |
+|---|---|
+| **Kareyi dondur** | O anki kareyi sabitler; tazeleme durur, rahatça çizersiniz |
+| **Ekran görüntüsü yükle** | NVR'dan aldığınız bir kareyi (ya da telefon fotoğrafını) arka plan yapar |
+| **Canlıya dön** | Tazelemeyi yeniden başlatır |
+
+Yüklediğiniz görüntü **sunucuya kaydedilmez**; yalnız o an incelenir ve
+tarayıcıda arka plan olur. Kalıcı olan tek şey, kaydettiğiniz bölgedir.
+
+### Seçili alan taralı görünür
+
+Görüntüde bir bölgenin **içine tıklayın**: o bölge çapraz taramayla dolar, adı
+ve tipi yazar, yanında **Düzenle · Kapat · Sil** düğmeleri çıkar. Bölge
+listesinde satır aramanıza gerek kalmaz.
+
+Tarama yalnızca tarayıcıdaki çizim tuvalinde değil, **canlı görüntünün kendisinde
+de** vardır: analiz, bölgeleri videoya taralı çizer. Böylece ekranda gördüğünüz
+alanla sistemin değerlendirdiği alan aynıdır — "acaba bölge doğru yere mi oturdu"
+sorusu görüntüye bakarak cevaplanır.
+
+Tarama bir **vurgu**, örtü değildir: çizgiler alanın ancak %8'ini kaplar, altındaki
+insan ve araç kutuları okunur kalır.
+
+Üst üste binen iki bölgeye tıklarsanız **küçük olan** seçilir — büyük bir bölgenin
+içindeki küçük bölgeye başka türlü tıklanamazdı.
+
 ### Kamera henüz takılmadıysa
 
 **"Ekran görüntüsü yükle"** ile NVR'dan aldığınız bir kareyi ya da telefonla
@@ -202,6 +234,7 @@ tek şey, kaydettiğiniz bölgedir.
 - **Köşe sürükleme:** çizim bittikten sonra köşeleri fareyle taşıyabilirsiniz.
   Tek yanlış köşe için tüm çizimi baştan yapmanız gerekmez.
 - **İlk noktaya tıklayarak kapatma:** üç köşeden sonra ilk nokta büyür.
+- **Alan kapanınca taralı dolar:** "bu alan artık seçili" demenin en açık yolu.
 
 ---
 
