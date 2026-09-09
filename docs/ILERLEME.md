@@ -1,5 +1,74 @@
 # İlerleme
 
+## Kalan işlerin bitirilmesi: hız kuralı, rapor, paketleme (09.09.2026)
+
+Üç iş kalmıştı; üçü de yapıldı ve maine gitti.
+
+**Dördüncü kural tipi: araç hız sınırı (yol haritası #15 kapandı).** Hız verisi
+zaten hesaplanıyordu (`Tespit.hiz_mps`) ama hiçbir kural onu okumuyordu; iş
+teknik bir sebeple ertelenmişti: `rules.rule_type` bir CHECK kısıtıyla üç tipe
+kapalı ve SQLite'ta CHECK değiştirmek tabloyu yeniden kurmak demek.
+
+Tehlike **ölçülerek** doğrulandı: yabancı anahtar zorlaması açıkken
+`DROP TABLE rules`, `events.rule_id … ON DELETE SET NULL` eylemini tetikliyor
+ve tüm olay geçmişinin kural bağlantısı sessizce siliniyor.
+
+    ONCE  : [{'id': 1, 'rule_id': 1}, {'id': 2, 'rule_id': 2}]
+    SONRA : [{'id': 1, 'rule_id': None}, {'id': 2, 'rule_id': None}]
+
+Çözüm, göç betiğine konan bir işaret satırı: `app/veritabani.py` onu görünce
+yabancı anahtarı **işlem dışında** kapatıyor, sonra geri açıyor ve
+`PRAGMA foreign_key_check` ile bağlantıların sağlam kaldığını doğruluyor.
+Atomiklik bozulmuyor. Test bu veri kaybını kalıcı olarak bekliyor — mekanizma
+kapatılınca kırmızı oluyor, denendi.
+
+Karar mantığı (`rules/hiz.py`) tek kareye bakmıyor: aynı takibin son N
+ölçümünün **ortancasını** alıyor. Kare başına hız ölçümü gürültülüdür; beş
+ölçümün dördü 0,5 m/sn biri 20 m/sn ise ortalama 4,4 m/sn çıkar ve duran
+forklift ceza yerdi, ortanca 0,5 m/sn kalıyor. Ekrana yazılan sayı da bu
+ortanca. Ayar m/sn tutuluyor (`hiz_mps` ile aynı birim), formda km/sa
+karşılığı anında yazılıyor — fabrika hız levhaları km/sa'dır.
+
+**Dönem raporu (yol haritası #3'ün ana kısmı kapandı).** Komuta → Rapor:
+kural / kamera / bölüm / bölge kırılımı, saatlik ve günlük dağılım, özet
+kartları. PDF için **yeni kütüphane kurulmadı**; sayfa yazdırmaya hazır
+tasarlandı ve tarayıcının "PDF olarak kaydet" adımı yeterli. Excel çıktısı
+noktalı virgüllü, BOM'lu CSV.
+
+Rapor dışarıya gidecek bir belge olduğu için sayıların **ne olmadığı** da
+yazıyor: yanlış alarm oranı yalnızca işaretlenmiş olaylar üzerinden
+hesaplanıyor (incelenmemiş olay "doğru uyarı" sayılmaz), gölge moddaki
+kuralların olayları sayılıyor ama "hoparlörden anons çalmamış" diye
+belirtiliyor, sistem olayları hiç girmiyor. Gün ve saat kovaları Türkiye
+saatine göre dolduruluyor: SQL'de gruplansaydı sütunlar 3 saat kayar ve gece
+vardiyası yanlış güne düşerdi.
+
+**Paketleme doğrulaması.** `.app`/`.exe` bu depoda üretilemez, ama üretimin
+sınanabilir her parçası artık testte. En büyük boşluk şuydu: Windows tarifi
+sahte bir PyInstaller ile koşturuluyordu, **Mac tarifi koşturulamıyordu** —
+OpenSSL düzeltmesi `otool` çağırıyor ve o araç yalnız macOS'ta var. Düzeltme
+artık macOS dışında kendini atlıyor, tarif her yerde çalıştırılabiliyor;
+tarifteki bir yazım hatası artık kullanıcının Mac'inde değil burada görünüyor.
+
+İki gerçek hata daha çıktı: `otool` yoksa üretim ham İngilizce traceback ile
+ölüyordu (artık Türkçe duruyor ve `xcode-select --install` diyor), ve `_ssl`
+bağımlılığı çözülemezse kod uyarı yazıp **devam ediyordu** — üretilen uygulama
+açılmazdı; artık duruyor.
+
+Yeni uçtan uca test, tarifin dosya listesini geçici bir klasöre kopyalayıp
+`sys._MEIPASS`'i oraya kuruyor ve sistemi **ayrı bir süreçte** açıyor: şablon,
+stil ve şema betikleri pakette gerçekten bulunuyor mu, kayıtlar pakete değil
+kullanıcı klasörüne mi yazılıyor. Tariften `backend/sema` çıkarılınca kırmızı
+oluyor, denendi. `.env.example` eksiksizliği de kilitlendi (29 ayar, iki yönlü).
+
+940 test yeşil (öncesi 865), ruff temiz. Kural formu ve rapor ekranı gerçek
+Chromium'da denendi: konsol hatası 0, yatay taşma 0 (1440 px ve 390 px),
+yazdırma kipinde sol raf ve filtre gizli. Tarayıcı iki gerçek arayüz hatası
+yakaladı ve düzeltildi: rapordaki gün çubukları görünmüyordu (histogram sütunu
+üç satırlı bir ızgaradır, sayı gözü atlanınca yüzdelik yükseklik sıfırlanıyor)
+ve tarih/saat kartları 46 px'lik rakam ölçüsünde kutudan taşıyordu.
+
+
 ## Fabrikaya çıkış şartları, uzaktan erişim ve güncelleme (09.09.2026)
 
 Üç istek arka arkaya geldi ve üçü de "sistem fabrikada tek başına ayakta
