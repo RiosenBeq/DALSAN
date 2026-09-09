@@ -1,4 +1,4 @@
-"""zone_intrusion testleri: pozitif, negatif, sınır, cooldown (docs/03 §5)."""
+"""zone_intrusion testleri: pozitif, negatif, sınır, cooldown (docs/03 §6)."""
 
 from __future__ import annotations
 

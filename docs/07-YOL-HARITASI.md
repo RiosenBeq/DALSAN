@@ -26,7 +26,6 @@ Sıralama beklenen faydaya göre.
 | 12 | **NVR kayıt entegrasyonu** | Olaydan NVR'daki tam kayda atlama. | Orta |
 | 13 | **Düşme / hareketsizlik tespiti** | Ayrı model, ayrı veri, ayrı bedel. Teklifte kapsam dışı. | Büyük |
 | 14 | **PLC / SCADA / ERP entegrasyonu** | Teklifte açıkça kapsam dışı. İhlalde hat/kapı sinyali senaryosu doğarsa. | Değişken |
-| 15 | **Dördüncü kural tipi: ani hareket / forklift hızı** ("forklift 2,5 m/s üstünde") | Komuta tasarımının uyarı zincirinde örnek olarak geçiyor ama MVP'de YOK. Ertelenmesinin nedeni teknik: `rules.rule_type` bir CHECK kısıtıyla üç tipe kapalı ve SQLite'ta CHECK değiştirmek tabloyu yeniden kurmak demektir; şema betikleri işlem içinde çalıştığı için `PRAGMA foreign_keys` etkisiz kalır ve yeniden kurma, kullanıcının kurallarını sessizce silme riski taşır. Doğru yol: `rules` tablosunu güvenli biçimde taşıyan ayrı bir göç (yeni tablo + kopyala + eski tabloyu bırak) ve `rules/hiz.py` içinde saf bir kural fonksiyonu. Hız verisi zaten var: `Tespit.hiz_mps` kalibre kamerada hesaplanıyor. | Orta |
 | 17 | **Tanıtılan nesnenin CANLI kamerada aranması** | Nesne kütüphanesi (Nesneler sayfası, şema 003) bugün yalnızca kullanıcının YÜKLEDİĞİ fotoğrafta arıyor — kullanıcı kararıyla kapsam böyle sınırlandı. Canlıya taşımak ayrı bir iştir: parmak izi eşleştirmesi kare başına saniyeler sürer (kayan pencere), canlı boru hattı ise saniyede 6 kare işler. Doğru yol, tespit modeline nesne sınıfı öğretmek ya da eşleştirmeyi yalnızca model kutularıyla ve seyrek karelerde çalıştırmaktır. Ayrıca canlıda "yanlış eşleşme" artık bir uyarı/anons demektir; bugünkü doğruluk buna yetmiyor. | Orta-büyük |
 | 18 | **Nesne aramada video yükleme** | Bugün yalnızca fotoğraf yüklenebiliyor. Video, eşit aralıklı kare örnekleyip her kareyi taramak demektir; kayan pencere taraması kare başına saniyeler sürdüğü için tek videonun taraması dakikalara çıkar. Önce tarama hızlandırılmalı. | Orta |
 | 19 | **Sayımın kalıcı kaydı** (vardiya/gün raporu) | Bölge sayımı bugün BELLEKTE tutulur: sistem yeniden başlayınca "giren" sıfırlanır ve geçmiş gün karşılaştırılamaz. Kalıcı olması için sayaçları düzenli aralıkla yazan bir tablo gerekir. Bilerek ertelendi: önce sayının sahada DOĞRU olduğu görülmeli; yanlış bir sayıyı kalıcı kaydetmek, yanlışı rapora taşımaktır. | Küçük-orta |
@@ -45,6 +44,7 @@ Sıralama beklenen faydaya göre.
 | Sunucu yeniden başlayınca otomatik açılış (K8) | **Kapandı:** Docker'da `restart: unless-stopped` hazırdı; Docker'sız kurulum için systemd birimi ve her ikisinin de PROVASI `06-OPERASYON.md` §1.2.1'e yazıldı. |
 | Anons uç noktasının somut biçimi (R3) | Kapandı: üç HTTP biçimi (`json`/`form`/`get`) ve adres yer tutucuları eklendi; hangi cihaz için hangisinin seçileceği `14-ANONS-SISTEMI-BAGLAMA.md`'de. Sahadaki cihaz öğrenilince kod DEĞİL, ayar değişir. |
 | Bölge çiziminin zahmeti | Kapandı: zemindeki boyadan otomatik alan önerisi, dikdörtgen kipi, köşe sürükleme ve ekran görüntüsü üzerine çizim. |
+| Dördüncü kural tipi: forklift hızı (#15) | **Kapandı:** `vehicle_speed`. Ertelemenin sebebi olan şema kısıtı `backend/sema/005_arac_hizi_kurali.sql` ile güvenli biçimde aşıldı — yabancı anahtar işlem dışında kapatılıp geri açılıyor ve `PRAGMA foreign_key_check` ile olay geçmişinin sağlam kaldığı doğrulanıyor. Karar mantığı `rules/hiz.py`, davranış tanımı `03-KURAL-MOTORU.md` §4. |
 | "Kaç kişi geçti" sorusu | Kısmen: bölge bazlı canlı sayım eklendi (`rules/sayim.py`). Kalıcı kayıt ve yön bilgisi hâlâ açık — #19 ve #20. |
 
 ## 2. Phase 3 — Alçı Stokholü
@@ -58,7 +58,7 @@ Aynı pipeline üzerinde çalışır; eklenecekler:
 - Doluluk / alan kullanım analizi (zamansal, kural değil raporlama)
 
 Mimari hazırlık: yeni kural tipi eklemek `rules/` içine saf fonksiyon + şema + test
-demek (bkz. `03-KURAL-MOTORU.md` §5). Başka dosyaya dokunulmaz.
+demek (bkz. `03-KURAL-MOTORU.md` §6). Başka dosyaya dokunulmaz.
 
 ---
 

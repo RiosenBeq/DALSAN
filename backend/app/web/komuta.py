@@ -20,6 +20,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from app import zaman
 from app.hatalar import DogrulamaHatasi
 from app.olaylar.anons import bolge_sec
+from app.rules.motor import KALIBRASYON_GEREKTIREN
 from app.web.kilavuz import EKRAN_ACIKLAMALARI, kurulum_durumu
 from app.web.ortak import (
     ANONS_KISA_ADLARI,
@@ -617,6 +618,12 @@ def _kkd_karari(ppe: dict) -> str:
     return " · ".join(parcalar)
 
 
+def _olcum_sayisi(detay: dict, params: dict) -> str:
+    """'5 ölçüm' — hız kararı kaç ölçümün ortancasına dayandı."""
+    sayi = detay.get("olcum_sayisi") or params.get("window_size")
+    return "" if sayi is None else f"{sayi} ölçüm"
+
+
 def _gozlem_penceresi(params: dict) -> str:
     """'8 / 15 gözlem' — KKD kararı kaç gözleme bakılarak verildi."""
     pencere = params.get("window_size")
@@ -658,6 +665,13 @@ def _inceleme_kutulari(olay: dict) -> list[dict]:
             ("Kural eşiği", sayi_metni(params.get("min_dwell_s"), "sn")),
             ("Görülen", SINIFLAR.get(detay.get("sinif", ""), "")),
             ("Kural yönü", yonler.get(detay.get("mode") or params.get("mode", ""), "")),
+        ]
+    elif tip == "vehicle_speed":
+        kutular = [
+            ("Ölçülen hız", sayi_metni(detay.get("hiz_kmh"), "km/sa", 1)),
+            ("Hız sınırı", sayi_metni(detay.get("limit_kmh"), "km/sa", 1)),
+            ("Araç", SINIFLAR.get(detay.get("arac_sinifi", ""), "")),
+            ("Kaç ölçümün ortancası", _olcum_sayisi(detay, params)),
         ]
     elif tip == "ppe_violation":
         ppe = detay.get("ppe") or {}
@@ -894,6 +908,9 @@ def _kural_esigi(tip: str, params: dict) -> str:
         return " · ".join(parca for parca in (yon, sure) if parca)
     if tip == "ppe_violation":
         return ", ".join(KKD_ADLARI.get(k, k) for k in params.get("required_ppe", []))
+    if tip == "vehicle_speed":
+        limit = params.get("speed_limit_mps")
+        return "" if limit is None else sayi_metni(limit * 3.6, "km/sa", 1)
     return ""
 
 
@@ -999,10 +1016,11 @@ def _zincir(baglanti, ayarlar, hoparlorler: list[dict]) -> list[dict]:
         grup["kamera_adlari"].append(satir["kamera_adi"])
         if satir["kamera_alani"] and satir["kamera_alani"] not in grup["alanlar"]:
             grup["alanlar"].append(satir["kamera_alani"])
-        # Kalibre edilmemiş kamerada güvenli mesafe kuralı BİLEREK pasiftir
-        # (docs/03 §2). "Aktif" rozetiyle birlikte bunu söylemezsek ekran
-        # çalışmayan bir zinciri çalışıyor gösterir.
-        if satir["rule_type"] == "safe_distance" and not satir["kalibre"]:
+        # Kalibre edilmemiş kamerada güvenli mesafe ve araç hızı kuralları
+        # BİLEREK pasiftir (docs/03 §2 ve §4): ikisi de metre ölçüsüne dayanır.
+        # "Aktif" rozetiyle birlikte bunu söylemezsek ekran çalışmayan bir
+        # zinciri çalışıyor gösterir.
+        if satir["rule_type"] in KALIBRASYON_GEREKTIREN and not satir["kalibre"]:
             grup["kalibrasyonsuz"] += 1
 
     zincir = []

@@ -46,8 +46,11 @@
             <span class="satir-adi">{{ z.kural }}</span>
             <span class="panel-notu">{{ z.kapsam }}</span>
             {% if z.kalibrasyonsuz %}
+            {# Kural adı SATIRIN BAŞINDA zaten yazıyor; buraya sabit bir kural
+               adı yazılırsa (eskiden "güvenli mesafe" yazıyordu) araç hızı
+               satırında YANLIŞ kuralın adı görünür. #}
             <span class="zincir-uyari">{{ z.kalibrasyonsuz }} kamerada kalibrasyon yok —
-              güvenli mesafe kuralı o kamerada bilerek pasif</span>
+              bu kural o kamerada bilerek pasif</span>
             {% endif %}
           </span>
 

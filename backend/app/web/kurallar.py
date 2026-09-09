@@ -1,4 +1,4 @@
-"""Kural yönetimi: üç kural tipi için liste + form (docs/03).
+"""Kural yönetimi: dört kural tipi için liste + form (docs/03).
 
 Parametreler kaydedilmeden ÖNCE rules/parametreler.py şemalarıyla doğrulanır;
 geçersiz parametre veritabanına asla girmez.
@@ -14,9 +14,11 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 
 from app import zaman
 from app.hatalar import DogrulamaHatasi
+from app.rules.motor import KALIBRASYON_GEREKTIREN
 from app.rules.parametreler import params_dogrula
 from app.web.ortak import (
     BOLGE_TIPLERI,
+    BOLGE_ZORUNLU_KURALLAR,
     HAZIR_KURALLAR,
     KURAL_TIPLERI,
     SINIFLAR,
@@ -42,12 +44,14 @@ def kural_listesi(istek: Request, baglanti=Depends(baglanti_al)):
         kural = dict(satir)
         kural["tip_adi"] = KURAL_TIPLERI.get(kural["rule_type"], kural["rule_type"])
         kural["kalibrasyon_bekliyor"] = False
-        if kural["rule_type"] == "safe_distance":
+        if kural["rule_type"] in KALIBRASYON_GEREKTIREN:
             kalibre = baglanti.execute(
                 "SELECT 1 FROM camera_calibrations WHERE camera_id = ?",
                 (kural["camera_id"],),
             ).fetchone()
-            # Kalibre edilmemiş kamerada mesafe kuralı PASİFTİR (docs/03 §2)
+            # Kalibre edilmemiş kamerada mesafe ve hız kuralı PASİFTİR
+            # (docs/03 §2 ve §4) — rozet bunu söylemezse ekran çalışmayan
+            # bir kuralı "aktif" gösterirdi.
             kural["kalibrasyon_bekliyor"] = kalibre is None
         kurallar.append(kural)
 
@@ -122,7 +126,7 @@ def _kural_kaydet_islemi(baglanti, form):
         raise DogrulamaHatasi(f"Geçersiz kural tipi: {kural_tipi}")
 
     zone_id = int(form.get("zone_id") or 0) or None
-    if kural_tipi in ("zone_intrusion", "ppe_violation") and zone_id is None:
+    if kural_tipi in BOLGE_ZORUNLU_KURALLAR and zone_id is None:
         raise DogrulamaHatasi(
             f"'{KURAL_TIPLERI[kural_tipi]}' kuralı bölgesiz tanımlanamaz. "
             "Önce kamera sayfasında bölge çizin, sonra burada seçin."
@@ -292,6 +296,13 @@ def _formdan_params(kural_tipi: str, form) -> tuple[dict, list[str]]:
             "min_speed_mps": _sayi(form, "min_speed_mps", 0.3),
         }
         return params, ["person", *nesneler]
+    if kural_tipi == "vehicle_speed":
+        araclar = form.getlist("speed_classes") or ["forklift", "truck"]
+        params = {
+            "speed_limit_mps": _sayi(form, "speed_limit_mps", 2.5),
+            "window_size": int(_sayi(form, "window_size", 5)),
+        }
+        return params, araclar
     # ppe_violation
     kkdler = form.getlist("required_ppe")
     if not kkdler:

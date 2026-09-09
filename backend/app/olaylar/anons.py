@@ -2,7 +2,7 @@
 
 Seçim .env'deki ANONS ayarıyla yapılır: null | ses_karti | http.
 Anons cooldown'u ekran uyarısından BAĞIMSIZ ve daha uzundur — ekranda 3 olay
-görünmesi sorun değil; hoparlörün 3 kez bağırması sorundur (docs/03 §4).
+görünmesi sorun değil; hoparlörün 3 kez bağırması sorundur (docs/03 §5).
 
 Anons altyapısı yoksa (ANONS=null) sistem bundan tamamen bağımsız çalışır (K6).
 

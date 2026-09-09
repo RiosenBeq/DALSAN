@@ -5,7 +5,7 @@ Zamanı çağıran verir (zaman_s, saniye cinsinden monoton sayaç) — testlerd
 zaman ileri sarılabilir. Hız tahmini de burada yapılır: kalibrasyonlu
 kamerada ayak noktasının zemindeki yer değişiminden (m/sn).
 
-Yeni kural tipi ekleme prosedürü docs/03 §5'tedir: değerlendirici + şema +
+Yeni kural tipi ekleme prosedürü docs/03 §6'tedir: değerlendirici + şema +
 buradaki kayıt (DEGERLENDIRICILER) + test. Başka dosyaya dokunulmaz.
 """
 
@@ -16,6 +16,7 @@ from dataclasses import dataclass, field
 from app.rules.bolge_ihlali import BolgeIhlaliDegerlendirici
 from app.rules.cooldown import Cooldown
 from app.rules.geometri import oklid_mesafe
+from app.rules.hiz import HizDegerlendirici
 from app.rules.kalibrasyon import KalibrasyonHatasi, dunyaya_cevir
 from app.rules.kkd import KkdDegerlendirici
 from app.rules.mesafe import MesafeDegerlendirici
@@ -25,7 +26,14 @@ DEGERLENDIRICILER = {
     "zone_intrusion": BolgeIhlaliDegerlendirici,
     "safe_distance": MesafeDegerlendirici,
     "ppe_violation": KkdDegerlendirici,
+    "vehicle_speed": HizDegerlendirici,
 }
+
+# Bu tiplerin değerlendiricisi, kalibrasyon yoksa BOŞ liste döndürür: ikisi de
+# gerçek dünya (metre) ölçüsüne dayanır ve kalibrasyonsuz piksel ölçüsünden
+# yaklaşık sonuç UYDURMAZ. Arayüz bunu "kalibrasyon bekleniyor" rozetiyle
+# gösterir; liste burada durur ki ekranla motor birbirinden ayrı düşmesin.
+KALIBRASYON_GEREKTIREN = frozenset({"safe_distance", "vehicle_speed"})
 
 # Hız tahmini için iki ölçüm arasındaki geçerli süre aralığı (sn)
 _HIZ_DT_EN_AZ = 0.05

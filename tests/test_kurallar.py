@@ -121,3 +121,121 @@ def test_mesafe_kurali_kalibrasyonsuz_uyari_gosterir(istemci, test_ayarlari):
         follow_redirects=False,
     )
     assert "kalibrasyon bekleniyor" in istemci.get("/kurallar").text
+
+
+# --------------------------------------------------------- araç hız sınırı
+#
+# Dördüncü kural tipi (şema 005). Şema kısıtı yüzünden ertelenmişti;
+# docs/07 #15 → docs/03 §4.
+
+
+def test_hiz_kurali_bolgesiz_kaydedilir(istemci, test_ayarlari):
+    """Hız kuralı bölgesiz de tanımlanabilir: tüm kamera görüşünü kapsar."""
+    kamera_id, _ = _kamera_ve_bolge(istemci, test_ayarlari)
+    yanit = istemci.post(
+        "/kurallar/kaydet",
+        data={
+            "camera_id": kamera_id,
+            "rule_type": "vehicle_speed",
+            "speed_classes": ["forklift"],
+            "speed_limit_mps": "2,5",  # Türkçe ondalık ayırıcı da kabul edilmeli
+            "window_size": "5",
+            "cooldown_s": "90",
+            "enabled": "1",
+        },
+        follow_redirects=False,
+    )
+    assert yanit.status_code == 303
+
+    baglanti = veritabani.baglanti_ac(test_ayarlari.veritabani_yolu)
+    try:
+        satir = baglanti.execute("SELECT * FROM rules WHERE rule_type = 'vehicle_speed'").fetchone()
+    finally:
+        baglanti.close()
+    assert satir is not None
+    assert satir["zone_id"] is None
+    assert json.loads(satir["target_classes"]) == ["forklift"]
+    assert json.loads(satir["params"]) == {"speed_limit_mps": 2.5, "window_size": 5}
+
+
+def test_hiz_kurali_kalibrasyonsuz_uyari_gosterir(istemci, test_ayarlari):
+    """Hız zeminden ölçülür; kalibre edilmemiş kamerada kural PASİFTİR ve
+    ekran bunu söylemelidir — yoksa çalışmayan kural 'aktif' görünür."""
+    kamera_id, _ = _kamera_ve_bolge(istemci, test_ayarlari)
+    istemci.post(
+        "/kurallar/kaydet",
+        data={
+            "camera_id": kamera_id,
+            "rule_type": "vehicle_speed",
+            "speed_classes": ["forklift", "truck"],
+            "speed_limit_mps": "2.5",
+            "enabled": "1",
+        },
+        follow_redirects=False,
+    )
+    metin = istemci.get("/kurallar").text
+    assert "Araç hız sınırı" in metin
+    assert "kalibrasyon bekleniyor" in metin
+
+
+def test_hiz_kurali_gecersiz_esigi_reddeder(istemci, test_ayarlari):
+    """Sıfır hız sınırı her duran aracı ihlal ederdi; şema reddeder."""
+    kamera_id, _ = _kamera_ve_bolge(istemci, test_ayarlari)
+    yanit = istemci.post(
+        "/kurallar/kaydet",
+        data={
+            "camera_id": kamera_id,
+            "rule_type": "vehicle_speed",
+            "speed_classes": ["forklift"],
+            "speed_limit_mps": "0",
+            "enabled": "1",
+        },
+        follow_redirects=False,
+    )
+    assert yanit.status_code == 400
+    baglanti = veritabani.baglanti_ac(test_ayarlari.veritabani_yolu)
+    try:
+        assert baglanti.execute("SELECT COUNT(*) FROM rules").fetchone()[0] == 0
+    finally:
+        baglanti.close()
+
+
+def test_hiz_kurali_formda_dort_tip_de_gorunur(istemci, test_ayarlari):
+    kamera_id, _ = _kamera_ve_bolge(istemci, test_ayarlari)
+    metin = istemci.get(f"/kurallar/yeni?kamera={kamera_id}").text
+    for tip in ("zone_intrusion", "safe_distance", "ppe_violation", "vehicle_speed"):
+        assert f'value="{tip}"' in metin
+    # km/sa karşılığı ekranda yazılmalı: kullanıcı m/sn'yi kafadan çeviremez
+    assert "km/sa" in metin
+
+
+def test_hiz_kurali_duzenleme_formu_degerleri_geri_yukler(istemci, test_ayarlari):
+    kamera_id, _ = _kamera_ve_bolge(istemci, test_ayarlari)
+    istemci.post(
+        "/kurallar/kaydet",
+        data={
+            "camera_id": kamera_id,
+            "rule_type": "vehicle_speed",
+            "speed_classes": ["truck"],
+            "speed_limit_mps": "1.4",
+            "window_size": "9",
+            "enabled": "1",
+        },
+        follow_redirects=False,
+    )
+    baglanti = veritabani.baglanti_ac(test_ayarlari.veritabani_yolu)
+    try:
+        kural_id = baglanti.execute("SELECT id FROM rules").fetchone()["id"]
+    finally:
+        baglanti.close()
+    metin = istemci.get(f"/kurallar/{kural_id}/duzenle").text
+    assert 'value="1.4"' in metin
+    assert 'value="9"' in metin
+    # Seçili araç geri gelmeli: kaydettiği kutu boş açılırsa kullanıcı
+    # düzenlemeye girip kaydettiğinde sessizce forklift'i de ekler.
+    hizli_kutular = [satir for satir in metin.splitlines() if 'name="speed_classes"' in satir]
+    # İki kutu vardır (forklift, tır); yalnız kaydedilen işaretli gelmeli
+    satir_ciftleri = metin.split('name="speed_classes"')
+    assert 'value="truck"' in satir_ciftleri[2] and "checked" in satir_ciftleri[2]
+    assert 'value="forklift"' in satir_ciftleri[1] and "checked" not in satir_ciftleri[1]
+    assert len(hizli_kutular) == 2

@@ -88,7 +88,7 @@ class Kalibrasyon:
 class Kural:
     id: int
     kamera_id: int
-    tip: str  # zone_intrusion | safe_distance | ppe_violation
+    tip: str  # zone_intrusion | safe_distance | ppe_violation | vehicle_speed
     bolge_id: int | None
     hedef_siniflar: list[str]
     params: dict

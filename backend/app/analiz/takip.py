@@ -28,7 +28,7 @@ class Takipci:
         # yazılsaydı günlük dosyası saatler içinde okunamaz hale gelirdi.
         self._bildirilen_bilinmeyenler: set[str] = set()
         # track_buffer'ı yüksek tutmak, kısa kayboluşlarda ID'nin korunmasını
-        # sağlar → aynı kişiye tekrar uyarı üretme sorununu azaltır (docs/03 §4)
+        # sağlar → aynı kişiye tekrar uyarı üretme sorununu azaltır (docs/03 §5)
         self._izleyici = sv.ByteTrack(frame_rate=max(fps, 1))
 
     def _bilinmeyeni_bildir(self, adlar) -> None:

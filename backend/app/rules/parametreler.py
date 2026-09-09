@@ -52,10 +52,28 @@ class KkdParams(BaseModel):
     require_full_bbox: bool = True
 
 
+class HizParams(BaseModel):
+    """vehicle_speed — docs/03 §4
+
+    Birim m/sn'dir; Tespit.hiz_mps ile aynı olsun diye. Kullanıcı arayüzünde
+    karşılığı km/sa olarak da yazılır (2,5 m/sn ≈ 9 km/sa).
+
+    Varsayılan 2,5 m/sn uydurma değildir: docs/07-YOL-HARITASI.md #15 bu kural
+    tipini "forklift 2,5 m/s üstünde" örneğiyle tarif eder. Fabrikanın kendi
+    hız sınırı farklıysa arayüzden değiştirilir.
+    """
+
+    speed_limit_mps: float = Field(default=2.5, gt=0, le=30)
+    # Kararın dayandığı ölçüm sayısı. Ortanca alınır; tek karelik sıçrama
+    # ihlal üretmez. 5 ölçüm, 6 fps'te ~1 saniyelik gözlem demektir.
+    window_size: int = Field(default=5, ge=3, le=60)
+
+
 PARAM_SEMALARI: dict[str, type[BaseModel]] = {
     "zone_intrusion": BolgeIhlaliParams,
     "safe_distance": MesafeParams,
     "ppe_violation": KkdParams,
+    "vehicle_speed": HizParams,
 }
 
 

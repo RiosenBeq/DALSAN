@@ -148,7 +148,7 @@ ruff check . && ruff format .
 | `00-PROJE-BAGLAMI.md` | Müşteri, ticari çerçeve, kapsam sınırı, KVKK |
 | `01-MVP-KAPSAM.md` | Karar matrisi, kabul kriterleri, uçtan uca akış |
 | `02-MIMARI.md` | Mimari ve veri modeli *(→ 09 ile güncellendi)* |
-| `03-KURAL-MOTORU.md` | Üç kural tipinin tam davranış tanımı |
+| `03-KURAL-MOTORU.md` | Dört kural tipinin tam davranış tanımı |
 | `04-KKD-BARET-YELEK.md` | KKD: veri toplama, etiketleme, eğitim, eşik ayarı |
 | `05-TEKNOLOJI-KARARLARI.md` | Teknoloji seçimleri + ADR *(→ 09 ile güncellendi)* |
 | `06-OPERASYON.md` | Kurulum, yedek, retention, sorun giderme |

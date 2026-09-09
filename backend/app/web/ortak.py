@@ -27,7 +27,12 @@ KURAL_TIPLERI = {
     "zone_intrusion": "Bölge ihlali",
     "safe_distance": "Güvenli mesafe",
     "ppe_violation": "KKD (baret/yelek)",
+    "vehicle_speed": "Araç hız sınırı",
 }
+
+# Bölgesi ZORUNLU olan kural tipleri. Güvenli mesafe ve araç hızı bölgesiz de
+# çalışır (o zaman tüm kareyi kapsar); bölge ihlali ve KKD bölgesiz anlamsızdır.
+BOLGE_ZORUNLU_KURALLAR = frozenset({"zone_intrusion", "ppe_violation"})
 
 OLAY_DURUMLARI = {"new": "Yeni", "reviewed": "İncelendi", "false_alarm": "Yanlış alarm"}
 
@@ -186,6 +191,10 @@ def olay_hazirla(satir) -> dict:
             )
         elif olay["detaylar"].get("mesafe_m") is not None:
             olay["ozet"] += f" — {sayi_metni(olay['detaylar']['mesafe_m'], 'm', 2)}"
+        elif olay["detaylar"].get("hiz_kmh") is not None:
+            # Hız km/sa yazılır: fabrika hız levhaları da km/sa'dır. Ayarın
+            # kendisi m/sn tutulur (Tespit.hiz_mps ile aynı birim).
+            olay["ozet"] += f" — {sayi_metni(olay['detaylar']['hiz_kmh'], 'km/sa', 1)}"
     return olay
 
 
@@ -246,7 +255,14 @@ class HazirKural:
 
 
 # docs/03: kural tipine göre varsayılan cooldown (saniye)
-VARSAYILAN_COOLDOWN_SN = {"zone_intrusion": 120, "safe_distance": 90, "ppe_violation": 180}
+VARSAYILAN_COOLDOWN_SN = {
+    "zone_intrusion": 120,
+    "safe_distance": 90,
+    "ppe_violation": 180,
+    # Hız ihlali anlıktır ve sürücü uyarıyı duyunca yavaşlar; 90 sn, aynı
+    # forklift için ikinci uyarının anlamlı olacağı en kısa aralıktır.
+    "vehicle_speed": 90,
+}
 
 HAZIR_KURALLAR: dict[str, HazirKural] = {
     # docs/03 Ek — yolu KULLANMAYAN kişi ihlaldir (mode=outside)

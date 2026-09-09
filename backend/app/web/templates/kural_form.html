@@ -23,6 +23,7 @@
           <option value="zone_intrusion" {% if kural and kural.rule_type == 'zone_intrusion' %}selected{% endif %}>Bölge ihlali</option>
           <option value="safe_distance" {% if kural and kural.rule_type == 'safe_distance' %}selected{% endif %}>Güvenli mesafe</option>
           <option value="ppe_violation" {% if kural and kural.rule_type == 'ppe_violation' %}selected{% endif %}>KKD (baret/yelek)</option>
+          <option value="vehicle_speed" {% if kural and kural.rule_type == 'vehicle_speed' %}selected{% endif %}>Araç hız sınırı</option>
         </select>
       </label>
 
@@ -134,6 +135,33 @@
           eğitilmediyse bu kural olay üretmez ama bölgeden veri toplar (KKD sekmesi).</p>
       </fieldset>
 
+      {# --- Araç hız sınırı --- #}
+      <fieldset id="alanlar-vehicle_speed">
+        <legend>Araç hız sınırı ayarları</legend>
+        <label>Hız sınırına tabi araçlar</label>
+        <div class="yatay-grup">
+          {% set hizlilar = kural.target_classes if kural and kural.rule_type == 'vehicle_speed' else ['forklift','truck'] %}
+          <label class="yatay"><input type="checkbox" name="speed_classes" value="forklift"
+            {% if 'forklift' in hizlilar %}checked{% endif %}> Forklift</label>
+          <label class="yatay"><input type="checkbox" name="speed_classes" value="truck"
+            {% if 'truck' in hizlilar %}checked{% endif %}> Tır/Araç</label>
+        </div>
+        <label><span>Hız sınırı (metre/saniye)
+          {{ ipucu('hiz-siniri', 'Aracın ölçülen hızı bu değeri aşarsa uyarı üretilir. 2,5 m/sn ≈ 9 km/sa, 1,4 m/sn ≈ 5 km/sa.') }}</span>
+          <input name="speed_limit_mps" id="speed_limit_mps" type="number" step="0.1" min="0.1"
+                 value="{{ kural.params.get('speed_limit_mps', 2.5) if kural else 2.5 }}">
+        </label>
+        <p class="not" id="hiz-kmh"></p>
+        <label><span>Kaç ölçümün ortancasına bakılsın
+          {{ ipucu('hiz-pencere', 'Karar tek kareye değil, aynı aracın son bu kadar ölçümünün ortancasına göre verilir; tek karelik sıçrama uyarı üretmez.') }}</span>
+          <input name="window_size" type="number" min="3" max="60"
+                 value="{{ kural.params.get('window_size', 5) if kural else 5 }}">
+        </label>
+        <p class="not">Bu kural yalnızca KALİBRE edilmiş kamerada çalışır
+          (kamera sayfası → Mesafe kalibrasyonu): hız, aracın ZEMİNDEKİ yer
+          değişiminden ölçülür. Bölge seçmezseniz kamera görüşünün tamamı sayılır.</p>
+      </fieldset>
+
       <label><span>Tekrar uyarı bastırma / cooldown (saniye)
         {{ ipucu('cooldown', 'Aynı kural aynı kamerada bu süre dolmadan ikinci kez uyarı üretmez — hoparlör üst üste bağırmaz.') }}</span>
         <input name="cooldown_s" type="number" min="5"
@@ -180,7 +208,7 @@ function bolgeleriDoldur() {
   var tip = document.getElementById("rule_type").value;
   var secim = document.getElementById("zone_id");
   secim.innerHTML = "";
-  if (tip === "safe_distance") {
+  if (tip === "safe_distance" || tip === "vehicle_speed") {
     var bos = document.createElement("option");
     bos.value = ""; bos.textContent = "— tüm kare —";
     secim.appendChild(bos);
@@ -197,7 +225,7 @@ function bolgeleriDoldur() {
 
 function alanlariGoster() {
   var tip = document.getElementById("rule_type").value;
-  ["zone_intrusion", "safe_distance", "ppe_violation"].forEach(function (t) {
+  ["zone_intrusion", "safe_distance", "ppe_violation", "vehicle_speed"].forEach(function (t) {
     var kutu = document.getElementById("alanlar-" + t);
     var secili = (t === tip);
     kutu.style.display = secili ? "" : "none";
@@ -208,6 +236,17 @@ function alanlariGoster() {
   });
   bolgeleriDoldur();
 }
+
+// Kullanıcı hız sınırını km/sa olarak düşünür, ayar m/sn tutulur (Tespit.hiz_mps
+// ile aynı birim). Karşılığı ANINDA yazılır ki kimse kafadan çarpmak zorunda kalmasın.
+function kmhYaz() {
+  var alan = document.getElementById("speed_limit_mps");
+  var deger = parseFloat((alan.value || "").replace(",", "."));
+  document.getElementById("hiz-kmh").textContent =
+    isNaN(deger) || deger <= 0 ? "" : "≈ " + (deger * 3.6).toFixed(1).replace(".", ",") + " km/sa";
+}
+document.getElementById("speed_limit_mps").addEventListener("input", kmhYaz);
+kmhYaz();
 
 document.getElementById("rule_type").addEventListener("change", alanlariGoster);
 document.getElementById("camera_id").addEventListener("change", bolgeleriDoldur);

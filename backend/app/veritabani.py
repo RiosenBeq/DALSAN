@@ -18,6 +18,22 @@ from app.hatalar import VeritabaniHatasi
 # değil, paketin açıldığı geçici klasörde durur.
 SEMA_DIZINI = kaynaklar.kaynak_yolu("backend", "sema")
 
+# Bir şema betiği bu satırı içeriyorsa, betik çalışırken yabancı anahtar
+# zorlaması KAPATILIR ve sonrasında geri açılır.
+#
+# NEDEN GEREKLİ: SQLite'ta bir CHECK kısıtını değiştirmenin tek yolu tabloyu
+# yeniden kurmaktır (yeni tablo + kopyala + eskiyi bırak). `rules` tablosunu
+# böyle taşırken `DROP TABLE rules`, yabancı anahtar zorlaması AÇIKKEN
+# `events.rule_id ... ON DELETE SET NULL` eylemini tetikler ve TÜM OLAY
+# GEÇMİŞİNİN kural bağlantısı sessizce silinir. Bu ölçülerek doğrulandı.
+#
+# NEDEN BETİĞİN İÇİNE PRAGMA YAZILAMAZ: bu PRAGMA bir işlemin İÇİNDE
+# etkisizdir; betikler ise tek transaction içinde çalıştırılır. Bu yüzden
+# anahtarı betik değil, uygulayıcı çevirir.
+#
+# Atomiklik BOZULMAZ: betik + sürüm kaydı yine tek transaction'dadır.
+YABANCI_ANAHTAR_KAPALI = "-- DALSAN-SEMA: YABANCI-ANAHTAR-KAPALI"
+
 
 def baglanti_ac(veritabani_yolu: Path | str) -> sqlite3.Connection:
     """Doğru PRAGMA'larla yeni bir SQLite bağlantısı açar.
@@ -109,8 +125,26 @@ def semayi_uygula(baglanti: sqlite3.Connection, sema_dizini: Path = SEMA_DIZINI)
             f"VALUES ('{betik.name}', '{zaman.simdi_utc()}');\n"
             "COMMIT;\n"
         )
+        # Yabancı anahtar yalnızca betik açıkça istediyse kapatılır (bkz.
+        # YABANCI_ANAHTAR_KAPALI). Kapatma transaction DIŞINDA yapılmalıdır.
+        fk_kapatilacak = YABANCI_ANAHTAR_KAPALI in sql
+        if fk_kapatilacak:
+            baglanti.execute("PRAGMA foreign_keys = OFF")
         try:
             baglanti.executescript(tam_sql)
+            if fk_kapatilacak:
+                # Yeniden kurulan tablo, kendisine bakan kayıtları sahipsiz
+                # bırakmış olabilir. Bu sessizce bozulmuş bir veritabanıdır;
+                # açılış DURMALI ki kullanıcı yedeğe dönebilsin.
+                bozuklar = baglanti.execute("PRAGMA foreign_key_check").fetchall()
+                if bozuklar:
+                    raise VeritabaniHatasi(
+                        "Veritabanı güncellemesi yarım kaldı; kayıtlar arasındaki "
+                        "bağlantılar bozulmuş görünüyor. Kontrol Paneli'nde Durdur'a "
+                        "basıp 'Yedekten Geri Yükle' ile son yedeğe dönün.",
+                        f"{betik.name} sonrası foreign_key_check {len(bozuklar)} "
+                        f"bozuk satır buldu: {bozuklar[:5]}",
+                    )
         except sqlite3.Error as hata:
             baglanti.rollback()
             raise VeritabaniHatasi(
@@ -119,6 +153,12 @@ def semayi_uygula(baglanti: sqlite3.Connection, sema_dizini: Path = SEMA_DIZINI)
                 "program klasöründeki veri/loglar/sistem.log dosyasını destek ekibine iletin.",
                 f"Şema betiği uygulanamadı: {betik.name} — {hata!r}",
             ) from hata
+        finally:
+            # Anahtar HER DURUMDA geri açılır: hata yüzünden kapalı kalırsa
+            # bağlantının geri kalanı yabancı anahtar korumasız çalışırdı ve
+            # bu, bozulmayı fark edilmeden büyütürdü.
+            if fk_kapatilacak:
+                baglanti.execute("PRAGMA foreign_keys = ON")
 
 
 def mevcut_surum(baglanti: sqlite3.Connection) -> str | None:
