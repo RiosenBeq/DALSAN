@@ -196,7 +196,7 @@ def _ham_adimlar(baglanti, supervizor, ayarlar) -> list[dict]:
     kamera_yolu = f"/kameralar/{ilk_kamera['id']}" if ilk_kamera else "/kameralar"
     kural_yolu = f"/kameralar/{bolgeli_kamera['camera_id']}" if bolgeli_kamera else "/kurallar/yeni"
 
-    return [
+    adimlar = [
         _model_adimi(supervizor, ayarlar),
         {
             "no": 2,
@@ -274,6 +274,29 @@ def _ham_adimlar(baglanti, supervizor, ayarlar) -> list[dict]:
             "engeller": True,
         },
         {
+            "no": 7,
+            "baslik": "Giriş şifresi kondu mu?",
+            "tamam": bool(ayarlar.yonetici_sifresi),
+            "hal": "",
+            "aciklama": (
+                "Şifre tanımlı — sisteme girmek için şifre soruluyor."
+                if ayarlar.yonetici_sifresi
+                else (
+                    "Şifre yok: sistemi açabilen herkes kamera silebilir, kural "
+                    "değiştirebilir ve hoparlörden anons yaptırabilir. Sistem yalnızca "
+                    "BU bilgisayardan açılıyorsa sorun değil. Fabrika sunucusuna "
+                    "taşırken ya da ağa açarken mutlaka bir şifre koyun."
+                )
+            ),
+            "bag": "/ayarlar",
+            "bag_yazi": "Şifre koy",
+            # Engellemez: şifresiz sistem çalışır. Ama isteğe bağlı olduğu için
+            # listeyi sürekli "eksik" göstermez — kullanıcı anonssuz da,
+            # şifresiz de çalışan bir sistemle baş başa kalmamalı.
+            "istege_bagli": True,
+            "engeller": False,
+        },
+        {
             "no": 6,
             "baslik": "Sesli anons kuruldu mu?",
             "tamam": ayarlar.anons != "null",
@@ -295,6 +318,9 @@ def _ham_adimlar(baglanti, supervizor, ayarlar) -> list[dict]:
             "engeller": False,
         },
     ]
+    # Numaraya göre sırala: şifre adımı yukarıda anonsun ÖNÜNE yazıldı ama
+    # ekranda kurulum sırasına göre (…6, 7) görünmeli.
+    return sorted(adimlar, key=lambda a: a["no"])
 
 
 def kurulum_durumu(baglanti, supervizor, ayarlar) -> dict:

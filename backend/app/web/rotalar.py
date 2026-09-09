@@ -26,6 +26,26 @@ sablonlar = Jinja2Templates(directory=str(SABLON_DIZINI))
 sablonlar.env.filters["sayi_eki"] = sayi_eki
 
 
+def _sifre_kurulu(istek) -> bool:
+    """Şablonlar için: giriş şifresi tanımlı mı?
+
+    Jinja globali olarak verilir; böylece çıkış düğmesini ve "şifre yok"
+    uyarısını göstermek için yirmi rotanın bağlamına alan eklemek gerekmez.
+    Şifrenin KENDİSİ şablona hiç geçmez — yalnızca doğru/yanlış.
+    """
+    return bool(getattr(istek.app.state.ayarlar, "yonetici_sifresi", ""))
+
+
+sablonlar.env.globals["sifre_kurulu"] = _sifre_kurulu
+
+# GİRİŞ İSTEMEYEN rotalar. Yalnız iki tane vardır ve ikisi de sistem bilgisi
+# taşımaz: tarayıcı simgesi ve canlılık yoklaması. Ayrı bir router olmalarının
+# nedeni, uygulama fabrikasının (uygulama.py) diğer her şeyi tek satırda yetki
+# kapısının arkasına koyabilmesidir — "hangi rota korumasızdı" sorusunun
+# cevabı tek yerde durur.
+acik_router = APIRouter()
+
+
 @router.get("/", response_class=HTMLResponse)
 def ana_sayfa(istek: Request, yedek: str = "", baglanti=Depends(baglanti_al)):
     ayarlar = istek.app.state.ayarlar
@@ -90,7 +110,7 @@ def ana_sayfa(istek: Request, yedek: str = "", baglanti=Depends(baglanti_al)):
     )
 
 
-@router.get("/favicon.ico", include_in_schema=False)
+@acik_router.get("/favicon.ico", include_in_schema=False)
 def favicon():
     """Tarayıcının kök dizinden istediği simge.
 
@@ -106,7 +126,7 @@ def favicon():
     return FileResponse(simge, media_type="image/svg+xml")
 
 
-@router.get("/saglik")
+@acik_router.get("/saglik")
 def saglik(istek: Request):
     """Docker healthcheck ve Kontrol Paneli için UCUZ canlılık kontrolü.
 

@@ -20,8 +20,19 @@ def test_ana_sayfa_beklenen_bilgileri_gosteriyor(istemci):
     assert "Disk" in metin
 
 
-def test_giris_sayfasi_yok_dogrudan_acilir(istemci):
-    # Giriş/şifre bilerek kaldırıldı (docs/07 #0): her sayfa doğrudan açılır
+def test_sifresizken_her_sayfa_dogrudan_acilir(istemci):
+    """YONETICI_SIFRESI boşken bugünkü yerel kullanım aynen sürer.
+
+    Kullanıcı sistemi kendi bilgisayarında denerken her açılışta şifre
+    yazmak zorunda kalmamalı (web/giris.py).
+    """
     for yol in ("/", "/kameralar", "/kurallar", "/olaylar", "/kkd"):
         assert istemci.get(yol).status_code == 200, yol
-    assert istemci.get("/giris").status_code == 404
+
+
+def test_sifresizken_giris_sayfasi_ana_sayfaya_yollar(istemci):
+    """Şifre yokken giriş kutusu göstermek, kullanıcıyı ne yazacağını
+    aramaya iter — anlamsız bir duvar."""
+    yanit = istemci.get("/giris", follow_redirects=False)
+    assert yanit.status_code == 303
+    assert yanit.headers["location"] == "/"

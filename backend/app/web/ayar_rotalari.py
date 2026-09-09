@@ -68,6 +68,29 @@ class AyarGrubu:
 # tarayıcı bunları kutunun içinde gösterir, asıl kararı yine ayarlar.py verir.
 AYAR_GRUPLARI: tuple[AyarGrubu, ...] = (
     AyarGrubu(
+        baslik="Güvenlik",
+        aciklama=(
+            "Sistem bugün yalnızca bu bilgisayardan açılıyorsa şifre gerekmez. "
+            "Fabrika sunucusuna taşırken ya da sistemi ağa açarken şifre koyun: "
+            "sisteme girebilen herkes kamera silebilir, kural değiştirebilir ve "
+            "hoparlörden anons yaptırabilir."
+        ),
+        alanlar=(
+            AyarAlani(
+                anahtar="YONETICI_SIFRESI",
+                alan="yonetici_sifresi",
+                etiket="Yönetici şifresi",
+                tur="metin",
+                ipucu="boş = giriş sorulmaz",
+                aciklama=(
+                    "Boş bırakılırsa giriş sorulmaz. Doldurursanız her sayfa şifre "
+                    "ister; en az 6 karakter olmalıdır. Değişiklik sistemi yeniden "
+                    "başlattıktan sonra geçerli olur ve açık oturumların hepsi düşer."
+                ),
+            ),
+        ),
+    ),
+    AyarGrubu(
         baslik="Anons (hoparlör)",
         aciklama=(
             "İhlalde sesin nereden çıkacağını belirler. Mesajların metnini ve "

@@ -12,7 +12,6 @@ Sıralama beklenen faydaya göre.
 
 | # | Başlık | Tetikleyici / gerekçe | Büyüklük |
 |---|---|---|---|
-| 0 | **Giriş şifresi** (tek yönetici şifresi, imzalı çerez) — **fabrika sunucusuna çıkmadan ÖNCE** | Geliştirme aşamasında kullanıcı kararıyla kaldırıldı (02.09.2026): sistem tek makinede, yalnızca 127.0.0.1'den açılıyor. Docker/0.0.0.0 ile ağa açılınca zorunlu. Eski kod git geçmişinde: `backend/app/web/giris.py` + `tests/test_giris.py` (commit 067a2b6). | Küçük |
 | 1 | **Olay video klibi** (öncesi/sonrası 5+5 sn) | Yanlış alarm incelemesinde ve İSG eğitiminde snapshot'tan çok daha güçlü. En sık istenecek özellik. | Orta |
 | 2 | **KKD geri besleme döngüsü** | MVP'nin "Yanlış alarm" işaretleri + snapshot'ları zaten veri seti. Kalan iş: periyodik yeniden eğitim betiği + model sürüm yönetimi. Precision'ı zamanla yükseltir. | Orta |
 | 3 | **Raporlama ve dashboard** | "İSG performansının veriye dayalı izlenmesi" hedefinin devamı: kamera/kural/bölge/**alan** kırılımı, vardiya karşılaştırması, PDF/Excel çıktı. Olay tablosu zaten doğru indeksli. | Orta |
@@ -41,6 +40,9 @@ Sıralama beklenen faydaya göre.
 
 | Eski başlık | Bugünkü durum |
 |---|---|
+| Giriş şifresi (#0) | **Kapandı:** `.env` → `YONETICI_SIFRESI`. Boşken giriş sorulmaz (tek makinelik kurulum, bugünkü davranış), doluyken her sayfa şifre ister. Ekrandan da ayarlanır (Ayarlar → Güvenlik) ve şifresizken kurulum listesi uyarır. |
+| Yedekten geri yükleme (K7) | **Kapandı:** Kontrol Paneli'nde "Yedekten Geri Yükle" düğmesi. Sistem çalışırken reddeder, önce güvenlik kopyası alır, bayat WAL dosyalarını siler. Prova adımları `06-OPERASYON.md` §1.2.2'de. |
+| Sunucu yeniden başlayınca otomatik açılış (K8) | **Kapandı:** Docker'da `restart: unless-stopped` hazırdı; Docker'sız kurulum için systemd birimi ve her ikisinin de PROVASI `06-OPERASYON.md` §1.2.1'e yazıldı. |
 | Anons uç noktasının somut biçimi (R3) | Kapandı: üç HTTP biçimi (`json`/`form`/`get`) ve adres yer tutucuları eklendi; hangi cihaz için hangisinin seçileceği `14-ANONS-SISTEMI-BAGLAMA.md`'de. Sahadaki cihaz öğrenilince kod DEĞİL, ayar değişir. |
 | Bölge çiziminin zahmeti | Kapandı: zemindeki boyadan otomatik alan önerisi, dikdörtgen kipi, köşe sürükleme ve ekran görüntüsü üzerine çizim. |
 | "Kaç kişi geçti" sorusu | Kısmen: bölge bazlı canlı sayım eklendi (`rules/sayim.py`). Kalıcı kayıt ve yön bilgisi hâlâ açık — #19 ve #20. |

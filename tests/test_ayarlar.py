@@ -19,11 +19,13 @@ def test_env_yoksa_anlasilir_hata(tmp_path):
 
 
 def test_bos_env_varsayilanlarla_yuklenir(tmp_path):
-    # Giriş şifresi yok; .env'de hiçbir satır olmasa da sistem açılır
+    # .env'de hiçbir satır olmasa da sistem açılır
     _env_yaz(tmp_path, "")
     ayarlar = ayarlari_yukle(tmp_path)
     assert ayarlar.olay_saklama_gun == 180
-    assert not hasattr(ayarlar, "yonetici_sifresi")
+    # Şifre BOŞ = giriş sorulmaz. Tek makinede çalışan kurulumun bugünkü
+    # davranışı budur ve bir ayar eklemek onu değiştirmemeli (web/giris.py).
+    assert ayarlar.yonetici_sifresi == ""
 
 
 def test_sayi_bozuksa_hata(tmp_path):

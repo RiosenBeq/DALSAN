@@ -108,6 +108,7 @@ def test_ayarlari(tmp_path: Path):
         tespit_nms_esigi=0.45,
         tespit_en_kucuk_kenar_px=12,
         goruntu_iyilestirme="kapali",
+        yonetici_sifresi="",
         anons="null",
         anons_http_adresi="",
         anons_http_bicimi="json",

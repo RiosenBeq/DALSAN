@@ -1,0 +1,36 @@
+{# Giriş ekranı — kabuk şablonlarından (temel.html / komuta_temel.html)
+   BİLEREK bağımsızdır: o kabuklar menü, canlı olay akışı ve sistem durumu
+   gösterir; hiçbiri giriş yapmamış birine gösterilmemelidir. #}
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DALSAN İSG — Giriş</title>
+  <link rel="icon" href="/static/logo.svg?v=21">
+  <link rel="stylesheet" href="/static/stil.css?v=21">
+</head>
+<body class="giris-arkaplan">
+  <main class="giris-kutusu">
+    <img src="/static/logo.svg?v=21" alt="" width="44" height="44">
+    <h1>NextGen Detector</h1>
+    <p class="alt-baslik">DALSAN İSG — Görüntü Analiz Sistemi</p>
+
+    {% if hata %}
+    <p class="hata-mesaji">Şifre yanlış. Tekrar deneyin.</p>
+    {% endif %}
+
+    <form method="post" action="/giris" class="dikey-form">
+      <input type="hidden" name="sonra" value="{{ sonra }}">
+      <label>Yönetici şifresi
+        <input type="password" name="sifre" autofocus required autocomplete="current-password">
+      </label>
+      <button type="submit" class="dugme">Giriş</button>
+    </form>
+
+    <p class="not">Şifre, program klasöründeki <b>.env</b> dosyasında
+      <b>YONETICI_SIFRESI</b> satırında yazılıdır. Unuttuysanız o satırı
+      değiştirip sistemi yeniden başlatın.</p>
+  </main>
+</body>
+</html>

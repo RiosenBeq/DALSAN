@@ -35,12 +35,99 @@ docker compose ps          # tek servis: dalsan — durum "healthy" olmalı
 
 Erişim: `http://127.0.0.1:8080` (compose varsayılanı sunucunun kendisine açar).
 
-> **Ağa açmadan önce:** giriş şifresi şu an bilerek kapalıdır (`docs/07` #0).
-> `docker-compose.yml` içindeki port satırını `"8080:8080"` yapmadan ÖNCE şifre
-> geri eklenmelidir; aksi halde ağdaki herkes kural değiştirebilir.
+> **Ağa açmadan önce şifre koyun.** `.env` dosyasındaki `YONETICI_SIFRESI`
+> satırı boşken giriş sorulmaz — bu, yalnızca `127.0.0.1`'den açılan tek
+> makinelik kurulum içindir. `docker-compose.yml` içindeki port satırını
+> `"8080:8080"` yapmadan ÖNCE şifreyi doldurun; aksi halde ağdaki herkes
+> kamera silebilir, kural değiştirebilir ve hoparlörden anons yaptırabilir.
+> Şifre en az 6 karakter olmalıdır; sistem daha kısasını açılışta reddeder.
+> Ekrandan da ayarlanabilir: **Komuta → Ayarlar → Güvenlik**.
 
 Şema **otomatik** uygulanır: açılışta `backend/sema/*.sql` sırayla çalışır ve
 uygulananlar `sema_surumu` tablosuna yazılır. Ayrı migrasyon komutu yoktur.
+
+### 1.2.1 Sunucu yeniden başlayınca sistem kendiliğinden kalkmalı (K8)
+
+Docker kurulumunda bu **hazırdır**: `docker-compose.yml` içindeki
+`restart: unless-stopped` satırı, sunucu yeniden başladığında container'ı da
+başlatır. Tek koşul, Docker servisinin kendisinin açılışta başlamasıdır:
+
+```bash
+sudo systemctl enable docker
+```
+
+**Provası (atlanmayacak):** sunucuyu gerçekten yeniden başlatın ve sistem
+kendiliğinden açılmış mı bakın.
+
+```bash
+sudo reboot
+# sunucu açıldıktan ~1 dk sonra:
+docker compose ps            # durum "healthy" olmalı
+curl -fs http://127.0.0.1:8080/saglik
+```
+
+**Docker kullanılmıyorsa** (sistem doğrudan Python ile çalışıyorsa) aynı işi
+systemd yapar. `/etc/systemd/system/dalsan.service` dosyasını oluşturun —
+`<KURULUM-YOLU>` ve `<KULLANICI>` kendi değerlerinizle değişir:
+
+```ini
+[Unit]
+Description=DALSAN ISG Goruntu Analiz Sistemi
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=<KULLANICI>
+WorkingDirectory=<KURULUM-YOLU>
+ExecStart=<KURULUM-YOLU>/.venv/bin/python -m uvicorn app.main:uygulama \
+          --host 127.0.0.1 --port 8080 --app-dir backend
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now dalsan
+sudo systemctl status dalsan      # "active (running)" olmalı
+```
+
+`Restart=always`, sistem bir hata yüzünden kapanırsa da 10 saniye içinde
+yeniden başlatır — 7x24 çalışmanın gereği.
+
+### 1.2.2 Yedekten geri yükleme provası (K7)
+
+**Prova edilmemiş bir yedek, yedek değildir.** Kurulum tamamlandıktan sonra
+bunu bir kez yapın:
+
+1. İzleme ekranındaki **"Yedek Al"** düğmesine basın → `veri/yedekler/` altına
+   bir `.db` dosyası düşer.
+2. Sisteme bir deneme kamerası ekleyin (sonra silinecek).
+3. Kontrol Paneli'nde **Durdur**'a basın. *(Geri yükleme sistem çalışırken
+   yapılamaz: veritabanı dosyası açıktır ve altından değiştirmek veri kaybıdır.
+   Düğme zaten reddeder.)*
+4. **"Yedekten Geri Yükle"** → 1. adımdaki dosyayı seçin → onaylayın.
+5. **Sistemi Başlat** → deneme kamerasının **kaybolmuş** olması gerekir.
+
+Geri yükleme, mevcut veritabanının bir kopyasını `veri/yedekler/` altına
+`geri-yukleme-oncesi-...db` adıyla alır; yanlış yedeği seçtiyseniz aynı
+düğmeyle ona dönebilirsiniz.
+
+Docker kurulumunda Kontrol Paneli yoktur; orada geri yükleme elle yapılır:
+
+```bash
+docker compose stop
+cp veri/dalsan.db veri/yedekler/geri-yukleme-oncesi-$(date +%F_%H-%M).db
+cp veri/yedekler/<SECILEN-YEDEK>.db veri/dalsan.db
+rm -f veri/dalsan.db-wal veri/dalsan.db-shm   # bayat WAL yeni dosyayı bozar
+docker compose start
+```
+
+> `-wal` ve `-shm` dosyalarını silmek **şart**: SQLite bunları bulursa eski
+> günlüğü yeni veritabanının üstüne uygular.
 
 ### 1.3 Verinin ve ayarların yeri
 

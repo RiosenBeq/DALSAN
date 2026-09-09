@@ -36,6 +36,20 @@ class VeritabaniHatasi(DalsanHata):
     """SQLite bağlantısı veya şema uygulaması başarısız."""
 
 
+class YetkiHatasi(DalsanHata):
+    """Oturum yok/geçersiz. Tarayıcı isteği giriş sayfasına yönlendirilir.
+
+    Yetki kontrolü TEK yerdedir (web/giris.py → oturum_gerekli); ileride
+    kullanıcı tablosuna geçilirse yalnızca orası değişir.
+    """
+
+    http_kodu = 401
+
+    def __init__(self, sonraki_yol: str = "/") -> None:
+        super().__init__("Bu sayfa için giriş yapmanız gerekiyor.")
+        self.sonraki_yol = sonraki_yol
+
+
 class DogrulamaHatasi(DalsanHata):
     """Kullanıcı girdisi geçersiz (form/parametre) — 400 döner, mesaj yol gösterir."""
 
@@ -106,6 +120,24 @@ def hata_yakalayicilari_kur(app) -> None:
         log.error(hata.teknik_ayrinti)
         baslik = "Girdi hatası" if hata.http_kodu == 400 else "Hata"
         return _yanit(istek, hata.http_kodu, hata.kullanici_mesaji, baslik)
+
+    @app.exception_handler(YetkiHatasi)
+    async def yetki_hatasi(istek: Request, hata: YetkiHatasi):
+        # Tarayıcıdan gelen SAYFA isteği giriş ekranına yönlenir; JS/fetch
+        # istekleri 401 JSON alır — yönlendirme onların akışını bozardı
+        # (önizleme ve durum sorguları sessizce HTML almaya başlardı).
+        from urllib.parse import quote
+
+        from fastapi.responses import RedirectResponse
+
+        # `Accept: text/html` TEK ölçüt değildir: bazı tarayıcı/vekil sunucu
+        # birleşimleri üst düzey gezinmede `*/*` gönderir ve kullanıcı giriş
+        # formu yerine ham JSON görürdü. Modern tarayıcılar gezinmeyi ayrıca
+        # `Sec-Fetch-Mode: navigate` ile bildirir; fetch çağrıları bildirmez.
+        gezinme = istek.headers.get("sec-fetch-mode") == "navigate"
+        if _html_ister(istek) or gezinme:
+            return RedirectResponse(f"/giris?sonra={quote(hata.sonraki_yol)}", status_code=303)
+        return JSONResponse(status_code=401, content={"hata": hata.kullanici_mesaji})
 
     @app.exception_handler(RequestValidationError)
     async def form_hatasi(istek: Request, hata: RequestValidationError):

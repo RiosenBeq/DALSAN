@@ -29,6 +29,13 @@
         <a href="/olaylar" {% if aktif_sekme == 'olaylar' %}class="aktif"{% endif %}>Olaylar</a>
         <a href="/kkd" {% if aktif_sekme == 'kkd' %}class="aktif"{% endif %}>KKD</a>
         <a href="/anons" {% if aktif_sekme == 'anons' %}class="aktif"{% endif %}>Anons</a>
+        {# Çıkış yalnızca şifre tanımlıyken görünür: şifresiz kurulumda
+           basıldığında hiçbir işe yaramayan bir düğme olurdu. #}
+        {% if sifre_kurulu(request) %}
+        <form method="post" action="/cikis" class="satir-form">
+          <button class="metin-dugme">Çıkış</button>
+        </form>
+        {% endif %}
       </nav>
     </div>
   </header>

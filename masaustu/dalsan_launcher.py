@@ -78,6 +78,8 @@ ENV_FILE = ROOT / ".env"
 ENV_EXAMPLE = ROOT / ".env.example"
 DATA_DIR = ROOT / "veri"
 LOG_FILE = DATA_DIR / "loglar" / "sistem.log"
+VERITABANI = DATA_DIR / "dalsan.db"
+YEDEK_DIZINI = DATA_DIR / "yedekler"
 
 # Renkler (sade, goz yormayan)
 BG = "#f5f5f4"
@@ -245,6 +247,63 @@ def _sahipsiz_sureci_durdur(log) -> bool:
     return True
 
 
+# ----------------------------------------------------------------------------
+# Yedekten geri yukleme
+#
+# NEDEN WEB ARAYUZUNDE DEGIL, BURADA: sistem calisirken veritabani dosyasi
+# ACIKTIR (analiz is parcacigi ona baglidir). Acik bir SQLite dosyasinin
+# altindan dosyayi degistirmek veri kaybi demektir. Geri yukleme, ancak sistem
+# DURDURULMUSKEN yapilabilir; onu da yalnizca Kontrol Paneli bilir.
+#
+# K7 (docs/01): "Yedek alma ve geri yukleme dokumante edilmis ve EN AZ BIR KEZ
+# PROVA EDILMIS." Prova edilmemis bir yedek, yedek degildir.
+# ----------------------------------------------------------------------------
+
+# SQLite WAL kipinde iki yan dosya tutar. Ana dosya degisip bunlar KALIRSA
+# SQLite eski WAL'i yeni veritabaninin ustune uygular ve dosya bozulur.
+# Geri yuklemede ikisi de silinmelidir.
+_WAL_UZANTILARI = ("-wal", "-shm")
+
+
+def yedekleri_listele(yedek_dizini=None):
+    """Yedek dosyalarini YENIDEN ESKIYE dogru sirali dondurur."""
+    dizin = Path(yedek_dizini) if yedek_dizini else YEDEK_DIZINI
+    if not dizin.is_dir():
+        return []
+    return sorted(dizin.glob("*.db"), key=lambda y: y.stat().st_mtime, reverse=True)
+
+
+def yedekten_geri_yukle(yedek, veritabani=None):
+    """Yedegi veritabaninin uzerine yazar. Doner: guvenlik kopyasinin yolu.
+
+    Once mevcut veritabaninin GUVENLIK KOPYASI alinir: geri yukleme yanlis
+    dosyayla yapilirsa kullanicinin donecek bir yeri olmalidir. Bu kopya
+    olmadan "geri yukle" tek yonlu ve geri alinamaz bir dugme olurdu.
+    """
+    yedek = Path(yedek)
+    hedef = Path(veritabani) if veritabani else VERITABANI
+    if not yedek.is_file():
+        raise FileNotFoundError(f"Yedek dosyasi bulunamadi: {yedek}")
+    if yedek.resolve() == hedef.resolve():
+        raise ValueError("Yedek dosyasi veritabaninin kendisi; geri yukleme yapilmadi.")
+
+    hedef.parent.mkdir(parents=True, exist_ok=True)
+    guvenlik = None
+    if hedef.is_file():
+        damga = time.strftime("%Y-%m-%d_%H-%M-%S")
+        guvenlik = hedef.parent / "yedekler" / f"geri-yukleme-oncesi-{damga}.db"
+        guvenlik.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(hedef, guvenlik)
+
+    shutil.copy2(yedek, hedef)
+    # Bayat WAL/SHM dosyalari yeni veritabanini bozar (bkz. _WAL_UZANTILARI).
+    for uzanti in _WAL_UZANTILARI:
+        yan = hedef.with_name(hedef.name + uzanti)
+        if yan.exists():
+            yan.unlink()
+    return guvenlik
+
+
 def klasorleri_hazirla() -> None:
     for p in [DATA_DIR, DATA_DIR / "loglar", DATA_DIR / "goruntuler", DATA_DIR / "yedekler"]:
         p.mkdir(parents=True, exist_ok=True)
@@ -359,8 +418,7 @@ def _ic_surecte_baslat(log, gunluk_yaz=None):
 # ----------------------------------------------------------------------------
 def arayuzu_baslat():
     import tkinter as tk
-    from tkinter import font as tkfont
-    from tkinter import scrolledtext
+    from tkinter import filedialog, font as tkfont, messagebox, scrolledtext
 
     kok = tk.Tk()
     kok.title(APP_TITLE)
@@ -466,7 +524,9 @@ def arayuzu_baslat():
     baslat_btn = buton("Sistemi Başlat", lambda: is_baslat(sistemi_baslat), ana=True)
     durdur_btn = buton("Durdur", lambda: sistemi_durdur())
     ekran_btn = buton("İzleme Ekranını Aç", lambda: webbrowser.open(URL))
-    kilitlenecek = [b for b in (kurulum_btn, baslat_btn, durdur_btn) if b is not None]
+    geri_yukle_btn = buton("Yedekten Geri Yükle", lambda: yedekten_don())
+    kilitlenecek = [b for b in (kurulum_btn, baslat_btn, durdur_btn, geri_yukle_btn)
+                    if b is not None]
 
     # ---- log alani ----
     tk.Label(kok, text="Sistem günlüğü", font=kucuk_font, bg=BG, fg=MUTED)\
@@ -721,6 +781,73 @@ def arayuzu_baslat():
         durum["sunucu"] = None
         log("✓ Durduruldu")
         return True
+
+    def yedekten_don():
+        """Yedekten geri yukleme — SISTEM DURMUSKEN.
+
+        Uc kapi vardir ve ucu de bilerek konmustur:
+          1. Sistem calisiyorsa reddedilir (acik veritabani dosyasinin altindan
+             dosya degistirmek veri kaybidir),
+          2. Kullanici dosyayi kendisi secer (yanlis yedegi geri yuklemek,
+             hicbir sey yapmamaktan kotudur),
+          3. Onay penceresinde ne olacagi acikca yazar ve mevcut verinin
+             guvenlik kopyasinin alinacagi soylenir.
+        """
+        if sunucu_ayakta():
+            messagebox.showwarning(
+                "Sistem çalışıyor",
+                "Geri yükleme yapabilmek için sistemin durmuş olması gerekir.\n\n"
+                "Önce \"Durdur\" düğmesine basın, sonra yeniden deneyin.",
+            )
+            return
+
+        yedekler = yedekleri_listele()
+        if not yedekler:
+            messagebox.showinfo(
+                "Yedek yok",
+                "Henüz hiç yedek alınmamış.\n\n"
+                "Yedek almak için sistemi başlatıp izleme ekranındaki\n"
+                "\"Yedek Al\" düğmesini kullanın.",
+            )
+            return
+
+        secilen = filedialog.askopenfilename(
+            title="Geri yüklenecek yedeği seçin",
+            initialdir=str(YEDEK_DIZINI),
+            filetypes=[("Veritabanı yedeği", "*.db")],
+        )
+        if not secilen:
+            return
+
+        ad = Path(secilen).name
+        if not messagebox.askyesno(
+            "Geri yükleme onayı",
+            f"Şu yedek geri yüklenecek:\n\n{ad}\n\n"
+            "BUGÜNKÜ kameralar, bölgeler, kurallar ve olay geçmişi bu yedektekilerle "
+            "DEĞİŞTİRİLECEK.\n\n"
+            "Mevcut verinin bir güvenlik kopyası yedekler klasörüne alınacak, "
+            "böylece isterseniz geri dönebilirsiniz.\n\nDevam edilsin mi?",
+            icon="warning",
+        ):
+            return
+
+        try:
+            guvenlik = yedekten_geri_yukle(secilen)
+        except (OSError, ValueError) as hata:
+            log(f"[!] Geri yükleme başarısız: {hata}")
+            messagebox.showerror("Geri yükleme başarısız", str(hata))
+            return
+
+        log(f"\nYedek geri yüklendi: {ad}")
+        if guvenlik:
+            log(f"Önceki veriler şuraya kopyalandı: {guvenlik.name}")
+        messagebox.showinfo(
+            "Geri yükleme tamam",
+            f"'{ad}' geri yüklendi.\n\n"
+            + (f"Önceki verileriniz '{guvenlik.name}' adıyla saklandı.\n\n" if guvenlik else "")
+            + "Şimdi \"Sistemi Başlat\" düğmesine basabilirsiniz.",
+        )
+        durumu_yenile()
 
     def sistemi_durdur():
         if PAKETLENMIS:

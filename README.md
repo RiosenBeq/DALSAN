@@ -15,9 +15,11 @@ her olayı kanıt fotoğrafıyla kaydeden, **tek sunucuda çalışan** erken uya
    (Windows'ta **"Add Python to PATH"** işaretli olmalı).
 2. Proje klasöründe **Baslat-Mac.command** / **Baslat-Windows.bat** dosyasına çift tıklayın.
 3. Kontrol Paneli'nde **İlk Kurulumu Yap** → **Sistemi Başlat**.
-4. Tarayıcı `http://127.0.0.1:8080` adresinde açılır. Giriş ekranı/şifre yoktur:
-   sistem yalnızca bu bilgisayardan açılır (fabrika sunucusuna çıkmadan önce
-   şifre geri eklenecek — `docs/07-YOL-HARITASI.md` #0).
+4. Tarayıcı `http://127.0.0.1:8080` adresinde açılır. Varsayılanda giriş
+   sorulmaz: sistem yalnızca bu bilgisayardan açılır. **Fabrika sunucusuna
+   taşırken ya da sistemi ağa açarken** `.env` dosyasındaki `YONETICI_SIFRESI`
+   satırını doldurun (ya da Komuta → Ayarlar → Güvenlik); o andan sonra her
+   sayfa şifre ister.
 
 Tespit modeli repoda değildir; sistem ilk açılışta **kendisi indirir** (internet
 gerekir, ~20 MB). Ana sayfada "Tespit modeli: Hazır" görünene kadar bekleyin.

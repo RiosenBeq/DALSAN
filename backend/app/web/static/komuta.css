@@ -1174,3 +1174,10 @@
 .kilavuz-tablo td b { color: var(--metin); }
 .kilavuz-tablo tr:last-child td { border-bottom: 0; }
 .kilavuz-bolum h3 { margin: 12px 0 2px; font-size: 14px; color: var(--metin); }
+
+/* Raftaki çıkış düğmesi bir FORM içindedir (POST); form, bağlantı görünümlü
+   düğmeyi bozmasın diye kendi hizasını sıfırlar. */
+.raf-form { margin: 0; display: contents; }
+.raf-form .raf-dugme {
+  width: 100%; border: 0; background: none; font: inherit; cursor: pointer;
+}

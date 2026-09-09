@@ -59,6 +59,11 @@ class Ayarlar:
     tespit_nms_esigi: float
     tespit_en_kucuk_kenar_px: int
     goruntu_iyilestirme: str
+    # Yönetici şifresi. BOŞ = giriş sorulmaz (tek makinede, 127.0.0.1'de
+    # çalışan kurulum). Dolu = her sayfa giriş ister. Fabrika sunucusunda ya
+    # da sistem ağa açıldığında DOLDURULMALIDIR — kural değiştirebilen ve
+    # anons tetikleyen bir sistem LAN'da bile şifresiz durmamalı.
+    yonetici_sifresi: str
     anons: str
     anons_http_adresi: str
     anons_http_bicimi: str
@@ -170,6 +175,13 @@ def ayarlari_coz(
     ):
         _klasor_olustur(klasor)
 
+    yonetici_sifresi = degerler.get("YONETICI_SIFRESI", "").strip()
+    if yonetici_sifresi and len(yonetici_sifresi) < 6:
+        raise AyarHatasi(
+            ".env dosyasındaki YONETICI_SIFRESI en az 6 karakter olmalı. "
+            "Şifre istemiyorsanız satırı boş bırakın (giriş sorulmaz)."
+        )
+
     anons = _secenek(degerler, "ANONS", varsayilan="null", secenekler=_ANONS_SECENEKLERI)
     anons_http_adresi = degerler.get("ANONS_HTTP_ADRESI", "")
     anons_http_bicimi = _secenek(
@@ -239,6 +251,7 @@ def ayarlari_coz(
         goruntu_iyilestirme=_secenek(
             degerler, "GORUNTU_IYILESTIRME", "kapali", _IYILESTIRME_SECENEKLERI
         ),
+        yonetici_sifresi=yonetici_sifresi,
         anons=anons,
         anons_http_adresi=anons_http_adresi,
         anons_http_bicimi=anons_http_bicimi,

@@ -697,3 +697,22 @@ table.liste tr.pasif td { color: var(--metin-3); }
 .secili-bolge[hidden] { display: none; }
 .secili-bolge .secili-adi { margin-right: auto; }
 .secili-bolge .satir-form { display: inline; }
+
+/* --------------------------------------------------------------------------
+   GİRİŞ EKRANI (web/giris.py — yalnız YONETICI_SIFRESI doluyken görülür)
+   -------------------------------------------------------------------------- */
+.giris-arkaplan {
+  min-height: 100vh; margin: 0; display: grid; place-items: center;
+  background: var(--zemin);
+}
+.giris-kutusu {
+  width: min(360px, 92vw); padding: 28px 26px 22px; text-align: center;
+  border-radius: var(--radius); background: var(--cam-yogun);
+  border: 1px solid var(--cam-sinir); box-shadow: var(--golge-buyuk);
+}
+.giris-kutusu h1 { margin: 10px 0 0; font-size: 1.15rem; }
+.giris-kutusu .alt-baslik { margin: 2px 0 18px; color: var(--metin-3); font-size: 0.84rem; }
+.giris-kutusu .dikey-form { display: grid; gap: 12px; text-align: left; }
+.giris-kutusu label { display: grid; gap: 5px; font-size: 0.85rem; font-weight: 600; }
+.giris-kutusu .not { margin-top: 16px; text-align: left; }
+.giris-kutusu .hata-mesaji { margin: 0 0 12px; }
