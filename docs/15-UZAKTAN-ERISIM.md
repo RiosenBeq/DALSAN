@@ -148,9 +148,15 @@ Arayüzün tamamı çalışır. Bir sorun anında bakılacak yerler:
 | Hoparlör çalıştı mı? | **Komuta → Anons sistemi** — son anons sonucu yazar |
 | Sistem ne diyor? | **Ana sayfa → Sistem günlüğü** ve `veri/loglar/sistem.log` |
 
-**Uzaktan yapılamayan tek şey:** sistemi durdurup başlatmak ve yedekten geri
-yükleme. Bunlar Kontrol Paneli'nde, sunucunun başındadır — bilerek. Uzaktan
-"Durdur" düğmesi, yanlış tıklamayla fabrikayı izlemesiz bırakabilirdi.
+**Uzaktan yapılamayan üç şey:** sistemi durdurup başlatmak, yedekten geri
+yükleme ve **güncelleme**. Üçü de Kontrol Paneli'nde, sunucunun başındadır —
+bilerek. Uzaktan "Durdur" düğmesi yanlış tıklamayla fabrikayı izlemesiz
+bırakabilirdi; web arayüzünden çalıştırılan bir güncelleme ise şifreyi ele
+geçiren birine sunucuda **kod çalıştırma** yolu açardı.
+
+Bunları uzaktan yapmanız gerekiyorsa sunucuya **uzak masaüstü / SSH** ile
+bağlanıp Kontrol Paneli'ni orada kullanın. Böylece kod güncellemek, işletim
+sistemi düzeyinde bir yetki isteyen ayrı bir iş olarak kalır.
 
 Sunucuyu uzaktan yeniden başlatmanız gerekiyorsa BT'den sunucuya uzak masaüstü
 / SSH erişimi isteyin; bu, yazılımın değil işletim sisteminin işidir.

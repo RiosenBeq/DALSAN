@@ -1,5 +1,52 @@
 # İlerleme
 
+## Fabrikaya çıkış şartları, uzaktan erişim ve güncelleme (09.09.2026)
+
+Üç istek arka arkaya geldi ve üçü de "sistem fabrikada tek başına ayakta
+kalabilmeli" başlığının altında.
+
+**Giriş şifresi (yol haritası #0 kapandı).** `.env` → `YONETICI_SIFRESI`.
+BOŞKEN giriş sorulmaz; tek makinede çalışan bugünkü kurulum birebir aynı
+kalır ve geliştirme sırasında her açılışta şifre yazmak gerekmez. Doluyken her
+sayfa giriş ister. Şifresizken kurulum listesi ve Ayarlar sayfası uyarır —
+sessiz bir güvenlik açığı, olmayan güvenlikten kötüdür.
+
+**Yedekten geri yükleme (K7 kapandı).** Kontrol Paneli'nde düğme; web
+arayüzünde değil, çünkü sistem çalışırken veritabanı dosyası açıktır ve
+altından değiştirmek veri kaybıdır. Üç koruma: çalışan sistemde reddeder,
+önce güvenlik kopyası alır, bayat `-wal`/`-shm` dosyalarını siler (kalırlarsa
+SQLite eski günlüğü yeni veritabanının üstüne uygular).
+
+**Otomatik açılış (K8 kapandı).** Docker'da `restart: unless-stopped` zaten
+vardı; eksik olan provasıydı. Reboot provası ve Docker'sız kurulum için
+systemd birimi `06-OPERASYON.md` §1.2.1'e yazıldı.
+
+**Uzaktan erişim.** `.env` → `SUNUCU_ADRESI` ile sistem ağa açılabiliyor.
+Emniyet kilidi: ağa açık + şifresiz kurulum **açılışta reddedilir** — o haliyle
+ağdaki herkes kamera silebilirdi, uyarıyla geçiştirilecek bir durum değil.
+
+Şifre eklemek tek başına yetmiyordu: sınırsız deneme şifreyi fiilen yok sayar.
+Aynı adresten 5 yanlış denemeden sonra adres 5 dakika kilitleniyor ve
+kilitliyken **doğru şifre de** kabul edilmiyor. Ters vekil arkasında çalışırsa
+oturum çerezi `secure` işaretleniyor ve gerçek istemci adresi
+`X-Forwarded-For`un ilk değerinden okunuyor.
+
+Yeni belge `15-UZAKTAN-ERISIM.md`: üç seviye (yalnız sunucu / fabrika ağı /
+fabrika dışı), fabrika dışı için sıralı öneri (VPN veya Tailscale → tünel →
+port açma, sonuncusu **önerilmez**) ve KVKK uyarısı — fabrika içindeki
+insanların görüntüsünü dışarı taşımak DALSAN'ın hukuk biriminin kararıdır.
+
+**GitHub'dan güncelleme.** Kontrol Paneli'nde "Güncelle" düğmesi: Durdur →
+Güncelle → Başlat. Önce veritabanının yedeğini alır (şema göçleri ileri
+yönlüdür), kaydedilmemiş kod değişikliğinin üstüne yazmaz, paket listesi
+değişmediyse pip'i hiç çalıştırmaz. Web arayüzüne bilerek konmadı: oradan
+çalıştırılan bir `git pull`, şifreyi ele geçiren birine sunucuda kod
+çalıştırma yolu açardı.
+
+859 test yeşil (öncesi 804), ruff temiz. Giriş akışı gerçek Chromium'da iki
+kipte de denendi: JavaScript hatası 0, konsol hatası 0.
+
+
 ## Taralı alan gösterimi ve çizim arka planı (09.09.2026)
 
 Bölge çiziminde üç eksik kapatıldı; hepsi "hangi alanı seçtim, sistem neyi

@@ -274,6 +274,120 @@ def _sahipsiz_sureci_durdur(log) -> bool:
 
 
 # ----------------------------------------------------------------------------
+# GitHub'dan guncelleme
+#
+# NEDEN KONTROL PANELINDE: kullaniciya "terminal ac, git pull yaz" demek
+# CLAUDE.md §8'e aykiri. Ayrica guncellemenin ardindan sistemin YENIDEN
+# BASLATILMASI gerekir ve bunu yalnizca panel yapabilir — calisan surec kendi
+# kodunu degistiremez.
+#
+# NEDEN WEB ARAYUZUNDE DEGIL: web arayuzunden calistirilan bir "git pull",
+# sifreyi ele geciren birine sunucuda kod calistirma yolu acardi. Guncelleme
+# sunucunun basinda yapilir; uzaktan erisim belgesi (docs/15) bunu yaziyor.
+#
+# PAKETLENMIS PROGRAMDA CALISMAZ: orada git deposu yoktur, guncelleme yeni
+# uygulamayi eskisinin ustune kopyalamaktir (docs/13 §5). Dugme gizlenir.
+# ----------------------------------------------------------------------------
+
+_GIT_ZAMAN_ASIMI = 120  # saniye; agi yavas fabrikada ilk fetch uzun surebilir
+
+
+def _git(*argumanlar, zaman_asimi=_GIT_ZAMAN_ASIMI):
+    """Depo kokunde git komutu calistirir. Doner: (basarili, cikti)."""
+    try:
+        sonuc = subprocess.run(
+            ["git", "-C", str(ROOT), *argumanlar],
+            capture_output=True, text=True, timeout=zaman_asimi,
+        )
+    except FileNotFoundError:
+        return False, "Bu bilgisayarda git kurulu degil."
+    except (OSError, subprocess.SubprocessError) as hata:
+        return False, str(hata)
+    cikti = (sonuc.stdout + sonuc.stderr).strip()
+    return sonuc.returncode == 0, cikti
+
+
+def git_deposu_mu() -> bool:
+    basarili, cikti = _git("rev-parse", "--is-inside-work-tree", zaman_asimi=15)
+    return basarili and cikti.strip() == "true"
+
+
+def guncelleme_durumu():
+    """GitHub'da yeni surum var mi? Doner: (durum, mesaj).
+
+    durum: "guncel" | "var" | "hata" | "depo-degil"
+    Ag erisimi gerekir; internetsiz fabrikada "hata" doner ve sistem bundan
+    etkilenmez — guncelleme istege bagli bir istektir, arka planda calismaz.
+    """
+    if not git_deposu_mu():
+        return "depo-degil", "Bu kurulum bir git deposu degil; guncelleme paket kopyalayarak yapilir."
+    basarili, cikti = _git("fetch", "--quiet")
+    if not basarili:
+        return "hata", f"GitHub'a ulasilamadi: {cikti[:200]}"
+    basarili, dal = _git("rev-parse", "--abbrev-ref", "HEAD", zaman_asimi=15)
+    if not basarili:
+        return "hata", dal[:200]
+    dal = dal.strip()
+    basarili, sayim = _git("rev-list", "--count", f"HEAD..origin/{dal}", zaman_asimi=15)
+    if not basarili:
+        return "hata", f"'{dal}' dali GitHub'da bulunamadi: {sayim[:150]}"
+    try:
+        adet = int(sayim.strip())
+    except ValueError:
+        return "hata", f"Beklenmeyen cevap: {sayim[:150]}"
+    if adet == 0:
+        return "guncel", f"Sistem guncel ({dal})."
+    return "var", f"{adet} yeni degisiklik var ({dal})."
+
+
+def guncelle(yedek_al=True):
+    """Yedek alir, GitHub'dan ceker, gerekiyorsa paketleri gunceller.
+
+    Doner: (basarili, satirlar). Satirlar panel gunlugune yazilir.
+
+    Once YEDEK: guncelleme yeni bir sema gocu getirmis olabilir ve semalar
+    ileri yonludur. Yedek olmadan "guncelledim, bozuldu, geri alamiyorum"
+    durumu olusur.
+    """
+    satirlar = []
+    if not git_deposu_mu():
+        return False, ["Bu kurulum bir git deposu degil (docs/13 §5)."]
+
+    # Yerel degisiklik varsa pull yarim kalir; kullaniciya SEBEBI soylenmeli.
+    #
+    # YALNIZ IZLENEN dosyalara bakilir (--untracked-files=no): sunucuda birakilan
+    # bir not dosyasi ya da gecici bir cikti guncellemeyi bloke etmemeli. Git
+    # bunlarin ustune zaten yazmaz. Bizi ilgilendiren, DEPODAKI bir dosyanin
+    # elle degistirilmis olmasidir — onun ustune yazmak sessiz veri kaybidir.
+    basarili, kirli = _git("status", "--porcelain", "--untracked-files=no", zaman_asimi=30)
+    if basarili and kirli.strip():
+        return False, [
+            "Bu bilgisayarda kaydedilmemis kod degisiklikleri var; guncelleme",
+            "bunlarin ustune yazmamak icin durduruldu. Degisen dosyalar:",
+            *[f"   {satir}" for satir in kirli.strip().splitlines()[:10]],
+        ]
+
+    if yedek_al and VERITABANI.is_file():
+        damga = time.strftime("%Y-%m-%d_%H-%M-%S")
+        hedef = YEDEK_DIZINI / f"guncelleme-oncesi-{damga}.db"
+        hedef.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(VERITABANI, hedef)
+        satirlar.append(f"Yedek alindi: {hedef.name}")
+
+    onceki_gereksinimler = REQUIREMENTS.read_bytes() if REQUIREMENTS.is_file() else b""
+    basarili, cikti = _git("pull", "--ff-only")
+    if not basarili:
+        return False, ["Guncelleme alinamadi:", *cikti.splitlines()[:10]]
+    satirlar.extend(cikti.splitlines()[:12])
+
+    yeni_gereksinimler = REQUIREMENTS.read_bytes() if REQUIREMENTS.is_file() else b""
+    if yeni_gereksinimler != onceki_gereksinimler:
+        satirlar.append("Paket listesi degismis, paketler guncelleniyor…")
+        return True, satirlar + ["__PAKET_KUR__"]
+    return True, satirlar
+
+
+# ----------------------------------------------------------------------------
 # Yedekten geri yukleme
 #
 # NEDEN WEB ARAYUZUNDE DEGIL, BURADA: sistem calisirken veritabani dosyasi
@@ -553,8 +667,11 @@ def arayuzu_baslat():
     durdur_btn = buton("Durdur", lambda: sistemi_durdur())
     ekran_btn = buton("İzleme Ekranını Aç", lambda: webbrowser.open(URL))
     geri_yukle_btn = buton("Yedekten Geri Yükle", lambda: yedekten_don())
-    kilitlenecek = [b for b in (kurulum_btn, baslat_btn, durdur_btn, geri_yukle_btn)
-                    if b is not None]
+    # Paketlenmis programda git deposu yoktur: guncelleme yeni uygulamayi
+    # eskisinin ustune kopyalamaktir (docs/13 §5). Dugme hic konmaz.
+    guncelle_btn = buton("Güncelle", lambda: is_baslat(guncellemeyi_yap)) if not PAKETLENMIS else None
+    kilitlenecek = [b for b in (kurulum_btn, baslat_btn, durdur_btn, geri_yukle_btn,
+                                guncelle_btn) if b is not None]
 
     # ---- log alani ----
     tk.Label(kok, text="Sistem günlüğü", font=kucuk_font, bg=BG, fg=MUTED)\
@@ -809,6 +926,49 @@ def arayuzu_baslat():
         durum["sunucu"] = None
         log("✓ Durduruldu")
         return True
+
+    def guncellemeyi_yap():
+        """GitHub'daki yeni surumu indirir (sistem DURMUSKEN).
+
+        Guncelleme kodu degistirir; calisan surec kendi kodunu degistiremez,
+        bu yuzden once durdurulmasi gerekir. Ardindan "Sistemi Baslat"a
+        basmak yeter — panel bunu ekranda soyler.
+        """
+        if sunucu_ayakta():
+            log("[!] Güncelleme için sistemin durmuş olması gerekir.")
+            log("    Önce \"Durdur\" düğmesine basın, sonra yeniden deneyin.")
+            return
+
+        log("\nGitHub kontrol ediliyor…")
+        durum, mesaj = guncelleme_durumu()
+        log(f"   {mesaj}")
+        if durum == "depo-degil":
+            log("    Bu kurulumda güncelleme, yeni uygulamayı eskisinin üstüne")
+            log("    kopyalayarak yapılır (docs/13 §5).")
+            return
+        if durum == "hata":
+            log("    İnternet bağlantısını kontrol edip yeniden deneyin.")
+            return
+        if durum == "guncel":
+            return
+
+        log("Güncelleme indiriliyor…")
+        basarili, satirlar = guncelle()
+        for satir in satirlar:
+            if satir != "__PAKET_KUR__":
+                log(f"   {satir}")
+        if not basarili:
+            log("[!] Güncelleme yapılamadı. Yukarıdaki satırları destek ekibine iletin.")
+            return
+
+        if "__PAKET_KUR__" in satirlar:
+            komut_calistir(
+                [str(venv_python()), "-m", "pip", "install", "-q", "-r", str(REQUIREMENTS)],
+                "Paketler güncelleniyor",
+            )
+
+        log("\nGüncelleme tamam. Şimdi \"Sistemi Başlat\" düğmesine basabilirsiniz.")
+        durumu_yenile()
 
     def yedekten_don():
         """Yedekten geri yukleme — SISTEM DURMUSKEN.

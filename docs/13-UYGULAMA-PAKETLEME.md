@@ -110,7 +110,43 @@ klasöründeki `veri/` klasörünü kullanır. İkisi birbirine karışmaz.
 
 ## 5. Güncelleme — sistemde bir şey değişince ne yapılır
 
-Uygulamanın içinde kendini güncelleme diye bir şey yoktur. Yol şudur:
+**İki farklı kurulum, iki farklı yol var.** Hangisinde olduğunuzu Kontrol
+Paneli söyler: **"Güncelle" düğmesi varsa** git kurulumundasınız (§5.1),
+yoksa paketlenmiş uygulamadasınız (§5.2).
+
+### 5.1 Git kurulumu — "Güncelle" düğmesi
+
+Kodu kendi bilgisayarınızda değiştirip GitHub'a gönderdiniz; fabrika
+sunucusunun (ya da ikinci bilgisayarın) onu alması gerekiyor:
+
+1. Kontrol Paneli'nde **Durdur**.
+2. **Güncelle**.
+3. **Sistemi Başlat**.
+
+Düğmenin yaptıkları, günlükte satır satır görünür:
+
+| Adım | Neden |
+|---|---|
+| Sistem çalışıyor mu diye bakar | Çalışan bir program kendi kodunu değiştiremez |
+| GitHub'da yeni sürüm var mı sorar | Yoksa hiçbir şey yapmaz, "Sistem güncel" der |
+| **Veritabanının yedeğini alır** | Güncelleme yeni bir şema göçü getirmiş olabilir ve şemalar ileri yönlüdür; yedeksiz "güncelledim, bozuldu" geri alınamaz |
+| Kaydedilmemiş kod değişikliği var mı bakar | Sunucuda elle düzeltilmiş bir dosya sessizce kaybolmamalı — varsa durur ve hangi dosya olduğunu yazar |
+| Kodu çeker | `git pull --ff-only` |
+| Paket listesi değiştiyse paketleri kurar | `requirements.txt` değişmediyse **kurulum yapılmaz** — her güncellemede pip çalıştırmak dakikalar alır ve gereksizdir |
+
+> **Kayıtlarınız silinmez.** `veri/` klasörü git'e girmez; güncelleme
+> kameralara, bölgelere, kurallara ve olay geçmişine dokunmaz. `.env` de öyle.
+
+**Uzaktan güncelleme:** düğme sunucunun başındadır. Uzaktan güncellemek
+isterseniz sunucuya uzak masaüstü / SSH ile bağlanıp Kontrol Paneli'ni orada
+kullanın (`15-UZAKTAN-ERISIM.md`). Güncelleme web arayüzüne **bilerek
+konmadı**: oradan çalıştırılan bir `git pull`, şifreyi ele geçiren birine
+sunucuda kod çalıştırma yolu açardı.
+
+### 5.2 Paketlenmiş uygulama — yeni sürümü üstüne kopyalama
+
+Paketlenmiş programda git deposu yoktur; "Güncelle" düğmesi de konmaz.
+Yol şudur:
 
 1. Kod tarafında değişiklik yapılır (Claude Code ile).
 2. Üretim komutu **yeniden çalıştırılır** (§2 ya da §3).

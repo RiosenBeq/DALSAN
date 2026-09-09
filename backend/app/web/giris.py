@@ -119,7 +119,7 @@ def _yanlis_deneme_kaydet(adres: str, simdi: float | None = None) -> None:
         sayi = 0
     _denemeler[adres] = (sayi + 1, an)
     if len(_denemeler) > _EN_COK_ADRES:
-        for eski in sorted(_denemeler, key=lambda a: _denemeler[a][1])[:_EN_COK_ADRES // 2]:
+        for eski in sorted(_denemeler, key=lambda a: _denemeler[a][1])[: _EN_COK_ADRES // 2]:
             del _denemeler[eski]
 
 
