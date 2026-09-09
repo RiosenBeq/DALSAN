@@ -20,10 +20,11 @@
     <a href="#sayim">5 · Bölgedeki nesneleri sayma</a>
     <a href="#kural">6 · Kural nasıl kurulur</a>
     <a href="#uyari">7 · Uyarı gelince ne yapılır</a>
-    <a href="#anons">8 · Anons sistemine bağlama</a>
-    <a href="#nesne">9 · Kendi nesnenizi tanıtma</a>
-    <a href="#ayarlar">10 · Ayarları değiştirme</a>
-    <a href="#sorun">11 · Bir şey çalışmazsa</a>
+    <a href="#rapor">8 · Rapor alma (PDF / Excel)</a>
+    <a href="#anons">9 · Anons sistemine bağlama</a>
+    <a href="#nesne">10 · Kendi nesnenizi tanıtma</a>
+    <a href="#ayarlar">11 · Ayarları değiştirme</a>
+    <a href="#sorun">12 · Bir şey çalışmazsa</a>
   </nav>
 
   <div class="kilavuz-bolumler">
@@ -303,9 +304,39 @@
     </section>
 
     {# ---------------------------------------------------------------- 8 #}
+    <section class="komuta-panel kilavuz-bolum" id="rapor">
+      <div class="panel-basligi">
+        <h2>8 · Rapor alma (PDF / Excel)</h2>
+        <span class="panel-notu">Komuta → Rapor</span>
+      </div>
+      <p>Yönetime ya da denetime verilecek dönem özeti burada üretilir: seçtiğiniz
+        tarih aralığında hangi kural, hangi kamera, hangi bölüm ve hangi saat öne
+        çıkmış. Rapor <b>ihlal olaylarını</b> sayar; “kamera koptu” gibi sistem
+        olayları dışarıda kalır.</p>
+      <ol>
+        <li><b>Başlangıç</b> ve <b>Bitiş</b> tarihlerini seçin. Boş bırakırsanız
+          son 30 gün gelir. İsterseniz tek bir <b>bölüm</b> de seçebilirsiniz.</li>
+        <li><b>Göster</b>’e basın.</li>
+        <li><b>PDF için:</b> “Yazdır / PDF yap” düğmesine basın; açılan pencerede
+          yazıcı yerine <b>“PDF olarak kaydet”</b>i seçin. Sol menü ve filtre
+          kutusu kâğıda basılmaz.</li>
+        <li><b>Excel için:</b> “Excel’e aktar” bu sayfadaki özet tabloları verir.
+          Olay olay döküm isterseniz “Olay listesi (CSV)”.</li>
+      </ol>
+      <p><b>Rapordaki “Yanlış alarm” oranı yalnızca işaretlediğiniz olaylar
+        üzerinden hesaplanır.</b> Hiç işaretleme yapmadıysanız o sütunda “—”
+        görürsünüz; incelenmemiş bir olay “doğru uyarı” sayılmaz. Bu yüzden 7.
+        bölümdeki işaretleme alışkanlığı raporun da doğruluğunu belirler.</p>
+      <p class="kilavuz-bag">
+        <a class="dugme" href="/komuta/rapor">Raporu aç</a>
+        <a href="/komuta/inceleme">Olay inceleme →</a>
+      </p>
+    </section>
+
+    {# ---------------------------------------------------------------- 9 #}
     <section class="komuta-panel kilavuz-bolum" id="anons">
       <div class="panel-basligi">
-        <h2>8 · Anons sistemine bağlama</h2>
+        <h2>9 · Anons sistemine bağlama</h2>
         <span class="panel-notu">Komuta → Anons sistemi</span>
       </div>
       <p><b>Anons zorunlu değildir.</b> Kapalıyken de sistem tam çalışır:
@@ -392,10 +423,10 @@
       <p class="kilavuz-bag"><a href="/komuta/anons">Anons sistemine git →</a></p>
     </section>
 
-    {# ---------------------------------------------------------------- 9 #}
+    {# ---------------------------------------------------------------- 10 #}
     <section class="komuta-panel kilavuz-bolum" id="nesne">
       <div class="panel-basligi">
-        <h2>9 · Kendi nesnenizi tanıtma</h2>
+        <h2>10 · Kendi nesnenizi tanıtma</h2>
         <span class="panel-notu">yalnızca yüklenen fotoğrafta arar</span>
       </div>
 
@@ -476,7 +507,7 @@
 
     <section class="komuta-panel kilavuz-bolum" id="ayarlar">
       <div class="panel-basligi">
-        <h2>10 · Ayarları değiştirme</h2>
+        <h2>11 · Ayarları değiştirme</h2>
         <span class="panel-notu">yeniden başlatınca geçerli olur</span>
       </div>
 
@@ -505,7 +536,7 @@
 
     <section class="komuta-panel kilavuz-bolum" id="sorun">
       <div class="panel-basligi">
-        <h2>11 · Bir şey çalışmazsa</h2>
+        <h2>12 · Bir şey çalışmazsa</h2>
         <span class="panel-notu">en sık görülen üç durum</span>
       </div>
 

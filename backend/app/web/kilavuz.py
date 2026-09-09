@@ -39,6 +39,16 @@ EKRAN_ACIKLAMALARI: dict[str, dict[str, str]] = {
             "büyükse üstüne tıklayıp olayları sırayla işaretleyin."
         ),
     },
+    "rapor": {
+        "ne": (
+            "Seçtiğiniz tarih aralığındaki uyarıların özeti: hangi kural, hangi kamera, "
+            "hangi bölüm ve hangi saat öne çıkmış."
+        ),
+        "yap": (
+            "Tarihleri seçip “Yazdır” düğmesine basın; açılan pencerede yazıcı yerine "
+            "“PDF olarak kaydet”i seçin (Excel için “Excel’e aktar”)."
+        ),
+    },
     "duvar": {
         "ne": (
             "Bütün kameraları tek ekranda canlı gösterir. Kırmızı çerçeveli kutu, o "

@@ -1,4 +1,4 @@
-"""Komuta kabuğu: altı ekranın ortak çerçevesi.
+"""Komuta kabuğu: komuta ekranlarının ortak çerçevesi.
 
 Bu aşamada ekran İÇERİKLERİ yok; testler kabuğun her ekranda açıldığını,
 raftan hiçbir sayfanın ULAŞILAMAZ kalmadığını ve başlıktaki sayıların
@@ -17,6 +17,7 @@ EKRANLAR = {
     "/komuta/inceleme": "Olay inceleme",
     "/komuta/saglik": "Kamera sağlığı",
     "/komuta/uyari": "Uyarı ve anons",
+    "/komuta/rapor": "Dönem raporu",
     "/komuta/anons": "Anons sistemi",
 }
 
@@ -36,7 +37,7 @@ def test_her_ekranda_kabuk_ogeleri_var(istemci, yol):
     assert 'class="komuta-baslik"' in metin
     assert 'class="komuta-icerik"' in metin
     assert "/static/komuta.css?v=" in metin
-    # rafın altı komuta düğmesi
+    # rafın komuta düğmeleri
     for hedef in EKRANLAR:
         assert f'href="{hedef}"' in metin, f"{yol} → raf bağlantısı eksik: {hedef}"
 

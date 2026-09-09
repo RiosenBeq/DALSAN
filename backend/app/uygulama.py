@@ -28,6 +28,7 @@ from app.web import (
     kurallar,
     nesne_rotalari,
     olaylar_web,
+    rapor,
     rotalar,
 )
 
@@ -117,6 +118,9 @@ def uygulama_olustur(ayarlar: Ayarlar, analiz: bool = True) -> FastAPI:
     # Komuta kabuğu (/komuta…): tasarımın altı ekranı. Ana sayfa ve
     # kurulum sayfaları eski kabukta kalır; ikisi bağlantıyla geçer.
     uygulama.include_router(komuta.router, dependencies=korumali)
+    # Dönem raporu (/komuta/rapor): komuta kabuğunun içindedir ama veri
+    # hazırlığı ayrı dosyadadır — komuta.py zaten altı ekranın verisini taşıyor.
+    uygulama.include_router(rapor.router, dependencies=korumali)
     # Nesne kütüphanesi (şema 003): kullanıcının kendi nesnesini fotoğrafla
     # tanıtması. Komuta kabuğunu kullanır ama CANLI ANALİZE GİRMEZ — arama
     # yalnızca o sayfaya yüklenen fotoğraflarda yapılır.

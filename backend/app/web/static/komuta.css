@@ -1181,3 +1181,88 @@
 .raf-form .raf-dugme {
   width: 100%; border: 0; background: none; font: inherit; cursor: pointer;
 }
+
+/* ==================================================================
+   DÖNEM RAPORU (/komuta/rapor)
+   ------------------------------------------------------------------
+   Ekranda komuta kabuğu, kâğıtta düz bir belge. PDF için ayrı bir motor
+   kurulmadı (CLAUDE.md §3): aşağıdaki @media print bloğu, tarayıcının
+   "Yazdır → PDF olarak kaydet" adımını yeterli hale getirir. */
+
+.rapor-filtre-form {
+  display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; margin: 0;
+}
+.rapor-filtre-form label {
+  display: flex; flex-direction: column; gap: 4px;
+  font-size: 12px; color: var(--metin-3);
+}
+.rapor-filtre-form input,
+.rapor-filtre-form select { min-width: 150px; }
+.rapor-cikti { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+
+.rapor-kapak { margin: 4px 0 14px; }
+.rapor-kapak h1 { margin: 0 0 4px; font-size: 19px; letter-spacing: -0.02em; }
+.rapor-kunye { margin: 0; font-size: 12.5px; color: var(--metin-3); }
+.rapor-kunye b { color: var(--metin-2); font-weight: 600; }
+
+/* Rapor kartları panodakinden dardır: altı kart tek satıra sığmalı, yoksa
+   yazdırıldığında ikinci sayfaya taşar. */
+.rapor-kartlar { grid-template-columns: repeat(auto-fit, minmax(158px, 1fr)); gap: 12px; }
+.rapor-kartlar .sayi-karti { padding: 16px 18px; }
+/* "07.09.2026" ve "13:00 – 14:00" rakam DEĞİL metindir: 46 px'lik sayı
+   ölçüsünde kutudan taşıyorlardı (ölçüldü). */
+.sayi-degeri.metin { font-size: 21px; letter-spacing: -0.02em; }
+
+.rapor-tablo { display: grid; gap: 3px; }
+.rapor-satiri {
+  display: grid; gap: 12px; align-items: center; padding: 6px 8px;
+  grid-template-columns: minmax(120px, 1.4fr) minmax(70px, 1fr) 62px 58px 128px;
+}
+.rapor-tablo-basligi {
+  padding-bottom: 10px; border-bottom: 1px solid var(--cizgi);
+  font-size: 12px; color: var(--metin-3);
+}
+.rapor-satiri .satir-adi {
+  font-size: 13px; color: var(--metin); overflow-wrap: anywhere;
+}
+.rapor-satiri .sayisal { font-variant-numeric: tabular-nums; text-align: right; }
+.rapor-satiri .sayisal .panel-notu { font-size: 11px; }
+
+/* Gün grafiği 31 sütuna kadar çıkabilir: sayı yazısı sığmaz, yalnız çubuk
+   ve seyreltilmiş etiket kalır (değer, çubuğun title'ında). */
+.rapor-gun-grafigi .histogram-sayi { min-height: 0; }
+.rapor-gun-grafigi .histogram-etiket { font-size: 10px; }
+
+.rapor-notlar ul { margin: 0; padding-left: 18px; }
+.rapor-notlar li {
+  font-size: 12.5px; color: var(--metin-2); line-height: 1.6; margin-bottom: 6px;
+}
+
+@media (max-width: 720px) {
+  /* Dar ekranda beş sütun sığmaz; çubuk düşer, sayılar kalır. */
+  .rapor-satiri { grid-template-columns: minmax(90px, 1.6fr) 52px 48px 96px; }
+  .rapor-satiri .komuta-bar { display: none; }
+}
+
+@media print {
+  /* Gezinme kâğıda basılmaz: sol raf, üst başlık, açıklama şeridi ve
+     filtre kutusu ekranda kalır. */
+  .komuta-raf,
+  .komuta-baslik,
+  .kilavuz-serit,
+  .kilavuz-acici,
+  .yazdirma-gizle { display: none !important; }
+
+  .komuta-kabuk { display: block; min-height: 0; }
+  .komuta-icerik { padding: 0; gap: 12px; }
+  body { background: #fff; }
+
+  /* Cam yüzey ve gölge, mürekkep tüketir ve kâğıtta gri bir leke bırakır. */
+  .komuta-panel {
+    background: #fff; box-shadow: none; backdrop-filter: none;
+    border: 1px solid #bbb; break-inside: avoid; page-break-inside: avoid;
+  }
+  .sayi-karti { background: #fff; box-shadow: none; border: 1px solid #bbb; }
+  .rapor-kapak { border-bottom: 2px solid #333; padding-bottom: 8px; }
+  a[href]::after { content: ""; }  /* adresleri metne ekleme */
+}

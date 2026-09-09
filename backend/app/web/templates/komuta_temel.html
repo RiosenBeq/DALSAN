@@ -1,5 +1,5 @@
 {# Komuta kabuğu: sol raf + üst başlık + içerik.
-   Altı komuta ekranı bu şablonu extends eder.
+   Komuta ekranlarının hepsi bu şablonu extends eder.
 
    Eski kabuk (temel.html) DURUYOR: Kameralar / Kurallar / KKD / Kamera detay
    sayfaları onu kullanmaya devam eder. Rafın "Ayarlar" grubu o sayfalara
@@ -14,16 +14,16 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block baslik %}{{ ekran_basligi }} — DALSAN İSG{% endblock %}</title>
-  <link rel="icon" href="/static/logo.svg?v=21">
-  <link rel="stylesheet" href="/static/stil.css?v=21">
-  <link rel="stylesheet" href="/static/komuta.css?v=21">
+  <link rel="icon" href="/static/logo.svg?v=22">
+  <link rel="stylesheet" href="/static/stil.css?v=22">
+  <link rel="stylesheet" href="/static/komuta.css?v=22">
 </head>
 <body>
 <div class="komuta-kabuk">
 
   <aside class="komuta-raf">
     <a class="raf-marka" href="/komuta" title="NextGen Detector — DALSAN İSG">
-      <img src="/static/logo.svg?v=21" alt="NextGen Detector" width="26" height="26">
+      <img src="/static/logo.svg?v=22" alt="NextGen Detector" width="26" height="26">
     </a>
 
     <a class="raf-dugme {% if ekran == 'ana' %}aktif{% endif %}" href="/komuta">
@@ -45,6 +45,10 @@
     <a class="raf-dugme {% if ekran == 'uyari' %}aktif{% endif %}" href="/komuta/uyari">
       <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M6 10a6 6 0 1112 0c0 4 1.5 5.5 1.5 5.5h-15S6 14 6 10z"/><path d="M10 19a2.2 2.2 0 004 0"/></svg>
       <span>Uyarı</span>
+    </a>
+    <a class="raf-dugme {% if ekran == 'rapor' %}aktif{% endif %}" href="/komuta/rapor">
+      <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3.5h8L19 8v12.5H6z"/><path d="M13.6 3.6V8.4H18.8"/><path d="M9 17v-3M12 17v-5.5M15 17v-2"/></svg>
+      <span>Rapor</span>
     </a>
     <a class="raf-dugme {% if ekran == 'anons' %}aktif{% endif %}" href="/komuta/anons">
       <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10v4h3l5 4V6L7 10H4z"/><path d="M16.5 9.2a4 4 0 010 5.6M19 6.8a7.5 7.5 0 010 10.4"/></svg>
@@ -149,7 +153,7 @@
       {% endif %}
       {# Betik BURADA yüklenir (sayfanın sonunda değil): şerit öğesi çözümlenmiş
          olduğu için, kapatılmış bir şerit ekranda bir an görünüp kaybolmaz. #}
-      <script src="/static/kilavuz.js?v=21"></script>
+      <script src="/static/kilavuz.js?v=22"></script>
 
       {% block icerik %}{% endblock %}
     </main>
@@ -157,7 +161,7 @@
 
 </div>
 {# Silme onayı: eski kabukla AYNI dosya — iki ekranda farklı davranmasın. #}
-<script src="/static/onay.js?v=21"></script>
+<script src="/static/onay.js?v=22"></script>
 {% block betikler %}{% endblock %}
 </body>
 </html>

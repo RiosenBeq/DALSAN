@@ -14,7 +14,7 @@ Sıralama beklenen faydaya göre.
 |---|---|---|---|
 | 1 | **Olay video klibi** (öncesi/sonrası 5+5 sn) | Yanlış alarm incelemesinde ve İSG eğitiminde snapshot'tan çok daha güçlü. En sık istenecek özellik. | Orta |
 | 2 | **KKD geri besleme döngüsü** | MVP'nin "Yanlış alarm" işaretleri + snapshot'ları zaten veri seti. Kalan iş: periyodik yeniden eğitim betiği + model sürüm yönetimi. Precision'ı zamanla yükseltir. | Orta |
-| 3 | **Raporlama ve dashboard** | "İSG performansının veriye dayalı izlenmesi" hedefinin devamı: kamera/kural/bölge/**alan** kırılımı, vardiya karşılaştırması, PDF/Excel çıktı. Olay tablosu zaten doğru indeksli. | Orta |
+| 3 | **Raporlamanın kalanı: vardiya karşılaştırması ve eğilim** | Dönem raporu YAPILDI (aşağıdaki kapananlar). Açık kalan: vardiya (08–16 / 16–24 / 24–08) kırılımı ve dönemler arası eğilim ("geçen aya göre %18 azaldı"). İkisi de vardiya tanımını sisteme sokmayı gerektirir; bugün sistemde vardiya kavramı YOK ve uydurulmadı. | Orta |
 | 4 | **Bildirim kanalları** (e-posta, SMS/WhatsApp, mobil push) | Kritik ihlalin ekran başında kimse yokken duyulması. `EventSink` arayüzüne yeni sink. | Küçük-orta |
 | 5 | **Kullanıcı yönetimi ve roller** (İSG yöneticisi / operatör / izleyici) | Birden çok departman kullanmaya başladığında; kim neyi değiştirdi izlenebilirliği. Auth zaten tek dependency'de. | Orta |
 | 6 | **Yüz bulanıklaştırma** (snapshot'ta) | KVKK açısından değerli; KKD kapsamı genişledikçe önemi artar. Kişi bbox'ının üst bölgesine blur. | Küçük |
@@ -44,6 +44,7 @@ Sıralama beklenen faydaya göre.
 | Sunucu yeniden başlayınca otomatik açılış (K8) | **Kapandı:** Docker'da `restart: unless-stopped` hazırdı; Docker'sız kurulum için systemd birimi ve her ikisinin de PROVASI `06-OPERASYON.md` §1.2.1'e yazıldı. |
 | Anons uç noktasının somut biçimi (R3) | Kapandı: üç HTTP biçimi (`json`/`form`/`get`) ve adres yer tutucuları eklendi; hangi cihaz için hangisinin seçileceği `14-ANONS-SISTEMI-BAGLAMA.md`'de. Sahadaki cihaz öğrenilince kod DEĞİL, ayar değişir. |
 | Bölge çiziminin zahmeti | Kapandı: zemindeki boyadan otomatik alan önerisi, dikdörtgen kipi, köşe sürükleme ve ekran görüntüsü üzerine çizim. |
+| Raporlama: PDF/Excel çıktı (#3'ün ana kısmı) | **Kapandı:** Komuta → Rapor. Kamera / kural / bölge / bölüm kırılımı, saatlik ve günlük dağılım. PDF için yeni kütüphane KURULMADI: sayfa yazdırmaya hazır (`@media print`), tarayıcının "PDF olarak kaydet" adımı yeterli. Excel çıktısı noktalı virgüllü + BOM'lu CSV. Vardiya ve eğilim kırılımı hâlâ açık — #3. |
 | Dördüncü kural tipi: forklift hızı (#15) | **Kapandı:** `vehicle_speed`. Ertelemenin sebebi olan şema kısıtı `backend/sema/005_arac_hizi_kurali.sql` ile güvenli biçimde aşıldı — yabancı anahtar işlem dışında kapatılıp geri açılıyor ve `PRAGMA foreign_key_check` ile olay geçmişinin sağlam kaldığı doğrulanıyor. Karar mantığı `rules/hiz.py`, davranış tanımı `03-KURAL-MOTORU.md` §4. |
 | "Kaç kişi geçti" sorusu | Kısmen: bölge bazlı canlı sayım eklendi (`rules/sayim.py`). Kalıcı kayıt ve yön bilgisi hâlâ açık — #19 ve #20. |
 

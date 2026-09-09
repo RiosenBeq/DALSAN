@@ -1,0 +1,168 @@
+{# Dönem raporu — YAZDIRILMAK için tasarlandı.
+
+   PDF üretmek için ayrı bir kütüphane KURULMADI (CLAUDE.md §3): tarayıcının
+   "Yazdır → PDF olarak kaydet" adımı Windows'ta da Mac'te de vardır, kurulum
+   istemez ve sistemde bakılacak yeni bir parça doğurmaz. Sayfanın yazdırma
+   düzeni komuta.css içindeki @media print bloğundadır: sol raf, üst başlık ve
+   filtre kutusu kâğıda BASILMAZ.
+
+   Ekrandaki her sayı ile Excel çıktısındaki her sayı AYNI yerden gelir
+   (web/rapor.py → rapor_verisi); iki ayrı hesap olsaydı yazdırılan rapor ile
+   dosya birbirini tutmayabilirdi. #}
+{% extends "komuta_temel.html" %}
+{% block icerik %}
+
+{# --- filtre + çıktı düğmeleri (kâğıda basılmaz) --------------------- #}
+<section class="komuta-panel rapor-filtre yazdirma-gizle">
+  <form method="get" action="/komuta/rapor" class="rapor-filtre-form">
+    <label>Başlangıç
+      <input type="date" name="baslangic" value="{{ baslangic }}" max="{{ bitis }}">
+    </label>
+    <label>Bitiş
+      <input type="date" name="bitis" value="{{ bitis }}" min="{{ baslangic }}">
+    </label>
+    <label>Bölüm
+      <select name="alan">
+        <option value="">Tüm fabrika</option>
+        {% for a in alanlar %}
+        <option value="{{ a }}" {% if a == alan %}selected{% endif %}>{{ a }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <button type="submit" class="dugme">Göster</button>
+  </form>
+  <div class="rapor-cikti">
+    {# Yazdırma tarayıcının kendi penceresidir; sunucuya hiçbir şey gitmez. #}
+    <button type="button" class="dugme ikincil" id="yazdir-dugmesi">Yazdır / PDF yap</button>
+    <a class="dugme ikincil" href="/komuta/rapor/ozet.csv?{{ istek_sorgusu }}">Excel'e aktar</a>
+    <a class="dugme ikincil" href="/olaylar/disa-aktar.csv?baslangic={{ baslangic }}&bitis={{ bitis }}{% if alan %}&alan={{ alan }}{% endif %}">Olay listesi (CSV)</a>
+  </div>
+  <p class="panel-notu">“Yazdır” penceresinde yazıcı yerine <b>PDF olarak
+    kaydet</b>’i seçerseniz rapor dosya olur. “Excel’e aktar” bu sayfadaki
+    ÖZET tabloları verir; “Olay listesi” ise olay olay dökümü.</p>
+</section>
+
+{# --- rapor gövdesi (kâğıda basılan kısım) --------------------------- #}
+<header class="rapor-kapak">
+  <h1>DALSAN İSG — Dönem Raporu</h1>
+  <p class="rapor-kunye">
+    <b>Dönem:</b> {{ donem_metni }} ·
+    <b>Bölüm:</b> {{ alan or "tüm fabrika" }} ·
+    <b>Rapor zamanı:</b> {{ uretim_zamani }}
+  </p>
+</header>
+
+{% if sinira_dayandi %}
+<p class="hata-mesaji">Bu dönemde {{ en_cok_olay }} olaydan fazlası var; rapor
+  yalnızca EN YENİ {{ en_cok_olay }} olayı saymıştır. Daha kısa bir tarih
+  aralığı seçin.</p>
+{% endif %}
+
+{% if toplam %}
+
+  <div class="komuta-sayilar rapor-kartlar">
+    {% for kart in kartlar %}
+    <div class="sayi-karti">
+      <span class="sayi-etiketi">{{ kart.etiket }}</span>
+      <span class="sayi-degeri {{ kart.sinif }}">{{ kart.deger }}</span>
+      {% if kart.alt %}<span class="sayi-alt">{{ kart.alt }}</span>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+
+  {% for kirilim in kirilimlar %}
+  <section class="komuta-panel rapor-bolum">
+    <div class="panel-basligi">
+      <h2>{{ kirilim.baslik }}</h2>
+      <span class="panel-notu">{{ kirilim.satirlar|length }} satır · {{ kirilim.toplam }} ihlal</span>
+    </div>
+    <div class="rapor-tablo">
+      <div class="rapor-satiri rapor-tablo-basligi">
+        <span>{{ kirilim.sutun }}</span>
+        <span></span>
+        <span class="sayisal">İhlal</span>
+        <span class="sayisal">Pay</span>
+        <span class="sayisal">Yanlış alarm</span>
+      </div>
+      {% for satir in kirilim.satirlar %}
+      <div class="rapor-satiri">
+        <span class="satir-adi">{{ satir.ad }}</span>
+        <span class="komuta-bar"><span style="width: {{ satir.genislik }}"></span></span>
+        <span class="sayisal">{{ satir.adet }}</span>
+        <span class="sayisal">{{ satir.pay }}</span>
+        {# İşaretlenmemiş olay "doğru uyarı" DEĞİLDİR: oran yoksa "—" yazar ve
+           kaç olayın işaretlendiği yanına eklenir. #}
+        <span class="sayisal">{{ satir.yanlis_alarm }}{% if satir.isaretli %}<span class="panel-notu"> ({{ satir.isaretli }} işaretli)</span>{% endif %}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endfor %}
+
+  <section class="komuta-panel rapor-bolum">
+    <div class="panel-basligi">
+      <h2>Saate göre dağılım</h2>
+      <span class="panel-notu">dönemin tamamı · Türkiye saati</span>
+      {% if saat_tepesi %}<span class="komuta-hap kirmizi panel-sag">{{ saat_tepesi }}</span>{% endif %}
+    </div>
+    <div class="komuta-histogram">
+      {% for s in saat_sutunlari %}
+      <div class="histogram-sutun">
+        <span class="histogram-sayi {{ s.sinif }}">{% if s.deger %}{{ s.deger }}{% endif %}</span>
+        <span class="histogram-cubuk {{ s.sinif }}" style="height: {{ s.yukseklik }}"></span>
+        <span class="histogram-etiket">{{ s.etiket }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    <p class="panel-notu">Sütunlar 00:00–23:00 arası tam gündür; boş saat
+      “o saatte ihlal olmadı” demektir.</p>
+  </section>
+
+  <section class="komuta-panel rapor-bolum">
+    <div class="panel-basligi">
+      <h2>Güne göre dağılım</h2>
+      <span class="panel-notu">{{ gun_sayisi }} gün</span>
+    </div>
+    {# Dönemin HER günü çizilir: olaysız günler atlansaydı grafik, üç günü boş
+       geçen bir haftayı yan yana üç dolu çubuk gibi gösterirdi. #}
+    <div class="komuta-histogram rapor-gun-grafigi">
+      {% for s in gun_sutunlari %}
+      <div class="histogram-sutun" title="{{ s.baslik }}">
+        {# Sayı gözü BOŞ ama SİLİNMEZ: histogram sütunu üç satırlı bir ızgaradır
+           (sayı / çubuk / etiket) ve satır atlanınca çubuk yüksekliği sıfırlanır.
+           30 güne sayı yazılsaydı da okunmazdı; değer çubuğun title'ındadır. #}
+        <span class="histogram-sayi"></span>
+        <span class="histogram-cubuk" style="height: {{ s.yukseklik }}"></span>
+        <span class="histogram-etiket">{{ s.etiket }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+
+{% else %}
+
+  <div class="komuta-bos">
+    <h3>Bu dönemde ihlal kaydedilmedi</h3>
+    <p>Seçilen tarih aralığında ve bölümde hiç ihlal olayı yok. Bu iyi haber
+      olabilir; kural kurulmamışsa sistem zaten ihlal üretmiyor olabilir.</p>
+    <a class="dugme ikincil" href="/kurallar">Kuralları aç</a>
+  </div>
+
+{% endif %}
+
+<section class="komuta-panel rapor-bolum rapor-notlar">
+  <div class="panel-basligi"><h2>Bu rapor nasıl okunur</h2></div>
+  <ul>
+    {% for not_metni in notlar %}<li>{{ not_metni }}</li>{% endfor %}
+  </ul>
+</section>
+
+{% endblock %}
+{% block betikler %}
+<script>
+// Yazdırma tarayıcının kendi işidir; sunucuya istek GİTMEZ.
+document.getElementById("yazdir-dugmesi").addEventListener("click", function () {
+  window.print();
+});
+</script>
+{% endblock %}

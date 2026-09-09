@@ -36,6 +36,7 @@ KILAVUZ_BOLUMLERI = (
     ("bolge", "Bölge nasıl çizilir"),
     ("kural", "Kural nasıl kurulur"),
     ("uyari", "Uyarı gelince ne yapılır"),
+    ("rapor", "Rapor alma (PDF / Excel)"),
     ("ayarlar", "Ayarları değiştirme"),
     ("sorun", "Bir şey çalışmazsa"),
 )

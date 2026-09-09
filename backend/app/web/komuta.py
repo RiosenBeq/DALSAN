@@ -30,9 +30,12 @@ from app.web.ortak import (
     OLAY_SORGUSU,
     SINIFLAR,
     baglanti_al,
+    cubuk_yuzdesi,
     olay_hazirla,
     rtsp_maskele,
+    saat_sutunlari,
     sayi_metni,
+    yogunluk_sinifi,
 )
 from app.web.rotalar import sablonlar
 
@@ -46,6 +49,8 @@ EKRAN_BASLIKLARI = {
     "saglik": "Kamera sağlığı",
     "uyari": "Uyarı ve anons",
     "anons": "Anons sistemi",
+    # Onuncu ekran: seçilen dönemin özeti; yazdırılıp PDF yapılabilir (rapor.py).
+    "rapor": "Dönem raporu",
     # Tasarımda olmayan yedinci ekran: sistemi ilk kez açan kişi için
     # kurulumun ve günlük kullanımın tek sayfalık anlatımı.
     "kilavuz": "Kullanım kılavuzu",
@@ -65,6 +70,7 @@ EKRAN_ALT_BASLIKLARI = {
     "inceleme": "Kuyruktaki ihlalleri sırayla işaretleyin",
     "saglik": "Bağlantı, örnekleme ve kalibrasyon durumu",
     "uyari": "Kural, hoparlör ve bildirim zinciri",
+    "rapor": "Dönem özeti · yazdırıp PDF yapabilirsiniz",
     "kilavuz": "Sistemi kurma, çalıştırma ve uyarıları değerlendirme",
     "ayarlar": "Anons, tespit hassasiyeti ve saklama süreleri",
 }
@@ -129,7 +135,7 @@ def _alt_baslik(ekran: str, istek: Request, baglanti, toplam: int, bolum: int) -
 
 
 def kabuk_baglami(istek: Request, baglanti, ekran: str) -> dict:
-    """Altı ekranın da paylaştığı kabuk verisi."""
+    """Komuta ekranlarının paylaştığı kabuk verisi."""
     toplam, canli, bolum = _kamera_sayilari(baglanti)
     return {
         "ekran": ekran,
@@ -247,13 +253,6 @@ def anons_sistemi(istek: Request, sonuc: str = "", baglanti=Depends(baglanti_al)
 # sistemde neredeyse hep boş bir grafik görünürdü.
 ALAN_PENCERESI_GUN = 7
 
-# Renk eşiği SAYIYA değil, o listedeki EN YÜKSEK değere ORANLA verilir:
-# 4 ihlalli küçük bir kurulumda da 400 ihlalli büyük bir kurulumda da "en yoğun
-# alan" kırmızı görünsün. Sabit bir "20 ihlal = kırmızı" eşiği kurulumdan
-# kuruluma yanlış olurdu.
-YOGUN_ORANI = 0.66
-ORTA_ORANI = 0.33
-
 # Canlı akışta ve öne çıkan kameralarda gösterilecek satır/kutu sayısı.
 AKIS_SATIRI = 6
 ONE_CIKAN_KAMERA = 4
@@ -289,24 +288,6 @@ def _olay_yeri(olay: dict) -> str:
     if olay["kamera_alani"]:
         yer += f" · {olay['kamera_alani']}"
     return yer
-
-
-def _yogunluk_sinifi(deger: int, en_yuksek: int) -> str:
-    if en_yuksek <= 0:
-        return ""
-    oran = deger / en_yuksek
-    if oran >= YOGUN_ORANI:
-        return "yogun"
-    if oran >= ORTA_ORANI:
-        return "orta"
-    return ""
-
-
-def _yuzde(deger: int, en_yuksek: int) -> str:
-    """Çubuk genişliği/yüksekliği — en yüksek değere oranla."""
-    if en_yuksek <= 0:
-        return "0%"
-    return f"{round(deger / en_yuksek * 100)}%"
 
 
 def _sayi_kartlari(baglanti) -> list[dict]:
@@ -396,8 +377,8 @@ def _alan_yogunlugu(baglanti) -> list[dict]:
             # yerine ne olduğu söylenir (Kameralar sayfasından doldurulur).
             "ad": s["alan"] or "Bölüm girilmemiş",
             "deger": s["n"],
-            "genislik": _yuzde(s["n"], en_yuksek),
-            "sinif": _yogunluk_sinifi(s["n"], en_yuksek),
+            "genislik": cubuk_yuzdesi(s["n"], en_yuksek),
+            "sinif": yogunluk_sinifi(s["n"], en_yuksek),
         }
         for s in satirlar
     ]
@@ -424,37 +405,6 @@ def _canli_akis(baglanti) -> list[dict]:
     return akis
 
 
-def _saat_sutunlari(zamanlar, birim: str) -> dict:
-    """UTC damga listesini 00-23 arası 24 sütuna böler (histogram).
-
-    Kovalama SQL'de değil Python'da yapılır: veritabanındaki damgalar UTC'dir,
-    SQLite'ın saat dilimi bilgisi yoktur ve sütunlar 3 saat kayardı.
-
-    Hem ihlal hem anons dağılımı bu fonksiyonu kullanır: iki ayrı kovalama
-    kodu olsaydı aynı olay iki grafikte farklı saate düşebilirdi.
-    """
-    kovalar = [0] * 24
-    for damga in zamanlar:
-        kovalar[zaman.yerel_saat(damga)] += 1
-
-    toplam = sum(kovalar)
-    en_yuksek = max(kovalar) if toplam else 0
-    sutunlar = [
-        {
-            "etiket": f"{saat:02d}",
-            "deger": adet,
-            "yukseklik": _yuzde(adet, en_yuksek),
-            "sinif": _yogunluk_sinifi(adet, en_yuksek),
-        }
-        for saat, adet in enumerate(kovalar)
-    ]
-    tepe = ""
-    if toplam:
-        saat = kovalar.index(en_yuksek)
-        tepe = f"En yoğun {saat:02d}:00 – {(saat + 1) % 24:02d}:00 · {en_yuksek} {birim}"
-    return {"sutunlar": sutunlar, "toplam": toplam, "tepe": tepe}
-
-
 def _saatlik_dagilim(baglanti) -> dict:
     """Bugünün ihlallerinin saate göre dağılımı."""
     satirlar = baglanti.execute(
@@ -462,7 +412,7 @@ def _saatlik_dagilim(baglanti) -> dict:
         "WHERE event_type = 'violation' AND occurred_at >= ? ORDER BY occurred_at",
         (zaman.gun_basi_utc(0),),
     ).fetchall()
-    return _saat_sutunlari([s["occurred_at"] for s in satirlar], "ihlal")
+    return saat_sutunlari([s["occurred_at"] for s in satirlar], "ihlal")
 
 
 def _one_cikan_kameralar(baglanti) -> list[dict]:
@@ -1262,7 +1212,7 @@ def anons_baglami(istek: Request, baglanti) -> dict:
     ayarlar = istek.app.state.ayarlar
     sayilar, damgalar = _anons_tetikleyen_olaylar(baglanti)
     hoparlorler = _hoparlor_satirlari(baglanti, ayarlar)
-    saatler = _saat_sutunlari(damgalar, "anons")
+    saatler = saat_sutunlari(damgalar, "anons")
     supervizor = getattr(istek.app.state, "supervizor", None)
     return {
         "anons_kartlari": _anons_kartlari(ayarlar, hoparlorler, len(damgalar)),

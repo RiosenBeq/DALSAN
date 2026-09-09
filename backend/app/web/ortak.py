@@ -84,6 +84,69 @@ def sayi_metni(deger, birim: str = "", basamak: int = 1) -> str:
     return f"{metin.replace('.', ',')} {birim}".strip()
 
 
+# ----------------------------------------------------------- yoğunluk çubukları
+#
+# Komuta panosu, anons ekranı ve rapor AYNI çubukları çizer. Üç ayrı yerde
+# kovalanan bir histogram, aynı olayı üç grafikte farklı saate düşürebilirdi;
+# bu yüzden hesap tek yerde durur (kütüphane YOK — sade CSS genişliği).
+
+# Renk eşiği SAYIYA değil, o listedeki EN YÜKSEK değere ORANLA verilir:
+# 4 ihlalli küçük bir kurulumda da 400 ihlalli büyük bir kurulumda da "en yoğun
+# alan" kırmızı görünsün. Sabit bir "20 ihlal = kırmızı" eşiği kurulumdan
+# kuruluma yanlış olurdu.
+YOGUN_ORANI = 0.66
+ORTA_ORANI = 0.33
+
+
+def yogunluk_sinifi(deger: int, en_yuksek: int) -> str:
+    if en_yuksek <= 0:
+        return ""
+    oran = deger / en_yuksek
+    if oran >= YOGUN_ORANI:
+        return "yogun"
+    if oran >= ORTA_ORANI:
+        return "orta"
+    return ""
+
+
+def cubuk_yuzdesi(deger: int, en_yuksek: int) -> str:
+    """Çubuk genişliği/yüksekliği — en yüksek değere oranla."""
+    if en_yuksek <= 0:
+        return "0%"
+    return f"{round(deger / en_yuksek * 100)}%"
+
+
+def saat_sutunlari(zamanlar, birim: str) -> dict:
+    """UTC damga listesini 00-23 arası 24 sütuna böler (histogram).
+
+    Kovalama SQL'de değil Python'da yapılır: veritabanındaki damgalar UTC'dir,
+    SQLite'ın saat dilimi bilgisi yoktur ve sütunlar 3 saat kayardı.
+
+    İhlal dağılımı, anons dağılımı ve rapor bu fonksiyonu kullanır: ayrı
+    kovalama kodları olsaydı aynı olay iki grafikte farklı saate düşebilirdi.
+    """
+    kovalar = [0] * 24
+    for damga in zamanlar:
+        kovalar[zaman.yerel_saat(damga)] += 1
+
+    toplam = sum(kovalar)
+    en_yuksek = max(kovalar) if toplam else 0
+    sutunlar = [
+        {
+            "etiket": f"{saat:02d}",
+            "deger": adet,
+            "yukseklik": cubuk_yuzdesi(adet, en_yuksek),
+            "sinif": yogunluk_sinifi(adet, en_yuksek),
+        }
+        for saat, adet in enumerate(kovalar)
+    ]
+    tepe = ""
+    if toplam:
+        saat = kovalar.index(en_yuksek)
+        tepe = f"En yoğun {saat:02d}:00 – {(saat + 1) % 24:02d}:00 · {en_yuksek} {birim}"
+    return {"sutunlar": sutunlar, "toplam": toplam, "tepe": tepe}
+
+
 # --------------------------------------------------------------- Türkçe ekler
 #
 # Sayıdan sonra gelen ek, sayının OKUNUŞUNA göre değişir: "%36'sı" ama "%69'u",

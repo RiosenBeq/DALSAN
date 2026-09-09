@@ -95,6 +95,17 @@ def ekranda_tarih(utc_metni: str) -> str:
     return _yerel(utc_metni).strftime("%d.%m.%Y")
 
 
+def yerel_tarih_iso(utc_metni: str | None = None) -> str:
+    """Türkiye tarihinin makine biçimi: 'YYYY-AA-GG'.
+
+    İki yerde gerekir: tarih kutuları (<input type="date">) bu biçimi ister,
+    rapor da günlere bu anahtarla gruplar. `ekranda_tarih()` insan biçimini
+    ('GG.AA.YYYY') verir; ikisi karıştırılmasın. Argümansız çağrılırsa
+    BUGÜNÜN Türkiye tarihini döndürür.
+    """
+    return _yerel(simdi_utc() if utc_metni is None else utc_metni).strftime("%Y-%m-%d")
+
+
 def ekranda_saat(utc_metni: str) -> str:
     """Yalnız saat: 'SS:DD' — canlı akış satırlarındaki gibi, günü belli olan
     listelerde tarihi tekrar yazmamak için."""
