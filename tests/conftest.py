@@ -115,6 +115,7 @@ def test_ayarlari(tmp_path: Path):
         yonetici_sifresi="",
         sunucu_adresi="127.0.0.1",
         anons="null",
+        anons_ses_cihazi="",
         anons_http_adresi="",
         anons_http_bicimi="json",
         anons_bekleme_sn=30,

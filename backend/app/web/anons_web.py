@@ -8,11 +8,14 @@ Böylece fabrikada "acaba çalışıyor mu" belirsizliği kalmaz.
 from __future__ import annotations
 
 from pathlib import Path, PurePosixPath
+from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
+from app import ayarlar as ayarlar_modulu
 from app.hatalar import DogrulamaHatasi
+from app.olaylar import ses_cihazlari, test_sesi
 from app.web.ortak import baglanti_al
 from app.web.rotalar import sablonlar
 
@@ -56,8 +59,67 @@ def anons_sayfasi(istek: Request, sonuc: str = "", baglanti=Depends(baglanti_al)
             "son_sonuc": getattr(supervizor, "_anons", None) and supervizor._anons.son_sonuc,
             "analiz_calisiyor": supervizor is not None,
             "sonuc_mesaji": sonuc,
+            **ses_cikisi_baglami(ayarlar),
         },
     )
+
+
+def ses_cikisi_baglami(ayarlar) -> dict:
+    """ "Ses çıkışı" bölümünün verisi: hangi çıkışlar var, hangisi seçili, bağlı mı.
+
+    Kendi fonksiyonunda: hem bu sayfa hem komuta kabuğundaki anons ekranı
+    aynı tabloyu göstermeli. İki ayrı yerde üretilseydi biri hoparlörü bağlı,
+    diğeri kopmuş gösterebilirdi.
+    """
+    cihazlar = ses_cihazlari.cihazlari_listele()
+    secili = ayarlar.anons_ses_cihazi
+    return {
+        "ses_cihazlari": cihazlar,
+        "secili_ses_cihazi": secili,
+        "ses_secimi_destekleniyor": ses_cihazlari.secim_destekleniyor_mu(),
+        # True = bağlı · False = seçili cihaz listede yok (koptu) · None = öğrenilemedi
+        "ses_cihazi_bagli": ses_cihazlari.cihaz_bagli_mi(secili),
+        "ses_cihazlari_okunabildi": bool(cihazlar),
+    }
+
+
+@router.post("/anons/ses-cikisi")
+def ses_cikisini_kaydet(istek: Request, ses_cihazi: str = Form("")):
+    """Seçilen ses çıkışını .env'e yazar (ANONS_SES_CIHAZI).
+
+    Neden burada, Ayarlar sayfasında değil: seçenekler SABİT DEĞİL, o anda
+    bilgisayara bağlı olan cihazlardan üretiliyor ve yanında "bağlı mı" ile
+    "Test sesi çal" duruyor. Bunları Ayarlar sayfasının statik alan listesine
+    sığdırmak, hoparlör kurulumunu iki ekrana bölerdi.
+
+    Değer DOĞRULANMAZ (serbest metin): Bluetooth hoparlör o an kapalıysa
+    listede görünmez; kullanıcının daha önce seçtiği adı silmek, hoparlörü
+    açtığında ayarının kaybolmuş olması demekti.
+    """
+    ayarlar = istek.app.state.ayarlar
+    ayarlar_modulu.env_dosyasina_yaz(ayarlar.env_yolu, {"ANONS_SES_CIHAZI": ses_cihazi.strip()})
+    return RedirectResponse("/anons?sonuc=ses_cikisi", status_code=303)
+
+
+@router.post("/anons/test-sesi")
+def test_sesi_cal(istek: Request):
+    """Mesaj kurmadan, doğrudan seçili çıkışa kısa bir test sesi çalar.
+
+    Ayrı bir düğme: "Anonsu Dene" bir MESAJA ve ona bağlı bir .wav dosyasına
+    ihtiyaç duyar. Hoparlörü ilk kez bağlayan kullanıcının elinde henüz ikisi
+    de yoktur; "önce ses dosyası hazırlayın" demek, kurulumun ilk adımında
+    duvara toslamaktır. Ses dosyası burada ÜRETİLİR (stdlib `wave`).
+    """
+    ayarlar = istek.app.state.ayarlar
+    if ayarlar.anons != "ses_karti":
+        raise DogrulamaHatasi(
+            "Test sesi yalnızca “Bu bilgisayarın ses kartı” seçiliyken çalınır. "
+            "IP hoparlör için mesajın yanındaki “Anonsu Dene” düğmesini kullanın."
+        )
+    hata = test_sesi.cal(ayarlar.anons_ses_cihazi)
+    if hata:
+        return RedirectResponse(f"/anons?sonuc=test_hata&ayrinti={quote(hata)}", status_code=303)
+    return RedirectResponse("/anons?sonuc=test_calindi", status_code=303)
 
 
 @router.post("/anons/{mesaj_id}/kaydet")

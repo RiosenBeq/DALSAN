@@ -73,6 +73,10 @@ class Ayarlar:
     # Şifresiz bir sistemin ağa açılması AÇILIŞTA REDDEDİLİR — bkz. ayarlari_yukle.
     sunucu_adresi: str
     anons: str
+    # ANONS=ses_karti iken hangi ses ÇIKIŞINA çalınacağı. Boş = işletim
+    # sisteminin varsayılanı. Yalnızca Linux'ta uygulanır; sebebi
+    # olaylar/ses_cihazlari.py başında.
+    anons_ses_cihazi: str
     anons_http_adresi: str
     anons_http_bicimi: str
     anons_bekleme_sn: int
@@ -299,6 +303,10 @@ def ayarlari_coz(
         yonetici_sifresi=yonetici_sifresi,
         sunucu_adresi=sunucu_adresi,
         anons=anons,
+        # Cihaz adı DOĞRULANMAZ: Bluetooth hoparlör o an kapalıysa listede
+        # görünmez ve doğrulama, sistemin hoparlör yüzünden HİÇ AÇILMAMASINA
+        # yol açardı. Bağlı olup olmadığı Anons sayfasında gösterilir.
+        anons_ses_cihazi=_metin(degerler, "ANONS_SES_CIHAZI", ""),
         anons_http_adresi=anons_http_adresi,
         anons_http_bicimi=anons_http_bicimi,
         # Anons, ekran uyarısından bağımsız ve daha seyrek çalar (docs/02 §7):

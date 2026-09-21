@@ -23,11 +23,104 @@
         "Son deneme" satırına bakın.</p>
     {% elif sonuc_mesaji == 'kaydedildi' %}
       <p class="basari-mesaji">Mesaj kaydedildi.</p>
+    {% elif sonuc_mesaji == 'ses_cikisi' %}
+      <p class="basari-mesaji">Ses çıkışı kaydedildi. <b>Yeni çıkış, sistemi yeniden
+        başlattığınızda geçerli olur</b> — Kontrol Paneli'nde Durdur, sonra Sistemi Başlat.</p>
+    {% elif sonuc_mesaji == 'test_calindi' %}
+      <p class="basari-mesaji">Test sesi çalındı (üç kısa bip). Duymadıysanız aşağıdaki
+        listeden başka bir çıkış seçip tekrar deneyin.</p>
+    {% elif sonuc_mesaji == 'test_hata' %}
+      <p class="hata-mesaji">Test sesi çalınamadı: {{ request.query_params.get('ayrinti', '') }}</p>
     {% endif %}
     <p class="not">Anons yolunu değiştirmek için kök klasördeki .env dosyasında
       <code>ANONS</code> satırını düzenleyip sistemi yeniden başlatın:
       <code>null</code> (kapalı), <code>ses_karti</code>, <code>http</code>.</p>
   </section>
+
+  {# SES ÇIKIŞI — yalnızca "ses kartı" yolunda anlamlı. IP hoparlörde ses
+     bilgisayardan hiç çıkmaz, adrese HTTP isteği gider; orada çıkış cihazı
+     diye bir kavram yoktur ve kart gösterilse kullanıcıyı yanıltırdı. #}
+  {% if anons_yolu == 'ses_karti' %}
+  <section class="kart">
+    <h3>Ses çıkışı
+      {% if ses_cihazi_bagli is false %}<span class="rozet kirmizi">seçili cihaz bağlı değil</span>
+      {% elif secili_ses_cihazi %}<span class="rozet yesil">bağlı</span>
+      {% else %}<span class="rozet gri">işletim sisteminin varsayılanı</span>{% endif %}
+    </h3>
+
+    {% if ses_cihazi_bagli is false %}
+    <p class="hata-mesaji"><b>Seçtiğiniz ses çıkışı şu anda bağlı değil:</b>
+      {{ secili_ses_cihazi }} — Bluetooth hoparlörse kapanmış ya da menzilden
+      çıkmış olabilir. <b>Bu haldeyken anonslar duyulmaz.</b> Hoparlörü açıp
+      sayfayı yenileyin.</p>
+    {% endif %}
+
+    {% if ses_secimi_destekleniyor %}
+    <p>İhlal anında sesin hangi çıkıştan verileceğini buradan seçin.
+      Bluetooth hoparlörü önce işletim sisteminden eşleştirin; eşleştirilmiş ve
+      açık bir hoparlör aşağıdaki listede kendiliğinden görünür.</p>
+    <form method="post" action="/anons/ses-cikisi" class="dikey-form dar">
+      <label>Ses çıkışı
+        <select name="ses_cihazi">
+          <option value="" {% if not secili_ses_cihazi %}selected{% endif %}>
+            İşletim sisteminin varsayılan çıkışı</option>
+          {% for c in ses_cihazlari %}
+          <option value="{{ c.kimlik }}" {% if c.kimlik == secili_ses_cihazi %}selected{% endif %}>
+            {{ c.ad }}{% if c.bluetooth %} · Bluetooth{% endif %}{% if c.varsayilan %} · varsayılan{% endif %}
+          </option>
+          {% endfor %}
+          {# Seçili cihaz kapalıysa listede YOKTUR. Seçenek olarak eklenmezse
+             form kaydedildiğinde ayar sessizce silinirdi. #}
+          {% if secili_ses_cihazi and ses_cihazi_bagli is false %}
+          <option value="{{ secili_ses_cihazi }}" selected>{{ secili_ses_cihazi }} · şu an bağlı değil</option>
+          {% endif %}
+        </select>
+      </label>
+      <button type="submit" class="dugme">Ses Çıkışını Kaydet</button>
+    </form>
+    {% else %}
+    {# Mac ve Windows: afplay ve PowerShell SoundPlayer cihaz seçeneği almaz.
+       Seçim kutusu koyup çalışmıyormuş gibi davranmak en kötüsü olurdu:
+       kullanıcı hoparlörü seçer, ses başka yerden çıkar, sebebini hiç
+       öğrenemezdi. Bunun yerine ne yapacağı yazıyor. #}
+    <p>Bu işletim sisteminde çıkış cihazı <b>sistem ayarlarından</b> seçilir;
+      anons her zaman <b>varsayılan çıkışa</b> çalar.</p>
+    <ol class="ipuclari">
+      <li><b>Bluetooth hoparlör:</b> önce Bluetooth ayarlarından eşleştirin.</li>
+      <li><b>Mac:</b> Sistem Ayarları → Ses → Çıkış → hoparlörü seçin.<br>
+        <b>Windows:</b> görev çubuğundaki hoparlör simgesine tıklayın → çıkış
+        cihazını seçin.</li>
+      <li>Aşağıdaki <b>Test sesi çal</b> düğmesiyle doğrulayın.</li>
+    </ol>
+    {% endif %}
+
+    <div class="dugme-satiri">
+      <form method="post" action="/anons/test-sesi" class="satir-form">
+        <button type="submit" class="dugme ikincil">Test sesi çal</button>
+      </form>
+      <span class="not">Üç kısa bip çalar. Mesaj ya da ses dosyası hazırlamanız
+        gerekmez — yalnızca "hoparlörden ses çıkıyor mu" sorusunu cevaplar.</span>
+    </div>
+
+    {% if ses_cihazlari %}
+    <details>
+      <summary>Bu bilgisayarda görülen ses çıkışları ({{ ses_cihazlari | length }})</summary>
+      <table class="liste">
+        <tr><th>Çıkış</th><th>Bağlantı</th></tr>
+        {% for c in ses_cihazlari %}
+        <tr>
+          <td>{{ c.ad }}{% if c.varsayilan %} <span class="rozet gri">varsayılan</span>{% endif %}</td>
+          <td>{{ "Bluetooth" if c.bluetooth else "kablolu / dahili" }}</td>
+        </tr>
+        {% endfor %}
+      </table>
+    </details>
+    {% else %}
+    <p class="not">Ses çıkışları listelenemedi. Bu bir arıza değildir — anons yine
+      varsayılan çıkışa çalar. <b>Test sesi çal</b> ile doğrulayın.</p>
+    {% endif %}
+  </section>
+  {% endif %}
 
   <section class="kart">
     <h3>Anons mesajları</h3>

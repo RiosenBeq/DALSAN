@@ -45,6 +45,25 @@ kayıtlı bir `.wav` dosyasını çalar; amfi onu hoparlörlere dağıtır.
 - Amfide "öncelik" (priority) girişi varsa onu tercih edin: anons sırasında
   müzik/radyo otomatik susar.
 
+### 2.1.1 Bluetooth hoparlör
+
+Kablo çekmek istemiyorsanız Bluetooth bir hoparlör de kullanabilirsiniz.
+Sistem açısından fark yoktur: Bluetooth hoparlör de bir **ses çıkışıdır.**
+
+1. Hoparlörü **işletim sisteminden eşleştirin** (Windows: Ayarlar → Bluetooth
+   ve cihazlar · Mac: Sistem Ayarları → Bluetooth · Linux: `bluetoothctl` ya
+   da masaüstünün Bluetooth ayarı). Program eşleştirmeyi kendisi yapmaz —
+   yapmaya kalkan bir yazılım, işletim sisteminin zaten yaptığı işi ikinci
+   kez, daha kötü yapmış olurdu.
+2. **Anons sistemi** sayfasındaki **Ses çıkışı** bölümünden hoparlörü seçin.
+3. **Test sesi çal**'a basın: üç kısa bip duymalısınız.
+
+> **Kalıcı kurulum için kablo tercih edin.** Bluetooth iki yerde zayıftır:
+> menzil (fabrikada duvar ve metal raf çok) ve hoparlörün kendi pili bitince
+> sessizce düşmesi. Sistem bu düşmeyi fark eder ve Anons sayfasında
+> **"seçili cihaz bağlı değil"** diye kırmızı yazar, ama uyarıyı görmek için
+> birinin ekrana bakması gerekir. Kablolu bağlantıda böyle bir risk yoktur.
+
 ### 2.2 Ayar
 
 Ayarlar sayfasından (**Komuta → Ayarlar**) ya da `.env` dosyasından:
@@ -54,6 +73,30 @@ ANONS=ses_karti
 ```
 
 Sistemi yeniden başlatın (Kontrol Paneli → Durdur → Sistemi Başlat).
+
+### 2.2.1 Hangi çıkıştan çalsın?
+
+Bilgisayarda birden fazla ses çıkışı olabilir (dahili hoparlör, HDMI ekran,
+Bluetooth hoparlör, USB ses kartı). **Anons sistemi → Ses çıkışı** bölümü
+bağlı çıkışları listeler ve hangisinin kullanılacağını gösterir.
+
+Seçimin programdan yapılabilmesi işletim sistemine bağlıdır ve bu ekranda
+dürüstçe yazar:
+
+| İşletim sistemi | Çıkış nasıl seçilir |
+|---|---|
+| **Linux** (fabrika sunucusu) | Listeden seçilir, sistem o çıkışa çalar. |
+| **Mac** | Sistem Ayarları → Ses → Çıkış. Anons her zaman **varsayılan** çıkışa çalar. |
+| **Windows** | Görev çubuğundaki hoparlör simgesi → çıkış cihazı. Anons **varsayılan** çıkışa çalar. |
+
+Sebebi: Mac'in `afplay`'i ve Windows'un PowerShell ses çalıcısı cihaz
+seçeneği almaz. Arayüzde çalışmayan bir seçim kutusu göstermek en kötüsü
+olurdu — kullanıcı hoparlörü seçer, ses başka yerden çıkar ve sebebini
+hiçbir zaman öğrenemezdi.
+
+**Test sesi çal** düğmesi her üç sistemde de çalışır ve mesaj/ses dosyası
+hazırlamanızı beklemez: yalnızca "bu hoparlörden ses çıkıyor mu" sorusunu
+cevaplar.
 
 ### 2.3 Ses dosyalarını hazırlama
 

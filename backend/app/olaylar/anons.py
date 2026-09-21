@@ -57,12 +57,17 @@ class NullAnonscu:
         )
 
 
-def _ses_komutu(ses_dosyasi: str) -> list[str] | None:
+def _ses_komutu(ses_dosyasi: str, cihaz: str = "") -> list[str] | None:
     """İşletim sistemine göre WAV çalma komutu.
 
     Fabrika sunucusu Linux'tur (aplay); geliştirme Mac (afplay) veya
     Windows (PowerShell SoundPlayer) olabilir. Üçünde de EK KURULUM
     GEREKTİRMEYEN, sistemde hazır gelen araçlar seçildi.
+
+    `cihaz` (.env → ANONS_SES_CIHAZI) hangi ses ÇIKIŞINA çalınacağıdır ve
+    yalnızca Linux'ta işe yarar: paplay/aplay çıkışı adıyla alır, afplay ve
+    PowerShell SoundPlayer almaz. Mac/Windows'ta çıkış, işletim sisteminin
+    ses ayarlarından seçilir — ayrıntı: olaylar/ses_cihazlari.py.
     """
     if sys.platform == "win32":
         # Windows'ta afplay/aplay yoktur; SoundPlayer her Windows'ta hazırdır.
@@ -76,8 +81,23 @@ def _ses_komutu(ses_dosyasi: str) -> list[str] | None:
             "-Command",
             f"(New-Object Media.SoundPlayer '{guvenli}').PlaySync()",
         ]
-    calici = shutil.which("afplay") or shutil.which("aplay") or shutil.which("paplay")
-    return [calici, ses_dosyasi] if calici else None
+    # SIRA ÖNEMLİ — paplay, aplay'den ÖNCE denenir. aplay ham ALSA'dır ve
+    # Bluetooth hoparlörü HİÇ GÖRMEZ; Bluetooth çıkışı PulseAudio/PipeWire
+    # tarafındadır ve ona ancak paplay çalar. İkisi de kuruluyken aplay
+    # seçilseydi, kullanıcı listeden Bluetooth hoparlörünü seçer ve ses
+    # sessizce hiçbir yere gitmezdi.
+    calici = shutil.which("afplay") or shutil.which("paplay") or shutil.which("aplay")
+    if calici is None:
+        return None
+    if cihaz:
+        # Cihaz bayrağı çalıcıya göre değişir. Bilinmeyen bir çalıcıya
+        # tanımadığı bir bayrak vermek sesi HİÇ çaldırmazdı; o yüzden yalnızca
+        # bayrağını bildiğimiz ikisinde eklenir, gerisinde sessizce atlanır.
+        if calici.endswith("paplay"):
+            return [calici, f"--device={cihaz}", ses_dosyasi]
+        if calici.endswith("aplay"):
+            return [calici, "-D", cihaz, ses_dosyasi]
+    return [calici, ses_dosyasi]
 
 
 class SesKartiAnonscu:
@@ -89,7 +109,10 @@ class SesKartiAnonscu:
 
     ad = "ses kartı"
 
-    def __init__(self) -> None:
+    def __init__(self, cihaz: str = "") -> None:
+        # Hangi ses çıkışına çalınacağı (.env → ANONS_SES_CIHAZI). Boşsa
+        # işletim sisteminin varsayılan çıkışı kullanılır.
+        self.cihaz = cihaz
         # Windows'ta komut her zaman vardır; diğerlerinde varlığı sınanır
         self._kullanilabilir = sys.platform == "win32" or _ses_komutu("deneme") is not None
         if not self._kullanilabilir:
@@ -107,7 +130,7 @@ class SesKartiAnonscu:
                 f"'{anahtar}' mesajına ses dosyası bağlanmamış. Anons sayfasında "
                 "bir .wav dosyasının yolunu yazın; yoksa yalnızca ekran uyarısı verilir."
             )
-        komut = _ses_komutu(ses_dosyasi)
+        komut = _ses_komutu(ses_dosyasi, self.cihaz)
         if komut is None:
             raise AnonsHatasi(f"Ses çalma komutu bulunamadı: {ses_dosyasi}")
         # Bu çağrı zaten ayrı bir iş parçacığındadır (AnonsYoneticisi), bu
@@ -243,7 +266,7 @@ def bolge_sec(bolgeler: list[dict], kamera_alani: str | None) -> dict | None:
 
 def anonscu_kur(ayarlar: Ayarlar):
     if ayarlar.anons == "ses_karti":
-        return SesKartiAnonscu()
+        return SesKartiAnonscu(ayarlar.anons_ses_cihazi)
     if ayarlar.anons == "http":
         return HttpAnonscu(ayarlar.anons_http_adresi, ayarlar.anons_http_bicimi)
     return NullAnonscu()
