@@ -1,0 +1,113 @@
+{% extends "temel.html" %}
+{% block baslik %}Video ile Test — DALSAN İSG{% endblock %}
+{% block icerik %}
+  <div class="baslik-satiri">
+    <h2>Video ile Test</h2>
+    <a class="dugme ikincil" href="/kameralar">← Kameralar</a>
+  </div>
+
+  {% if hata %}<p class="komuta-sonuc uyari-tonu">{{ hata }}</p>{% endif %}
+  {% if mesaj %}<p class="komuta-sonuc">{{ mesaj }}</p>{% endif %}
+
+  <section class="kart dar">
+    <p>Elinizdeki bir video dosyasını yükleyin; sistem onu bir kamera gibi izler.
+      Bölgeleri üzerine çizer, kuralları kurar ve ihlalleri Olaylar sayfasında
+      görürsünüz. <b>Gerçek kameraya bağlanmanız gerekmez.</b></p>
+
+    <form method="post" action="/videolar/yukle" enctype="multipart/form-data"
+          class="dikey-form" id="video-form">
+      <label>Video dosyası
+        <input type="file" name="video" id="video-dosya" required
+               accept="{{ kabul_listesi }}">
+        <span class="not">Kabul edilen türler: {{ izinli_uzantilar }} —
+          en fazla {{ en_buyuk_mb }} MB.</span>
+      </label>
+      <label>Bu denemenin adı <span class="not">(boş bırakırsanız dosya adı kullanılır)</span>
+        <input name="name" placeholder="örn. Sevkiyat rampası — sabah vardiyası">
+      </label>
+      <label>Örnekleme hızı (fps)
+        <input name="sample_fps" type="number" step="0.5" min="0.5" max="30"
+               value="{{ varsayilan_fps }}">
+        <span class="not">Saniyede kaç kare analiz edilsin. 6 iyi bir başlangıç.</span>
+      </label>
+      {# Varsayılan İŞARETLİ: "şu videoda kaç ihlal var" sorusu, döngüye giren
+         bir videoda hiçbir zaman cevaplanamaz — aynı ihlal her turda yeniden
+         yazılır ve sayı sonsuza kadar büyür. #}
+      <label class="onay-satiri">
+        <input type="checkbox" name="tek_gecis" value="1" checked>
+        Video bitince dursun (tek geçiş)
+        <span class="not">İşaretli bırakın: video bir kez baştan sona izlenir ve
+          analiz biter. İşareti kaldırırsanız video başa sarıp sürekli döner —
+          bu, eşik ve bölge ayarını denerken işe yarar ama olay listesi aynı
+          ihlalin kopyalarıyla dolar.</span>
+      </label>
+      <button type="submit" class="dugme" id="yukle-dugmesi">Videoyu Yükle</button>
+      <p class="not" id="yukleme-notu" hidden>Video yükleniyor — dosya büyükse
+        bu birkaç dakika sürebilir. Sayfayı kapatmayın.</p>
+    </form>
+  </section>
+
+  {% if videolar %}
+  <section class="kart">
+    <h3>Yüklenen videolar</h3>
+    <table class="liste">
+      <tr>
+        <th>Ad</th><th>Dosya</th><th>Boyut</th><th>Kip</th>
+        <th>Durum</th><th>Bölge</th><th>İhlal</th><th></th>
+      </tr>
+      {% for v in videolar %}
+      <tr>
+        <td><a href="/kameralar/{{ v.id }}">{{ v.name }}</a></td>
+        <td class="kucuk-metin">{{ v.dosya_adi }}{% if not v.dosya_var %}
+          <br><b>dosya bulunamadı</b>{% endif %}</td>
+        <td>{{ v.boyut }}</td>
+        <td class="kucuk-metin">{{ "tek geçiş" if v.tek_gecis else "sürekli döner" }}</td>
+        <td><span class="rozet {{ v.rozet_rengi }}">{{ v.rozet }}</span></td>
+        <td>{{ v.bolge_sayisi }}</td>
+        <td><a href="/olaylar?kamera={{ v.id }}">{{ v.olay_sayisi }}</a></td>
+        <td class="satir-form">
+          <a href="/kameralar/{{ v.id }}">Bölgeleri çiz →</a>
+          <form method="post" action="/videolar/{{ v.id }}/yeniden" class="satir-form">
+            <button class="baglanti-dugme">Yeniden çalıştır</button>
+          </form>
+          {% if v.enabled %}
+          <form method="post" action="/videolar/{{ v.id }}/duraklat" class="satir-form">
+            <button class="baglanti-dugme">Duraklat</button>
+          </form>
+          {% endif %}
+          <form method="post" action="/videolar/{{ v.id }}/sil" class="satir-form"
+                data-onay="'{{ v.name }}' videosu ve dosyası silinsin mi? Bulunan olaylar kalır.">
+            <button class="baglanti-dugme">Sil</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+  </section>
+  {% else %}
+  {# Boş liste ÖĞRETİR: sıradaki üç adım burada yazar, kullanıcı sayfalar
+     arasında kaybolmasın (CLAUDE.md §8). #}
+  <section class="kart">
+    <p class="bos">Henüz video yüklenmedi.</p>
+    <p>Yükledikten sonra sırasıyla:</p>
+    <ol>
+      <li>Açılan kamera sayfasında görüntünün üzerine <b>bölgeleri çizin</b>
+        (yaya yolu, yükleme alanı, yasak bölge…).</li>
+      <li>Her bölgenin yanındaki <b>hazır kural</b> düğmesine basın.</li>
+      <li><b>Olaylar</b> sayfasında bulunan ihlalleri kanıt fotoğraflarıyla görün.</li>
+    </ol>
+  </section>
+  {% endif %}
+{% endblock %}
+{% block betikler %}
+<script>
+// Büyük bir dosya yüklenirken tarayıcı hiçbir şey göstermez ve sayfa donmuş
+// gibi durur. Kullanıcı ikinci kez basar, ikinci bir kopya yüklenir.
+document.getElementById("video-form").addEventListener("submit", function () {
+  var dugme = document.getElementById("yukle-dugmesi");
+  dugme.disabled = true;
+  dugme.textContent = "Yükleniyor…";
+  document.getElementById("yukleme-notu").hidden = false;
+});
+</script>
+{% endblock %}

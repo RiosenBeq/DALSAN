@@ -1,0 +1,31 @@
+-- 006_video_tek_gecis.sql
+--
+-- TEK YENİ SÜTUN: cameras.loop_video. Bu betikte hiçbir tablo düşürülmez,
+-- yeniden kurulmaz, CHECK kısıtı değiştirilmez; yalnızca ALTER TABLE vardır.
+-- 001-005 dosyalarına dokunulmaz: kurulu sistemlerde çoktan uygulanmıştır.
+-- Betikler BEGIN/COMMIT İÇERMEZ; sarmalamayı app/veritabani.py yapar.
+--
+-- ------------------------------------------------------------ ne işe yarar
+--
+-- Sisteme YÜKLENEN bir test videosu, gerçek bir kameradan bir noktada ayrılır:
+-- kameranın sonu yoktur, videonun vardır. Bugüne kadar video dosyası kamera
+-- taklidi yapıyor ve bitince BAŞA SARIYORDU (analiz/kamera.py). Kural denemek
+-- için bu doğruydu; "şu videonun analizini çıkar" için değil:
+--
+--   * Aynı ihlal her turda yeniden yazılır. On dakikalık bir video gece boyu
+--     dönerse olay listesi yüzlerce KOPYA satırla dolar ve kullanıcı videoda
+--     kaç ihlal olduğunu artık öğrenemez.
+--   * Analizin "bittiği" bir an olmaz. Ekranda bakılacak bir sonuç yoktur,
+--     yalnızca büyüyen bir liste vardır.
+--
+-- Bu sütun kullanıcının iki niyetini ayırır:
+--
+--   loop_video = 1  video biter bitmez başa sarar (eşik/bölge ayarı denerken
+--                   istenen budur: görüntü hiç kesilmez).
+--   loop_video = 0  video bitince kamera DURUR ve durumu 'finished' olur;
+--                   olay listesi o videonun TEK geçişinin sonucudur.
+--
+-- Varsayılan 1'dir: kurulu sistemlerdeki mevcut kameraların davranışı
+-- DEĞİŞMEZ. Gerçek kameralarda (source_type='rtsp') sütun okunmaz — bir RTSP
+-- akışının "sonu" yoktur, kopması ayrı bir durumdur ve yeniden bağlanılır.
+ALTER TABLE cameras ADD COLUMN loop_video INTEGER NOT NULL DEFAULT 1;

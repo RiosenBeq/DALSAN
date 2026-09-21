@@ -42,6 +42,9 @@ DURUM_ROZETLERI = {
     "online": ("çevrimiçi", "yesil"),
     "connecting": ("bağlanıyor", "sari"),
     "offline": ("çevrimdışı", "kirmizi"),
+    # Yalnızca tek geçişlik test videosunda (şema 006). Kırmızı DEĞİL: video
+    # planlandığı gibi bitti, ortada düzeltilecek bir arıza yok.
+    "finished": ("video bitti", "mavi"),
 }
 
 

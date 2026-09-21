@@ -67,6 +67,9 @@
     online: ["çevrimiçi", "yesil"],
     connecting: ["bağlanıyor", "sari"],
     offline: ["çevrimdışı", "kirmizi"],
+    // Tek geçişlik test videosu sonuna geldi (şema 006). Kırmızı DEĞİL:
+    // arıza yok, iş bitti.
+    finished: ["video bitti", "mavi"],
     pasif: ["pasif", "gri"],
     kapali: ["analiz kapalı", "gri"]
   };

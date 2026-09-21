@@ -226,6 +226,45 @@ bölgeler ve kurallar hazırlanabilir.
 Yüklediğiniz görüntü **sunucuya kaydedilmez**: yalnız o an incelenir. Kalıcı olan
 tek şey, kaydettiğiniz bölgedir.
 
+### Elinizdeki bir videoyla baştan sona deneme
+
+Ekran görüntüsü bölge çizdirir ama **kuralları çalıştırmaz**: hareket yoktur,
+takip yoktur, dolayısıyla ihlal de çıkmaz. Gerçek bir denemeye ihtiyacınız
+varsa **Kameralar → Video Yükle** sayfasını kullanın.
+
+1. **Gözat** ile bilgisayarınızdaki bir video dosyasını seçin (MP4, MOV, AVI,
+   MKV, M4V — en fazla 1 GB). Dosyanın tam yolunu yazmanız gerekmez.
+2. **Videoyu Yükle**'ye basın. Sistem videoyu bir kamera gibi izlemeye başlar
+   ve sizi doğrudan o kameranın sayfasına götürür.
+3. Görüntünün üstüne **bölgeleri çizin**, yanlarındaki **hazır kural**
+   düğmelerine basın.
+4. **Olaylar** sayfasında bulunan ihlalleri kanıt fotoğraflarıyla görün.
+
+Kural motoru, takip ve olay kaydı canlı kameradakinin **aynısıdır** — taklidi
+değil. Yani burada gördüğünüz sonuç, aynı kamera gerçekten bağlandığında da
+göreceğiniz sonuçtur.
+
+**"Video bitince dursun" kutusu (varsayılan işaretli).** İki farklı iş için
+iki davranış vardır:
+
+| Kutu | Ne olur | Ne zaman |
+|---|---|---|
+| **İşaretli** | Video bir kez baştan sona izlenir, sonra durum **"analiz tamamlandı"** olur | "Bu videoda kaç ihlal var?" sorusunun cevabını almak için |
+| İşaretsiz | Video başa sarıp sürekli döner | Eşik ve bölge ayarını denerken görüntünün hiç kesilmemesi için |
+
+İşareti kaldırırsanız aynı ihlal her turda yeniden yazılır ve olay listesi
+kopyalarla dolar; o yüzden "kaç ihlal çıktı" sorusunu ancak işaretli kipte
+cevaplayabilirsiniz.
+
+Bittikten sonra **Yeniden çalıştır** düğmesi videoyu baştan oynatır (bölgeleri
+değiştirip sonucu yeniden ölçmek için). **Duraklat** analizi durdurur ama
+videoyu ve bulunan olayları saklar. **Sil** hem kamerayı hem yüklenen dosyayı
+kaldırır; bulunan olaylar geçmişte kalır.
+
+Yüklenen videolar `veri/videolar` klasöründe durur ve **kendiliğinden
+silinmez** — kanıt fotoğraflarının aksine saklama süresi bakımı onlara
+dokunmaz. Yeriniz daralırsa bu sayfadan **Sil** deyin.
+
 ### Alan çizimini kolaylaştıran diğer davranışlar
 
 - **Dikdörtgen çiz:** bir köşeden karşı köşeye sürükleyip bırakın. Yükleme alanı,

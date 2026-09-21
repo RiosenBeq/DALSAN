@@ -14,6 +14,13 @@ sayılır ve süpervizör sistem olayı üretir.
   offline     bağlantı yok (hiç kurulamadı ya da koptu)
 Bağlantı kurulamayınca SEBEP `son_hata` alanında tutulur ve kamera sayfasında
 gösterilir — kullanıcı günlüğü karıştırmak zorunda kalmaz.
+
+DÖRDÜNCÜ DURUM, YALNIZCA YÜKLENEN VİDEOLARA ÖZGÜ (şema 006):
+  finished    video sonuna kadar oynatıldı ve TEK GEÇİŞ istenmişti
+Bu bir hata değildir, o yüzden 'offline'dan ayrılır: kullanıcı ekranda
+"çevrimdışı — bağlanamadı" yazısını görüp bozuk bir şey olduğunu sanmasın.
+RTSP kameralarda bu durum HİÇ oluşmaz; akışın sonu yoktur, kopması ayrı
+bir şeydir ve yeniden bağlanılır.
 """
 
 from __future__ import annotations
@@ -48,17 +55,31 @@ _RTSP_VARSAYILAN_PORT = 554
 DURUM_ONLINE = "online"
 DURUM_OFFLINE = "offline"
 DURUM_BAGLANIYOR = "connecting"
+# Yalnızca `dongu=False` ile açılmış video dosyası için: sonuna gelindi.
+DURUM_BITTI = "finished"
 
 
 class KameraKaynagi:
     """Tek kameranın okuma iş parçacığı. Yalnızca kare okur; VERİTABANINA
     DOKUNMAZ — durum bilgisini süpervizör okuyup DB'ye yazar."""
 
-    def __init__(self, kamera_id: int, ad: str, kaynak_tipi: str, kaynak_url: str) -> None:
+    def __init__(
+        self,
+        kamera_id: int,
+        ad: str,
+        kaynak_tipi: str,
+        kaynak_url: str,
+        dongu: bool = True,
+    ) -> None:
         self.kamera_id = kamera_id
         self.ad = ad
         self.kaynak_tipi = kaynak_tipi  # "rtsp" | "file"
         self.kaynak_url = kaynak_url
+        # Video dosyası bitince başa sarılsın mı? (cameras.loop_video, şema 006)
+        # RTSP için anlamsızdır ve okunmaz.
+        self.dongu = dongu or kaynak_tipi != "file"
+        # Tek geçişlik video sonuna geldi: iş parçacığı bitti, durum 'finished'.
+        self.bitti = False
         self._log = log_al("kamera")
         self._kilit = threading.Lock()
         self._son_kare: np.ndarray | None = None
@@ -96,11 +117,15 @@ class KameraKaynagi:
         return self.durum() == DURUM_ONLINE
 
     def durum(self, simdi: float | None = None) -> str:
-        """online / connecting / offline — tek karar noktası.
+        """online / connecting / offline / finished — tek karar noktası.
 
         Yeni eklenen kameraya daha ilk kare gelmeden 'çevrimdışı' olayı düşmesin
         diye ilk 60 sn 'connecting' sayılır; süre dolar da kare gelmezse offline.
         """
+        # Tek geçişlik video bittiyse 60 sn sonra 'offline' görünürdü ve
+        # kullanıcı bozulduğunu sanırdı: bu kontrol süre kontrolünden ÖNCE.
+        if self.bitti:
+            return DURUM_BITTI
         an = time.monotonic() if simdi is None else simdi
         with self._kilit:
             kare_zamani = self._son_kare_zamani
@@ -124,6 +149,10 @@ class KameraKaynagi:
         while not self._dur.is_set():
             try:
                 bekleme = self._bir_tur(bekleme)
+                if self.bitti:
+                    # Tek geçişlik video sonuna geldi: yeniden açmak videoyu
+                    # baştan oynatır, yani tam da istenmeyen şeyi yapardı.
+                    return
             except Exception as hata:  # noqa: BLE001 — iş parçacığı ölmemeli
                 self.son_hata = (
                     f"Kamera okunurken beklenmeyen hata: {hata}. Kaynak adresini kontrol edin; "
@@ -155,7 +184,7 @@ class KameraKaynagi:
             kare_geldi = self._okuma_dongusu(yakalayici, dosya_fps)
         finally:
             yakalayici.release()
-        if self._dur.is_set():
+        if self._dur.is_set() or self.bitti:
             return bekleme
 
         if kare_geldi:
@@ -250,6 +279,15 @@ class KameraKaynagi:
             tamam, kare = yakalayici.read()
             if not tamam:
                 if self.kaynak_tipi == "file":
+                    if not self.dongu and kare_geldi:
+                        # Tek geçiş istendi ve video gerçekten oynadı: sonuna
+                        # gelindi. `kare_geldi` şartı önemli — hiç kare
+                        # gelmeden okuma başarısızsa dosya BOZUKtur, "analiz
+                        # bitti" demek kullanıcıyı yanıltırdı.
+                        self.bitti = True
+                        self.son_hata = ""
+                        self._log.info(f"Video sonuna gelindi: {self.ad}")
+                        return True
                     # Video dosyası kamera taklidi yapar: bitince başa sar (dev/test).
                     # Art arda okunamıyorsa dosya bozuk demektir: işlemciyi %100
                     # döndürmek yerine çık, dış döngü yeniden açmayı dener.

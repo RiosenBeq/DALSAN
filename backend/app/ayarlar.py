@@ -81,6 +81,10 @@ class Ayarlar:
     nesne_foto_en_buyuk_mb: int
     nesne_tarama_en_cok_dosya: int
     nesne_eslesme_esigi: float
+    # --- Yüklenen test videoları (web/videolar.py) ---
+    video_klasoru: Path
+    video_izinli_uzantilar: tuple[str, ...]
+    video_en_buyuk_mb: int
     # Ayarların yazıldığı dosya. Ayarlar sayfası (web/ayar_rotalari.py) buraya
     # yazar; yolun kendisi ekranda GÖSTERİLMEZ, yalnızca dosya işlemi için var.
     env_yolu: Path
@@ -183,6 +187,11 @@ def ayarlari_coz(
     # Tarama çıktıları (işaretlenmiş sonuç görüntüleri) ayrı alt klasörde:
     # referans fotoğraflarla karışmasın, sayısı sınırlı tutulup budanabilsin.
     nesne_tarama_klasoru = nesne_klasoru / "taramalar"
+    # Kullanıcının yüklediği test videoları. Görüntü klasörünün DIŞINDA durur:
+    # oradaki kanıt fotoğraflarını bakım döngüsü saklama süresi dolunca siler
+    # (supervizor.py _eski_dosyalari_sil). Yüklenen video bir kanıt değil,
+    # kullanıcının kendi dosyasıdır — kendiliğinden silinmemelidir.
+    video_klasoru = kok / _metin(degerler, "VIDEO_KLASORU", "veri/videolar")
     log_dosyasi = veri_dizini / "loglar" / "sistem.log"
 
     for klasor in (
@@ -190,6 +199,7 @@ def ayarlari_coz(
         goruntu_klasoru,
         nesne_klasoru,
         nesne_tarama_klasoru,
+        video_klasoru,
         log_dosyasi.parent,
     ):
         _klasor_olustur(klasor)
@@ -309,6 +319,16 @@ def ayarlari_coz(
         # Bu skorun altındaki en iyi benzerlik "eşleşme yok" sayılır: sistem
         # emin olmadığı yere isim YAZMAZ (docs/12'deki üç durum ilkesiyle aynı).
         nesne_eslesme_esigi=_ondalik(degerler, "NESNE_ESLESME_ESIGI", 0.24, 0.05, 0.95),
+        # --- Yüklenen test videoları -----------------------------------------
+        # Hangi uzantı kabul edilir ve dosya en fazla kaç MB olur — ikisi de
+        # koda gömülmez (CLAUDE.md §7). Varsayılan sınır bilerek yüksek: bir
+        # vardiyanın kamera kaydı kolayca yüz MB'ı geçer, kullanıcıyı dosyayı
+        # kırpmaya zorlamak "test etmek" işini baştan zorlaştırırdı.
+        video_klasoru=video_klasoru,
+        video_izinli_uzantilar=_uzanti_listesi(
+            degerler, "VIDEO_IZINLI_UZANTILAR", "mp4,mov,avi,mkv,m4v"
+        ),
+        video_en_buyuk_mb=_tam_sayi(degerler, "VIDEO_EN_BUYUK_MB", 1024, 1, 20480),
         env_yolu=kok / ".env",
         veri_konumu_notu=konum.gunluk_notu,
         veri_konumu_ayrintisi=konum.gunluk_ayrintisi,

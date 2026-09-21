@@ -86,6 +86,9 @@ def test_ayarlari(tmp_path: Path):
     # Nesne kütüphanesi klasörü GÖRÜNTÜ KLASÖRÜNÜN DIŞINDA: bakım döngüsü
     # oraya dokunmamalı (tests/test_nesne_kutuphanesi.py bunu sınar).
     (veri / "nesneler" / "taramalar").mkdir(parents=True)
+    # Yüklenen test videoları (şema 006 + web/videolar.py). Nesne klasörü gibi
+    # görüntü klasörünün DIŞINDA: bakım döngüsü oraya dokunmamalı.
+    (veri / "videolar").mkdir()
     return Ayarlar(
         kok_dizin=tmp_path,
         veri_dizini=veri,
@@ -123,6 +126,11 @@ def test_ayarlari(tmp_path: Path):
         # eski bir kurulumdan kalmış .env'i taklit eder, böylece "çıtanız eski
         # sürümden kalma" notu gerçekten sınanır (test_nesne_teshisi.py).
         nesne_eslesme_esigi=0.42,
+        video_klasoru=veri / "videolar",
+        video_izinli_uzantilar=(".mp4", ".mov", ".avi", ".mkv", ".m4v"),
+        # Testte bilerek KÜÇÜK: sınırın gerçekten uygulandığını birkaç
+        # megabaytlık sahte dosyayla sınayabilmek için.
+        video_en_buyuk_mb=2,
         env_yolu=tmp_path / ".env",
     )
 

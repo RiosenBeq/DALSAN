@@ -254,6 +254,9 @@ table.liste th {
 .rozet.kirmizi { background: var(--tehlike-zemin); color: var(--tehlike-metin); border: 1px solid var(--tehlike-cizgi); }
 .rozet.sari { background: var(--uyari-zemin); color: var(--uyari-metin); border: 1px solid var(--uyari-cizgi); }
 .rozet.gri { background: var(--cam-orta); color: var(--metin-2); border: 1px solid var(--cam-sinir); }
+/* "analiz tamamlandı" (biten test videosu): bitmiş bir iş ne başarı ne hata;
+   yeşil "akıyor" ile karışmasın, kırmızı/gri de "bozuldu" izlenimi vermesin. */
+.rozet.mavi { background: var(--bilgi-zemin); color: var(--bilgi); border: 1px solid var(--bilgi-cizgi); }
 
 /* ---------- NextGen AI motor rozeti (ana sayfa "Tespit modeli") ---------- */
 .motor-rozeti {
@@ -324,6 +327,10 @@ table.liste th {
 .dikey-form { display: grid; gap: 12px; }
 .dikey-form label { display: grid; gap: 4px; font-size: 0.9rem; font-weight: 600; color: var(--metin-2); }
 .dikey-form.dar { max-width: 460px; }
+/* Onay kutulu etiket: .dikey-form label bir ızgaradır ve kutuyu satır
+   boyunca gererdi — tıklama alanı sayfa genişliğinde bir şerit olurdu. */
+.dikey-form label.onay-satiri { display: block; font-weight: 600; }
+.dikey-form label.onay-satiri input[type="checkbox"] { margin-right: 6px; }
 /* TELEFONDA YATAY KAYMAYI ÖNLER — silmeyin.
    Izgara/esnek kutu gözlerinin varsayılan en az genişliği "min-width: auto"dur:
    göz, İÇİNDEKİ EN GENİŞ SATIR kadar yer ister. Uzun seçenekli bir <select>

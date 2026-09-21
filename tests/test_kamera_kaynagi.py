@@ -70,3 +70,96 @@ def test_bozuk_rtsp_adresi_teshisi():
     kaynak = _kaynak("rtsp", "rtsp://")
     assert kaynak._ac() is None
     assert "çözümlenemedi" in kaynak.son_hata
+
+
+# ---------------------------------------------------------------------------
+# Tek geçişlik video (şema 006 + web/videolar.py)
+#
+# Yüklenen bir test videosunun bir SONU vardır; kameranın yoktur. Bu ayrımın
+# kod tarafındaki karşılığı `dongu` bayrağıdır ve aşağıdaki testler onun
+# gerçekten çalıştığını GERÇEK bir video dosyasıyla ölçer — sahte bir
+# VideoCapture ile değil, çünkü ölçülmek istenen tam olarak OpenCV'nin dosya
+# sonunda ne yaptığıdır.
+# ---------------------------------------------------------------------------
+
+
+def _kisa_video(yol, kare_sayisi=5):
+    """Birkaç karelik gerçek bir .mp4 üretir; üretilemezse None döner."""
+    import cv2
+    import numpy as np
+
+    yazici = cv2.VideoWriter(str(yol), cv2.VideoWriter_fourcc(*"mp4v"), 25.0, (64, 48))
+    if not yazici.isOpened():
+        return None
+    for numara in range(kare_sayisi):
+        kare = np.full((48, 64, 3), numara * 20 % 255, dtype=np.uint8)
+        yazici.write(kare)
+    yazici.release()
+    return yol if yol.is_file() and yol.stat().st_size > 0 else None
+
+
+def test_tek_gecislik_video_bitince_durur(tmp_path):
+    """Video sonuna gelince durum 'finished' olur, iş parçacığı sonlanır."""
+    import pytest
+
+    from app.analiz.kamera import DURUM_BITTI
+
+    video = _kisa_video(tmp_path / "kisa.mp4")
+    if video is None:
+        pytest.skip("Bu ortamda OpenCV .mp4 yazamıyor (video kodlayıcı yok).")
+
+    kaynak = KameraKaynagi(1, "Test videosu", "file", str(video), dongu=False)
+    kaynak.baslat()
+    kaynak._is_parcacigi.join(timeout=30)
+
+    assert not kaynak._is_parcacigi.is_alive(), "video bitti ama iş parçacığı sürüyor"
+    assert kaynak.bitti
+    assert kaynak.durum() == DURUM_BITTI
+    # Hata YOK: video planlandığı gibi bitti, düzeltilecek bir arıza değil.
+    assert kaynak.son_hata == ""
+    # Son kare elde kalır: kullanıcı bölge çizmek için görüntüye bakabilmeli.
+    kare, _ = kaynak.son_kare()
+    assert kare is not None
+
+
+def test_dongu_kipinde_video_basa_sarar(tmp_path):
+    """Varsayılan kip: video biter, başa sarar, kamera 'çevrimiçi' kalır."""
+    import pytest
+
+    video = _kisa_video(tmp_path / "kisa.mp4")
+    if video is None:
+        pytest.skip("Bu ortamda OpenCV .mp4 yazamıyor (video kodlayıcı yok).")
+
+    kaynak = KameraKaynagi(2, "Döngü videosu", "file", str(video), dongu=True)
+    kaynak.baslat()
+    try:
+        kaynak._is_parcacigi.join(timeout=3)
+        assert kaynak._is_parcacigi.is_alive(), "döngü kipinde iş parçacığı durmamalı"
+        assert not kaynak.bitti
+        assert kaynak.durum() == DURUM_ONLINE
+    finally:
+        kaynak.durdur()
+
+
+def test_rtsp_icin_tek_gecis_istenemez():
+    """Bir RTSP akışının 'sonu' yoktur; kopması ayrı bir şeydir.
+
+    `dongu=False` bir RTSP kaynağına uygulansaydı, ilk kopmada kamera
+    'analiz tamamlandı' diye gösterilir ve bir daha hiç bağlanılmazdı.
+    """
+    kaynak = KameraKaynagi(3, "K", "rtsp", "rtsp://10.0.0.5/ana", dongu=False)
+    assert kaynak.dongu is True
+
+
+def test_bozuk_dosya_bitti_sayilmaz(tmp_path):
+    """Hiç kare gelmeden okuma başarısızsa dosya BOZUKtur, video bitmiş değil.
+
+    'Analiz tamamlandı' demek, kullanıcının boş olay listesine bakıp
+    'demek ki videoda ihlal yokmuş' diye düşünmesine yol açardı.
+    """
+    bozuk = tmp_path / "bozuk.mp4"
+    bozuk.write_bytes(b"bu bir video degil")
+    kaynak = KameraKaynagi(4, "Bozuk", "file", str(bozuk), dongu=False)
+    kaynak._dur.set()  # tek tur dönsün, sonsuza kadar yeniden denemesin
+    kaynak._dongu()
+    assert not kaynak.bitti

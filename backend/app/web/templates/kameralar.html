@@ -3,7 +3,10 @@
 {% block icerik %}
   <div class="baslik-satiri">
     <h2>Kameralar</h2>
-    <a class="dugme" href="/kameralar/yeni">+ Yeni Kamera</a>
+    <span class="satir-form">
+      <a class="dugme ikincil" href="/videolar">Video ile Test</a>
+      <a class="dugme" href="/kameralar/yeni">+ Yeni Kamera</a>
+    </span>
   </div>
 
   {% if kameralar %}
@@ -41,15 +44,17 @@
     <p class="bos">Henüz kamera eklenmedi — sistem izleyecek bir görüntü bulamıyor.</p>
     <p>Fabrika kamerası için RTSP adresi gerekir (örnek:
       <code>rtsp://kullanici:sifre@192.168.1.64:554/Streaming/Channels/102</code>).<br>
-      Kamerasız denemek için kaynak tipi <b>Video dosyası</b> seçip bilgisayardaki
-      bir .mp4 dosyasının tam yolunu yazabilirsiniz — sistem onu kamera gibi izler.</p>
+      Kamera henüz bağlanmadıysa <b>Video ile Test</b> sayfasından elinizdeki bir
+      video dosyasını yükleyin — sistem onu kamera gibi izler, bölgelerini çizip
+      kurallarınızı şimdiden deneyebilirsiniz.</p>
     <p class="satir-form">
-      <a class="dugme" href="/kameralar/yeni">+ İlk kamerayı ekle</a>
+      <a class="dugme" href="/videolar">Video ile Test</a>
+      <a class="dugme ikincil" href="/kameralar/yeni">+ İlk kamerayı ekle</a>
       <a class="dugme ikincil" href="/komuta/kilavuz#kamera">Kamera ekleme kılavuzu</a>
     </p>
   </section>
   {% endif %}
 {% endblock %}
 {% block betikler %}
-<script src="/static/onizleme.js?v=22"></script>
+<script src="/static/onizleme.js?v=23"></script>
 {% endblock %}

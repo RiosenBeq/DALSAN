@@ -22,7 +22,13 @@ from pathlib import Path
 
 from app import veritabani, zaman
 from app.analiz.boru_hatti import KameraHatti
-from app.analiz.kamera import DURUM_BAGLANIYOR, DURUM_OFFLINE, DURUM_ONLINE, KameraKaynagi
+from app.analiz.kamera import (
+    DURUM_BAGLANIYOR,
+    DURUM_BITTI,
+    DURUM_OFFLINE,
+    DURUM_ONLINE,
+    KameraKaynagi,
+)
 from app.analiz.kkd_siniflandirici import KkdSiniflandirici, kisi_kirp
 from app.analiz.model_adi import gorunen_model_adi
 from app.analiz.model_indir import (
@@ -52,6 +58,9 @@ class AnalizSupervizoru:
         self._is_parcacigi = threading.Thread(target=self._dongu, name="analiz", daemon=True)
 
         self._kaynaklar: dict[int, KameraKaynagi] = {}
+        # Kaynak kurulurken kameranın `updated_at` damgası. Biten bir videonun
+        # yeniden çalıştırılıp çalıştırılmayacağına bakılan tek yer burasıdır.
+        self._kaynak_damgalari: dict[int, str] = {}
         self._hatlar: dict[int, KameraHatti] = {}
         self._kamera_konfig: dict[int, dict] = {}
         self._anons_mesajlari: dict[int, dict] = {}
@@ -124,6 +133,14 @@ class AnalizSupervizoru:
             mesaj = "Bağlanılıyor… (ilk bağlantı 30 sn sürebilir)"
             if son_hata:
                 mesaj += f" Son deneme başarısız: {son_hata}"
+        elif durum == DURUM_BITTI:
+            # Bir hata DEĞİL: "bağlantı yok, yeniden deneniyor" cümlesi burada
+            # kullanıcıyı boşuna beklemeye iterdi.
+            mesaj = (
+                "Video sonuna kadar izlendi — analiz tamamlandı. Bulunan ihlaller "
+                "Olaylar sayfasında. Baştan çalıştırmak için Kameralar → Video Yükle "
+                'sayfasındaki "Yeniden Çalıştır" düğmesini kullanın.'
+            )
         else:
             mesaj = "Bağlantı yok."
             if son_hata:
@@ -343,7 +360,25 @@ class AnalizSupervizoru:
             self._kamera_konfig[kid] = kamera
 
             mevcut = self._kaynaklar.get(kid)
-            adres_degisti = mevcut is not None and mevcut.kaynak_url != kamera["source_url"]
+            # Şema 006: yüklenen videoda "bitince dur / başa sar" seçimi.
+            # Sütun eski veritabanlarında bulunmayabilir diye .get ile okunur.
+            dongu = bool(kamera.get("loop_video", 1))
+            # Döngü seçimi okuma iş parçacığının İÇİNDE karar verir; sonradan
+            # değiştirilemez, o yüzden değişince kaynak yeniden kurulur.
+            #
+            # BİTEN VİDEONUN YENİDEN ÇALIŞMASI da aynı kapıdan geçer: iş
+            # parçacığı sonlandığı için kaynak yeniden kurulmadan video bir daha
+            # oynamaz. Ölçüt kameranın `updated_at` DAMGASIDIR — yani kullanıcı
+            # bu kamerayı gerçekten değiştirdi mi (Yeniden Çalıştır, ad/fps
+            # düzenleme). Damga yerine `status` sütununa bakılsaydı istek
+            # kaybolurdu: durum yazıcı (_durumlari_yaz) konfigürasyon
+            # kontrolünden daha SIK çalışır ve 'finished'ı geri yazardı.
+            yeni_damga = str(kamera["updated_at"])
+            adres_degisti = mevcut is not None and (
+                mevcut.kaynak_url != kamera["source_url"]
+                or mevcut.dongu != (dongu or kamera["source_type"] != "file")
+                or (mevcut.bitti and self._kaynak_damgalari.get(kid) != yeni_damga)
+            )
             if adres_degisti:
                 mevcut.durdur()
                 mevcut = None
@@ -356,10 +391,15 @@ class AnalizSupervizoru:
                 self._canli_sayim.pop(kid, None)
             if mevcut is None:
                 kaynak = KameraKaynagi(
-                    kid, kamera["name"], kamera["source_type"], kamera["source_url"]
+                    kid,
+                    kamera["name"],
+                    kamera["source_type"],
+                    kamera["source_url"],
+                    dongu=dongu,
                 )
                 kaynak.baslat()
                 self._kaynaklar[kid] = kaynak
+                self._kaynak_damgalari[kid] = yeni_damga
                 self._siradaki_ornek[kid] = 0.0
                 self._son_durumlar.pop(kid, None)
 
@@ -386,6 +426,7 @@ class AnalizSupervizoru:
         for kid in list(self._kaynaklar):
             if kid not in aktif_idler:
                 self._kaynaklar.pop(kid).durdur()
+                self._kaynak_damgalari.pop(kid, None)
                 self._hatlar.pop(kid, None)
                 self._kamera_konfig.pop(kid, None)
                 self._son_durumlar.pop(kid, None)
@@ -612,7 +653,13 @@ class AnalizSupervizoru:
             if durum != onceki:
                 self._son_durumlar[kid] = durum
                 ad = self._kamera_konfig.get(kid, {}).get("name", kid)
-                if durum == DURUM_OFFLINE:
+                if durum == DURUM_BITTI:
+                    # "Çevrimdışı" DEĞİL: video planlandığı gibi bitti. Aynı
+                    # cümle kullanılsaydı kullanıcı bozulduğunu sanıp aramaya
+                    # koyulurdu (docs/12 — dürüst geri bildirim).
+                    self._log.info(f"Video analizi tamamlandı: {ad}")
+                    sistem_olayi_yaz(baglanti, f"Video analizi tamamlandı: {ad}", kamera_id=kid)
+                elif durum == DURUM_OFFLINE:
                     sebep = f" — {kaynak.son_hata}" if kaynak.son_hata else ""
                     self._log.warning(f"Kamera çevrimdışı: {ad}{sebep}")
                     sistem_olayi_yaz(

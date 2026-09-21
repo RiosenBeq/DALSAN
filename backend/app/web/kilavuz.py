@@ -217,11 +217,14 @@ def _ham_adimlar(baglanti, supervizor, ayarlar) -> list[dict]:
                 f"{kamera_sayisi} kamera tanımlı."
                 if kamera_sayisi
                 else (
-                    "Henüz kamera eklenmedi. Fabrika kamerası için RTSP adresi gerekir; "
-                    "denemek için bilgisayardaki bir video dosyasını da kamera gibi "
-                    "izletebilirsiniz."
+                    "Henüz kamera eklenmedi. Fabrika kamerası için RTSP adresi gerekir. "
+                    "Kamera hazır değilse “Video Yükle” deyip elinizdeki bir video "
+                    "dosyasıyla şimdiden deneyebilirsiniz."
                 )
             ),
+            # Bağlantı "Kamera ekle" KALIR: RTSP adresi elinde olan kullanıcı
+            # asıl adımını burada bulmalı. Video yükleme, aynı sayfadan tek
+            # tıkla ulaşılan bir alternatiftir ve yukarıdaki açıklamada geçer.
             "bag": "/kameralar/yeni",
             "bag_yazi": "Kamera ekle",
             "istege_bagli": False,
