@@ -2,12 +2,36 @@
 {% block baslik %}{{ kamera.name }} — DALSAN İSG{% endblock %}
 {% block icerik %}
   {% from "ipucu.html" import ipucu %}
+  {# ÇİZİM KİPİ — sayfa SADE açılır. Bu sayfada yedi ayrı araç var (dondur,
+     görüntü yükle, otomatik bul, çiz, dikdörtgen, geri al, kalibrasyon) ve
+     hepsi aynı anda ekrandayken ilk kez bölge çizen biri hangisine basacağını
+     seçemiyor. Sade kipte yalnızca bölge çizmek için GEREKLİ olanlar durur.
+     Seçim tarayıcıda hatırlanır (cizim_kipi.js); sunucuda saklanmaz — bu bir
+     kayıt değil, o kişinin ekran tercihi.
+
+     Sınıf <html> üzerine, sayfanın geri kalanı ayrıştırılmadan ÖNCE yazılır:
+     sonra yazılsaydı gelişmiş araçlar bir an görünüp kaybolurdu. #}
+  <script>
+    try {
+      var kip = localStorage.getItem("dalsan-cizim-kipi");
+      document.documentElement.classList.add(
+        kip === "gelismis" ? "kip-gelismis" : "kip-basit");
+    } catch (e) { document.documentElement.classList.add("kip-basit"); }
+  </script>
+
   <div class="baslik-satiri">
     <h2>{{ kamera.name }}
       <span class="rozet {{ kamera.rozet_rengi }}" id="durum-rozeti">{{ kamera.rozet }}</span>
     </h2>
-    <a href="/kameralar">← Kameralar</a>
+    <span class="satir-form">
+      <button type="button" class="dugme ikincil kucuk" id="kip-anahtari"
+              aria-pressed="false">Gelişmiş araçlar</button>
+      <a href="/kameralar">← Kameralar</a>
+    </span>
   </div>
+  <p class="not kip-notu" id="kip-notu">Sade görünüm: bölge çizmek için gereken
+    araçlar. Kareyi dondurma, ekran görüntüsü yükleme, alanı otomatik bulma ve
+    mesafe kalibrasyonu için <b>Gelişmiş araçlar</b>'a basın.</p>
 
   <section class="kart">
     <h3>Canlı görüntü <span class="not">(1 sn'de bir yenilenir; kutular tespitleri,
@@ -44,7 +68,7 @@
        "Kareyi dondur" o anki kareyi sabitler; "Ekran görüntüsü yükle" ise kamera
        hiç bağlı değilken bile (NVR'dan alınmış bir kare ile) çizim yapılmasını
        sağlar. Yüklenen görüntü diske YAZILMAZ (app/web/alan_rotalari.py). #}
-    <div class="arkaplan-secimi" id="arkaplan-secimi">
+    <div class="arkaplan-secimi" id="arkaplan-secimi" data-gelismis>
       <span class="not">Çizim arka planı:</span>
       <button type="button" class="dugme ikincil kucuk" id="kare-dondur"
               data-kamera="{{ kamera.id }}">Kareyi dondur</button>
@@ -56,7 +80,7 @@
       <span class="rozet gri" id="arkaplan-rozeti" hidden>donduruldu</span>
       <span class="not" id="arkaplan-durumu"></span>
     </div>
-    <p class="not">Canlı görüntü her saniye yenilendiği için köşe tıklamak zor olabilir:
+    <p class="not" data-gelismis>Canlı görüntü her saniye yenilendiği için köşe tıklamak zor olabilir:
       <b>Kareyi dondur</b> o anki kareyi sabitler. Kamera henüz takılmadıysa
       <b>Ekran görüntüsü yükle</b> ile NVR'dan aldığınız bir kareyi (ya da telefonla
       çektiğiniz bir fotoğrafı) kullanabilirsiniz — yüklediğiniz görüntü sunucuya
@@ -182,7 +206,7 @@
          değilse NVR'dan alınmış bir ekran görüntüsü yüklenebilir — böylece
          kamera takılmadan önce de bölgeler hazırlanabilir.
          Yüklenen görüntü diske YAZILMAZ (app/web/alan_rotalari.py). #}
-      <div class="alan-bul" id="alan-bul">
+      <div class="alan-bul" id="alan-bul" data-gelismis>
         <h5>Elle çizmek yerine: alanı sistem bulsun</h5>
         <p class="not">Zemindeki sarı/beyaz boyalı alanları arar ve hazır çizim önerir.
           Yukarıda bir <b>ekran görüntüsü</b> yüklediyseniz arama onun üzerinde yapılır.</p>
@@ -235,7 +259,7 @@
     </div>
   </section>
 
-  <section class="kart">
+  <section class="kart" data-gelismis>
     <h3>Mesafe kalibrasyonu
       {{ ipucu('kalibrasyon', 'Kamera piksel görür, güvenli mesafe kuralı metre ölçer; kalibrasyon zeminde ölçüsünü bildiğiniz 4 noktayla bu ikisini birbirine çevirir.') }}
       {% if kalibrasyon_var %}<span class="rozet yesil">kalibre — {{ kalibrasyon_zamani }}</span>
@@ -316,5 +340,6 @@
 window.MEVCUT_BOLGELER = {{ bolgeler_json | safe }};
 window.DUZENLENEN_BOLGE = {{ duzenlenen_json | safe }};</script>
 <script src="/static/onizleme.js?v=23"></script>
+<script src="/static/cizim_kipi.js?v=23"></script>
 <script src="/static/kamera_detay.js?v=23"></script>
 {% endblock %}

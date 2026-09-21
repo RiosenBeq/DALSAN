@@ -256,6 +256,15 @@ table.liste th {
 .rozet.gri { background: var(--cam-orta); color: var(--metin-2); border: 1px solid var(--cam-sinir); }
 /* "analiz tamamlandı" (biten test videosu): bitmiş bir iş ne başarı ne hata;
    yeşil "akıyor" ile karışmasın, kırmızı/gri de "bozuldu" izlenimi vermesin. */
+/* ---------- Sade / gelişmiş çizim kipi (kamera sayfası) ----------
+   Gelişmiş araçlar sade kipte GİZLENİR ama DOM'dan silinmez: kamera_detay.js
+   açılışta onları id ile arıyor, bulamazsa sayfanın tamamı (çizim dahil)
+   sessizce çalışmaz hale gelirdi. Bu yüzden gizleme burada, CSS'te.
+   Sınıf <html> üzerindedir; <body> üzerinde olsaydı gövde ayrıştırılana kadar
+   gelişmiş araçlar bir an görünürdü. */
+.kip-basit [data-gelismis] { display: none !important; }
+.kip-notu { margin: -4px 0 12px; }
+
 .rozet.mavi { background: var(--bilgi-zemin); color: var(--bilgi); border: 1px solid var(--bilgi-cizgi); }
 
 /* ---------- NextGen AI motor rozeti (ana sayfa "Tespit modeli") ---------- */
