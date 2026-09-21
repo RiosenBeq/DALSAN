@@ -42,6 +42,7 @@ Yeni bir araç, kütüphane, servis veya çalışma zamanı eklemeden önce sor:
 | Dil | Python 3.12 |
 | Web çatısı | FastAPI |
 | Arayüz | **Jinja2 şablonu + sade JavaScript.** React/Vue/Node.js **YOK** |
+| Simge & yazı tipi | Lucide simgeleri + Inter yazı tipi — **depoya kopyalanmış** (`static/vendor/`), CDN **YOK**. Bkz. aşağıdaki not |
 | Veritabanı | **SQLite** — tek dosya: `veri/dalsan.db` |
 | Süreç | **TEK program.** Analiz, FastAPI içinde arka plan iş parçacığı olarak çalışır |
 | Şema | Sürümlü SQL betikleri: `backend/sema/001_*.sql`. Alembic **YOK** |
@@ -50,6 +51,22 @@ Yeni bir araç, kütüphane, servis veya çalışma zamanı eklemeden önce sor:
 | Test | pytest |
 | Biçim/lint | ruff |
 | Docker | Geliştirmede **YOK**. Fabrika sunucusunda tek container |
+
+> **`static/vendor/` istisnası (kullanıcı onayıyla açıldı).** İki hazır
+> varlık depoya kopyalanmıştır: Lucide simgeleri (tek SVG sprite) ve Inter
+> yazı tipi (iki woff2). Toplam ~140 KB. Bu, "yeni kütüphane ekleme"
+> yasağının bilinçli ve SINIRLI bir istisnasıdır:
+>
+> * **Derleme adımı yok, çalışma zamanı yok, paket yöneticisi yok.** İkisi de
+>   düz dosyadır; tarayıcı doğrudan okur. npm, Node.js ve derleme adımı
+>   yasağı aynen geçerlidir.
+> * **CDN yok.** Fabrika sunucusunda internet olmayabilir; CDN'den gelmeyen
+>   bir varlık arayüzü yarı çizilmiş gösterirdi.
+> * **İkisi de olmasa sistem yine çalışır**: yazı tipi inmezse sistem yazı
+>   tipine düşülür, simgeler yalnızca yazının yanındaki süstür.
+>
+> Yeni bir CSS/JS **çatısı** (Tailwind, Bootstrap, React…) bu istisnaya
+> GİRMEZ ve hâlâ yasaktır. Lisanslar: `static/vendor/LISANSLAR.md`.
 
 Gerekçeler: `docs/09-BASITLESTIRME-KARARLARI.md`
 

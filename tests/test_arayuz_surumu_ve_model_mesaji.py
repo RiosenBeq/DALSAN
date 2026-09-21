@@ -18,8 +18,11 @@ KOK = Path(__file__).resolve().parents[1]
 SABLON_DIZINI = KOK / "backend" / "app" / "web" / "templates"
 STATIK_DIZINI = KOK / "backend" / "app" / "web" / "static"
 
-# href="/static/stil.css?v=7" ve src="/static/canli.js?v=7" satırlarını yakalar
-_STATIK_CAGRI = re.compile(r'(?:src|href)="(/static/[^"?]+\.(?:js|css))(\?v=(\d+))?"')
+# href="/static/stil.css?v=7" ve src="/static/canli.js?v=7" satırlarını yakalar.
+# .svg de kapsanır: simge sprite'ı ve logo da sürümlenmeli — sprite damgasız
+# kalırsa yeni eklenen bir simge, tarayıcı eski dosyayı önbellekten verdiği
+# için sessizce BOŞLUK olarak çizilir (eksik <use> hedefi hata üretmez).
+_STATIK_CAGRI = re.compile(r'(?:src|href)="(/static/[^"?#]+\.(?:js|css|svg))(\?v=(\d+))?"')
 
 
 def _statik_cagrilar() -> list[tuple[Path, str, str | None]]:

@@ -18,3 +18,7 @@
 # "gecersiz simge" diyerek durur.
 *.ico     binary
 *.icns    binary
+# Yazi tipi dosyalari da ikilidir. Satir sonu donusumu uygulanirsa icleri
+# bozulur ve arayuzdeki her yazi sistem yazi tipine duser - hem de yalnizca
+# depoyu Windows'ta klonlayan kiside. (backend/app/web/static/vendor/)
+*.woff2   binary

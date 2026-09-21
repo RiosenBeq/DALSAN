@@ -1,9 +1,10 @@
 {% extends "temel.html" %}
+{% from "simge.html" import simge %}
 {% block baslik %}Video ile Test — DALSAN İSG{% endblock %}
 {% block icerik %}
   <div class="baslik-satiri">
     <h2>Video ile Test</h2>
-    <a class="dugme ikincil" href="/kameralar">← Kameralar</a>
+    <a class="dugme ikincil simgeli" href="/kameralar">{{ simge("geri") }} Kameralar</a>
   </div>
 
   {% if hata %}<p class="komuta-sonuc uyari-tonu">{{ hata }}</p>{% endif %}
@@ -41,7 +42,7 @@
           bu, eşik ve bölge ayarını denerken işe yarar ama olay listesi aynı
           ihlalin kopyalarıyla dolar.</span>
       </label>
-      <button type="submit" class="dugme" id="yukle-dugmesi">Videoyu Yükle</button>
+      <button type="submit" class="dugme simgeli" id="yukle-dugmesi">{{ simge("yukle") }} Videoyu Yükle</button>
       <p class="not" id="yukleme-notu" hidden>Video yükleniyor — dosya büyükse
         bu birkaç dakika sürebilir. Sayfayı kapatmayın.</p>
     </form>
@@ -68,16 +69,16 @@
         <td class="satir-form">
           <a href="/kameralar/{{ v.id }}">Bölgeleri çiz →</a>
           <form method="post" action="/videolar/{{ v.id }}/yeniden" class="satir-form">
-            <button class="baglanti-dugme">Yeniden çalıştır</button>
+            <button class="baglanti-dugme simgeli">{{ simge("oynat") }} Yeniden çalıştır</button>
           </form>
           {% if v.enabled %}
           <form method="post" action="/videolar/{{ v.id }}/duraklat" class="satir-form">
-            <button class="baglanti-dugme">Duraklat</button>
+            <button class="baglanti-dugme simgeli">{{ simge("durdur") }} Duraklat</button>
           </form>
           {% endif %}
           <form method="post" action="/videolar/{{ v.id }}/sil" class="satir-form"
                 data-onay="'{{ v.name }}' videosu ve dosyası silinsin mi? Bulunan olaylar kalır.">
-            <button class="baglanti-dugme">Sil</button>
+            <button class="baglanti-dugme simgeli">{{ simge("sil") }} Sil</button>
           </form>
         </td>
       </tr>

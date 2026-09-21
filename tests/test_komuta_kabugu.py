@@ -59,7 +59,12 @@ def test_aktif_raf_dugmesi_vurgulanir(istemci):
 def test_eski_kabuktan_komutaya_donuluyor(istemci):
     """Kameralar sayfası eski kabukta açılır; oradan geri dönüş olmalı."""
     for yol in ("/kameralar", "/kurallar", "/kkd", "/"):
-        assert '<a href="/komuta">← Komuta</a>' in istemci.get(yol).text, yol
+        # Bağlantının VARLIĞI sınanır, tam biçimi değil: "←" bir geri oku
+        # SİMGESİNE dönüştü ve buradaki tam metin karşılaştırması, davranış
+        # hiç değişmediği halde kırılmıştı.
+        sayfa = istemci.get(yol).text
+        assert 'href="/komuta"' in sayfa, yol
+        assert "Komuta</a>" in sayfa, yol
 
 
 def test_baslikta_sahte_sayi_yok(istemci):

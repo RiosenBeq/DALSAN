@@ -1,11 +1,12 @@
 {% extends "temel.html" %}
+{% from "simge.html" import simge %}
 {% block baslik %}Kameralar — DALSAN İSG{% endblock %}
 {% block icerik %}
   <div class="baslik-satiri">
     <h2>Kameralar</h2>
     <span class="satir-form">
-      <a class="dugme ikincil" href="/videolar">Video ile Test</a>
-      <a class="dugme" href="/kameralar/yeni">+ Yeni Kamera</a>
+      <a class="dugme ikincil simgeli" href="/videolar">{{ simge("video") }} Video ile Test</a>
+      <a class="dugme simgeli" href="/kameralar/yeni">{{ simge("ekle") }} Yeni Kamera</a>
     </span>
   </div>
 
@@ -48,13 +49,13 @@
       video dosyasını yükleyin — sistem onu kamera gibi izler, bölgelerini çizip
       kurallarınızı şimdiden deneyebilirsiniz.</p>
     <p class="satir-form">
-      <a class="dugme" href="/videolar">Video ile Test</a>
-      <a class="dugme ikincil" href="/kameralar/yeni">+ İlk kamerayı ekle</a>
-      <a class="dugme ikincil" href="/komuta/kilavuz#kamera">Kamera ekleme kılavuzu</a>
+      <a class="dugme simgeli" href="/videolar">{{ simge("video") }} Video ile Test</a>
+      <a class="dugme ikincil simgeli" href="/kameralar/yeni">{{ simge("ekle") }} İlk kamerayı ekle</a>
+      <a class="dugme ikincil simgeli" href="/komuta/kilavuz#kamera">{{ simge("kilavuz") }} Kamera ekleme kılavuzu</a>
     </p>
   </section>
   {% endif %}
 {% endblock %}
 {% block betikler %}
-<script src="/static/onizleme.js?v=23"></script>
+<script src="/static/onizleme.js?v=24"></script>
 {% endblock %}

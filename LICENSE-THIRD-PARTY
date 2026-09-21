@@ -36,6 +36,30 @@ Kaynak:      https://github.com/microsoft/onnxruntime
 Lisans metni: https://github.com/microsoft/onnxruntime/blob/main/LICENSE
 
 --------------------------------------------------------------------------
+3) Lucide — arayüz simgeleri
+--------------------------------------------------------------------------
+Telif hakkı: Copyright (c) Lucide Icons and Contributors
+Lisans:      ISC License
+Kaynak:      https://lucide.dev
+Lisans metni: https://github.com/lucide-icons/lucide/blob/main/LICENSE
+
+Kullanım: seçili 32 simge tek bir SVG sprite dosyasına çıkarılıp depoya
+KOPYALANMIŞTIR (backend/app/web/static/vendor/simgeler.svg). CDN'den
+çekilmez; gerekçesi aynı klasördeki LISANSLAR.md dosyasındadır.
+
+--------------------------------------------------------------------------
+4) Inter — arayüz yazı tipi
+--------------------------------------------------------------------------
+Telif hakkı: Copyright 2016 The Inter Project Authors
+Lisans:      SIL Open Font License 1.1
+Kaynak:      https://rsms.me/inter/
+Lisans metni: https://github.com/rsms/inter/blob/master/LICENSE.txt
+
+Kullanım: latin ve latin-ext altkümeleri woff2 olarak depoya KOPYALANMIŞTIR
+(backend/app/web/static/vendor/). İkisi birden gereklidir: Türkçenin ş, ğ, ı
+ve İ harfleri latin-ext altkümesindedir.
+
+--------------------------------------------------------------------------
 Diğer bileşenler
 --------------------------------------------------------------------------
 Python bağımlılıklarının tam listesi ve sürümleri
