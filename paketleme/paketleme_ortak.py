@@ -48,6 +48,12 @@ def veri_dosyalari(depo: Path) -> list[tuple[str, str]]:
         (str(backend / "sema"), "backend/sema"),
         # Paketlenmiş programda .env kullanıcı klasöründe, bu örnekten üretilir.
         (str(depo / ".env.example"), "."),
+        # Kontrol Paneli penceresinin Windows görev çubuğu simgesi. Bu dosya
+        # PAKETİN SİMGESİ olarak zaten kullanılıyor (EXE(icon=...)), ama o
+        # simge yalnızca .exe dosyasına gömülür; Tk penceresi çalışma anında
+        # AYRI bir dosya okur (masaustu/dalsan_launcher.py → simge_dosyasi).
+        # Konmazsa görev çubuğunda Python'un jenerik simgesi görünür.
+        (str(depo / "paketleme" / "NextGenDetector.ico"), "paketleme"),
     ]
 
 
@@ -85,6 +91,12 @@ def gizli_moduller(depo: Path) -> list[str]:
         "tkinter",
         "tkinter.font",
         "tkinter.scrolledtext",
+        # İzleme ekranını uygulama penceresinde açan modül. Giriş betiğinin
+        # yanındadır ve normalde kendiliğinden bulunur; burada AÇIKÇA
+        # yazılması, dışarıda kalması halinde sistemin tarayıcı sekmesine
+        # geri düşmesini (yani istenen davranışın sessizce kaybolmasını)
+        # önler.
+        "uygulama_penceresi",
     ]
 
 

@@ -2,6 +2,10 @@
 # Ayarlar sayfasının atomik yazımından kalabilecek geçici dosya
 .env.yeni
 veri/
+# İzleme ekranının uygulama penceresi için ayrı tarayıcı profili
+# (masaustu/uygulama_penceresi.py). veri/ DIŞINDADIR: yedeklemeye
+# girmemeli — içinde kullanıcı verisi değil, önbellek vardır.
+tarayici-profili/
 models/*.pt
 models/*.onnx
 models/*.pth

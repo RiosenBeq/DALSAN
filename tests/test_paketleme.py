@@ -100,6 +100,16 @@ def windows_tarifi() -> _SahtePyInstaller:
 
 
 @pytest.fixture(scope="module")
+def mac_tarifi() -> _SahtePyInstaller:
+    """Mac tarifi de burada çalıştırılır: ORTAK bölümü sınayan testler
+    (simge, gizli modül) iki tarifte de aynı sonucu vermeli — birine eklenip
+    diğerine unutulan bir satır tam olarak bu dosyanın önlemeye çalıştığı şey."""
+    if not _pyinstaller_var_mi():
+        pytest.skip(pyinstaller_gerekli.kwargs["reason"])
+    return _tarifi_calistir(MAC_SPEC)
+
+
+@pytest.fixture(scope="module")
 def kanca() -> ModuleType:
     """Açılış kancasını modül olarak yükler.
 
@@ -152,6 +162,30 @@ def test_windows_paketinde_sablon_stil_sema_ve_ornek_ayar_var(windows_tarifi):
         assert beklenen in hedefler
     kaynaklar = [Path(k).name for k, _ in windows_tarifi.kwargs("Analysis")["datas"]]
     assert ".env.example" in kaynaklar
+
+
+def test_iki_tarifte_de_pencere_simgesi_pakete_giriyor(windows_tarifi, mac_tarifi):
+    """Kontrol Paneli penceresinin görev çubuğu simgesi (masaustu/dalsan_launcher.py
+    → simge_dosyasi) ÇALIŞMA ANINDA bu dosyayı okur.
+
+    `.exe`'ye gömülü simge onun yerini tutmaz: gömülü simge Dosya Gezgini'nde
+    görünür, görev çubuğundaki pencere simgesi ise ayrı okunur. Dosya pakete
+    konmazsa Windows'ta görev çubuğunda Python'un jenerik simgesi çıkar —
+    yani uygulama, uygulama gibi görünmez.
+    """
+    for tarif in (windows_tarifi, mac_tarifi):
+        hedefler = dict((Path(k).name, h) for k, h in tarif.kwargs("Analysis")["datas"])
+        assert hedefler.get("NextGenDetector.ico") == "paketleme"
+
+
+def test_uygulama_penceresi_modulu_pakete_giriyor(windows_tarifi, mac_tarifi):
+    """Dışarıda kalırsa izleme ekranı sessizce TARAYICI SEKMESİNDE açılır.
+
+    Hata vermez, günlüğe tek satır düşer ve kullanıcı yine adres çubuklu bir
+    sayfa görür — düzeltilen şeyin tam olarak geri gelmesi.
+    """
+    for tarif in (windows_tarifi, mac_tarifi):
+        assert "uygulama_penceresi" in tarif.kwargs("Analysis")["hiddenimports"]
 
 
 def test_windows_paketinde_uvicorunun_gizli_modulleri_var(windows_tarifi):

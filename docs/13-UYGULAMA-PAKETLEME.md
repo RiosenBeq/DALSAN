@@ -83,6 +83,34 @@ gönderebilirsiniz.
 
 ---
 
+## 3.1 Teslim edilen uygulama nasıl görünür
+
+Çift tıklayınca **iki pencere** vardır ve ikisi de uygulama penceresidir:
+
+1. **Kontrol Paneli** — başlat/durdur ve sistem günlüğü. Windows'ta görev
+   çubuğunda kendi simgesiyle, ayrı bir uygulama olarak durur (Python'un
+   jenerik simgesi değil); Mac'te Dock'ta `.app` simgesiyle görünür.
+2. **İzleme Ekranı** — asıl kullanılan ekran. Adres çubuğu, sekme şeridi ve
+   yer imleri **yoktur**; sistem başlar başlamaz kendiliğinden açılır.
+
+İzleme penceresi, bilgisayarda zaten kurulu olan **Chrome / Edge / Brave**'in
+uygulama kipiyle açılır. Bu, pakete başka bir şey eklemeden uygulama penceresi
+elde etmenin en az parçalı yoludur:
+
+* Windows'ta **Edge her kurulumda vardır ve kaldırılamaz** — yani karşı taraf
+  hiçbir şey indirmeden uygulama penceresini görür.
+* Üçünden hiçbiri yoksa (yalnız Safari'nin bulunduğu bir Mac) ekran olağan
+  tarayıcıda açılır, Kontrol Paneli günlüğüne tek satır not düşer ve sistem
+  tam olarak çalışmaya devam eder.
+
+Bu pencere, kullanıcının açık tarayıcı oturumundan **ayrı bir profille**
+açılır (`tarayici-profili` klasörü). Böylece kullanıcı tarayıcısını kapatınca
+sistem ekranı kapanmaz, görev çubuğunda tarayıcıyla aynı simgenin altına
+gruplanmaz ve tarayıcı eklentileri sistemin sayfasına karışmaz. O klasör
+**yedeklenmez**: içinde kullanıcı verisi değil, önbellek vardır.
+
+---
+
 ## 4. Üretilen uygulama nereye veri yazar
 
 Uygulamanın kendi içine yazılamaz (işletim sistemi izin vermez). Veritabanı,
@@ -98,9 +126,11 @@ kanıt fotoğrafları, günlük ve ayarlar kullanıcının kendi klasörüne yaz
 ```
 veri/dalsan.db          ← olay kayıtları (yedeklenecek asıl dosya)
 veri/goruntuler/        ← kanıt fotoğrafları
+veri/videolar/          ← "Video ile Test" sayfasından yüklenen videolar
 veri/loglar/sistem.log  ← günlük
 .env                    ← ayarlar
 models/                 ← tanıma modeli (ilk açılışta bir kez iner)
+tarayici-profili/       ← izleme penceresinin önbelleği (YEDEKLENMEZ, silinebilir)
 ```
 
 **Yedek alırken kopyalanacak klasör budur.**

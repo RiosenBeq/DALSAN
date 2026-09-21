@@ -84,6 +84,10 @@ ENV_FILE = ROOT / ".env"
 # app/ayarlar.py bir kez oradan uretir; buradaki kopyalama o modda calismaz.
 ENV_EXAMPLE = ROOT / ".env.example"
 DATA_DIR = ROOT / "veri"
+# Izleme ekraninin uygulama penceresi icin AYRI tarayici profili
+# (masaustu/uygulama_penceresi.py). veri/ DISINDA durur: yedekleme "veri/
+# klasorunu kopyala" diye tarif ediliyor, burasi ise yalnizca onbellektir.
+TARAYICI_PROFILI = ROOT / "tarayici-profili"
 LOG_FILE = DATA_DIR / "loglar" / "sistem.log"
 VERITABANI = DATA_DIR / "dalsan.db"
 YEDEK_DIZINI = DATA_DIR / "yedekler"
@@ -101,6 +105,80 @@ ACCENT = "#1d4ed8"
 # ----------------------------------------------------------------------------
 # Yardimci fonksiyonlar (arayuzden bagimsiz)
 # ----------------------------------------------------------------------------
+def simge_dosyasi() -> Path | None:
+    """Pencere simgesinin (.ico) tam yolu; bulunamazsa None.
+
+    Yol app/kaynaklar.py'den cozulur: paketlenmis programda dosyalar depoda
+    degil, paketin acildigi gecici klasordedir. Paketleme tarifi simgeyi
+    ayni klasor duzeniyle pakete koyar (paketleme/paketleme_ortak.py).
+    """
+    try:
+        from app import kaynaklar
+
+        yol = kaynaklar.kaynak_yolu("paketleme", "NextGenDetector.ico")
+    except ImportError:
+        yol = Path(__file__).resolve().parent.parent / "paketleme" / "NextGenDetector.ico"
+    return yol if yol.is_file() else None
+
+
+def windows_uygulama_kimligini_kur() -> None:
+    """Windows'a "bu ayri bir uygulamadir" der; simgeyi ve gruplamayi duzeltir.
+
+    Bu satir olmadan Windows, Kontrol Paneli penceresini PYTHON'un penceresi
+    sayar: gorev cubugunda Python'un jenerik simgesi gorunur, baska bir
+    Python programiyla ayni yigina girer ve pencere sabitlenemez. Kullaniciya
+    gorunen sonucu "bu bir uygulama degil" hissidir.
+
+    Windows disinda ve kimlik kurulamazsa SESSIZCE gecilir: bu bir gorunum
+    ayridir, sistemin calismasinin on kosulu degil.
+    """
+    if not IS_WINDOWS:
+        return
+    try:
+        import ctypes
+
+        # Bosluksuz, nokta ayrili kimlik — Microsoft'un istedigi bicim.
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(
+            "NextGen.Detector.KontrolPaneli"
+        )
+    except (AttributeError, OSError, ImportError):
+        pass
+
+
+def pencere_simgesini_ata(kok, log=None) -> None:
+    """Kontrol Paneli penceresine uygulamanin kendi simgesini koyar."""
+    simge = simge_dosyasi()
+    if simge is None:
+        return
+    try:
+        if IS_WINDOWS:
+            kok.iconbitmap(str(simge))
+        # macOS'ta pencere simgesi .app kabugundan (.icns) gelir; iconbitmap
+        # orada ya hicbir sey yapmaz ya da hata verir, cagrilmaz.
+    except Exception as hata:  # noqa: BLE001 — simge yuzunden pencere acilmazlik etmesin
+        if log is not None:
+            log(f"[i] Pencere simgesi yuklenemedi: {hata}")
+
+
+def izleme_ekranini_ac(log=None) -> bool:
+    """Izleme ekranini UYGULAMA PENCERESINDE acar (tarayici sekmesinde degil).
+
+    Tek yerde durur: panelin "Izleme Ekranini Ac" dugmesi ile sistem
+    basladiktan sonraki otomatik acilis AYNI pencereyi acmali. Iki ayri
+    cagri olsaydi biri guncellenip digeri unutulurdu ve kullanici bir
+    seferinde uygulama, bir seferinde tarayici gorurdu.
+    """
+    try:
+        import uygulama_penceresi
+    except ImportError as hata:
+        # Modul paketlemede disarida kalmis olabilir: ekran yine acilmali.
+        if log is not None:
+            log(f"[i] Uygulama penceresi modulu yuklenemedi ({hata}); tarayicida aciliyor.")
+        webbrowser.open(URL)
+        return False
+    return uygulama_penceresi.ac(URL, TARAYICI_PROFILI, log)
+
+
 def dinleme_adresi() -> str:
     """.env dosyasindaki SUNUCU_ADRESI (yoksa 127.0.0.1).
 
@@ -562,8 +640,13 @@ def arayuzu_baslat():
     import tkinter as tk
     from tkinter import filedialog, font as tkfont, messagebox, scrolledtext
 
+    # Gorev cubugu kimligi pencere OLUSMADAN ONCE kurulmali: Windows simgeyi
+    # pencere ilk cizildiginde okur, sonradan degistirmek etkisizdir.
+    windows_uygulama_kimligini_kur()
+
     kok = tk.Tk()
     kok.title(APP_TITLE)
+    pencere_simgesini_ata(kok)
     kok.configure(bg=BG)
     kok.geometry("760x580")
     kok.minsize(680, 520)
@@ -665,7 +748,7 @@ def arayuzu_baslat():
         kurulum_btn = buton("İlk Kurulumu Yap", lambda: is_baslat(kurulumu_yap))
     baslat_btn = buton("Sistemi Başlat", lambda: is_baslat(sistemi_baslat), ana=True)
     durdur_btn = buton("Durdur", lambda: sistemi_durdur())
-    ekran_btn = buton("İzleme Ekranını Aç", lambda: webbrowser.open(URL))
+    ekran_btn = buton("İzleme Ekranını Aç", lambda: izleme_ekranini_ac(log))
     geri_yukle_btn = buton("Yedekten Geri Yükle", lambda: yedekten_don())
     # Paketlenmis programda git deposu yoktur: guncelleme yeni uygulamayi
     # eskisinin ustune kopyalamaktir (docs/13 §5). Dugme hic konmaz.
@@ -904,7 +987,7 @@ def arayuzu_baslat():
             if sunucu_ayakta():
                 log(f"\n✓ SİSTEM ÇALIŞIYOR → {URL}")
                 log("=" * 60)
-                kok.after(400, lambda: webbrowser.open(URL))
+                kok.after(400, lambda: izleme_ekranini_ac(log))
                 return
             if adim and adim % 30 == 0:
                 log(f"   … hazırlanıyor ({adim // 2} sn geçti) — pencereyi kapatmayın.")

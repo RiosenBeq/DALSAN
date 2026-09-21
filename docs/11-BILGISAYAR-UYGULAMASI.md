@@ -7,11 +7,23 @@ Karışmaması gereken iki şey var:
 | | Nerede çalışır | Ne işe yarar |
 |---|---|---|
 | **Kontrol Paneli** (bu uygulama) | Senin Mac/Windows bilgisayarında | Sistemi başlat/durdur, durumu gör, hata günlüğünü oku |
-| **İzleme Ekranı** | Tarayıcıda açılır | Kameralar, bölgeler, kurallar, olaylar — asıl kullanılan ekran |
+| **İzleme Ekranı** | Kendi uygulama penceresinde açılır | Kameralar, bölgeler, kurallar, olaylar — asıl kullanılan ekran |
 
-İzleme ekranı zaten Mac ve Windows'ta çalışır, çünkü **tarayıcı sayfasıdır.**
-Ayrıca ek bir program kurmaya gerek yoktur; fabrikadaki bilgisayardan da,
-İSG müdürünün dizüstünden de aynı adres açılır.
+İzleme ekranı **kendi penceresinde** açılır: adres çubuğu, sekme şeridi ve yer
+imleri yoktur; görev çubuğunda (Windows) ve Dock'ta (Mac) ayrı bir uygulama
+olarak durur. İçeride bir web sayfası çalışıyor olması bir ayrıntıdır ve
+kullanıcıya görünmez.
+
+> **Nasıl çalışıyor:** pencere, bilgisayarda zaten kurulu olan Chrome, Edge
+> ya da Brave'in "uygulama kipi" ile açılır. Windows'ta Edge her zaman
+> kuruludur, yani ek bir şey indirmeniz gerekmez. Bu üçünden hiçbiri yoksa
+> (örneğin yalnız Safari'nin bulunduğu bir Mac'te) ekran olağan tarayıcıda
+> açılır ve Kontrol Paneli günlüğüne şu satır düşer:
+> *"Uygulama penceresi için Chrome, Edge veya Brave gerekiyor."*
+> Sistem yine tam olarak çalışır, yalnız görünümü bir sekmedir.
+
+Fabrikadaki bilgisayardan da, İSG müdürünün dizüstünden de aynı adres
+tarayıcıyla açılabilir — uygulama penceresi bir zorunluluk değil, kolaylıktır.
 
 Kontrol Paneli'nin çözdüğü sorun ayrıdır: **terminal/komut satırı kullanmadan**
 sistemi yönetebilmek.
@@ -63,15 +75,15 @@ SmartScreen uyarısı çıkarsa: **Daha fazla bilgi → Yine de çalıştır**
 |---|---|
 | **Durum satırları** | 1,5 saniyede bir kendini yeniler. Hepsi yeşilse hazırsın. |
 | **İlk Kurulumu Yap** | Sadece bir kez. Python ortamını hazırlar, paketleri kurar. Birkaç dakika sürer. |
-| **Sistemi Başlat** | Sistemi çalıştırır ve izleme ekranını tarayıcıda açar. |
+| **Sistemi Başlat** | Sistemi çalıştırır ve izleme ekranını kendi penceresinde açar. |
 | **Durdur** | Düzgün şekilde kapatır. |
-| **İzleme Ekranını Aç** | Tarayıcıyı tekrar açar (yanlışlıkla kapattıysan). |
+| **İzleme Ekranını Aç** | İzleme penceresini tekrar açar (yanlışlıkla kapattıysan). |
 | **Sistem günlüğü** | Olan biten. **Bir sorun olduğunda buradaki kırmızı satırları kopyalayıp Claude Code'a yapıştır.** |
 
 ## 4. Günlük kullanım
 
 ```
-Çift tıkla → "Sistemi Başlat" → tarayıcı açılır → çalış → "Durdur"
+Çift tıkla → "Sistemi Başlat" → izleme penceresi açılır → çalış → "Durdur"
 ```
 
 Pencereyi kapatmak da sistemi durdurur; ayrıca "Durdur"a basman şart değil.
