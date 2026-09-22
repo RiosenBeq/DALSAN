@@ -271,4 +271,4 @@ Bu prompt DALSAN deposu okunmadan yazıldı. Depo okununca şu maddelerin yanlı
 | E13 | §4.8 "≤ 500 ms kare→ses" hedefi | **Ölçüldü:** 4 çekirdek CPU'da 4 kamera yüküyle tespit p90'ı tek başına `yolox_tiny` 121-138 ms, `yolox_s` 473-496 ms | `s` + CPU + Bluetooth birleşimi hedefi karşılayamaz; hedef donanıma koşullu yazılmalı |
 | E14 | §4.8 "kamera başına ≥ 10 fps" | docs/05 bütçesi 4 kamera × **6 fps**; ölçüm `tiny` ile tam %100, `s` ile %40 | Hedef 10 fps değil 6 fps olmalı (projenin kendi bütçesi) |
 
-E12–E14 orkestratörün kendi ölçümlerinden gelir (`docs/AUDIT.md` Ek Ö). Faz 0 (`docs/AUDIT.md`) ve dış kaynak doğrulaması (`docs/16-DIS-KAYNAK-DOGRULAMA.md`) tamamlandıkça bu tablo genişler.
+E12–E14 orkestratörün kendi ölçümlerinden gelir (`docs/AUDIT-OLCUM.md`). Faz 0 tamamlandı (`docs/AUDIT.md`); dış kaynak doğrulaması (`docs/16-DIS-KAYNAK-DOGRULAMA.md`) E1'in kapsamını genişletir: §4.7'de adı geçen üç KKD veri setinin **üçü de** ticari kurulumda kullanılamaz (SH17 CC BY-NC-SA 4.0; CHV ve Pictor-PPE lisanssız). §4.6'daki A2DP "100–250 ms" aralığı da orada DOĞRULANMADI olarak işaretlenmiştir; bir ölçüm değildir.
