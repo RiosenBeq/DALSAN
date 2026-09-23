@@ -205,6 +205,40 @@ def test_bagli_mi_uc_durumu_ayirir(monkeypatch):
     assert ses_cihazlari.cihaz_bagli_mi("kapali-hoparlor") is False
 
 
+def test_bluez_adresi_iki_onekte_de_bulunur():
+    """MAC ayrıca saklanmaz, sink adından çözülür (docs/17 §7.5-2): önek
+    (PipeWire bluez_output., PulseAudio bluez_sink.) ve profil soneki koda
+    yazılmaz, adres deseni aranır."""
+    beklenen = "AA:BB:CC:DD:EE:0F"
+    for ad in (
+        "bluez_output.AA_BB_CC_DD_EE_0F.1",
+        "bluez_output.aa_bb_cc_dd_ee_0f.a2dp-sink",
+        "bluez_sink.AA_BB_CC_DD_EE_0F.a2dp_sink",
+        "bluez_sink.AA:BB:CC:DD:EE:0F.headset_head_unit",
+    ):
+        assert ses_cihazlari.bluez_mac(ad) == beklenen, ad
+    # Adında "bluez" geçmeyen çıkıştaki onaltılık dizi adres sanılmaz
+    assert ses_cihazlari.bluez_mac("alsa_output.usb-AA_BB_CC_DD_EE_0F-00.analog") is None
+    assert ses_cihazlari.bluez_mac("bluez_output.bozuk") is None
+
+
+def test_yeniden_baglanan_hoparlor_bugunku_adiyla_calinir():
+    """Profil soneki değişen sink aynı hoparlördür; ses bugünkü adına çalınır."""
+    eski = "bluez_output.AA_BB_CC_DD_EE_0F.1"
+    bugun = "bluez_output.AA_BB_CC_DD_EE_0F.a2dp-sink"
+    cihazlar = [
+        ses_cihazlari.SesCihazi(kimlik="alsa_output.pci.analog-stereo", ad="Dahili"),
+        ses_cihazlari.SesCihazi(kimlik=bugun, ad="JBL", bluetooth=True),
+    ]
+    assert ses_cihazlari.ayni_cikis_mi(eski, bugun)
+    assert ses_cihazlari.guncel_cikis(eski, cihazlar) == bugun
+    assert ses_cihazlari.guncel_cikis(bugun, cihazlar) == bugun
+    # Listede yoksa beklenen ad kalır: çalıcı "bulunamadı" der, deneme kayda düşer
+    assert ses_cihazlari.guncel_cikis("bluez_output.11_22_33_44_55_66.1", cihazlar) == (
+        "bluez_output.11_22_33_44_55_66.1"
+    )
+
+
 # -------------------------------------------------------------- test sesi
 
 
