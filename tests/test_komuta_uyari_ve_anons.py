@@ -291,8 +291,9 @@ def test_anons_mesaji_ve_yolu_gercek(istemci, test_ayarlari):
 
     metin = istemci.get("/komuta/uyari").text
     assert "Lütfen iş makinelerinden güvenli mesafede durunuz." in metin
-    # test ayarlarında ANONS=null
-    assert "anons sistemi kapalı" in metin
+    # Kanal tanımlı değil: ses çıkmadığı satırda da, altındaki notta da yazar
+    assert "sesli kanal yok" in metin
+    assert "Açık sesli kanal yok." in metin
 
 
 def test_anonssuz_kural_sessizce_gecistirilmiyor(istemci, test_ayarlari):
@@ -488,12 +489,11 @@ def test_golge_moddaki_olay_ekran_bandini_tetiklemiyor(istemci, test_ayarlari):
 # =====================================================================
 
 
-def test_anons_kartlari_env_ve_veritabanindan(istemci):
+def test_anons_kartlari_veritabanindan(istemci):
     metin = istemci.get("/komuta/anons").text
-    # test ayarlarında ANONS=null, ANONS_BEKLEME_SN=30
-    assert "Anons yolu" in metin and "kapalı" in metin
+    # Kanal yok; test ayarlarında ANONS_BEKLEME_SN=30
+    assert "Sesli kanal" in metin and "Tanımlanmadı" in metin
     assert "30 sn" in metin
-    assert "Tanımlanmadı" in metin  # hoparlör bölgesi yok
     # Tasarımın örnek değerleri sızmamalı
     assert "6 / 7 çalışıyor" not in metin
     assert "20 sn" not in metin
@@ -557,7 +557,7 @@ def test_anons_olmayinca_ogretici_bos_durum(istemci):
 
 def test_hoparlor_yokken_ogretici_bos_durum(istemci):
     metin = istemci.get("/komuta/anons").text
-    assert "Hoparlör bölgesi tanımlanmadı" in metin
+    assert "Uyarı kanalı tanımlanmadı" in metin
     assert "192.168.1.4" not in metin  # tasarımın örnek adresleri
 
 
@@ -570,11 +570,13 @@ def test_hoparlor_ekleniyor_ve_listeleniyor(istemci, test_ayarlari):
     assert kayit["name"] == "Sevkiyat rampaları"
     assert kayit["area"] == "Sevkiyat"
     assert kayit["enabled"] == 1
+    # Türü gönderilmeyen form (eski istemci) IP hoparlör kaydeder
+    assert (kayit["kind"], kayit["device"]) == ("http", "")
 
     metin = istemci.get("/komuta/anons").text
     assert "Sevkiyat rampaları" in metin
     assert "http://10.0.0.9:8080/anons" in metin
-    assert "1 / 1 açık" in metin
+    assert "1 açık" in metin
 
 
 def test_hoparlor_adresindeki_sifre_listede_maskeleniyor(istemci, test_ayarlari):
@@ -668,12 +670,15 @@ def test_olmayan_hoparlor_denenemez(istemci):
     assert istemci.post("/hoparlorler/999/dene").status_code == 400
 
 
-def test_anons_kapali_uyarisi_ekranda(istemci):
-    """Bölge tanımlı ama .env'de ANONS=null: 'açık' demek yalan olurdu."""
+def test_kanal_env_ayarina_bakmadan_acik(istemci):
+    """Kanal satırı kendi başına yeterlidir (K22): açık satır çalar ve "açık"
+    yazar. Eskiden .env ANONS=http değilken satır "beklemede" kalırdı."""
     _hoparlor_ekle(istemci, "Sevkiyat")
     metin = istemci.get("/komuta/anons").text
-    assert "beklemede" in metin
-    assert "yalnızca <b>IP hoparlör</b> yolunda" in metin
+    satir = metin.split('class="hoparlor-satiri"')[1].split("<details")[0]
+    assert '<span class="rozet yesil">açık</span>' in satir
+    assert "beklemede" not in metin
+    assert ".env" not in satir
 
 
 # ---- bölge seçim kuralı (anons katmanıyla AYNI fonksiyon) ----
@@ -701,20 +706,33 @@ def test_zincirde_dogru_hoparlor_yaziyor(istemci, test_ayarlari):
     _hoparlor_ekle(istemci, "Sevkiyat rampaları", alan="Sevkiyat")
     _hoparlor_ekle(istemci, "Genel anons", alan="")
 
-    # ANONS=http olduğunda bölge adı görünür
-    istemci.app.state.ayarlar = _http_ayarlari(istemci.app.state.ayarlar)
     metin = istemci.get("/komuta/uyari").text
     assert "IP hoparlör · Sevkiyat rampaları" in metin
+    # Bölümünde kanal olan olay "Tüm fabrika"ya düşmez
     assert "Genel anons" not in metin
 
 
-def _http_ayarlari(ayarlar):
-    """Aynı ayarların ANONS=http sürümü (dataclass donmuş olduğu için kopya)."""
-    import dataclasses
+def test_zincirde_ses_cikisi_ve_ses_dosyasi_yaziyor(istemci, test_ayarlari, monkeypatch):
+    """Ses çıkışı kanalı WAV çalar: zincir hangi çıkıştan çalacağını ve mesajın
+    ses dosyası olmadığını söyler. IP hoparlörde ses dosyası sözü geçmez."""
+    from app.olaylar import ses_cihazlari
 
-    return dataclasses.replace(
-        ayarlar, anons="http", anons_http_adresi="http://10.0.0.9:8080/anons"
+    monkeypatch.setattr(ses_cihazlari, "secim_destekleniyor_mu", lambda: True)
+    kamera = _kamera_ekle(istemci, "Rampa 1", "Sevkiyat")
+    _kural_ekle(test_ayarlari, kamera, anons_id=_anons_id(test_ayarlari))
+    istemci.post(
+        "/hoparlorler/kaydet",
+        data={
+            "name": "Tüm fabrika",
+            "area": "",
+            "kind": "ses_karti",
+            "device": "bluez_output.AA_BB.1",
+            "enabled": "1",
+        },
     )
+    metin = istemci.get("/komuta/uyari").text
+    assert "ses çıkışı · Tüm fabrika" in metin
+    assert "ses dosyası bağlanmamış" in metin
 
 
 # =====================================================================

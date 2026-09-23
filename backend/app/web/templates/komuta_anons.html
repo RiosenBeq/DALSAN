@@ -1,15 +1,78 @@
-{# Anons sistemi — hangi mesaj, hangi hoparlörden, ne sıklıkta.
+{# Anons sistemi: hangi mesaj, hangi kanaldan, ne sıklıkta.
 
    Tasarımın (389-479) örnek verileri buraya taşınmadı: "192.168.1.41",
    "6 / 7 çalışıyor", "41 anons", "18 kez bugün" ÖRNEKTİR. Ekrandaki her sayı
-   .env ayarlarından ve veritabanından gelir; hoparlör bölgeleri de bu ekrandan
-   eklenir (şema 002 → speaker_zones).
+   veritabanından ve ayarlardan gelir; uyarı kanalları da bu ekrandan eklenir
+   (speaker_zones; şema 002 ve 009, docs/17 K22).
 
    Tasarımın üç onay kutusu (gece vardiyasında ses %60, Türkçe seslendirme,
    vardiya devrinde iki kez) sistemde YOK ve konulmadı: çalışmayan bir düğme,
    olmayan bir özellikten daha kötüdür. #}
 {% extends "komuta_temel.html" %}
 {% block icerik %}
+
+{# Kanal formu: ekleme ve düzenleme AYNI alanları kullanır (k boşsa yeni kanal).
+   Tür seçimine göre yalnız ilgili alan görünür (komuta.css, :has()); bunu
+   bilmeyen tarayıcıda iki alan da görünür ve sunucu türe uymayanı yok sayar.
+   Bu yüzden iki alanda da `required` YOK: gizli bir zorunlu alan formu
+   gönderilemez yapardı. Boş değeri sunucu reddeder (web/hoparlorler.py). #}
+{% macro kanal_formu(k=none) %}
+{% set tur = k.tur if k else ("ses_karti" if ses_cihazlari else "http") %}
+<form method="post" action="/hoparlorler/kaydet" class="hoparlor-formu kanal-formu">
+  {% if k %}<input type="hidden" name="hoparlor_id" value="{{ k.id }}">{% endif %}
+  <label>Ad <input name="name" value="{{ k.ad if k else '' }}" required
+    {% if not k %}placeholder="Sevkiyat rampaları"{% endif %}></label>
+  <label>Bölüm
+    <select name="area">
+      <option value="">{{ tum_fabrika }} (bölümünde kanal olmayan olay)</option>
+      {% for bolum in bolumler %}
+      <option value="{{ bolum }}" {% if k and bolum == k.alan %}selected{% endif %}>{{ bolum }}</option>
+      {% endfor %}
+      {% if k and k.alan and k.alan not in bolumler %}
+      <option value="{{ k.alan }}" selected>{{ k.alan }} (bu bölümde kamera yok)</option>
+      {% endif %}
+    </select>
+  </label>
+  <fieldset class="kanal-turu">
+    <legend>Tür</legend>
+    <div class="kanal-turu-secenekleri">
+      {% for deger, ad in kanal_turleri.items() %}
+      <label class="yatay"><input type="radio" name="kind" value="{{ deger }}"
+        {% if deger == tur %}checked{% endif %}> {{ ad }}</label>
+      {% endfor %}
+    </div>
+  </fieldset>
+  <label class="alan-ses_karti">Ses çıkışı
+    <input name="device" value="{{ (k.cihaz if k else '') or varsayilan_ses_cihazi }}"
+      list="ses-cikislari" autocomplete="off" spellcheck="false"
+      placeholder="bluez_output.AA_BB_CC_DD_EE_FF.1">
+    <span class="panel-notu">
+      {% if not ses_secimi_destekleniyor %}
+      Bu işletim sisteminde çıkış, işletim sisteminin ses ayarlarından seçilir ve ses
+      oradan çıkar; bu alan boş kalabilir.
+      {% elif ses_cihazlari %}
+      Listede şu an bağlı {{ ses_cihazlari | length }} çıkış var. Kapalı Bluetooth
+      hoparlörün adını elle de yazabilirsiniz.
+      {% else %}
+      Çıkış listesi okunamadı (pactl yok ya da ses sunucusuna ulaşılamıyor); çıkışın
+      adını elle yazın.
+      {% endif %}
+    </span>
+  </label>
+  <label class="alan-http">Adres
+    <input name="address" value="{{ k.adres if k else '' }}" autocomplete="off"
+      spellcheck="false" placeholder="http://10.0.0.9:8080/anons"
+      {% if k %}title="Kullanıcı adı ve şifre •••• ile gizlidir; olduğu gibi bırakırsanız korunur"{% endif %}>
+  </label>
+  <label>Açıklama <input name="description" value="{{ k.aciklama if k else '' }}"
+    {% if not k %}placeholder="rampa üstündeki iki hoparlör"{% endif %}></label>
+  <label class="yatay"><input type="checkbox" name="enabled" value="1"
+    {% if not k or k.aktif %}checked{% endif %}> Kanal açık</label>
+  <div class="dugme-satiri">
+    <button type="submit" class="dugme">{{ "Kaydet" if k else "Ekle" }}</button>
+  </div>
+</form>
+{% endmacro %}
 
 {% if sonuc_mesaji %}
 <p class="komuta-sonuc">{{ sonuc_mesaji }}</p>
@@ -26,49 +89,90 @@
   {% endfor %}
 </div>
 
-{# --- ses çıkışı ------------------------------------------------------- #}
-{# Yalnız "ses kartı" yolunda anlamlı: IP hoparlörde ses bilgisayardan hiç
-   çıkmaz, adrese HTTP isteği gider.
-
-   Bu panel /anons sayfasında da var ve verisi AYNI fonksiyondan geliyor
-   (anons_web.ses_cikisi_baglami). Burada da durmasının sebebi: kullanıcının
-   asıl durduğu ekran burası. Bluetooth hoparlörün koptuğu yalnızca eski
-   kabuktaki sayfada yazsaydı, uyarıyı görmek için oraya gitmesi gerekirdi —
-   oysa oraya gitmesinin sebebi tam da bir sorun olduğunu bilmek olurdu. #}
-{% if anons_ses_karti %}
-<section class="komuta-panel">
+{# --- uyarı kanalları ---------------------------------------------------- #}
+{# Kanal yapılandırmasının TEK yeri burasıdır (speaker_zones, docs/17 K22). Olay,
+   kameranın bölümündeki bütün açık kanallardan duyurulur; bölümünde kanal yoksa
+   "Tüm fabrika" kanallarından. Seçim anons katmanıyla aynı fonksiyondur
+   (olaylar/anons.py → bolgeleri_sec). #}
+<section class="komuta-panel" id="kanallar">
   <div class="panel-basligi">
-    <h2>Ses çıkışı</h2>
-    <span class="panel-notu">anons hangi hoparlörden çalıyor</span>
-    <a class="panel-sag" href="/anons">çıkışı değiştir ve test sesi çal →</a>
+    <h2>Uyarı kanalları</h2>
+    <span class="panel-notu">ihlal, kameranın bölümündeki bütün açık kanallardan duyurulur</span>
   </div>
 
-  {% if ses_cihazi_bagli is false %}
+  {% if kopuk_kanal_var %}
   <div class="komuta-bos uyari-tonu">
-    <h3>Seçili hoparlör bağlı değil</h3>
-    <p><b>{{ secili_ses_cihazi }}</b> şu anda görünmüyor — Bluetooth hoparlörse
-      kapanmış ya da menzilden çıkmış olabilir.
-      <b>Bu haldeyken anonslar duyulmaz;</b> ekran uyarıları çalışmaya devam eder.</p>
+    <h3>Bir ses çıkışı görünmüyor</h3>
+    <p>Aşağıda <b>görünmüyor</b> yazan kanalın çıkışı şu anda bu bilgisayarda yok:
+      Bluetooth hoparlörse kapanmış ya da menzilden çıkmış olabilir.
+      <b>Bu haldeyken o kanaldan anons duyulmaz;</b> ekran uyarıları çalışmaya devam eder.</p>
+  </div>
+  {% endif %}
+
+  {% if not kanallar %}
+  <div class="komuta-bos">
+    <h3>Uyarı kanalı tanımlanmadı</h3>
+    <p>Şu an hoparlörden ses çıkmıyor; ihlal yalnızca ekranda uyarı olarak görünür. Bir
+      kanal ekleyin: bu bilgisayara bağlı bir <b>ses çıkışı</b> (kablolu amfi ya da
+      Bluetooth hoparlör) ya da ağdaki bir <b>IP hoparlör</b>.</p>
+    <p>Bölüm adı, kameranın "Bölüm" alanıyla eşleştirilir: bölümü <b>Sevkiyat</b> olan
+      kameranın ihlali, bölümü <b>Sevkiyat</b> olan bütün kanallardan duyurulur. Bölümü
+      boş kanal <b>{{ tum_fabrika }}</b> kanalıdır: bölümünde kanal olmayan olay oradan
+      duyurulur.</p>
   </div>
   {% else %}
   <div class="hoparlor-listesi">
+    {% for k in kanallar %}
     <div class="hoparlor-satiri">
       <span class="zincir-hucre">
-        <span class="satir-adi">
-          {{ secili_ses_cihazi or "İşletim sisteminin varsayılan çıkışı" }}</span>
-        <span class="panel-notu">
-          {% if not ses_secimi_destekleniyor %}çıkış, işletim sisteminin ses
-            ayarlarından seçilir{% elif ses_cihazlari %}{{ ses_cihazlari | length }}
-            çıkış bulundu{% else %}çıkış listesi okunamadı — anons yine
-            varsayılana çalar{% endif %}</span>
+        <span class="satir-adi">{{ k.ad }}</span>
+        <span class="panel-notu kanal-hedef">{{ k.alan_adi }} · {{ k.tur_kisa }} · {{ k.hedef }}</span>
+        {% if k.uyari %}<span class="panel-notu kanal-uyarisi">{{ k.uyari }}</span>{% endif %}
+        {% if k.aciklama %}<span class="panel-notu">{{ k.aciklama }}</span>{% endif %}
       </span>
-      <span class="rozet {{ 'yesil' if secili_ses_cihazi else 'gri' }}">
-        {{ "seçili" if secili_ses_cihazi else "varsayılan" }}</span>
+      <span class="sayisal" title="son anons">{{ k.son_anons }}</span>
+      <span><span class="rozet {{ k.rozet_rengi }}">{{ k.rozet }}</span></span>
+      <span class="zincir-hucre sag">
+        <form method="post" action="/hoparlorler/{{ k.id }}/dene" class="satir-form">
+          <button type="submit" class="dugme kucuk"
+            title="{{ 'Bu çıkıştan kısa bir test sesi çalar' if k.tur == 'ses_karti' else 'Bu hoparlöre deneme metni gönderir' }}">▶ Dene</button>
+        </form>
+      </span>
+
+      {# Düzenleme formu <details> içinde: JavaScript gerekmez. #}
+      <details class="hoparlor-duzenle">
+        <summary>Düzenle</summary>
+        {{ kanal_formu(k) }}
+        <form method="post" action="/hoparlorler/{{ k.id }}/sil" class="satir-form"
+              data-onay="Kanal silinsin mi? O bölümde başka açık kanal kalmazsa bölümün anonsu “{{ tum_fabrika }}” kanallarından duyurulur.">
+          <button type="submit" class="baglanti-dugme">Bu kanalı sil</button>
+        </form>
+      </details>
     </div>
+    {% endfor %}
   </div>
   {% endif %}
+
+  <details class="hoparlor-ekle" {% if not kanallar %}open{% endif %}>
+    <summary>+ Yeni kanal</summary>
+    {{ kanal_formu() }}
+    {% if not bolumler %}
+    <p class="panel-notu">Kameraların "Bölüm" alanı boş olduğu için listede bölüm yok.
+      Kamera sayfasından bölüm yazarsanız kanalı o bölüme bağlayabilirsiniz.</p>
+    {% endif %}
+  </details>
+
+  {# Ses çıkışı önerileri: o an bağlı çıkışlar (tüm formlar aynı listeyi kullanır) #}
+  <datalist id="ses-cikislari">
+    {% for c in ses_cihazlari %}
+    <option value="{{ c.kimlik }}">{{ c.ad }}{% if c.varsayilan %} · varsayılan{% endif %}{% if c.bluetooth %} · Bluetooth{% endif %}</option>
+    {% endfor %}
+  </datalist>
+
+  <p class="panel-notu">"Dene" düğmesi kanalı kayıtlı hâliyle sınar: ses çıkışında kısa
+    bir bip sesi çalar, IP hoparlöre deneme metni gönderir. Mesaj listesindeki "Dene"
+    ise mesajı <b>{{ tum_fabrika }}</b> kanallarından çalar.</p>
 </section>
-{% endif %}
 
 {# --- anons mesajları -------------------------------------------------- #}
 <section class="komuta-panel">
@@ -118,141 +222,38 @@
   {% endif %}
 </section>
 
-<div class="komuta-ikili">
+{# --- anonsun saatlere dağılımı ----------------------------------------- #}
+<section class="komuta-panel">
+  <div class="panel-basligi">
+    <h2>Anonsun saatlere dağılımı</h2>
+    <span class="panel-notu">bugün · {{ anons_saat_toplami }} anons tetikleyen ihlal</span>
+    {% if anons_saat_tepesi %}<span class="panel-sag">{{ anons_saat_tepesi }}</span>{% endif %}
+  </div>
 
-  {# --- hoparlör bölgeleri ---------------------------------------------- #}
-  <section class="komuta-panel">
-    <div class="panel-basligi">
-      <h2>Hoparlör bölgeleri</h2>
-      <span class="panel-notu">anons yalnızca ihlalin olduğu bölümde çalar</span>
+  {% if anons_saat_toplami %}
+  <div class="komuta-histogram">
+    {% for s in anons_saatleri %}
+    <div class="histogram-sutun" title="{{ s.etiket }}:00 — {{ s.deger }}">
+      <span class="histogram-sayi {{ s.sinif }}">{% if s.deger %}{{ s.deger }}{% endif %}</span>
+      <span class="histogram-cubuk {{ s.sinif }}" style="height: {{ s.yukseklik }}"></span>
+      <span class="histogram-etiket">{{ s.etiket }}</span>
     </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="komuta-bos">
+    <h3>Bugün anons tetikleyen ihlal yok</h3>
+    <p>Bu grafik, anons mesajı bağlı bir kuralın bugün hangi saatlerde ihlal
+      ürettiğini gösterir. Gölge moddaki kurallar sayılmaz.</p>
+  </div>
+  {% endif %}
 
-    {% if not hoparlorler %}
-    <div class="komuta-bos">
-      <h3>Hoparlör bölgesi tanımlanmadı</h3>
-      <p>Bölge eklemezseniz her anons .env dosyasındaki tek adrese gider ve fabrikanın
-        her yerinden aynı anda duyulur. Bölüm adı, kameranın "Bölüm" alanıyla
-        eşleştirilir: bölümü <b>Sevkiyat</b> olan kameranın ihlali, bölümü
-        <b>Sevkiyat</b> olan hoparlörden duyurulur.</p>
-    </div>
-    {% else %}
-    <div class="hoparlor-listesi">
-      {% for h in hoparlorler %}
-      <div class="hoparlor-satiri">
-        <span class="zincir-hucre">
-          <span class="satir-adi">{{ h.ad }}</span>
-          <span class="panel-notu">{{ h.alan_adi }} · {{ h.adres }}</span>
-          {% if h.aciklama %}<span class="panel-notu">{{ h.aciklama }}</span>{% endif %}
-        </span>
-        <span class="sayisal">{{ h.son_anons }}</span>
-        <span><span class="rozet {{ h.rozet_rengi }}">{{ h.rozet }}</span></span>
-        <span class="zincir-hucre sag">
-          <form method="post" action="/hoparlorler/{{ h.id }}/dene" class="satir-form">
-            <button type="submit" class="dugme kucuk">▶ Dene</button>
-          </form>
-        </span>
-
-        {# Düzenleme formu <details> içinde: JavaScript gerekmez. #}
-        <details class="hoparlor-duzenle">
-          <summary>Düzenle</summary>
-          <form method="post" action="/hoparlorler/kaydet" class="hoparlor-formu">
-            <input type="hidden" name="hoparlor_id" value="{{ h.id }}">
-            <label>Ad <input name="name" value="{{ h.ad }}" required></label>
-            <label>Bölüm
-              <select name="area">
-                <option value="">Tüm fabrika (yedek hoparlör)</option>
-                {% for bolum in bolumler %}
-                <option value="{{ bolum }}" {% if bolum == h.alan %}selected{% endif %}>{{ bolum }}</option>
-                {% endfor %}
-                {% if h.alan and h.alan not in bolumler %}
-                <option value="{{ h.alan }}" selected>{{ h.alan }} (bu bölümde kamera yok)</option>
-                {% endif %}
-              </select>
-            </label>
-            <label>Adres <input name="address" value="{{ h.adres }}" required
-              title="Kullanıcı adı ve şifre •••• ile gizlidir; olduğu gibi bırakırsanız korunur"></label>
-            <label>Açıklama <input name="description" value="{{ h.aciklama }}"></label>
-            <label class="yatay"><input type="checkbox" name="enabled" value="1"
-              {% if h.aktif %}checked{% endif %}> Bölge açık</label>
-            <div class="dugme-satiri">
-              <button type="submit" class="dugme">Kaydet</button>
-            </div>
-          </form>
-          <form method="post" action="/hoparlorler/{{ h.id }}/sil" class="satir-form"
-                data-onay="Hoparlör bölgesi silinsin mi? O bölümün anonsu .env dosyasındaki adrese döner.">
-            <button type="submit" class="baglanti-dugme">Bu bölgeyi sil</button>
-          </form>
-        </details>
-      </div>
-      {% endfor %}
-    </div>
-    {% endif %}
-
-    <details class="hoparlor-ekle">
-      <summary>+ Yeni hoparlör bölgesi</summary>
-      <form method="post" action="/hoparlorler/kaydet" class="hoparlor-formu">
-        <label>Ad <input name="name" placeholder="Sevkiyat rampaları" required></label>
-        <label>Bölüm
-          <select name="area">
-            <option value="">Tüm fabrika (yedek hoparlör)</option>
-            {% for bolum in bolumler %}
-            <option value="{{ bolum }}">{{ bolum }}</option>
-            {% endfor %}
-          </select>
-        </label>
-        <label>Adres <input name="address" placeholder="http://10.0.0.9:8080/anons" required></label>
-        <label>Açıklama <input name="description" placeholder="rampa üstündeki iki hoparlör"></label>
-        <label class="yatay"><input type="checkbox" name="enabled" value="1" checked> Bölge açık</label>
-        <div class="dugme-satiri">
-          <button type="submit" class="dugme">Ekle</button>
-        </div>
-      </form>
-      {% if not bolumler %}
-      <p class="panel-notu">Kameraların "Bölüm" alanı boş olduğu için listede bölüm yok.
-        Kamera sayfasından bölüm yazarsanız hoparlörü o bölüme bağlayabilirsiniz.</p>
-      {% endif %}
-    </details>
-
-    {% if not anons_http %}
-    <p class="panel-notu">Hoparlör bölgeleri yalnızca <b>IP hoparlör</b> yolunda kullanılır
-      (.env → ANONS=http). Şu anki anons yolu: <b>{{ anons_yolu }}</b>. "Dene" düğmesi yine
-      de çalışır: adresi ANONS ayarını değiştirmeden sınayabilirsiniz.</p>
-    {% endif %}
-  </section>
-
-  {# --- anonsun saatlere dağılımı --------------------------------------- #}
-  <section class="komuta-panel">
-    <div class="panel-basligi">
-      <h2>Anonsun saatlere dağılımı</h2>
-      <span class="panel-notu">bugün · {{ anons_saat_toplami }} anons tetikleyen ihlal</span>
-      {% if anons_saat_tepesi %}<span class="panel-sag">{{ anons_saat_tepesi }}</span>{% endif %}
-    </div>
-
-    {% if anons_saat_toplami %}
-    <div class="komuta-histogram">
-      {% for s in anons_saatleri %}
-      <div class="histogram-sutun" title="{{ s.etiket }}:00 — {{ s.deger }}">
-        <span class="histogram-sayi {{ s.sinif }}">{% if s.deger %}{{ s.deger }}{% endif %}</span>
-        <span class="histogram-cubuk {{ s.sinif }}" style="height: {{ s.yukseklik }}"></span>
-        <span class="histogram-etiket">{{ s.etiket }}</span>
-      </div>
-      {% endfor %}
-    </div>
-    {% else %}
-    <div class="komuta-bos">
-      <h3>Bugün anons tetikleyen ihlal yok</h3>
-      <p>Bu grafik, anons mesajı bağlı bir kuralın bugün hangi saatlerde ihlal
-        ürettiğini gösterir. Gölge moddaki kurallar sayılmaz.</p>
-    </div>
-    {% endif %}
-
-    <p class="panel-notu">Sütunlar <b>ihlal</b> sayar. Hoparlörün gerçekte kaç kez çaldığı
-      ayrıca kaydedilmiyor: aynı kamera ve mesaj için {{ anons_bekleme_sn }} saniyelik
-      tekrar aralığı bir kısmını bastırır, yani gerçek anons sayısı bu sütunlardan azdır.</p>
-    <p class="panel-notu">Anons yolu ve tekrar aralığı .env dosyasından gelir
-      (ANONS, ANONS_HTTP_ADRESI, ANONS_BEKLEME_SN); değiştirdikten sonra sistemi
-      yeniden başlatın.</p>
-  </section>
-</div>
+  <p class="panel-notu">Sütunlar <b>ihlal</b> sayar. Hoparlörün gerçekte kaç kez çaldığı
+    ayrıca kaydedilmiyor: aynı kamera ve mesaj için {{ anons_bekleme_sn }} saniyelik
+    tekrar aralığı bir kısmını bastırır, yani gerçek anons sayısı bu sütunlardan azdır.</p>
+  <p class="panel-notu">Tekrar aralığı ve IP hoparlörlerin istek biçimi Ayarlar → Anons
+    bölümünden gelir (ANONS_BEKLEME_SN, ANONS_HTTP_BICIMI); değiştirdikten sonra sistemi
+    yeniden başlatın.</p>
+</section>
 
 {% endblock %}

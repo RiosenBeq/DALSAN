@@ -28,6 +28,7 @@ from pathlib import Path
 
 KOK = Path(__file__).resolve().parents[1]
 STIL = KOK / "backend" / "app" / "web" / "static" / "stil.css"
+KOMUTA = KOK / "backend" / "app" / "web" / "static" / "komuta.css"
 SABLONLAR = KOK / "backend" / "app" / "web" / "templates"
 
 # Bu iki sayfa formu `.dikey-form` sınıfıyla kuruyor; kural oraya uygulanıyor.
@@ -84,6 +85,15 @@ def test_form_alanlari_kutuyu_asamaz():
         assert _deger(kurallar, secici, "max-width") == "100%", (
             f"'{secici}' için 'max-width: 100%' kuralı yok."
         )
+
+
+def test_kanal_formu_da_daralir():
+    """Komuta → Anons kanal formu (komuta.css): 'Tüm fabrika (bölümünde kanal
+    olmayan olay)' seçeneği 390 px'te satırı 30 px taşırıyordu."""
+    kurallar = _kurallar(KOMUTA.read_text(encoding="utf-8"))
+    assert _deger(kurallar, ".hoparlor-formu *", "min-width") == "0"
+    for secici in (".hoparlor-formu input", ".hoparlor-formu select"):
+        assert _deger(kurallar, secici, "max-width") == "100%", secici
 
 
 def test_form_genisligi_sabit_piksel_degil():

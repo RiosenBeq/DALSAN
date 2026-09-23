@@ -868,6 +868,12 @@
 .hoparlor-duzenle summary:focus-visible,
 .hoparlor-ekle summary:focus-visible { outline: 2px solid var(--vurgu); outline-offset: 2px; }
 .hoparlor-formu { display: grid; gap: 10px; margin: 12px 0 6px; }
+/* Uzun seçenekli liste ("Tüm fabrika (bölümünde kanal olmayan olay)") dar
+   ekranda satırı taşırmasın: stil.css'teki .dikey-form kuralının aynısı
+   (tests/test_dar_ekran_tasmasi.py). 390 px'te 30 px taşma ölçüldü. */
+.hoparlor-formu, .hoparlor-formu * { min-width: 0; }
+.hoparlor-formu input,
+.hoparlor-formu select { max-width: 100%; }
 .hoparlor-formu label { display: grid; gap: 4px; font-size: 12px; font-weight: 600; }
 .hoparlor-formu label.yatay {
   display: flex;
@@ -876,6 +882,20 @@
   font-weight: 600;
 }
 .hoparlor-formu .dugme-satiri { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* Kanal formu: tür seçimine göre yalnız ilgili alan görünür (ses çıkışında
+   çıkışın adı, IP hoparlörde adres). :has() bilmeyen tarayıcıda iki alan da
+   görünür; sunucu türe uymayanı yok sayar (web/hoparlorler.py). */
+.kanal-formu:has(input[name="kind"][value="http"]:checked) .alan-ses_karti,
+.kanal-formu:has(input[name="kind"][value="ses_karti"]:checked) .alan-http { display: none; }
+.kanal-turu { min-width: 0; margin: 0; padding: 0; border: 0; }
+.kanal-turu legend { padding: 0; margin-bottom: 6px; font-size: 12px; font-weight: 600; color: inherit; }
+.kanal-turu-secenekleri { display: flex; flex-wrap: wrap; gap: 6px 18px; }
+.hoparlor-formu .panel-notu { font-weight: 400; }
+/* Çıkış adı (bluez_output.AA_BB_…) boşluksuz uzun bir sözcüktür: dar ekranda
+   satırı taşırmasın. */
+.kanal-hedef { overflow-wrap: anywhere; }
+.kanal-uyarisi { color: var(--uyari-metin); }
 
 /* ------------------------------------------------------------ dar ekran */
 @media (max-width: 900px) {

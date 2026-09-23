@@ -100,12 +100,18 @@ def test_baslik_gercek_kamera_sayisini_gosteriyor(istemci):
 
 
 def test_anons_alt_basligi_gercek_ayardan_geliyor(istemci):
-    """Tasarımdaki 'IP hoparlör · 7 bölge' yerine .env'deki gerçek anons yolu."""
+    """Tasarımdaki 'IP hoparlör · 7 bölge' yerine veritabanındaki gerçek kanal
+    ve mesaj sayısı."""
     metin = istemci.get("/komuta/anons").text
-    # test ayarlarında ANONS = null → "kapalı"; mesaj sayısı şemadan gelir
-    # (elle yazılmaz: her göç yeni mesaj tohumlayabilir, docs/17 §4.6)
+    # Kanal yok; mesaj sayısı şemadan gelir (elle yazılmaz: her göç yeni mesaj
+    # tohumlayabilir, docs/17 §4.6)
     sayi = _veritabani_satir_sayisi(istemci, "announcement_messages")
-    assert f"Anons yolu: kapalı · {sayi} hazır mesaj" in metin
+    assert f"sesli kanal yok · {sayi} hazır mesaj" in metin
+    istemci.post(
+        "/hoparlorler/kaydet",
+        data={"name": "Genel", "address": "http://10.0.0.9/anons", "enabled": "1"},
+    )
+    assert f"1 sesli kanal · {sayi} hazır mesaj" in istemci.get("/komuta/anons").text
 
 
 def test_saat_saniyesiz_gosteriliyor():

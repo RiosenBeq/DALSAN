@@ -404,6 +404,14 @@ class AnonsYoneticisi:
                 return
             ses_yolu = str(tam)
         kanallar = [bolge] if bolge is not None else bolgeleri_sec(self._bolgeler, "")
+        if not kanallar and any(k.get("enabled") for k in self._bolgeler):
+            # Kanal VAR ama hepsi bir bölüme bağlı: "sesli kanal yok" demek yanlış olurdu
+            self.son_sonuc = (
+                "Mesaj denenemedi: deneme “Tüm fabrika” kanallarından çalar ve açık bir "
+                "“Tüm fabrika” kanalı yok. Bölüm kanallarını kanal listesindeki Dene "
+                "düğmesiyle sınayın."
+            )
+            return
         for kanal in kanallar or [None]:
             threading.Thread(
                 target=self._cal_ve_kaydet,

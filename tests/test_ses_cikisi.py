@@ -312,53 +312,5 @@ def test_test_sesi_yanlis_yolda_reddedilir(istemci, test_ayarlari):
     assert "Anonsu Dene" in yanit.text
 
 
-# ------------------------------------- komuta kabugu da ayni tabloyu gosteriyor
-
-
-def _komuta_ses_kartina_al(test_ayarlari):
-    object.__setattr__(test_ayarlari, "anons", "ses_karti")
-
-
-def test_komuta_anons_ekraninda_da_ses_cikisi_var(istemci, test_ayarlari):
-    """Kullanıcının ASIL durduğu ekran komuta kabuğudur.
-
-    Ses çıkışı yalnızca eski kabuktaki /anons sayfasında olsaydı, hoparlörün
-    hangisi olduğunu görmek için oraya gitmesi gerekirdi.
-    """
-    _komuta_ses_kartina_al(test_ayarlari)
-    sayfa = istemci.get("/komuta/anons").text
-    assert "Ses çıkışı" in sayfa
-
-
-def test_komuta_ekraninda_kopmus_hoparlor_uyarisi_gorunuyor(istemci, test_ayarlari, monkeypatch):
-    """Bluetooth koptuğunda anons hiçbir yere gitmiyor; bunu komuta ekranında
-    görmek, öğrenmek için başka bir sayfaya gitmekten iyidir."""
-    _komuta_ses_kartina_al(test_ayarlari)
-    object.__setattr__(test_ayarlari, "anons_ses_cihazi", "kapali-hoparlor")
-    monkeypatch.setattr(
-        ses_cihazlari,
-        "cihazlari_listele",
-        lambda: [ses_cihazlari.SesCihazi(kimlik="baska", ad="Başka")],
-    )
-    sayfa = istemci.get("/komuta/anons").text
-    assert "Seçili hoparlör bağlı değil" in sayfa
-    assert "anonslar duyulmaz" in sayfa
-
-
-def test_iki_ekran_ayni_kaynaktan_besleniyor(istemci, test_ayarlari, monkeypatch):
-    """İki ayrı yerde üretilseydi biri hoparlörü bağlı, diğeri kopmuş
-    gösterebilirdi — ve hangisinin doğru olduğu anlaşılmazdı."""
-    _komuta_ses_kartina_al(test_ayarlari)
-    object.__setattr__(test_ayarlari, "anons_ses_cihazi", "hoparlor-1")
-    monkeypatch.setattr(
-        ses_cihazlari,
-        "cihazlari_listele",
-        lambda: [ses_cihazlari.SesCihazi(kimlik="hoparlor-1", ad="Hoparlör 1")],
-    )
-    for yol in ("/anons", "/komuta/anons"):
-        assert "hoparlor-1" in istemci.get(yol).text, yol
-
-
-def test_ip_hoparlor_yolunda_komuta_ekraninda_da_gizli(istemci, test_ayarlari):
-    object.__setattr__(test_ayarlari, "anons", "http")
-    assert "Ses çıkışı" not in istemci.get("/komuta/anons").text
+# Komuta kabuğundaki anons ekranı artık ses çıkışını kanal satırında gösterir;
+# kopuk çıkış uyarısı ve form tests/test_kanal_ekrani.py'de.

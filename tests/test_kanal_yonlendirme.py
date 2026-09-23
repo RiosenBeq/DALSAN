@@ -112,6 +112,16 @@ def test_anonsu_dene_tum_fabrika_kanallarindan_calar(test_ayarlari, calinanlar):
     assert calinanlar == [("http", "http://10.0.0.2/anons", "helmet")]
 
 
+def test_anonsu_dene_tum_fabrika_yoksa_bunu_soyler(test_ayarlari, calinanlar):
+    """Kanal VAR ama hepsi bir bölüme bağlı: "sesli kanal yok" demek yanlış olurdu."""
+    yonetici = AnonsYoneticisi(test_ayarlari)
+    yonetici.bolgeleri_yukle([_kanal(1, "Sevkiyat")])
+    yonetici.hemen_cal(MESAJ)
+    assert calinanlar == []
+    assert "“Tüm fabrika” kanalı yok" in yonetici.son_sonuc
+    assert "sesli kanal tanımlı değil" not in yonetici.son_sonuc
+
+
 @pytest.mark.parametrize(
     ("env", "beklenen"),
     [

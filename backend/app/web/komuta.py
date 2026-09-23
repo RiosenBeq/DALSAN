@@ -19,17 +19,14 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 
 from app import zaman
 from app.hatalar import DogrulamaHatasi
-from app.olaylar.anons import bolge_sec
+from app.olaylar import ses_cihazlari
+from app.olaylar.anons import bolgeleri_sec
+from app.olaylar.kanallar import KANAL_TURLERI, TUM_FABRIKA
 from app.olaylar.yazici import sistem_olayi_yaz
 from app.rules.motor import KALIBRASYON_GEREKTIREN
-
-# Ses çıkışı bölümünün verisi TEK yerde üretilir (web/anons_web.py). İki ayrı
-# yerde üretilseydi bu ekran hoparlörü bağlı, öbürü kopmuş gösterebilirdi.
-# Ters yönde bağımlılık YOKTUR (anons_web komuta'yı import etmez).
-from app.web import anons_web, kkd_karnesi
+from app.web import kkd_karnesi
 from app.web.kilavuz import EKRAN_ACIKLAMALARI, kurulum_durumu
 from app.web.ortak import (
-    ANONS_KISA_ADLARI,
     BOLGE_TIPLERI,
     KKD_ADLARI,
     KURAL_TIPLERI,
@@ -124,13 +121,13 @@ def _alt_baslik(ekran: str, istek: Request, baglanti, toplam: int, bolum: int) -
         return f"{tarih} · {bolum} bölüm · {toplam} kamera"
     if ekran == "anons":
         # Tasarımdaki "IP hoparlör · 7 bölge · Türkçe seslendirme" yerine
-        # .env'deki gerçek anons yolu ve veritabanındaki gerçek mesaj sayısı.
-        ayarlar = istek.app.state.ayarlar
-        yol = ANONS_KISA_ADLARI.get(ayarlar.anons, ayarlar.anons)
-        mesaj = baglanti.execute(
-            "SELECT COUNT(*) AS n FROM announcement_messages WHERE enabled = 1"
-        ).fetchone()["n"]
-        return f"Anons yolu: {yol} · {mesaj} hazır mesaj"
+        # veritabanındaki gerçek kanal ve mesaj sayısı.
+        sayi = baglanti.execute(
+            "SELECT (SELECT COUNT(*) FROM speaker_zones WHERE enabled = 1) AS kanal, "
+            "(SELECT COUNT(*) FROM announcement_messages WHERE enabled = 1) AS mesaj"
+        ).fetchone()
+        kanal = f"{sayi['kanal']} sesli kanal" if sayi["kanal"] else "sesli kanal yok"
+        return f"{kanal} · {sayi['mesaj']} hazır mesaj"
     if ekran == "nesneler":
         # Gerçek sayılar: kaç nesne tanıtıldı, toplam kaç referans fotoğraf var.
         sayi = baglanti.execute(
@@ -1025,28 +1022,42 @@ def _zincir_rozeti(satir) -> tuple[str, str]:
     return ("aktif", "yesil")
 
 
-def _anons_yolu_metni(ayarlar, bolge: dict | None) -> str:
-    """Anonsun bu kural için NEREDEN çalacağı.
+# Kanal türünün satır içindeki kısa adı ("IP hoparlör · Sevkiyat rampaları")
+KANAL_KISA_ADLARI = {"http": "IP hoparlör", "ses_karti": "ses çıkışı"}
 
-    .env'deki ANONS ayarı ile hoparlör bölgesi birlikte okunur: ANONS=null iken
-    hoparlör bölgesi tanımlı olsa bile ses ÇIKMAZ, bunu söylemek zorundayız.
+
+def _kanal_etiketi(kanal: dict) -> str:
+    return f"{KANAL_KISA_ADLARI.get(kanal.get('kind'), 'kanal')} · {kanal['name']}"
+
+
+def _anons_yolu(hoparlorler: list[dict], alanlar: list[str]) -> tuple[str, bool]:
+    """Anonsun bu satırın kameraları için NEREDEN çalacağı ve aralarında ses
+    çıkışı olup olmadığı.
+
+    Seçim anons katmanıyla AYNIDIR (olaylar/anons.py → bolgeleri_sec): ekranda
+    bir kanal yazıp başkasından ses çıkmasın. Bölümler farklı kanallara
+    düşüyorsa hepsi yazılır.
     """
-    if ayarlar.anons == "null":
-        return "anons sistemi kapalı"
-    if ayarlar.anons == "ses_karti":
-        return "bu bilgisayarın ses kartı"
-    if bolge is not None:
-        return f"IP hoparlör · {bolge['name']}"
-    return "IP hoparlör · .env'deki tek adres"
+    etiketler: list[str] = []
+    ses_cikisi = False
+    for alan in alanlar or [""]:
+        for kanal in bolgeleri_sec(hoparlorler, alan):
+            ses_cikisi = ses_cikisi or kanal.get("kind") == "ses_karti"
+            etiket = _kanal_etiketi(kanal)
+            if etiket not in etiketler:
+                etiketler.append(etiket)
+    if not etiketler:
+        return "sesli kanal yok — yalnızca ekran uyarısı", False
+    return ", ".join(etiketler), ses_cikisi
 
 
-def _ses_metni(ayarlar, ses_dosyasi: str | None) -> str:
-    """Ses dosyası bilgisi YALNIZCA ses kartı yolunda anlamlıdır.
+def _ses_metni(ses_cikisi: bool, ses_dosyasi: str | None) -> str:
+    """Ses dosyası bilgisi YALNIZCA ses çıkışı kanalında anlamlıdır.
 
     IP hoparlöre metin gönderilir (JSON), WAV dosyası kullanılmaz; orada ses
     dosyası yazmak kullanıcıyı boş yere dosya aramaya gönderirdi.
     """
-    if ayarlar.anons != "ses_karti":
+    if not ses_cikisi:
         return ""
     return ses_dosyasi or "ses dosyası bağlanmamış"
 
@@ -1103,7 +1114,7 @@ def _zincir(baglanti, ayarlar, hoparlorler: list[dict]) -> list[dict]:
                 "kalibrasyonsuz": 0,
                 "anons": satir["anons_metni"] or "anons yok",
                 "anons_kapali": bool(satir["anons_id"]) and not satir["anons_aktif"],
-                "ses": _ses_metni(ayarlar, satir["audio_file"]),
+                "ses_dosyasi": satir["audio_file"],
                 "bildirim": BILDIRIM_METNI,
                 "rozet": rozet,
                 "rozet_rengi": rozet_rengi,
@@ -1136,22 +1147,10 @@ def _zincir(baglanti, ayarlar, hoparlorler: list[dict]) -> list[dict]:
             parcalar.append(", ".join(grup["kamera_adlari"]))
         grup["kapsam"] = " · ".join(parcalar)
 
-        # Anonsun hangi hoparlörden çalacağı kameranın BÖLÜMÜNE bağlıdır ve
-        # seçim kuralı anons katmanıyla AYNIDIR (olaylar/anons.py → bolge_sec):
-        # ekranda bir hoparlör yazıp başkasından ses çıkmasın.
-        adlar: list[str] = []
-        for alan in grup["alanlar"] or [""]:
-            bolge = bolge_sec(hoparlorler, alan)
-            ad = bolge["name"] if bolge else ""
-            if ad not in adlar:
-                adlar.append(ad)
-        if ayarlar.anons != "http" or len(adlar) <= 1:
-            secili = {"name": adlar[0]} if adlar and adlar[0] else None
-            grup["yol"] = _anons_yolu_metni(ayarlar, secili)
-        else:
-            # Grup birden çok bölüme yayılmış: her bölüm kendi hoparlöründen
-            # duyurulur, hepsi tek satırda yazılır.
-            grup["yol"] = "IP hoparlör · " + ", ".join(ad or ".env'deki tek adres" for ad in adlar)
+        # Anonsun hangi kanaldan çalacağı kameranın BÖLÜMÜNE bağlıdır ve seçim
+        # kuralı anons katmanıyla AYNIDIR (olaylar/anons.py → bolgeleri_sec).
+        grup["yol"], ses_cikisi = _anons_yolu(hoparlorler, grup["alanlar"])
+        grup["ses"] = _ses_metni(ses_cikisi, grup.pop("ses_dosyasi"))
         zincir.append(grup)
     return zincir
 
@@ -1166,8 +1165,7 @@ def uyari_baglami(baglanti, ayarlar, kkd_surumu: str = "") -> dict:
         "zincir": zincir,
         "golge_sayisi": sum(1 for z in zincir if z["golge"]),
         "anonssuz_sayisi": sum(1 for z in zincir if z["anons"] == "anons yok"),
-        "anons_yolu": ANONS_KISA_ADLARI.get(ayarlar.anons, ayarlar.anons),
-        "anons_kapali": ayarlar.anons == "null",
+        "sesli_kanal_yok": not any(h["enabled"] for h in hoparlorler),
         "anons_bekleme_sn": ayarlar.anons_bekleme_sn,
         # Gölge mod panelindeki kapı cümlesi; eşikler ayarlardan (KKD_KAPI_*)
         "kkd_kapi": {
@@ -1210,9 +1208,15 @@ def _kkd_karnelerini_ekle(baglanti, ayarlar, kkd_surumu: str, zincir: list[dict]
 # POST sonrası dönen kısa sonuç anahtarları. Ham metin URL'den GEÇMEZ:
 # adres çubuğundan gelen bir cümle ekrana basılmasın.
 ANONS_SONUCLARI = {
-    "kaydedildi": "Hoparlör bölgesi kaydedildi.",
-    "silindi": "Hoparlör bölgesi silindi. O bölümün anonsu artık .env dosyasındaki adrese gider.",
-    "denendi": "Deneme yayını gönderildi. Hoparlörden ses gelmediyse adresi kontrol edin.",
+    "kaydedildi": "Uyarı kanalı kaydedildi.",
+    "silindi": (
+        "Uyarı kanalı silindi. O bölümde başka açık kanal kalmadıysa bölümün anonsu "
+        "“Tüm fabrika” kanallarından duyurulur."
+    ),
+    "denendi": (
+        "Deneme gönderildi. Hoparlörden ses gelmediyse kanalın adresini ya da ses "
+        "çıkışını kontrol edin."
+    ),
 }
 
 
@@ -1251,7 +1255,7 @@ def _anons_tetikleyen_olaylar(baglanti) -> tuple[dict[int, int], list[str]]:
     return sayilar, damgalar
 
 
-def _anons_mesajlari(baglanti, ayarlar, sayilar: dict[int, int]) -> list[dict]:
+def _anons_mesajlari(baglanti, ses_kanali_var: bool, sayilar: dict[int, int]) -> list[dict]:
     """announcement_messages + bu mesaja bağlı kurallar ve bölümler."""
     satirlar = baglanti.execute(
         "SELECT a.*, "
@@ -1283,7 +1287,8 @@ def _anons_mesajlari(baglanti, ayarlar, sayilar: dict[int, int]) -> list[dict]:
             rozet, rozet_rengi = "kuralları kapalı", "gri"
         elif all(k["shadow_mode"] for k in calisanlar):
             rozet, rozet_rengi = "gölge modda", "sari"
-        elif ayarlar.anons == "ses_karti" and not satir["audio_file"]:
+        elif ses_kanali_var and not satir["audio_file"]:
+            # Ses çıkışı kanalı WAV çalar; dosya yoksa o kanal susar
             rozet, rozet_rengi = "ses dosyası yok", "sari"
         else:
             rozet, rozet_rengi = "açık", "yesil"
@@ -1298,7 +1303,7 @@ def _anons_mesajlari(baglanti, ayarlar, sayilar: dict[int, int]) -> list[dict]:
                     else "hiçbir kurala bağlı değil"
                 ),
                 "bolum": ", ".join(alanlar),
-                "ses": _ses_metni(ayarlar, satir["audio_file"]),
+                "ses": _ses_metni(ses_kanali_var, satir["audio_file"]),
                 "bugun": sayilar.get(satir["id"], 0),
                 "rozet": rozet,
                 "rozet_rengi": rozet_rengi,
@@ -1307,74 +1312,108 @@ def _anons_mesajlari(baglanti, ayarlar, sayilar: dict[int, int]) -> list[dict]:
     return mesajlar
 
 
-def _hoparlor_satirlari(baglanti, ayarlar) -> list[dict]:
-    """speaker_zones satırları — adres MASKELİ, son anons insan diliyle."""
+def _kanal_durumu(satir, secim: bool, bagli_cikislar: set[str] | None) -> tuple[str, str, str]:
+    """(rozet, rozet rengi, açıklama). Kanal sağlığının SÜREKLİ izlenmesi ayrı
+    iştir (docs/17 §7.4); bu, sayfa açılırken bakılan anlık durumdur.
+
+    `bagli_cikislar` o an görünen ses çıkışlarının adlarıdır; None = liste
+    okunamadı. O durumda "görünmüyor" DENMEZ: "kontrol edemedik" ile "koptu"
+    aynı şey değildir (ses_cihazlari.cihaz_bagli_mi). Çıkışın programdan
+    seçilemediği Mac ve Windows'ta (`secim` False) ses işletim sisteminin
+    seçtiği çıkıştan çıkar; orada çıkış adına bakılmaz.
+    """
+    if not satir["enabled"]:
+        return "kapalı", "gri", ""
+    if satir["kind"] == "ses_karti" and secim:
+        if not satir["device"]:
+            return (
+                "çıkış seçilmedi",
+                "sari",
+                "Çıkışın adı boş (eski kayıt): ses işletim sisteminin varsayılan "
+                "çıkışına gider ve hangi hoparlörden çıktığı denetlenemez. "
+                "Düzenle'den çıkışı seçip kaydedin.",
+            )
+        if bagli_cikislar is not None and satir["device"] not in bagli_cikislar:
+            return (
+                "görünmüyor",
+                "kirmizi",
+                "Bu çıkış şu anda görünmüyor: Bluetooth hoparlörse kapanmış ya da "
+                "menzilden çıkmış olabilir. Bu haldeyken bu kanaldan anons duyulmaz; "
+                "ekran uyarıları sürer.",
+            )
+    return "açık", "yesil", ""
+
+
+def _kanal_satirlari(baglanti, secim: bool, bagli_cikislar: set[str] | None) -> list[dict]:
+    """speaker_zones satırları, ekrana hazır: adres MASKELİ, son anons insan diliyle.
+
+    Bölümlü kanallar önce, "Tüm fabrika" (yedek) sonda.
+    """
     satirlar = baglanti.execute(
         "SELECT * FROM speaker_zones ORDER BY (area = ''), area, name"
     ).fetchall()
-    hoparlorler = []
+    kanallar = []
     for satir in satirlar:
-        if not satir["enabled"]:
-            rozet, rozet_rengi = "kapalı", "gri"
-        elif ayarlar.anons != "http":
-            # Bölge tanımlı ama .env'de IP hoparlör seçili değil: adres
-            # kullanılmıyor. "Açık" demek yanlış olurdu.
-            rozet, rozet_rengi = "beklemede", "sari"
-        else:
-            rozet, rozet_rengi = "açık", "yesil"
-        hoparlorler.append(
+        ses_cikisi = satir["kind"] == "ses_karti"
+        rozet, rozet_rengi, uyari = _kanal_durumu(satir, secim, bagli_cikislar)
+        kanallar.append(
             {
                 "id": satir["id"],
                 "ad": satir["name"],
                 "alan": satir["area"],
-                "alan_adi": satir["area"] or "Tüm fabrika",
+                "alan_adi": satir["area"] or TUM_FABRIKA,
+                "tur": satir["kind"],
+                "tur_adi": KANAL_TURLERI.get(satir["kind"], satir["kind"]),
+                "tur_kisa": KANAL_KISA_ADLARI.get(satir["kind"], satir["kind"]),
                 # Adreste kullanıcı adı/şifre varsa maskelenir (kamera RTSP
-                # adresiyle aynı desen); cihazın kendisi görünür kalır.
-                # Düzenleme formu da maskeli adresi basar (R18); şifre sayfaya
-                # hiç yazılmaz, •••• kalırsa kaydederken korunur.
-                "adres": rtsp_maskele(satir["address"]),
+                # adresiyle aynı desen); düzenleme formu da maskeli adresi
+                # basar (R18), •••• kalırsa kaydederken korunur.
+                "adres": "" if ses_cikisi else rtsp_maskele(satir["address"]),
+                "cihaz": satir["device"],
+                "hedef": (satir["device"] or "işletim sisteminin varsayılan çıkışı")
+                if ses_cikisi
+                else rtsp_maskele(satir["address"]),
                 "aciklama": satir["description"],
                 "aktif": bool(satir["enabled"]),
                 "son_anons": (
                     zaman.ne_kadar_once(satir["last_announced_at"])
                     if satir["last_announced_at"]
-                    else "—"
+                    else "-"
                 ),
                 "rozet": rozet,
                 "rozet_rengi": rozet_rengi,
+                "uyari": uyari,
             }
         )
-    return hoparlorler
+    return kanallar
 
 
-def _anons_kartlari(ayarlar, hoparlorler: list[dict], bugun: int) -> list[dict]:
-    """Üstteki dört özet kutusu — hepsi .env ve veritabanından."""
-    acik = sum(1 for h in hoparlorler if h["aktif"])
-    if not hoparlorler:
-        hoparlor_deger, hoparlor_alt = "Tanımlanmadı", "anons .env'deki tek adrese gider"
-    else:
-        hoparlor_deger = f"{acik} / {len(hoparlorler)} açık"
-        hoparlor_alt = "anons yalnızca ihlalin olduğu bölümde çalar"
-
-    yol_alt = {
-        "null": ".env dosyasında ANONS=null — hoparlörden ses çıkmaz",
-        "ses_karti": "hoparlör/amfi doğrudan bu bilgisayara bağlı",
-    }.get(ayarlar.anons, rtsp_maskele(ayarlar.anons_http_adresi))
-
+def _anons_kartlari(ayarlar, kanallar: list[dict], bugun: int) -> list[dict]:
+    """Üstteki dört özet kutusu — hepsi veritabanından ve ayarlardan."""
+    acik = [k for k in kanallar if k["aktif"]]
+    ses = sum(1 for k in acik if k["tur"] == "ses_karti")
+    tum_fabrika = any(not k["alan"] for k in acik)
     return [
         {
-            "etiket": "Anons yolu",
-            "deger": ANONS_KISA_ADLARI.get(ayarlar.anons, ayarlar.anons),
+            "etiket": "Sesli kanal",
+            "deger": (
+                f"{len(acik)} açık" if acik else ("Hepsi kapalı" if kanallar else "Tanımlanmadı")
+            ),
             "yazi": True,
-            "renk": "dikkat" if ayarlar.anons == "null" else "",
-            "alt": yol_alt,
+            "renk": "" if acik else "dikkat",
+            "alt": f"{ses} ses çıkışı · {len(acik) - ses} IP hoparlör"
+            if acik
+            else "hoparlörden ses çıkmaz, yalnızca ekran uyarısı verilir",
         },
         {
-            "etiket": "Hoparlör bölgesi",
-            "deger": hoparlor_deger,
+            "etiket": TUM_FABRIKA,
+            "deger": "Var" if tum_fabrika else "Yok",
             "yazi": True,
-            "renk": "",
-            "alt": hoparlor_alt,
+            # Bölümlü kanal var ama yedek yoksa, kanalı olmayan bölüm susar
+            "renk": "dikkat" if acik and not tum_fabrika else "",
+            "alt": "bölümünde kanal olmayan olay buradan duyurulur"
+            if tum_fabrika
+            else "bölümünde kanal olmayan olay sesli duyurulmaz",
         },
         {
             "etiket": "Bugün anons tetikleyen ihlal",
@@ -1389,7 +1428,7 @@ def _anons_kartlari(ayarlar, hoparlorler: list[dict], bugun: int) -> list[dict]:
             "deger": f"{ayarlar.anons_bekleme_sn} sn",
             "yazi": True,
             "renk": "",
-            "alt": "hoparlör üst üste bağırmaz (.env → ANONS_BEKLEME_SN)",
+            "alt": "hoparlör üst üste bağırmaz (Ayarlar → Anons)",
         },
     ]
 
@@ -1397,15 +1436,28 @@ def _anons_kartlari(ayarlar, hoparlorler: list[dict], bugun: int) -> list[dict]:
 def anons_baglami(istek: Request, baglanti) -> dict:
     ayarlar = istek.app.state.ayarlar
     sayilar, damgalar = _anons_tetikleyen_olaylar(baglanti)
-    hoparlorler = _hoparlor_satirlari(baglanti, ayarlar)
+    # Ses çıkışı formundaki öneri listesi: o an bağlı çıkışlar. Kapalı Bluetooth
+    # hoparlör listede görünmez; ad elle de yazılabilir (web/hoparlorler.py).
+    # Liste bir kez okunur: satır rozetleri de aynı listeye bakar.
+    cihazlar = ses_cihazlari.cihazlari_listele()
+    secim = ses_cihazlari.secim_destekleniyor_mu()
+    bagli = {c.kimlik for c in cihazlar} if cihazlar else None
+    kanallar = _kanal_satirlari(baglanti, secim, bagli)
+    ses_kanali_var = any(k["aktif"] and k["tur"] == "ses_karti" for k in kanallar)
     saatler = saat_sutunlari(damgalar, "anons")
     supervizor = getattr(istek.app.state, "supervizor", None)
     return {
-        "anons_kartlari": _anons_kartlari(ayarlar, hoparlorler, len(damgalar)),
-        "anons_mesajlari": _anons_mesajlari(baglanti, ayarlar, sayilar),
-        "hoparlorler": hoparlorler,
-        # Bölüm listesi kameralardan gelir: kullanıcı hoparlörün bölümünü
-        # elle yazıp yanlış eşleştirmesin (ADR-007 — alan düz metindir).
+        "anons_kartlari": _anons_kartlari(ayarlar, kanallar, len(damgalar)),
+        "anons_mesajlari": _anons_mesajlari(baglanti, ses_kanali_var, sayilar),
+        "kanallar": kanallar,
+        "kanal_turleri": KANAL_TURLERI,
+        "tum_fabrika": TUM_FABRIKA,
+        "ses_cihazlari": cihazlar,
+        "varsayilan_ses_cihazi": next((c.kimlik for c in cihazlar if c.varsayilan), ""),
+        "ses_secimi_destekleniyor": secim,
+        "kopuk_kanal_var": any(k["rozet"] == "görünmüyor" for k in kanallar),
+        # Bölüm listesi kameralardan gelir: kullanıcı kanalın bölümünü elle
+        # yazıp yanlış eşleştirmesin (ADR-007 — alan düz metindir).
         "bolumler": [
             satir["area"]
             for satir in baglanti.execute(
@@ -1415,20 +1467,7 @@ def anons_baglami(istek: Request, baglanti) -> dict:
         "anons_saatleri": saatler["sutunlar"],
         "anons_saat_toplami": saatler["toplam"],
         "anons_saat_tepesi": saatler["tepe"],
-        "anons_yolu": ANONS_KISA_ADLARI.get(ayarlar.anons, ayarlar.anons),
-        "anons_kapali": ayarlar.anons == "null",
-        "anons_http": ayarlar.anons == "http",
-        # Şablon `anons_yolu` ile karşılaştırma YAPMAMALI: o alan ekranda
-        # görünen Türkçe addır ("ses kartı") ve bir gün "Bilgisayarın ses
-        # kartı" diye güzelleştirilirse ses çıkışı paneli sessizce kaybolurdu.
-        "anons_ses_karti": ayarlar.anons == "ses_karti",
         "anons_bekleme_sn": ayarlar.anons_bekleme_sn,
         "analiz_calisiyor": supervizor is not None,
         "son_sonuc": getattr(supervizor, "_anons", None) and supervizor._anons.son_sonuc,
-        # Ses çıkışı (hangi hoparlör, bağlı mı) AYNI fonksiyondan gelir.
-        # Komuta kabuğu kullanıcının asıl durduğu ekrandır; Bluetooth
-        # hoparlörün koptuğu yalnızca eski kabuktaki /anons sayfasında
-        # yazsaydı, uyarıyı görmesi için oraya gitmesi gerekirdi — oysa
-        # oraya gitmesinin sebebi tam da bir sorun olduğunu bilmek olurdu.
-        **anons_web.ses_cikisi_baglami(ayarlar),
     }

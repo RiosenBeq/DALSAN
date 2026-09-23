@@ -90,12 +90,12 @@ EKRAN_ACIKLAMALARI: dict[str, dict[str, str]] = {
     },
     "anons": {
         "ne": (
-            "Hoparlörden çalınacak Türkçe mesajları ve hangi bölümde hangi hoparlörün "
-            "konuşacağını buradan yönetirsiniz."
+            "Hoparlörden çalınacak Türkçe mesajları ve uyarının hangi kanaldan (bu "
+            "bilgisayarın ses çıkışı ya da IP hoparlör) duyulacağını buradan yönetirsiniz."
         ),
         "yap": (
-            "Bir mesajın gerçekten duyulup duyulmadığını “Dene” düğmesiyle "
-            "sınayın; ses gelmiyorsa hoparlör adresini kontrol edin."
+            "Her kanalı kendi “Dene” düğmesiyle sınayın; ses gelmiyorsa kanalın ses "
+            "çıkışını ya da adresini kontrol edin."
         ),
     },
     "nesneler": {

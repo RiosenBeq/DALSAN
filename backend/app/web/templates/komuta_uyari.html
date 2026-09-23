@@ -114,11 +114,11 @@
         {% endfor %}
       </div>
 
-      {% if anons_kapali %}
-      <p class="panel-notu"><b>Anons sistemi kapalı.</b> Kurallara mesaj bağlansa bile
+      {% if sesli_kanal_yok %}
+      <p class="panel-notu"><b>Açık sesli kanal yok.</b> Kurallara mesaj bağlansa bile
         hoparlörden ses çıkmaz; uyarı yalnızca ekranda ve olay listesinde görünür.
-        Açmak için .env dosyasında ANONS ayarını <b>ses_karti</b> ya da <b>http</b>
-        yapıp sistemi yeniden başlatın. <a href="/komuta/anons">Anons sistemi →</a></p>
+        Bu bilgisayarın ses çıkışını ya da bir IP hoparlörü Anons ekranından kanal
+        olarak ekleyin. <a href="/komuta/anons">Anons sistemi →</a></p>
       {% endif %}
       {% if anonssuz_sayisi %}
       <p class="panel-notu">{{ anonssuz_sayisi }} satırda anons mesajı seçilmemiş: o kural

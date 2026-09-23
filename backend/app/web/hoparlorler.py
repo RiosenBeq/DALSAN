@@ -1,14 +1,14 @@
-"""Hoparlör bölgeleri: ekle / düzenle / sil / dene (şema 002, speaker_zones).
+"""Uyarı kanalları: ekle / düzenle / sil / dene (speaker_zones; şema 002, 009).
 
-NEDEN VAR: bugüne kadar tek bir anons adresi vardı (.env → ANONS_HTTP_ADRESI)
-ve ihlal hangi bölümde olursa olsun aynı hoparlörden duyuruluyordu. Bölge
-tanımlandığında anons YALNIZCA ihlalin olduğu bölümde çalar — fabrikanın öbür
-ucundaki çalışan kendisiyle ilgisi olmayan uyarıyı duymaz.
+Her satır bir kanaldır (docs/17 §7, K22): bu bilgisayarın bir ses çıkışı
+(kablolu amfi ya da Bluetooth hoparlör; `kind='ses_karti'`, `device` = çıkışın
+adı) ya da bir IP hoparlör (`kind='http'`, `address`). Olay, kameranın
+BÖLÜMÜNDEKİ bütün açık kanallardan duyurulur; bölümde kanal yoksa "Tüm fabrika"
+(bölüm boş) kanallarından.
 
 Eşleşme `area` alanıyla yapılır ve bu, kamera kartındaki "Bölüm" ile AYNI düz
-metindir (ADR-007). Kullanıcıya öğrenmesi gereken ikinci bir kavram
-çıkarılmadı: bölümü "Sevkiyat" olan kameranın ihlali, bölümü "Sevkiyat" olan
-hoparlöre gider.
+metindir (ADR-007): bölümü "Sevkiyat" olan kameranın ihlali, bölümü "Sevkiyat"
+olan kanaldan duyurulur.
 """
 
 from __future__ import annotations
@@ -18,7 +18,9 @@ from fastapi.responses import RedirectResponse
 
 from app import zaman
 from app.hatalar import DogrulamaHatasi
+from app.olaylar import ses_cihazlari, test_sesi
 from app.olaylar.anons import AnonsHatasi, hoparlor_adresini_dogrula, http_gonder
+from app.olaylar.kanallar import KANAL_TURLERI
 from app.web.ortak import baglanti_al, maskeyi_coz, rtsp_maskele
 
 router = APIRouter()
@@ -27,14 +29,11 @@ router = APIRouter()
 # bilsin ve gerçek bir uyarı sanmasın.
 DENEME_ANAHTARI = "deneme"
 DENEME_METNI = "DALSAN İSG hoparlör denemesi. Bu bir uyarı değildir."
+_CIHAZ_EN_UZUN = 200
 
 
-def _adres_dogrula(adres: str) -> str:
-    """Şemasız adres ('10.0.0.5/anons') her anonsta sessizce başarısız olurdu.
-
-    Aynı kural .env'deki ANONS_HTTP_ADRESI için ayarlar.py'de de uygulanır;
-    kullanıcı iki yerde aynı biçimi görsün.
-    """
+def _adres_dogrula(adres: str, http_bicimi: str) -> str:
+    """Şemasız adres ('10.0.0.5/anons') her anonsta sessizce başarısız olurdu."""
     adres = adres.strip()
     if not adres:
         raise DogrulamaHatasi("Hoparlörün adresi boş olamaz. Örnek: http://10.0.0.9:8080/anons")
@@ -42,6 +41,15 @@ def _adres_dogrula(adres: str) -> str:
         raise DogrulamaHatasi(
             "Hoparlör adresi http:// veya https:// ile başlamalı; şu an "
             f"'{rtsp_maskele(adres)}' yazıyor. Örnek: http://10.0.0.9:8080/anons"
+        )
+    # GET biçiminde mesaj GÖVDEDE gönderilemez; adresin hangi mesajın
+    # çalınacağını taşıması gerekir. Yer tutucusuz adres her ihlalde AYNI sesi
+    # çalardı ve bu ancak sahada fark edilirdi.
+    if http_bicimi == "get" and not any(yer in adres for yer in ("{anahtar}", "{metin}")):
+        raise DogrulamaHatasi(
+            "Anons biçimi GET (Ayarlar → Anons) ama adres hangi mesajın çalınacağını "
+            "taşımıyor. Adrese {anahtar} yer tutucusunu ekleyin. Örnek: "
+            "http://10.0.0.9/play?file={anahtar} (docs/14-ANONS-SISTEMI-BAGLAMA.md)."
         )
     # R30: bu bilgisayar ve bağlantı-yerel ağ kabul edilmez (gönderimde de denetlenir)
     try:
@@ -51,34 +59,63 @@ def _adres_dogrula(adres: str) -> str:
     return adres
 
 
+def _cihaz_dogrula(cihaz: str) -> str:
+    """Ses çıkışının adı: tek satır, kısa; Linux'ta boş olamaz (docs/17 §7.2).
+
+    Listeye karşı DOĞRULANMAZ: Bluetooth hoparlör o an kapalıysa listede
+    görünmez ve doğrulama, kullanıcının seçimini silerdi. Boş bırakmak
+    "varsayılan çıkış" demekti ve ölçülemezdi: Bluetooth hoparlör koparsa
+    işletim sistemi varsayılanı dahili hoparlöre devreder, anons "çaldı" der.
+    Mac ve Windows'ta çıkış işletim sisteminden seçilir; orada boş kalır.
+    """
+    cihaz = cihaz.strip()
+    if any(not karakter.isprintable() for karakter in cihaz) or len(cihaz) > _CIHAZ_EN_UZUN:
+        raise DogrulamaHatasi("Ses çıkışının adı tek satır ve kısa olmalı; listeden seçin.")
+    if not cihaz and ses_cihazlari.secim_destekleniyor_mu():
+        raise DogrulamaHatasi(
+            "Ses çıkışını seçin. Boş bırakılamaz: “varsayılan çıkış” denetlenemez; "
+            "Bluetooth hoparlör koparsa ses sessizce bilgisayarın kendi hoparlörüne gider."
+        )
+    return cihaz
+
+
 @router.post("/hoparlorler/kaydet")
 def hoparlor_kaydet(
+    istek: Request,
     hoparlor_id: int = Form(0),
     name: str = Form(...),
     area: str = Form(""),
-    address: str = Form(...),
+    kind: str = Form("http"),
+    address: str = Form(""),
+    device: str = Form(""),
     description: str = Form(""),
     enabled: str = Form("0"),
     baglanti=Depends(baglanti_al),
 ):
-    """Yeni bölge ekler (hoparlor_id=0) ya da mevcut bölgeyi günceller."""
+    """Yeni kanal ekler (hoparlor_id=0) ya da mevcut kanalı günceller."""
     ad = name.strip()
     if not ad:
-        raise DogrulamaHatasi("Hoparlör bölgesine bir ad verin (örn. 'Sevkiyat rampaları').")
+        raise DogrulamaHatasi("Kanala bir ad verin (örn. 'Sevkiyat rampaları').")
+    if kind not in KANAL_TURLERI:
+        raise DogrulamaHatasi(f"Bilinmeyen kanal türü: {kind}")
     kayitli = ""
     if hoparlor_id:
         satir = baglanti.execute(
             "SELECT address FROM speaker_zones WHERE id = ?", (hoparlor_id,)
         ).fetchone()
         if satir is None:
-            raise DogrulamaHatasi(
-                "Hoparlör bölgesi bulunamadı. Silinmiş olabilir; sayfayı yenileyin."
-            )
+            raise DogrulamaHatasi("Kanal bulunamadı. Silinmiş olabilir; sayfayı yenileyin.")
         kayitli = satir["address"]
-    # Form adresi maskeli gösterir (R18); •••• kalırsa kayıtlı kimlik korunur
-    adres = _adres_dogrula(maskeyi_coz(address, kayitli))
-    # Bölüm boş bırakılabilir: '' = tüm fabrika (eşleşen bölüm bulunamazsa
-    # kullanılan yedek hoparlör).
+    if kind == "http":
+        # Form adresi maskeli gösterir (R18); •••• kalırsa kayıtlı kimlik korunur
+        adres = _adres_dogrula(
+            maskeyi_coz(address, kayitli), istek.app.state.ayarlar.anons_http_bicimi
+        )
+        cihaz = ""
+    else:
+        adres, cihaz = "", _cihaz_dogrula(device)
+    # Bölüm boş bırakılabilir: '' = Tüm fabrika (bölümünde kanal olmayan olayın
+    # duyurulduğu yedek kanal).
     bolum = area.strip()
     aciklama = description.strip()
     aktif = 1 if enabled == "1" else 0
@@ -86,15 +123,15 @@ def hoparlor_kaydet(
 
     if hoparlor_id:
         baglanti.execute(
-            "UPDATE speaker_zones SET name = ?, area = ?, address = ?, description = ?, "
-            "enabled = ?, updated_at = ? WHERE id = ?",
-            (ad, bolum, adres, aciklama, aktif, simdi, hoparlor_id),
+            "UPDATE speaker_zones SET name = ?, area = ?, kind = ?, address = ?, device = ?, "
+            "description = ?, enabled = ?, updated_at = ? WHERE id = ?",
+            (ad, bolum, kind, adres, cihaz, aciklama, aktif, simdi, hoparlor_id),
         )
     else:
         baglanti.execute(
-            "INSERT INTO speaker_zones (name, area, address, description, enabled, "
-            "created_at, updated_at) VALUES (?,?,?,?,?,?,?)",
-            (ad, bolum, adres, aciklama, aktif, simdi, simdi),
+            "INSERT INTO speaker_zones (name, area, kind, address, device, description, "
+            "enabled, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?)",
+            (ad, bolum, kind, adres, cihaz, aciklama, aktif, simdi, simdi),
         )
     baglanti.commit()
     return RedirectResponse("/komuta/anons?sonuc=kaydedildi", status_code=303)
@@ -102,9 +139,9 @@ def hoparlor_kaydet(
 
 @router.post("/hoparlorler/{hoparlor_id}/sil")
 def hoparlor_sil(hoparlor_id: int, baglanti=Depends(baglanti_al)):
-    """Bölgeyi siler. Kural, kamera ve olay kayıtları ETKİLENMEZ: bölge yalnızca
-    'anons hangi adrese gitsin' sorusunun cevabıdır. Silindikten sonra o bölümün
-    anonsu .env'deki tek adrese döner."""
+    """Kanalı siler. Kural, kamera ve olay kayıtları ETKİLENMEZ: kanal yalnızca
+    'anons nereden çalsın' sorusunun cevabıdır. Bölümde başka kanal kalmazsa o
+    bölümün anonsu "Tüm fabrika" kanallarından duyurulur."""
     baglanti.execute("DELETE FROM speaker_zones WHERE id = ?", (hoparlor_id,))
     baglanti.commit()
     return RedirectResponse("/komuta/anons?sonuc=silindi", status_code=303)
@@ -112,36 +149,39 @@ def hoparlor_sil(hoparlor_id: int, baglanti=Depends(baglanti_al)):
 
 @router.post("/hoparlorler/{hoparlor_id}/dene")
 def hoparlor_dene(istek: Request, hoparlor_id: int, baglanti=Depends(baglanti_al)):
-    """Bu hoparlöre TEK bir deneme yayını gönderir.
-
-    Anons ayarından (.env → ANONS) bağımsız çalışır: kullanıcı, ANONS=http'ye
-    geçmeden önce kabloyu ve adresi sınayabilmeli. Bu yüzden başarı mesajı,
-    denemenin ihlal anındaki anonsla aynı şey OLMADIĞINI da söyler.
+    """Bu kanaldan TEK bir deneme yayını: IP hoparlöre deneme metni, ses
+    çıkışına üretilmiş bip sesi (docs/17 §7.8). Ses, kaydedilmiş satırın
+    kendi çıkışından ve adresinden çıkar (R39).
 
     Rota senkron tanımlıdır: FastAPI senkron rotaları threadpool'da çalıştırır,
     böylece hoparlör 5 saniye yanıt vermezse arayüzün geri kalanı donmaz.
     """
     satir = baglanti.execute("SELECT * FROM speaker_zones WHERE id = ?", (hoparlor_id,)).fetchone()
     if satir is None:
-        raise DogrulamaHatasi("Hoparlör bölgesi bulunamadı. Silinmiş olabilir; sayfayı yenileyin.")
-    try:
-        # Biçim .env'den GEÇİRİLİR. Geçirilmezse deneme her zaman JSON gönderir
-        # ve GET bekleyen bir hoparlörde "deneme başarılı" yazarken gerçek
-        # anons sessizce başarısız olurdu — anons.http_gonder'ın uyardığı tuzak.
-        http_gonder(
-            satir["address"],
-            DENEME_ANAHTARI,
-            DENEME_METNI,
-            istek.app.state.ayarlar.anons_http_bicimi,
-        )
-    except AnonsHatasi as hata:
-        # Adres MASKELİ gösterilir: hata ekranı da bir ekrandır, şifre oraya
-        # da basılmamalı (docs/01 §3.6).
-        raise DogrulamaHatasi(
-            f"'{satir['name']}' hoparlörü denenemedi "
-            f"({rtsp_maskele(satir['address'])}). {hata} "
-            "Adresi Hoparlör bölgeleri listesinden düzeltebilirsiniz."
-        ) from hata
+        raise DogrulamaHatasi("Kanal bulunamadı. Silinmiş olabilir; sayfayı yenileyin.")
+    if satir["kind"] == "ses_karti":
+        hata = test_sesi.cal(satir["device"])
+        if hata:
+            raise DogrulamaHatasi(f"'{satir['name']}' kanalından test sesi çalınamadı. {hata}")
+    else:
+        try:
+            # Biçim .env'den GEÇİRİLİR. Geçirilmezse deneme her zaman JSON gönderir
+            # ve GET bekleyen bir hoparlörde "deneme başarılı" yazarken gerçek
+            # anons sessizce başarısız olurdu — anons.http_gonder'ın uyardığı tuzak.
+            http_gonder(
+                satir["address"],
+                DENEME_ANAHTARI,
+                DENEME_METNI,
+                istek.app.state.ayarlar.anons_http_bicimi,
+            )
+        except AnonsHatasi as hata:
+            # Adres MASKELİ gösterilir: hata ekranı da bir ekrandır, şifre oraya
+            # da basılmamalı (docs/01 §3.6).
+            raise DogrulamaHatasi(
+                f"'{satir['name']}' hoparlörü denenemedi "
+                f"({rtsp_maskele(satir['address'])}). {hata} "
+                "Adresi kanal listesinden düzeltebilirsiniz."
+            ) from hata
     baglanti.execute(
         "UPDATE speaker_zones SET last_announced_at = ? WHERE id = ?",
         (zaman.simdi_utc(), hoparlor_id),
