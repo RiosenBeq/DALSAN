@@ -1,5 +1,45 @@
 # İlerleme
 
+## Faz 2a güvenlik tabanı (ilk yarı) ve öğe dili (23.09.2026)
+
+Plan: `docs/17-V2-TASARIM.md` §10.5 ve §13. Her madde Faz 0 denetiminde
+(`docs/AUDIT.md`) koddan doğrulanmış bir açıktır; testleri `tests/test_guvenlik.py`.
+
+**Giriş (R7, R9, R15).** Yanlış şifre kilidi `X-Forwarded-For` uydurularak
+atlatılabiliyordu: her deneme "yeni adres" sayılıyordu. Artık adresi yalnız
+uvicorn yazar, o da güvendiği vekilden (`FORWARDED_ALLOW_IPS`). Ayarlar
+sayfası kurulu şifreyi `type=text` kutuda değeriyle basıyordu; kutu artık
+noktalı ve boş, boş bırakmak şifreyi korur. Türkçe harfli şifre
+`hmac.compare_digest`'te TypeError → 500 veriyordu; karşılaştırma bayt üzerinden.
+
+**Host izin listesi + köken denetimi (R8).** `web/kaynak_denetimi.py`, tek ara
+katman. İzinsiz `Host` → 421 (DNS yeniden bağlama: saldırganın adı bu makineye
+çözülünce tarayıcı yanıtları okuyabiliyordu). Durum değiştiren istekte
+`Origin`/`Referer` izinli değilse, `Origin: null` ise ya da `Sec-Fetch-Site`
+`cross-site`/`same-site` ise 403 (CSRF); üç başlık da yoksa geçer (tarayıcı
+dışı istemci). Plandan bir adım sıkı: `same-site` de reddediliyor — port
+karşılaştırılmadığı için aynı makinenin başka portundaki bir sayfa
+(127.0.0.1:8100) izinli Origin taşıyordu; tarayıcı o isteğe `same-site` der,
+sistemin kendi sayfası her zaman `same-origin`. Gerçek Chromium'da denendi:
+
+    kendi formu (olay durumu)  → 303   kendi fetch'i (KKD etiket) → 204
+    127.0.0.1:8100'den form    → 403   evil.test'ten form         → 403
+    evil.test:8099 GET (yeniden bağlama) → 421   saldırı kamerası oluşmadı
+
+Yeni ayar `IZINLI_SUNUCU_ADLARI` (Ayarlar → Güvenlik). **Davranış değişikliği:**
+ağa açık kurulumda başka cihazdan sunucunun IP'siyle girmek için o IP listeye
+yazılmalı; yazılmamışsa sayfa ne yapılacağını söyler, açılışta da uyarı düşer.
+`docs/15` ve Kılavuz buna göre güncellendi. `/docs`, `/redoc`, `/openapi.json`
+kapatıldı (bütün rotaları girişsiz listeliyordu).
+
+**Öğe dili.** İnsan, forklift, tır, yaya yolu, baret, yelek, hoparlör, Bluetooth
+için simgeler (Lucide ISC + elle çizilmiş yelek) ve tek tablo (`web/ortak.py`
+`OGELER`): olay listesi, canlı akış, komuta ekranı ("Öğelere göre ihlaller"),
+inceleme kuyruğu, KKD ilerleme kartları (docs/04 §4.5 asgari sayıları), anons
+ve kamera sayfaları, Kılavuz'da simge sözlüğü. Olay listesi telefonda karta
+dönüşüyor (altı sütunlu tablo 375 px'te özeti yatay kaydırmanın arkasına
+saklıyordu).
+
 ## Kalan işlerin bitirilmesi: hız kuralı, rapor, paketleme (09.09.2026)
 
 Üç iş kalmıştı; üçü de yapıldı ve maine gitti.

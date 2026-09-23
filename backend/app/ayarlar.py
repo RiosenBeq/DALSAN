@@ -11,10 +11,12 @@ ile durdurur — sistem yarım ayarla ÇALIŞMAZ.
 from __future__ import annotations
 
 import errno
+import ipaddress
 import re
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from dotenv import dotenv_values
 
@@ -96,6 +98,10 @@ class Ayarlar:
     # eski yerde bulundu) açılışta günlüğe düşecek cümle. Olağan durumda boş.
     veri_konumu_notu: str = ""
     veri_konumu_ayrintisi: str = ""
+    # Sisteme hangi ADLARLA erişilebilir (Host başlığı). Geri döngü adresleri
+    # (127.x, ::1, localhost) ve sunucu_adresi her zaman izinlidir; bu liste
+    # ONLARIN ÜSTÜNE eklenir. Boş = yalnız o adlar. Denetim: web/kaynak_denetimi.py
+    izinli_sunucu_adlari: tuple[str, ...] = ()
 
 
 def _yerel_adres_mi(adres: str) -> bool:
@@ -105,6 +111,66 @@ def _yerel_adres_mi(adres: str) -> bool:
     """
     temiz = adres.strip().strip("[]").lower()
     return temiz.startswith("127.") or temiz in ("localhost", "::1")
+
+
+# Host başlığında ya da ayar satırında bir sunucu adının içerebileceği
+# karakterler: harf, rakam, nokta, tire, alt çizgi; IPv6 için iki nokta ve
+# köşeli parantez. Boşluk, '@', '/' gibi karakterler ad değildir.
+_AD_KARAKTERLERI = re.compile(r"[a-z0-9._\-:\[\]]+")
+
+
+def sunucu_adi(ham: str) -> str:
+    """Host başlığından, adresten ya da ayar satırından karşılaştırılacak ADI çıkarır.
+
+    '127.0.0.1:8080' → '127.0.0.1' · '[::1]:8080' → '::1' ·
+    'ISG.Dalsan.Local.' → 'isg.dalsan.local' · 'http://10.0.0.5:8080/x' → '10.0.0.5'.
+    Ad olamayacak bir değer (boşluk, '@', '/' içeren; kapanmamış köşeli
+    parantez; sayı olmayan port) BOŞ metin döner — çağıran taraf onu izinsiz
+    sayar.
+    """
+    metin = ham.strip().lower()
+    if "://" in metin:  # tam adres (Origin, Referer ya da ayara yapıştırılmış adres)
+        try:
+            metin = urlsplit(metin).netloc
+        except ValueError:
+            return ""
+    if not metin.isascii():
+        # Türkçe harfli ad ('işg.dalsan.local'): tarayıcı Host başlığına onu
+        # punycode yazar ('xn--g-...'); karşılaştırma aynı biçimde yapılır.
+        try:
+            metin = metin.encode("idna").decode("ascii")
+        except UnicodeError:
+            return ""
+    if not _AD_KARAKTERLERI.fullmatch(metin):
+        return ""
+    if metin.startswith("["):
+        kapanis = metin.find("]")
+        if kapanis == -1:
+            return ""
+        ad, kalan = metin[1:kapanis], metin[kapanis + 1 :]
+        if kalan and not (kalan.startswith(":") and kalan[1:].isdigit()):
+            return ""
+    elif metin.count(":") == 1:
+        ad, port = metin.split(":")
+        if not port.isdigit():
+            return ""
+    else:
+        ad = metin  # port yok ya da köşeli parantezsiz IPv6 ('fe80::1')
+    return ad.rstrip(".")
+
+
+def geri_donus_adi_mi(ad: str) -> bool:
+    """Ad bu bilgisayarın kendisini mi gösteriyor? ('localhost', 127.x, ::1)
+
+    `_yerel_adres_mi`'den farkı: adres öneki değil, GERÇEK IP ayrıştırması.
+    '127.saldirgan.com' bir alan adıdır, geri döngü değildir.
+    """
+    if ad == "localhost":
+        return True
+    try:
+        return ipaddress.ip_address(ad).is_loopback
+    except ValueError:
+        return False
 
 
 def env_degerlerini_oku(env_yolu: Path) -> dict[str, str]:
@@ -340,6 +406,9 @@ def ayarlari_coz(
         env_yolu=kok / ".env",
         veri_konumu_notu=konum.gunluk_notu,
         veri_konumu_ayrintisi=konum.gunluk_ayrintisi,
+        # DNS yeniden bağlamaya karşı Host izin listesi (docs/17 §10.5 R8).
+        # Uzaktan erişimde kullanılan ad buraya yazılır (docs/15).
+        izinli_sunucu_adlari=_sunucu_adlari(degerler, "IZINLI_SUNUCU_ADLARI"),
     )
 
 
@@ -451,6 +520,30 @@ def _uzanti_listesi(degerler: dict, anahtar: str, varsayilan: str) -> tuple[str,
             f"(örnek: {varsayilan})."
         )
     return uzantilar
+
+
+def _sunucu_adlari(degerler: dict, anahtar: str) -> tuple[str, ...]:
+    """'192.168.1.50, ISG.dalsan.local:8080' → ('192.168.1.50', 'isg.dalsan.local').
+
+    Port ve 'http://' hoş görülür (kullanıcı tarayıcıdaki adresi yapıştırabilir);
+    ad olmayan değer açılışı durdurur — sessizce atlanırsa kullanıcı neden
+    hâlâ "izin verilmeyen adres" gördüğünü anlayamazdı.
+    """
+    adlar = []
+    for parca in (degerler.get(anahtar, "") or "").replace(";", ",").split(","):
+        parca = parca.strip()
+        if not parca:
+            continue
+        ad = sunucu_adi(parca)
+        if not ad or ad == "null":
+            raise AyarHatasi(
+                f".env dosyasında {anahtar} içinde sunucu adı olmayan bir değer var: "
+                f"'{parca}'. Adları virgülle ayırın; joker (*) kabul edilmez. "
+                "Örnek: 192.168.1.50, isg.dalsan.local"
+            )
+        if ad not in adlar:
+            adlar.append(ad)
+    return tuple(adlar)
 
 
 def _metin(degerler: dict, anahtar: str, varsayilan: str) -> str:

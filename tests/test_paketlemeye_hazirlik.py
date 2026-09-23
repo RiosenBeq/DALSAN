@@ -287,7 +287,10 @@ from app.uygulama import uygulama_olustur
 
 # .env YOK: paketlenmiş programda örnekten BİR KEZ üretilmesi gerekir.
 ayarlar = ayarlari_yukle(Path({veri_koku!r}))
-with TestClient(uygulama_olustur(ayarlar, analiz=False)) as istemci:
+# Paketlenmiş programın penceresi sistemi 127.0.0.1'den açar (Host izin
+# listesi: web/kaynak_denetimi.py); test de aynı adla bağlanır.
+uygulama = uygulama_olustur(ayarlar, analiz=False)
+with TestClient(uygulama, base_url="http://127.0.0.1:8080") as istemci:
     for yol in ("/saglik", "/kurallar", "/komuta", "/komuta/rapor", "/kameralar"):
         yanit = istemci.get(yol)
         assert yanit.status_code == 200, (yol, yanit.status_code)

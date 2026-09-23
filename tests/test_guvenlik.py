@@ -11,6 +11,7 @@ import dataclasses
 import pytest
 from fastapi.testclient import TestClient
 
+from app.ayarlar import env_degerlerini_oku
 from app.uygulama import uygulama_olustur
 from app.web.giris import cerez_gecerli, cerez_uret, denemeleri_sifirla
 
@@ -185,3 +186,250 @@ def test_ag_acikken_sifre_kaldirilamaz(test_ayarlari):
         )
         assert yanit.status_code != 303
         assert test_ayarlari.env_yolu.read_text(encoding="utf-8") == env
+
+
+# ------------------------------- R8: Host izin listesi (DNS yeniden bağlama) + köken
+
+
+def _kameralar(istemci: TestClient) -> str:
+    return istemci.get("/kameralar").text
+
+
+KAMERA_FORMU = {
+    "name": "Sahte Kamera",
+    "area": "",
+    "source_type": "rtsp",
+    "source_url": "rtsp://10.0.0.5:554/1",
+    "sample_fps": "6",
+}
+
+
+def test_yabanci_sitenin_formu_reddedilir(test_ayarlari):
+    """Başka bir sitenin sayfası, oturumu açık tarayıcı üzerinden form
+    gönderir (CSRF). Tarayıcı Origin'e o sitenin adını yazar."""
+    with _istemci(test_ayarlari, "") as istemci:
+        yanit = istemci.post(
+            "/kameralar/yeni",
+            data=KAMERA_FORMU,
+            headers={"origin": "http://evil.example"},
+            follow_redirects=False,
+        )
+        assert yanit.status_code == 403
+        assert "Sahte Kamera" not in _kameralar(istemci)
+
+
+def test_ayni_kokenden_form_gecer(test_ayarlari):
+    with _istemci(test_ayarlari, "") as istemci:
+        yanit = istemci.post(
+            "/kameralar/yeni",
+            data=KAMERA_FORMU,
+            headers={"origin": "http://testserver", "sec-fetch-site": "same-origin"},
+            follow_redirects=False,
+        )
+        assert yanit.status_code == 303
+        assert "Sahte Kamera" in _kameralar(istemci)
+
+
+def test_dns_yeniden_baglama_host_ile_durur(test_ayarlari):
+    """Saldırganın adı bu makineye çözüldüğünde tarayıcı için köken
+    değişmemiştir: Origin ve Host AYNI sahte adı taşır, Sec-Fetch-Site
+    'same-origin' der. Origin'i Host'la kıyaslamak hiçbir şeyi durdurmaz;
+    durduran, Host'un izin listesinde olmamasıdır. GET de reddedilir —
+    saldırının amacı yanıtı OKUMAKTIR."""
+    with _istemci(test_ayarlari, "") as istemci:
+        sahte = {
+            "host": "evil.example:8080",
+            "origin": "http://evil.example:8080",
+            "sec-fetch-site": "same-origin",
+        }
+        assert istemci.get("/olaylar", headers=sahte).status_code == 421
+        yanit = istemci.post(
+            "/kameralar/yeni", data=KAMERA_FORMU, headers=sahte, follow_redirects=False
+        )
+        assert yanit.status_code == 421
+        assert "Sahte Kamera" not in _kameralar(istemci)
+
+
+def test_origin_null_reddedilir(test_ayarlari):
+    """Sandbox'lı iframe ve file:// sayfası 'Origin: null' gönderir."""
+    with _istemci(test_ayarlari, "") as istemci:
+        yanit = istemci.post(
+            "/kameralar/yeni",
+            data=KAMERA_FORMU,
+            headers={"origin": "null"},
+            follow_redirects=False,
+        )
+        assert yanit.status_code == 403
+
+
+def test_capraz_site_isareti_reddedilir(test_ayarlari):
+    """Origin'i olmayan (eski) bir istekte bile tarayıcının Sec-Fetch-Site
+    başlığını sayfa değiştiremez."""
+    with _istemci(test_ayarlari, "") as istemci:
+        yanit = istemci.post(
+            "/kameralar/yeni",
+            data=KAMERA_FORMU,
+            headers={"sec-fetch-site": "cross-site"},
+            follow_redirects=False,
+        )
+        assert yanit.status_code == 403
+
+
+def test_ayni_makinenin_baska_portundaki_sayfa_reddedilir(test_ayarlari):
+    """Port karşılaştırılmaz, yani 127.0.0.1:8100'deki bir sayfanın Origin'i
+    izinli görünür. Tarayıcı o isteğe 'same-site' der; sistemin kendi sayfası
+    her zaman 'same-origin' gönderir."""
+    with _istemci(test_ayarlari, "") as istemci:
+        yanit = istemci.post(
+            "/kameralar/yeni",
+            data=KAMERA_FORMU,
+            headers={"origin": "http://127.0.0.1:8100", "sec-fetch-site": "same-site"},
+            follow_redirects=False,
+        )
+        assert yanit.status_code == 403
+        assert "Sahte Kamera" not in _kameralar(istemci)
+
+
+@pytest.mark.parametrize(
+    ("yonlendiren", "beklenen"),
+    [("http://evil.example/sayfa", 403), ("http://testserver/kameralar", 303)],
+)
+def test_origin_yoksa_referer_bakilir(test_ayarlari, yonlendiren, beklenen):
+    with _istemci(test_ayarlari, "") as istemci:
+        yanit = istemci.post(
+            "/kameralar/yeni",
+            data=KAMERA_FORMU,
+            headers={"referer": yonlendiren},
+            follow_redirects=False,
+        )
+        assert yanit.status_code == beklenen
+
+
+def test_basliksiz_istemci_gecer(test_ayarlari):
+    """Origin, Referer ve Sec-Fetch-Site'ın üçü de yok: tarayıcı değil (curl,
+    Kontrol Paneli). CSRF'in aracı her zaman bir tarayıcıdır."""
+    with _istemci(test_ayarlari, "") as istemci:
+        yanit = istemci.post("/kameralar/yeni", data=KAMERA_FORMU, follow_redirects=False)
+        assert yanit.status_code == 303
+
+
+def test_guvenli_yontemde_koken_sorulmaz(test_ayarlari):
+    """Başka siteden gelen bağlantıyla sayfa AÇMAK serbesttir; yalnız durum
+    değiştiren istek denetlenir."""
+    with _istemci(test_ayarlari, "") as istemci:
+        yanit = istemci.get(
+            "/kameralar",
+            headers={"referer": "http://evil.example/", "sec-fetch-site": "cross-site"},
+        )
+        assert yanit.status_code == 200
+
+
+@pytest.mark.parametrize("host", ["127.0.0.1:8080", "localhost", "[::1]:8080", "127.0.1.1"])
+def test_bu_bilgisayarin_adlari_her_zaman_izinli(test_ayarlari, host):
+    ayarlar = dataclasses.replace(test_ayarlari, izinli_sunucu_adlari=())
+    with TestClient(uygulama_olustur(ayarlar, analiz=False)) as istemci:
+        assert istemci.get("/saglik", headers={"host": host}).status_code == 200
+
+
+def test_geri_donus_gibi_gorunen_alan_adi_izinli_degil(test_ayarlari):
+    """'127.' ile başlayan bir ALAN ADI saldırganın olabilir; geri döngü
+    kararı gerçek IP ayrıştırmasıyla verilir, önek bakılarak değil."""
+    with _istemci(test_ayarlari, "") as istemci:
+        yanit = istemci.get("/saglik", headers={"host": "127.saldirgan.example"})
+        assert yanit.status_code == 421
+
+
+def test_izinli_ad_listesi_ve_sunucu_adresi(test_ayarlari):
+    ayarlar = dataclasses.replace(
+        test_ayarlari,
+        izinli_sunucu_adlari=("isg.dalsan.local", "192.168.1.50"),
+        sunucu_adresi="10.0.0.7",
+    )
+    with TestClient(uygulama_olustur(ayarlar, analiz=False)) as istemci:
+        for host in ("ISG.dalsan.local:8080", "192.168.1.50:8080", "10.0.0.7:8080"):
+            assert istemci.get("/saglik", headers={"host": host}).status_code == 200, host
+        assert istemci.get("/saglik", headers={"host": "192.168.1.51"}).status_code == 421
+
+
+def test_ret_sayfasi_ne_yapilacagini_soyler_ve_adi_kacirir(test_ayarlari):
+    with _istemci(test_ayarlari, "") as istemci:
+        sayfa = istemci.get("/", headers={"host": "fabrika-pc:9000", "accept": "text/html"}).text
+        assert "<code>fabrika-pc</code>" in sayfa
+        assert "http://127.0.0.1:9000" in sayfa
+        assert "İzinli sunucu" in sayfa and "Tanımadığınız bir adsa eklemeyin" in sayfa
+        # Stil dosyası istenmez: o da aynı izinsiz adla reddedilirdi.
+        assert "/static/" not in sayfa
+
+        kotu = istemci.get(
+            "/", headers={"host": "<script>alert(1)</script>", "accept": "text/html"}
+        )
+        assert kotu.status_code == 421
+        assert "<script>" not in kotu.text
+
+        # fetch çağrısı JSON alır (hatalar.py ile aynı ölçüt)
+        assert "hata" in istemci.get("/api/x", headers={"host": "fabrika-pc"}).json()
+
+
+@pytest.mark.parametrize("yol", ["/docs", "/redoc", "/openapi.json"])
+def test_api_belge_uclari_kapali(test_ayarlari, yol):
+    """Bu uçlar sistemin bütün rotalarını ve form alanlarını giriş
+    istemeden listeliyordu."""
+    with _istemci(test_ayarlari, "") as istemci:
+        assert istemci.get(yol).status_code == 404
+
+
+# ------------------------------------------------ R8: izinli ad ayarı
+
+
+def test_izinli_adlar_ayari_ayrilir_ve_temizlenir(tmp_path):
+    from app.ayarlar import ayarlari_coz
+
+    ayarlar = ayarlari_coz(
+        tmp_path,
+        {"IZINLI_SUNUCU_ADLARI": " 192.168.1.50, http://ISG.dalsan.local:8080/ ; [fe80::1]:80,"},
+    )
+    assert ayarlar.izinli_sunucu_adlari == ("192.168.1.50", "isg.dalsan.local", "fe80::1")
+
+
+def test_turkce_harfli_ad_tarayicinin_yazdigi_bicimde_saklanir(tmp_path, test_ayarlari):
+    """Tarayıcı 'işg.dalsan.local' adını Host başlığına punycode yazar."""
+    from app.ayarlar import ayarlari_coz
+
+    ayarlar = ayarlari_coz(tmp_path, {"IZINLI_SUNUCU_ADLARI": "işg.dalsan.local"})
+    punycode = "işg.dalsan.local".encode("idna").decode("ascii")
+    assert punycode.startswith("xn--")
+    assert ayarlar.izinli_sunucu_adlari == (punycode,)
+    izinli = dataclasses.replace(test_ayarlari, izinli_sunucu_adlari=ayarlar.izinli_sunucu_adlari)
+    with TestClient(uygulama_olustur(izinli, analiz=False)) as istemci:
+        assert istemci.get("/saglik", headers={"host": punycode + ":8080"}).status_code == 200
+
+
+@pytest.mark.parametrize("deger", ["*", "fabrika pc", "kullanici@192.168.1.50", "null"])
+def test_ad_olmayan_izinli_deger_acilisi_durdurur(tmp_path, deger):
+    from app.ayarlar import ayarlari_coz
+    from app.hatalar import AyarHatasi
+
+    with pytest.raises(AyarHatasi) as hata:
+        ayarlari_coz(tmp_path, {"IZINLI_SUNUCU_ADLARI": deger})
+    assert "IZINLI_SUNUCU_ADLARI" in hata.value.kullanici_mesaji
+
+
+def test_izinli_adlar_ayarlar_sayfasindan_yazilir(test_ayarlari):
+    with _istemci(test_ayarlari, "", "SUNUCU_ADRESI=127.0.0.1\n") as istemci:
+        sayfa = istemci.get("/ayarlar").text
+        assert 'name="IZINLI_SUNUCU_ADLARI" value="testserver"' in sayfa
+        istemci.post(
+            "/ayarlar/kaydet",
+            data={**TAM_FORM, "IZINLI_SUNUCU_ADLARI": "192.168.1.50, isg.dalsan.local"},
+        )
+        # Boşluklu değer tırnakla yazılır; sistemin kendi okuyucusuyla okunur.
+        degerler = env_degerlerini_oku(test_ayarlari.env_yolu)
+        assert degerler["IZINLI_SUNUCU_ADLARI"] == "192.168.1.50, isg.dalsan.local"
+
+        yanit = istemci.post(
+            "/ayarlar/kaydet",
+            data={**TAM_FORM, "IZINLI_SUNUCU_ADLARI": "*"},
+            follow_redirects=False,
+        )
+        assert yanit.status_code == 400
+        assert env_degerlerini_oku(test_ayarlari.env_yolu) == degerler

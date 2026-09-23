@@ -133,6 +133,10 @@ def test_ayarlari(tmp_path: Path):
         # megabaytlık sahte dosyayla sınayabilmek için.
         video_en_buyuk_mb=2,
         env_yolu=tmp_path / ".env",
+        # Starlette'in TestClient'ı her isteği `Host: testserver` ile gönderir.
+        # Sahadaki bir kurulumun kendi adını listeye yazması gibi, test ortamı
+        # da kendi adını yazar (web/kaynak_denetimi.py).
+        izinli_sunucu_adlari=("testserver",),
     )
 
 

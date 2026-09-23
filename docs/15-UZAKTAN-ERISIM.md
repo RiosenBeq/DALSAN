@@ -27,15 +27,31 @@ gerekiyorsa C'ye geçin.
 
 ## 2. Seviye B — fabrika ağına açma
 
-İki satır, ikisi de `.env` dosyasında (ya da **Komuta → Ayarlar**):
+Üç satır, üçü de `.env` dosyasında (ya da **Komuta → Ayarlar → Güvenlik**):
 
 ```
 YONETICI_SIFRESI=buraya-guclu-bir-sifre
 SUNUCU_ADRESI=0.0.0.0
+IZINLI_SUNUCU_ADLARI=<sunucunun-ip-adresi>
 ```
 
 Sistemi yeniden başlatın. Artık fabrikadaki başka bir bilgisayardan
 `http://<sunucunun-ip-adresi>:8080` ile açılır.
+
+> **İzinli sunucu adları neden gerekli:** sistem, tarayıcının adres çubuğundaki
+> adı (`Host` başlığı) her istekte denetler ve listede olmayan adla gelen
+> isteği **"Bu adrese izin verilmiyor"** sayfasıyla reddeder. Sebep *DNS
+> yeniden bağlama* saldırısıdır: bir internet sitesi kendi alan adını bu
+> sunucunun adresine yönlendirip, fabrikadaki bir çalışanın tarayıcısı
+> üzerinden kamera görüntülerini ve olay listesini okuyabilirdi. Şifre bunu
+> durdurmaz (oturum açık tarayıcı saldırganın işini görür); izin listesi
+> durdurur. `127.0.0.1`, `localhost` ve `SUNUCU_ADRESI` her zaman izinlidir.
+> Sunucuya bir adla da giriliyorsa (ör. `isg.dalsan.local`) onu da virgülle
+> ekleyin. **Tanımadığınız bir adı eklemeyin.**
+>
+> Aynı denetim formları da korur: kamera silmek, kural değiştirmek, anons
+> çaldırmak gibi işlemler yalnız sistemin kendi sayfalarından gönderildiğinde
+> kabul edilir; başka bir siteden gönderilen form "İstek reddedildi" alır.
 
 > **Sistem sizi korur:** `SUNUCU_ADRESI` yerel olmayan bir değere ayarlanmış
 > ama şifre boşsa **sistem açılmayı reddeder** ve sebebini yazar. Ağa açık +
@@ -96,7 +112,8 @@ ayarları yeterli.
 > yeni bir ekran çıkmaz.
 
 **Bu yolu seçerseniz `SUNUCU_ADRESI=0.0.0.0` yapın ve şifreyi koyun** (Seviye B),
-gerisi VPN'in işidir.
+gerisi VPN'in işidir. Tarayıcıya yazdığınız adresi (VPN'deki IP, Tailscale'in
+verdiği `100.x.y.z` adresi ya da MagicDNS adı) **İzinli sunucu adları**'na ekleyin.
 
 ### 4.2 İkinci yol: Cloudflare Tunnel benzeri bir tünel
 
@@ -106,6 +123,10 @@ girersiniz. Router'da port açmak gerekmez ve bağlantı HTTPS olur.
 Artıları: HTTPS hazır gelir, port açılmaz.
 Eksileri: görüntüleriniz bir üçüncü taraf hizmetin üzerinden geçer — **KVKK
 açısından ayrıca değerlendirilmelidir** (yurt dışına veri aktarımı sorusu).
+
+Tünelin verdiği web adresini (ör. `isg.sirketiniz.com`) **İzinli sunucu
+adları**'na ekleyin; eklenmezse sayfa açılmaz ya da formlar "İstek
+reddedildi" der.
 
 ### 4.3 Son çare: router'da port açma — **önerilmez**
 
@@ -122,6 +143,9 @@ görünen yoldur ve **en tehlikelisidir**:
 Yine de zorundaysanız, **en azından** şunlar yapılmalıdır:
 
 1. Önüne HTTPS yapan bir ters vekil (nginx/Caddy) koyun — sertifika ücretsizdir.
+   Vekilin yayın yaptığı adı **İzinli sunucu adları**'na ekleyin. Tarayıcı
+   formu o adla gönderir (`Origin`); vekil `Host`'u değiştirse bile köken
+   denetimi o adı arar.
 2. Varsayılan 8080 portunu kullanmayın.
 3. Şifre en az 16 karakter olsun.
 4. Router'da mümkünse **kaynak IP kısıtı** koyun (yalnız sizin ev IP'niz).
@@ -177,6 +201,7 @@ Sunucuyu uzaktan yeniden başlatmanız gerekiyorsa BT'den sunucuya uzak masaüst
 - [ ] `YONETICI_SIFRESI` dolduruldu, en az 12 karakter
 - [ ] Şifre bir yerde güvenli biçimde saklandı (yalnız yetkili kişide)
 - [ ] `SUNUCU_ADRESI=0.0.0.0` yapıldı ve sistem yeniden başlatıldı
+- [ ] Tarayıcıya yazılan adres(ler) **İzinli sunucu adları**'na eklendi
 - [ ] Docker kullanılıyorsa port satırı `"8080:8080"` yapıldı
 - [ ] Başka bir cihazdan giriş **denendi** ve şifre soruldu
 - [ ] Yanlış şifreyle 5 kez denendi ve **kilit çalıştı**

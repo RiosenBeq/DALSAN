@@ -14,7 +14,7 @@ from fastapi import Depends, FastAPI
 from fastapi.staticfiles import StaticFiles
 
 from app import kaynaklar, loglama, veritabani
-from app.ayarlar import Ayarlar
+from app.ayarlar import Ayarlar, geri_donus_adi_mi, sunucu_adi
 from app.hatalar import VeritabaniHatasi, hata_yakalayicilari_kur
 from app.web import (
     alan_rotalari,
@@ -32,6 +32,7 @@ from app.web import (
     rotalar,
     videolar,
 )
+from app.web.kaynak_denetimi import KaynakDenetimi
 
 # Stil/betik dosyalarının yeri app/kaynaklar.py'den çözülür (paketlenmiş
 # programda dosyalar depoda değil, paketin açıldığı geçici klasördedir).
@@ -74,6 +75,18 @@ def uygulama_olustur(ayarlar: Ayarlar, analiz: bool = True) -> FastAPI:
             "Sistem hazır.",
             extra={"ayrinti": f"veritabanı: {ayarlar.veritabani_yolu}, şema: {surum}"},
         )
+        # Ağa açık kurulumda izinli ad yoksa başka cihazdan gelen her istek
+        # 421 alır (web/kaynak_denetimi.py). Kullanıcı bunu sahada "sistem
+        # açılmıyor" diye yaşamasın: Kontrol Paneli'nde ne yapacağı yazsın.
+        if not geri_donus_adi_mi(sunucu_adi(ayarlar.sunucu_adresi)) and not (
+            ayarlar.izinli_sunucu_adlari
+        ):
+            log.warning(
+                "Sistem ağa açık ama İzinli sunucu adları boş: başka bir cihazdan "
+                'sunucunun IP adresiyle açıldığında sayfa "Bu adrese izin verilmiyor" '
+                "der. O adresi Ayarlar → Güvenlik → İzinli sunucu adları kutusuna "
+                "yazıp sistemi yeniden başlatın (docs/15-UZAKTAN-ERISIM.md)."
+            )
 
         supervizor = None
         if analiz:
@@ -90,9 +103,22 @@ def uygulama_olustur(ayarlar: Ayarlar, analiz: bool = True) -> FastAPI:
             supervizor.durdur()
         log.info("Sistem durduruluyor.")
 
-    uygulama = FastAPI(title="DALSAN İSG", lifespan=yasam_dongusu)
+    # /docs, /redoc ve /openapi.json KAPALI: bu uçlar sistemin bütün rotalarını
+    # ve form alanlarını giriş istemeden listeliyordu (docs/17 §10.5). Bu
+    # sistemin API tüketicisi yok; arayüzün kendisi belgedir.
+    uygulama = FastAPI(
+        title="DALSAN İSG",
+        lifespan=yasam_dongusu,
+        docs_url=None,
+        redoc_url=None,
+        openapi_url=None,
+    )
     uygulama.state.ayarlar = ayarlar
     hata_yakalayicilari_kur(uygulama)
+    # İSTEK KAYNAĞI — her şeyden önce: izinsiz sunucu adıyla gelen istek (DNS
+    # yeniden bağlama) 421, başka siteden gönderilen form (CSRF) 403 alır.
+    # Giriş kapısından da önce çalışır; ayrıntı web/kaynak_denetimi.py.
+    uygulama.add_middleware(KaynakDenetimi)
 
     # YETKİ — tek kapı. .env'deki YONETICI_SIFRESI boşsa `oturum_gerekli`
     # hiçbir şey sormaz (tek makinede çalışan kurulum); doluysa aşağıdaki

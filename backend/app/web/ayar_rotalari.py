@@ -93,6 +93,21 @@ AYAR_GRUPLARI: tuple[AyarGrubu, ...] = (
                 ),
             ),
             AyarAlani(
+                anahtar="IZINLI_SUNUCU_ADLARI",
+                alan="izinli_sunucu_adlari",
+                tur="metin",
+                etiket="İzinli sunucu adları",
+                ipucu="örn. 192.168.1.50, isg.dalsan.local",
+                aciklama=(
+                    "Sisteme başka bir cihazdan hangi adresle giriliyorsa o ad buraya "
+                    "yazılır; birden fazlaysa virgülle ayırın. Bu bilgisayarın kendisi "
+                    "(127.0.0.1) her zaman izinlidir. Yazılmamış bir adla gelen istek "
+                    "“Bu adrese izin verilmiyor” sayfasına düşer: başka bir internet "
+                    "sitesinin kendi adını bu bilgisayara yönlendirip sisteme ulaşmasını "
+                    "bu liste durdurur."
+                ),
+            ),
+            AyarAlani(
                 anahtar="YONETICI_SIFRESI",
                 alan="yonetici_sifresi",
                 etiket="Yönetici şifresi",
@@ -426,6 +441,9 @@ def _gosterilecek_deger(ayarlar, alan: AyarAlani) -> str:
     if alan.tur == "sifre":
         return ""
     deger = getattr(ayarlar, alan.alan)
+    if isinstance(deger, tuple):
+        # ('192.168.1.50', 'isg.dalsan.local') → "192.168.1.50, isg.dalsan.local"
+        return ", ".join(deger)
     if isinstance(deger, float):
         # 0.35 → "0.35", 0.6 → "0.6"  (sayı kutusu noktalı yazım bekler)
         return f"{deger:g}"
