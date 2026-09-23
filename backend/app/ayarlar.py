@@ -137,6 +137,12 @@ class Ayarlar:
     kkd_kapi_precision: float = 0.90
     kkd_kapi_gun: int = 3
     kkd_kapi_en_az_olay: int = 30
+    # --- Uyarı kaydı arşivi (operatör isteği 23.09.2026) ---
+    # Teslim kayıtları (alert_deliveries) bu kadar günde bir masaüstüne CSV olarak
+    # yazılır, doğrulanır ve sistemden silinir; 0 = kapalı (kayıt olayla birlikte
+    # silinir). Klasör boşsa masaüstü (olaylar/uyari_arsivi.py).
+    uyari_kaydi_arsiv_gun: int = 15
+    uyari_kaydi_arsiv_klasoru: str = ""
 
 
 def _yerel_adres_mi(adres: str) -> bool:
@@ -477,6 +483,8 @@ def ayarlari_coz(
         kkd_kapi_precision=_ondalik(degerler, "KKD_KAPI_PRECISION", 0.90, 0.5, 1.0),
         kkd_kapi_gun=_tam_sayi(degerler, "KKD_KAPI_GUN", 3, 1, 90),
         kkd_kapi_en_az_olay=_tam_sayi(degerler, "KKD_KAPI_EN_AZ_OLAY", 30, 1, 10000),
+        uyari_kaydi_arsiv_gun=_tam_sayi(degerler, "UYARI_KAYDI_ARSIV_GUN", 15, 0, 365),
+        uyari_kaydi_arsiv_klasoru=degerler.get("UYARI_KAYDI_ARSIV_KLASORU", "").strip(),
     )
 
 
