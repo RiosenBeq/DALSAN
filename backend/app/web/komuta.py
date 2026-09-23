@@ -1086,7 +1086,7 @@ def _ses_metni(ses_cikisi: bool, ses_dosyasi: str | None) -> str:
     """
     if not ses_cikisi:
         return ""
-    return ses_dosyasi or "ses dosyası bağlanmamış"
+    return ses_dosyasi or "ses dosyası bağlanmamış - uyarı tonu çalar"
 
 
 def _zincir(baglanti, ayarlar, hoparlorler: list[dict]) -> list[dict]:
@@ -1315,7 +1315,8 @@ def _anons_mesajlari(baglanti, ses_kanali_var: bool, sayilar: dict[int, int]) ->
         elif all(k["shadow_mode"] for k in calisanlar):
             rozet, rozet_rengi = "gölge modda", "sari"
         elif ses_kanali_var and not satir["audio_file"]:
-            # Ses çıkışı kanalı WAV çalar; dosya yoksa o kanal susar
+            # Ses çıkışı kanalı WAV çalar; dosya yoksa sözlü anons yerine
+            # uyarı tonu çalar (hoparlör susmaz, olaylar/ton.py)
             rozet, rozet_rengi = "ses dosyası yok", "sari"
         else:
             rozet, rozet_rengi = "açık", "yesil"

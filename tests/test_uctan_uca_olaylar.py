@@ -17,6 +17,7 @@ ikinci kez gelmesin (regresyon).
 from __future__ import annotations
 
 import json
+import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -202,8 +203,15 @@ def _hat(senaryo: dict, takip_hafiza_sn: float) -> KameraHatti:
     return hat
 
 
-def senaryoyu_oynat(senaryo: dict, ayarlar, dizin: Path) -> tuple[list[dict], list[dict]]:
-    """Senaryoyu oynatır: (geçişlerden olaylar, veritabanındaki olay satırları)."""
+def senaryoyu_oynat(
+    senaryo: dict, ayarlar, dizin: Path, anons=None, hazirla=None
+) -> tuple[list[dict], list[dict]]:
+    """Senaryoyu oynatır: (geçişlerden olaylar, veritabanındaki olay satırları).
+
+    `anons` verilirse (gerçek AnonsYoneticisi) uyarı hoparlör kanalına kadar
+    gider; `hazirla(baglanti)` senaryo satırları yazıldıktan sonra çağrılır
+    (kurala anons bağlamak, kanal eklemek).
+    """
     nesneler = _nesneler(senaryo)
     video = dizin / "senaryo.mp4"
     beklenen_kare = _video_yaz(video, senaryo, nesneler)
@@ -211,8 +219,15 @@ def senaryoyu_oynat(senaryo: dict, ayarlar, dizin: Path) -> tuple[list[dict], li
     baglanti = veritabani.baglanti_ac(ayarlar.veritabani_yolu)
     veritabani.semayi_uygula(baglanti)
     _veritabanini_kur(baglanti, senaryo)
+    if hazirla is not None:
+        hazirla(baglanti)
     supervizor = AnalizSupervizoru(ayarlar)
-    supervizor._anons = _SessizAnons()
+    supervizor._anons = anons if anons is not None else _SessizAnons()
+    if anons is not None:
+        supervizor._anons_mesajlari = {
+            s["id"]: dict(s) for s in baglanti.execute("SELECT * FROM announcement_messages")
+        }
+        anons.bolgeleri_yukle(baglanti.execute("SELECT * FROM speaker_zones ORDER BY id"))
     supervizor._kamera_konfig = {1: {"id": 1, "name": "Senaryo", "area": ""}}
     hat = _hat(senaryo, ayarlar.takip_hafiza_sn)
     dedektor = _SenaryoDedektoru(nesneler)
@@ -291,6 +306,93 @@ def test_senaryo(dosya: Path, test_ayarlari, tmp_path):
     assert [s["resolved_at"] is not None for s in satirlar] == [
         b["bitis_s"] is not None for b in beklenen
     ]
+
+
+class _KayitliCalici:
+    """Çalıcı süreci yerine: komutu kaydeder ve hemen başarıyla biter."""
+
+    komutlar: list[list[str]] = []
+
+    def __init__(self, komut, **_):
+        _KayitliCalici.komutlar.append(list(komut))
+        self.returncode = 0
+
+    def communicate(self, timeout=None):
+        return b"", b""
+
+
+BT_HOPARLOR = "bluez_output.AA_BB_CC_DD_EE_FF.1"
+
+
+@pytest.mark.skipif(
+    sys.platform == "win32", reason="Windows'ta çalıcı süreci yok (winsound); sunucu Linux"
+)
+def test_forklift_yakinliginda_bagli_hoparlor_calar(test_ayarlari, tmp_path, monkeypatch):
+    """Operatör isteği (23.09.2026): risk anında bağlı hoparlörden uyarı.
+
+    Uçtan uca: forklift yayanın 2,4 m yanından geçer → güvenli mesafe kuralı
+    (hazır kuralın anonsuyla) → olay satırı → GERÇEK AnonsYoneticisi →
+    "Tüm fabrika" ses çıkışı kanalı (Bluetooth hoparlör) → çalıcı o hoparlörün
+    adıyla başlar ve teslim kaydı olaya bağlı "ok" olur. Mesaja ses dosyası
+    bağlanmamıştır (ilk kurulumdaki gibi): hoparlör susmaz, uyarı tonu çalar.
+    Gerçek ses çalınmaz; çalıcı komutu kaydedilir.
+    """
+    from app.olaylar import anons as anons_modulu
+
+    _KayitliCalici.komutlar = []
+    monkeypatch.setattr(
+        anons_modulu.shutil, "which", lambda ad: "/usr/bin/paplay" if ad == "paplay" else None
+    )
+    monkeypatch.setattr(anons_modulu.subprocess, "Popen", _KayitliCalici)
+
+    def hazirla(baglanti):
+        simdi = zaman.simdi_utc()
+        baglanti.execute(
+            "UPDATE rules SET announcement_id = "
+            "(SELECT id FROM announcement_messages WHERE key = 'safe_distance')"
+        )
+        baglanti.execute(
+            "INSERT INTO speaker_zones (name, area, address, kind, device, enabled, "
+            "created_at, updated_at) VALUES ('Tüm fabrika', '', '', 'ses_karti', ?, 1, ?, ?)",
+            (BT_HOPARLOR, simdi, simdi),
+        )
+        baglanti.commit()
+
+    senaryo = json.loads((SENARYO_DIZINI / "arac_yaya_yakinligi.json").read_text("utf-8"))
+    yonetici = anons_modulu.AnonsYoneticisi(test_ayarlari)
+    try:
+        bulunan, _ = senaryoyu_oynat(senaryo, test_ayarlari, tmp_path, yonetici, hazirla)
+        assert yonetici.bosalt()
+    finally:
+        yonetici.kapat(2.0)
+
+    assert [o["kod"] for o in bulunan] == ["VEHICLE_PERSON_PROXIMITY"]
+    # Tek olay, tek anons: çalıcı Bluetooth hoparlörün adıyla başladı
+    assert len(_KayitliCalici.komutlar) == 1, _KayitliCalici.komutlar
+    komut = _KayitliCalici.komutlar[0]
+    assert komut[:2] == ["/usr/bin/paplay", f"--device={BT_HOPARLOR}"]
+    assert komut[-1].endswith("nextgen-uyari-tonu.wav")
+
+    baglanti = veritabani.baglanti_ac(test_ayarlari.veritabani_yolu)
+    try:
+        teslimler = [
+            dict(s)
+            for s in baglanti.execute(
+                "SELECT d.*, e.event_code AS olay_kodu FROM alert_deliveries d "
+                "JOIN events e ON e.id = d.event_id ORDER BY d.id"
+            )
+        ]
+    finally:
+        baglanti.close()
+    # Ekran kanalı da yazılır (izleme penceresi yok: no_listener); garanti sayılmaz
+    assert [(t["channel"], t["result"]) for t in teslimler] == [
+        ("ekran", "no_listener"),
+        ("ses_karti", "ok"),
+    ], teslimler
+    teslim = teslimler[1]
+    assert teslim["stage"] == "acildi"
+    assert teslim["olay_kodu"] == "VEHICLE_PERSON_PROXIMITY"
+    assert "uyarı tonu" in teslim["detail"]
 
 
 def test_her_senaryo_belgeli():

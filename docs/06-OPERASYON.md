@@ -459,6 +459,9 @@ görünmelidir.
 - [ ] Olay kaydı + kanıt fotoğrafı doğru, filtre çalışıyor (K5)
 - [ ] Anons: **Anons sayfasından denendi**, çalışıyor veya "altyapı uygun değil" olarak yazılı kayıt altında (K6)
 - [ ] Her bölümde test anonsu duyuldu: Anons sistemi → her kanal satırında **▶ Dene**, sahada bir kişi dinledi; Teslim kaydında "çaldı"
+- [ ] Kuralların anons mesajlarına ses dosyası bağlandı: Anons sayfasında "ses dosyası
+      yok" rozeti kalmadı (bağlanmayan mesajda hoparlör sözlü anons yerine yalnız uyarı
+      tonu çalar, docs/14 §2.3); her mesaj **Anonsu Dene** ile sahada dinlendi
 - [ ] Sesli kanalların hepsi Bluetooth değil (kurulum listesinde "Sesli anons" adımı yeşil; GÖREV §7)
 - [ ] Bluetooth hoparlör kapatıldı: ~30-40 sn içinde rozet "koptu", Olaylar'da "Ses kanalı koptu"; bu sırada üretilen test ihlali "Tüm fabrika" kanalından **duyuldu**; hoparlör açılınca "tekrar bağlandı" (kendiliğinden bağlanmadıysa bu tutanağa yazıldı, docs/14 §2.1.1)
 - [ ] Hoparlör gecikmesi telefon videosuyla ölçüldü ve tutanağa yazıldı (§8.1)

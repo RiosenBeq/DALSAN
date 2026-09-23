@@ -38,7 +38,8 @@
   <section class="kart">
     <h3>Anons mesajları</h3>
     <p class="not">Her kural, Kurallar sayfasında bu mesajlardan birine bağlanır.
-      Ses çıkışı kanalı mesajın ses dosyasını çalar; dosya verilmezse o kanal susar
+      Ses çıkışı kanalı mesajın ses dosyasını çalar; dosya verilmezse ya da
+      bulunamazsa hoparlör susmaz, sözlü anons yerine uyarı tonu (bip) çalar
       (IP hoparlöre metin gider). Ses dosyası yolu proje klasörüne göredir, örn:
       <code>veri/sesler/baret.wav</code>. “Anonsu Dene” mesajı
       <b>{{ tum_fabrika }}</b> kanallarından çalar.</p>
@@ -58,7 +59,7 @@
       <form method="post" action="/anons/{{ m.id }}/dene" class="satir-form">
         <button class="dugme kucuk simgeli">{{ simge("oynat") }} Anonsu Dene</button>
         {% if m.audio_file and not m.ses_var %}
-          <span class="rozet kirmizi">ses dosyası bulunamadı</span>
+          <span class="rozet kirmizi">ses dosyası bulunamadı - uyarı tonu çalar</span>
         {% endif %}
       </form>
     </div>

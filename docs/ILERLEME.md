@@ -10,6 +10,27 @@ karakterdir. Kural CLAUDE.md §7 ve §8'de ve docs/17 §16 karar kaydında;
 `tests/test_yazim_kurallari.py` depoda bu karakterlerden biri kalırsa dosya ve
 satırıyla kırmızı olur. Statik damga o gün `?v=39`, 4b'den sonra `?v=40`.
 
+## Operatör istekleri (23.09.2026): hoparlör, forklift, uyarı kayıtları
+
+Operatör: *"forklifti de tanıtmadıysan tanıt ve risk anında hoparlörden uyarı
+verdiğinden emin ol (bağlı hoparlör) ve sistemde uyarı loglarını da tut 15
+günde bir de temizlensin ama öncesinde temizlenmeden olan loglar masaüstüne
+kaydedilsin"*.
+
+**Risk anında hoparlör.** Zincir uçtan uca sınandı: forklift yayanın 2,4 m
+yanından geçer, güvenli mesafe kuralı (hazır kuralın anonsuyla) olay açar,
+gerçek `AnonsYoneticisi` "Tüm fabrika" ses çıkışı kanalındaki Bluetooth
+hoparlörü `paplay --device=bluez_output…` ile çalar ve teslim kaydı olaya
+bağlı "ok" olur (`tests/test_uctan_uca_olaylar.py`; gerçek ses çalınmaz,
+çalıcı komutu kaydedilir). Sınarken bir boşluk çıktı: ses dosyaları ürünle
+gelmiyor (docs/14 §2.3) ve mesaja WAV bağlanmamışsa ses çıkışı kanalı susuyor,
+uyarı "ulaşmadı" sayılıyordu; ilk kurulumda bu her kural için böyleydi. Artık
+hoparlör susmaz: WAV yoksa, bulunamazsa ya da proje klasörü dışındaysa
+üretilmiş uyarı tonu çalar (`olaylar/ton.py`, test sesiyle aynı üretici, daha
+yüksek ve uzun); teslim kaydı "sözlü anons yerine uyarı tonu çalındı" der.
+Sahada yapılacak: her mesaja sözlü kayıt bağlamak ve "Anonsu Dene" ile
+dinlemek (docs/06 §8'de madde).
+
 ## Eksik denetimi (23.09.2026)
 
 GÖREV ve docs/17 §13-§14 satır satır koda ve belgelere karşı tarandı. Açık

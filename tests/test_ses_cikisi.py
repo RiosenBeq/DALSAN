@@ -20,7 +20,7 @@ from pathlib import Path
 
 import pytest
 
-from app.olaylar import anons, ses_cihazlari, test_sesi
+from app.olaylar import anons, ses_cihazlari, test_sesi, ton
 
 # --------------------------------------------------- çalma komutu ve cihaz
 
@@ -256,6 +256,33 @@ def test_uretilen_wav_gercekten_calinabilir_bir_dosya(tmp_path):
 def test_ses_tam_seviyede_degil():
     """Kulağa yakın bir hoparlörde deneme yapan kullanıcıyı irkiltmemeli."""
     assert 0 < test_sesi.SES_SEVIYESI < 0.6
+
+
+def test_uyari_tonu_test_sesinden_yuksek_ve_uzun(tmp_path, monkeypatch):
+    """Ses dosyası olmayan gerçek uyarının tonu: fabrika gürültüsünde duyulmalı
+    ama tam seste (kırpılma) değil; sözlü bir anons kadar sürmeli."""
+    monkeypatch.setattr(ton.tempfile, "gettempdir", lambda: str(tmp_path))
+    monkeypatch.setattr(ton, "_uyari_tonu", None)
+    assert test_sesi.SES_SEVIYESI < ton.UYARI_SES_SEVIYESI < 1.0
+    yol = ton.uyari_tonu_yolu()
+    assert yol.parent == tmp_path
+    with wave.open(str(yol), "rb") as dosya:
+        assert (dosya.getnchannels(), dosya.getsampwidth()) == (1, 2)
+        saniye = dosya.getnframes() / dosya.getframerate()
+    with wave.open(str(test_sesi.wav_uret(tmp_path / "t.wav")), "rb") as dosya:
+        assert saniye > dosya.getnframes() / dosya.getframerate()
+    # Yarım yazılmış geçici dosya kalmaz; yalnız ton ve deneme dosyası
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["nextgen-uyari-tonu.wav", "t.wav"]
+
+
+def test_uyari_tonu_bir_kez_uretilir_silinirse_yeniden(tmp_path, monkeypatch):
+    monkeypatch.setattr(ton.tempfile, "gettempdir", lambda: str(tmp_path))
+    monkeypatch.setattr(ton, "_uyari_tonu", None)
+    ilk = ton.uyari_tonu_yolu()
+    damga = ilk.stat().st_mtime_ns
+    assert ton.uyari_tonu_yolu() == ilk and ilk.stat().st_mtime_ns == damga
+    ilk.unlink()
+    assert ton.uyari_tonu_yolu().is_file()
 
 
 def test_test_sesi_gercek_anons_yolunu_kullanir():

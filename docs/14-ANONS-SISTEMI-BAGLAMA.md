@@ -164,6 +164,14 @@ birlikte gelir ama **ses dosyaları gelmez** - metni siz seslendirirsiniz.
 Metinler taslaktır; son hâlini İSG belirler (docs/17 S21) ve Anons sayfasından
 değiştirilir.
 
+**Dosya bağlanana kadar hoparlör susmaz.** Mesaja ses dosyası bağlanmamışsa,
+bağlı dosya bulunamıyorsa ya da proje klasörünün dışındaysa ses çıkışı kanalı
+sözlü anons yerine üretilmiş bir uyarı tonu (kesik "bip", yaklaşık 2 sn) çalar
+ve teslim kaydına "sözlü anons yerine uyarı tonu çalındı" yazılır. Uyarı yine
+ulaşmış sayılır. Anons sayfasında bu mesajlar "ses dosyası yok" rozetiyle
+görünür. Ton bir yedektir: kim ne yapmalı söylemez, sözlü kayıt yine gerekir
+(operatör isteği 23.09.2026: risk anında hoparlörden uyarı verilsin).
+
 | Mesaj anahtarı | Varsayılan metin |
 |---|---|
 | `safe_distance` | Lütfen iş makinelerinden güvenli mesafede durunuz. |

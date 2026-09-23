@@ -15,7 +15,7 @@ import time
 import pytest
 
 from app import veritabani
-from app.olaylar import anons, ekran
+from app.olaylar import anons, ekran, ton
 from app.olaylar.anons import AnonsHatasi, AnonsYoneticisi, OlayBilgisi
 from app.olaylar.dagitici import CikisIscisi, UyariOgesi
 from app.olaylar.teslim import teslim_ozeti
@@ -240,6 +240,9 @@ class _SahtePopen:
 
 def test_kritik_uyari_calan_orta_sesi_keser(test_ayarlari, db, monkeypatch):
     _SahtePopen.ornekler = []
+    # Dosyalar diskte olmalı: olmayan dosyanın yerine uyarı tonu çalar
+    for ad in _SahtePopen.SURELER:
+        (test_ayarlari.kok_dizin / ad).write_bytes(b"RIFF")
     monkeypatch.setattr(anons, "_ses_komutu", lambda ses, cihaz="": ["paplay", ses])
     monkeypatch.setattr(anons.subprocess, "Popen", _SahtePopen)
     yonetici = AnonsYoneticisi(test_ayarlari)
@@ -373,17 +376,58 @@ def test_ekran_kanali_dinleyeni_yazar(yonetici, db):
     ]
 
 
-def test_ses_dosyasi_proje_disindaysa_yalniz_ses_cikisi_susar(yonetici, monkeypatch, db):
+def test_ses_dosyasi_proje_disindaysa_o_dosya_calinmaz_uyari_tonu_calar(yonetici, monkeypatch, db):
+    """Proje dışındaki yol ÇALINMAZ (güvenlik); ama hoparlör de susmaz: sözlü
+    anons yerine uyarı tonu çalar (operatör isteği 23.09.2026)."""
     http: list[str] = []
+    calinan: list[str] = []
     monkeypatch.setattr(anons.HttpAnonscu, "cal", lambda self, a, m, s, kes=None: http.append(m))
-    monkeypatch.setattr(anons.SesKartiAnonscu, "cal", lambda *a, **k: pytest.fail("çalınmamalıydı"))
+    monkeypatch.setattr(
+        anons.SesKartiAnonscu, "cal", lambda self, a, m, ses, kes=None: calinan.append(ses)
+    )
     yonetici.bolgeleri_yukle([_kanal(1, "A", "ses_karti", device="d1"), _kanal(2, "A")])
     yonetici.duyur(7, "A", 0.0, _mesaj(1, ses="../../disari.wav"))
     assert yonetici.bosalt()
     assert http == ["Mesaj 1"]
+    assert calinan == [str(ton.uyari_tonu_yolu())]
     sonuclar = {t["speaker_zone_id"]: (t["result"], t["detail"]) for t in _teslimler(db)}
     assert sonuclar[2] == ("ok", None)
-    assert sonuclar[1][0] == "failed" and "proje klasörünün dışında" in sonuclar[1][1]
+    assert sonuclar[1][0] == "ok"
+    assert "proje klasörünün dışında" in sonuclar[1][1] and "uyarı tonu" in sonuclar[1][1]
+
+
+@pytest.mark.parametrize("ses", [None, "veri/sesler/olmayan.wav"])
+def test_ses_dosyasi_yoksa_hoparlor_susmaz_uyari_tonu_calar(yonetici, monkeypatch, db, ses):
+    """Operatör isteği (23.09.2026): risk anında hoparlör uyarı versin. Mesaja
+    WAV bağlanmamışsa ya da dosya diskte yoksa eskiden ses çıkışı kanalı susar
+    ve uyarı "ulaşmadı" sayılırdı; şimdi üretilmiş uyarı tonu çalar."""
+    calinan: list[str] = []
+    monkeypatch.setattr(
+        anons.SesKartiAnonscu, "cal", lambda self, a, m, s, kes=None: calinan.append(s)
+    )
+    yonetici.bolgeleri_yukle([_kanal(1, "", "ses_karti", device="d1")])
+    yonetici.duyur(7, "", 0.0, _mesaj(1, ses=ses), olay=OlayBilgisi(onem="critical"))
+    assert yonetici.bosalt()
+    assert calinan == [str(ton.uyari_tonu_yolu())]
+    (teslim,) = _teslimler(db)
+    assert teslim["result"] == "ok"
+    assert "uyarı tonu çalındı" in teslim["detail"]
+    assert not yonetici.ulasmiyor
+    assert "uyarı tonu" in yonetici.son_sonuc
+
+
+def test_ton_da_uretilemezse_kanal_basarisiz_ve_sebep_yazilir(yonetici, monkeypatch, db):
+    def uretilemez():
+        raise OSError("disk dolu")
+
+    monkeypatch.setattr(anons, "uyari_tonu_yolu", uretilemez)
+    monkeypatch.setattr(anons.SesKartiAnonscu, "cal", lambda *a, **k: pytest.fail("çalınmamalı"))
+    yonetici.bolgeleri_yukle([_kanal(1, "", "ses_karti", device="d1")])
+    yonetici.duyur(7, "", 0.0, _mesaj(1))
+    assert yonetici.bosalt()
+    (teslim,) = _teslimler(db)
+    assert teslim["result"] == "failed"
+    assert "bağlanmamış" in teslim["detail"] and "disk dolu" in teslim["detail"]
 
 
 def test_kapanista_sira_bosaltilir_sonra_calmaz(test_ayarlari, db, monkeypatch):

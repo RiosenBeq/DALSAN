@@ -1771,6 +1771,10 @@ docs/07'ye satır olur.
   kamu veri seti kullanılmaz.
 - **Açık:** S1, S5, S6, S7, S13, S15 (kayıtlı saha videosu gerekir), S20, S27, S35, S37
   (S37 23.09.2026 eksik denetiminde eklendi; docs/ILERLEME).
+- **23.09.2026, hoparlör:** operatör "risk anında hoparlörden uyarı verdiğinden emin ol
+  (bağlı hoparlör)" dedi. Ses çıkışı kanalı mesajın WAV'ı yoksa artık susmaz: üretilmiş
+  uyarı tonu çalar (`olaylar/ton.py`, docs/14 §2.3). §7.9'daki "sabit mesaj = insan sesiyle
+  WAV" kuralı değişmedi; ton yalnız yedektir.
 - **23.09.2026, çizgi işareti:** operatör "sistem genelinde çizgi işareti olarak `-`
   kullan" dedi. Kodda, yorumda, arayüz metninde, belgede, günlük iletisinde ve commit
   mesajında uzun çizgi (U+2014), orta çizgi (U+2013), eksi işareti (U+2212) ve benzeri

@@ -33,6 +33,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass
+from pathlib import Path
 
 from app import veritabani, zaman
 from app.ayarlar import Ayarlar
@@ -61,6 +62,7 @@ from app.olaylar.kanal_sagligi import (
 )
 from app.olaylar.kanallar import kanal_ozeti
 from app.olaylar.teslim import TeslimKaydedici, teslim_satiri
+from app.olaylar.ton import uyari_tonu_yolu
 from app.olaylar.yazici import olay_kapat, sistem_olayi_yaz
 from app.rules.cooldown import Cooldown
 from app.rules.olay_kodu import OLAY_KODLARI
@@ -223,7 +225,7 @@ class SesKartiAnonscu:
         if not ses_dosyasi:
             raise AnonsHatasi(
                 f"'{anahtar}' mesajına ses dosyası bağlanmamış. Anons sayfasında "
-                "bir .wav dosyasının yolunu yazın; yoksa yalnızca ekran uyarısı verilir."
+                "bir .wav dosyasının yolunu yazın."
             )
         if sys.platform == "win32":
             _windows_cal(ses_dosyasi)
@@ -1047,23 +1049,53 @@ class AnonsYoneticisi:
         """Çıkış işçisinin çağırdığı: çal ve sonucu öğeye yaz."""
         oge.baslama = time.monotonic()
         oge.baslama_utc = zaman.simdi_utc()
-        if oge.ses_hatasi and oge.kanal.get("kind") == "ses_karti":
-            oge.sonuc, oge.ayrinti = SONUC_BASARISIZ, oge.ses_hatasi
-            nereye = oge.kanal.get("name", "")
-            self.son_sonuc = f"Son anons ÇALINAMADI ({nereye}) - {oge.ses_hatasi}"
-        else:
-            kanal = oge.kanal
-            if kanal.get("kind") == "ses_karti" and kanal.get("device") and self._son_cihazlar:
+        kanal = oge.kanal
+        ses_yolu, ton_sebebi = oge.ses_yolu, ""
+        if kanal.get("kind") == "ses_karti":
+            ses_yolu, ton_sebebi = self._calinacak_ses(oge)
+            if kanal.get("device") and self._son_cihazlar:
                 # Bluetooth hoparlör yeniden bağlanınca sink adının profil soneki
                 # değişebilir; aynı adresli sink'in bugünkü adına çalınır (§7.5-2)
                 kanal = {
                     **kanal,
                     "device": ses_cihazlari.guncel_cikis(kanal["device"], self._son_cihazlar),
                 }
+        nereye = kanal.get("name", "")
+        if ton_sebebi and ses_yolu is None:
+            # Ne mesajın sesi ne uyarı tonu var: çalacak bir şey yok
+            oge.sonuc, oge.ayrinti = SONUC_BASARISIZ, ton_sebebi
+            self.son_sonuc = f"Son anons ÇALINAMADI ({nereye}) - {ton_sebebi}"
+        else:
             oge.sonuc, oge.ayrinti = self._cal_ve_kaydet(
-                oge.anahtar, oge.metin, oge.ses_yolu, kanal, kes=kes
+                oge.anahtar, oge.metin, ses_yolu, kanal, kes=kes
             )
+            if ton_sebebi and oge.sonuc == SONUC_TAMAM:
+                oge.ayrinti = f"{ton_sebebi}; sözlü anons yerine uyarı tonu çalındı"
+                self.son_sonuc = f"Son anons ÇALINDI ({nereye}): uyarı tonu - {ton_sebebi}"
         oge.bitis_utc = zaman.simdi_utc()
+
+    def _calinacak_ses(self, oge: UyariOgesi) -> tuple[str | None, str]:
+        """Ses çıkışı kanalında çalınacak WAV ve (varsa) uyarı tonuna düşme sebebi.
+
+        Risk anında hoparlör SUSMAZ (operatör isteği 23.09.2026). Mesaja ses
+        dosyası bağlanmamışsa, dosya diskte yoksa ya da proje klasörünün
+        dışındaysa sözlü anons yerine üretilmiş uyarı tonu çalar (`ton.py`).
+        Eskiden bu durumda kanal susuyor ve uyarı "ulaşmadı" sayılıyordu. Ton
+        da üretilemezse (ses_yolu None) sebep çağırana döner.
+        """
+        if oge.ses_hatasi:
+            sebep = oge.ses_hatasi
+        elif not oge.ses_yolu:
+            sebep = "mesaja ses dosyası bağlanmamış"
+        elif not Path(oge.ses_yolu).is_file():
+            sebep = f"ses dosyası bulunamadı: {Path(oge.ses_yolu).name}"
+        else:
+            return oge.ses_yolu, ""
+        try:
+            return str(uyari_tonu_yolu()), sebep
+        except (OSError, ValueError) as hata:
+            _log.error(f"Uyarı tonu üretilemedi: {hata}")
+            return None, f"{sebep}; uyarı tonu da üretilemedi: {hata}"
 
     def _bitince(self, oge: UyariOgesi) -> None:
         """Öğe bitti (çaldı, çalamadı, kesildi ya da bayat): bastırma, kayıt."""
