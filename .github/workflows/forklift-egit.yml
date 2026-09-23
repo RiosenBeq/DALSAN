@@ -1,0 +1,52 @@
+# Forklift tanıyan modelin eğitimi (operatör isteği 23.09.2026, docs/17 §12.3).
+#
+# ŞİMDİLİK YALNIZ YOKLAMA: eğitim verisinin (LOCO, CC0 1.0) görüntü arşivi
+# geliştirme ortamından açılamıyor. Bu iş GitHub'ın makinesinde indirme
+# bağlantısının nereye gittiğini, arşivin boyutunu ve kısmi indirmeyi
+# destekleyip desteklemediğini, CPU'ya uygun PyTorch paketinin varlığını ve
+# makinenin disk/işlemci durumunu yazar. Eğitim işi bu bilgiyle yazılır.
+name: Forklift eğitimi
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  yoklama:
+    name: Yoklama
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: LOCO görüntü arşivinin bağlantıları
+        run: |
+          for adres in \
+            "https://go.mytum.de/239870" \
+            "https://webdisk.ads.mwn.de/Handlers/AnonymousDownload.ashx?folder=73e976ba&path=LOCO%5Cv1%5Cdataset.zip" \
+            "https://syncandshare.lrz.de/dl/fiLs87iyphDhmTKh7Xb347sG/dataset.zip"; do
+            echo "== $adres"
+            curl -sSIL --max-redirs 10 --max-time 60 "$adres" \
+              | grep -iE '^(HTTP/|location:|content-type:|content-length:|content-disposition:|accept-ranges:)' || true
+            echo "-- ilk 64 KB (kısmi indirme):"
+            curl -sS -L --max-redirs 10 --max-time 120 -r 0-65535 -o parca.bin \
+              -w 'durum %{http_code}, son adres %{url_effective}, tür %{content_type}, inen %{size_download}\n' \
+              "$adres" || true
+            file parca.bin || true
+            rm -f parca.bin
+          done
+
+      - name: CPU PyTorch paketi
+        run: |
+          python3 --version
+          python3 -m pip download --no-deps --only-binary=:all: --python-version 3.12 \
+            --platform manylinux_2_28_x86_64 -d paket \
+            --index-url https://download.pytorch.org/whl/cpu torch==2.14.0 torchvision==0.29.0 \
+            && ls -la paket || echo "CPU dizininden indirilemedi"
+
+      - name: Makine
+        run: |
+          nproc
+          lscpu | grep -E 'Model name|^Flags' | cut -c1-240
+          free -g
+          df -h / /mnt || true
