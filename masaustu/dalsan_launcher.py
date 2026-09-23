@@ -22,7 +22,6 @@ import threading
 import time
 import urllib.error
 import urllib.request
-import webbrowser
 from pathlib import Path
 
 # ----------------------------------------------------------------------------
@@ -169,23 +168,44 @@ def pencere_simgesini_ata(kok, log=None) -> None:
             log(f"[i] Pencere simgesi yuklenemedi: {hata}")
 
 
-def izleme_ekranini_ac(log=None) -> bool:
-    """Izleme ekranini UYGULAMA PENCERESINDE acar (tarayici sekmesinde degil).
+def izleme_ekranini_ac(log=None) -> None:
+    """Izleme ekranini PROGRAMIN KENDI PENCERESINDE acar; tarayici ACILMAZ.
 
     Tek yerde durur: panelin "Izleme Ekranini Ac" dugmesi ile sistem
     basladiktan sonraki otomatik acilis AYNI pencereyi acmali. Iki ayri
     cagri olsaydi biri guncellenip digeri unutulurdu ve kullanici bir
     seferinde uygulama, bir seferinde tarayici gorurdu.
+
+    Arka planda calisir: pencerenin acildigi birkac saniyede anlasilir
+    (masaustu/uygulama_penceresi.py) ve panel bu sirada donmamali. Pencere
+    zaten aciksa yenisi acilmaz, acik olan one gelir.
     """
     try:
         import uygulama_penceresi
     except ImportError as hata:
-        # Modul paketlemede disarida kalmis olabilir: ekran yine acilmali.
+        # Modul paketlemede disarida kalmis olabilir. Tarayici sekmesine
+        # DUSULMEZ (operator karari 23.09.2026): sebep gunluge yazilir.
         if log is not None:
-            log(f"[i] Uygulama penceresi modulu yuklenemedi ({hata}); tarayicida aciliyor.")
-        webbrowser.open(URL)
-        return False
-    return uygulama_penceresi.ac(URL, TARAYICI_PROFILI, log)
+            log(f"[!] İzleme ekranı açılamadı: pencere modülü yüklenemedi ({hata}).")
+        return
+    if log is not None:
+        log("İzleme ekranı açılıyor…")
+    threading.Thread(
+        target=uygulama_penceresi.ac,
+        args=(URL, TARAYICI_PROFILI, log),
+        daemon=True,
+        name="izleme-ekrani",
+    ).start()
+
+
+def izleme_penceresini_kapat() -> None:
+    """Panel kapanirken acik izleme penceresini de kapatir.
+
+    Pencere hic acilmadiysa modul de yuklenmemistir; yapilacak bir sey yoktur.
+    """
+    modul = sys.modules.get("uygulama_penceresi")
+    if modul is not None:
+        modul.pencereyi_kapat()
 
 
 def dinleme_adresi() -> str:
@@ -1291,6 +1311,9 @@ def arayuzu_baslat():
 
     # ---- pencere kapatilirken ----
     def kapanirken():
+        # Once izleme penceresi: sistem durdurulurken "baglanti koptu" diyen
+        # bos bir ekran ortada kalmasin.
+        izleme_penceresini_kapat()
         try:
             sistemi_durdur()
         except Exception:
@@ -1351,7 +1374,30 @@ def metin_modu(hata):
     input("  Kapatmak için Enter'a basın…")
 
 
+def pencere_sureci_mi(argumanlar) -> bool:
+    """Program izleme penceresi olarak mi acildi (uygulama_penceresi.py)?"""
+    try:
+        import uygulama_penceresi
+    except ImportError:
+        return False
+    return uygulama_penceresi.pencere_sureci_mi(argumanlar)
+
+
+def pencere_surecini_calistir(argumanlar) -> int:
+    """Programin izleme penceresi olan kopyasi: Kontrol Paneli KURULMAZ."""
+    import uygulama_penceresi
+
+    # Gorev cubugunda panelle ayni uygulama olarak gorunsun (ayni simge).
+    windows_uygulama_kimligini_kur()
+    return uygulama_penceresi.pencere_sureci_ana(argumanlar)
+
+
 if __name__ == "__main__":
+    # Program kendini izleme penceresi olarak da acar (--izleme-penceresi).
+    # Buna Tk kurulmadan ONCE bakilir: yoksa her pencere icin ikinci bir
+    # Kontrol Paneli acilir, o da sistemi bir daha baslatmaya kalkardi.
+    if pencere_sureci_mi(sys.argv[1:]):
+        raise SystemExit(pencere_surecini_calistir(sys.argv[1:]))
     try:
         import tkinter  # noqa: F401
         arayuzu_baslat()

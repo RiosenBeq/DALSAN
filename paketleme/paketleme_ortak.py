@@ -91,12 +91,22 @@ def gizli_moduller(depo: Path) -> list[str]:
         "tkinter",
         "tkinter.font",
         "tkinter.scrolledtext",
-        # İzleme ekranını uygulama penceresinde açan modül. Giriş betiğinin
-        # yanındadır ve normalde kendiliğinden bulunur; burada AÇIKÇA
-        # yazılması, dışarıda kalması halinde sistemin tarayıcı sekmesine
-        # geri düşmesini (yani istenen davranışın sessizce kaybolmasını)
-        # önler.
+        # İzleme ekranını programın kendi penceresinde açan modül. Giriş
+        # betiğinin yanındadır ve normalde kendiliğinden bulunur; burada
+        # AÇIKÇA yazılması, dışarıda kalması halinde izleme ekranının hiç
+        # açılmamasını (yani istenen davranışın sessizce kaybolmasını) önler.
         "uygulama_penceresi",
+        # Pencere bileşeni (pywebview). Platform parçasını ADIYLA, çalışma
+        # anında yükler; PyInstaller'ın taraması bunu kaçırırsa pencere
+        # açılmaz ve ekran yedek pencereye düşer. İki platformun parçası da
+        # yazılır: tarif her iki sistemde aynı listeyi kullanır, bulunamayan
+        # (örneğin Mac'te Windows parçasının `clr` bağımlılığı) yalnız uyarı
+        # üretir. Dosyaları (WebView2 DLL'leri, js/) pywebview'ün kendi
+        # PyInstaller kancası toplar.
+        "webview",
+        "webview.platforms.winforms",
+        "webview.platforms.edgechromium",
+        "webview.platforms.cocoa",
     ]
 
 

@@ -34,8 +34,8 @@
   <div class="rapor-cikti">
     {# Yazdırma tarayıcının kendi penceresidir; sunucuya hiçbir şey gitmez. #}
     <button type="button" class="dugme ikincil" id="yazdir-dugmesi">Yazdır / PDF yap</button>
-    <a class="dugme ikincil" href="/komuta/rapor/ozet.csv?{{ istek_sorgusu }}">Excel'e aktar</a>
-    <a class="dugme ikincil" href="/olaylar/disa-aktar.csv?baslangic={{ baslangic }}&bitis={{ bitis }}{% if alan %}&alan={{ alan }}{% endif %}">Olay listesi (CSV)</a>
+    <a class="dugme ikincil" href="/komuta/rapor/ozet.csv?{{ istek_sorgusu }}" download>Excel'e aktar</a>
+    <a class="dugme ikincil" href="/olaylar/disa-aktar.csv?baslangic={{ baslangic }}&bitis={{ bitis }}{% if alan %}&alan={{ alan }}{% endif %}" download>Olay listesi (CSV)</a>
   </div>
   <p class="panel-notu">“Yazdır” penceresinde yazıcı yerine <b>PDF olarak
     kaydet</b>’i seçerseniz rapor dosya olur. “Excel’e aktar” bu sayfadaki

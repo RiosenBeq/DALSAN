@@ -179,13 +179,35 @@ def test_iki_tarifte_de_pencere_simgesi_pakete_giriyor(windows_tarifi, mac_tarif
 
 
 def test_uygulama_penceresi_modulu_pakete_giriyor(windows_tarifi, mac_tarifi):
-    """Dışarıda kalırsa izleme ekranı sessizce TARAYICI SEKMESİNDE açılır.
+    """Dışarıda kalırsa izleme ekranı HİÇ açılmaz (tarayıcıya düşülmez).
 
-    Hata vermez, günlüğe tek satır düşer ve kullanıcı yine adres çubuklu bir
-    sayfa görür - düzeltilen şeyin tam olarak geri gelmesi.
+    Hata vermez, günlüğe tek satır düşer ve kullanıcı ekranı göremez -
+    düzeltilen şeyin sessizce kaybolması.
     """
     for tarif in (windows_tarifi, mac_tarifi):
         assert "uygulama_penceresi" in tarif.kwargs("Analysis")["hiddenimports"]
+
+
+def test_pencere_bileseni_pakete_giriyor(windows_tarifi, mac_tarifi):
+    """pywebview platform parçasını ADIYLA yükler; tarama kaçırırsa izleme
+    ekranı kendi penceresinde değil, yedek pencerede açılır. Sürüm sabittir:
+    pencere bileşeni, sınanmamış bir sürümle sessizce değişmemeli."""
+    for tarif in (windows_tarifi, mac_tarifi):
+        gizli = tarif.kwargs("Analysis")["hiddenimports"]
+        for modul in (
+            "webview",
+            "webview.platforms.winforms",
+            "webview.platforms.edgechromium",
+            "webview.platforms.cocoa",
+        ):
+            assert modul in gizli, modul
+        assert "webview" not in tarif.kwargs("Analysis")["excludes"]
+    gereken = (PAKETLEME / "requirements-paketleme.txt").read_text(encoding="utf-8")
+    assert "\npywebview==6.2.1\n" in gereken
+    assert '\npythonnet==3.0.5; sys_platform == "win32"\n' in gereken
+    # Sunucunun bağımlılığı DEĞİL (CLAUDE.md §4 istisnası): fabrika sunucusu
+    # ve Docker kurulumu onu hiç indirmez.
+    assert "webview" not in (KOK / "backend" / "requirements.txt").read_text(encoding="utf-8")
 
 
 def test_windows_paketinde_uvicorunun_gizli_modulleri_var(windows_tarifi):

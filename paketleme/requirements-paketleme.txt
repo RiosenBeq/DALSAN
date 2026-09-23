@@ -1,10 +1,21 @@
-# Mac/Windows uygulaması (.app / .exe) ÜRETMEK için gereken tek araç.
+# Mac/Windows uygulaması (.app / .exe) ÜRETMEK için gerekenler: derleme
+# aracı ve yalnız pakete giren pencere bileşeni.
 #
 # Bu dosya backend/requirements.txt'ten AYRIDIR ve bilerek öyledir:
 # PyInstaller bir DERLEME aracıdır, sistemin çalışma bağımlılığı değildir.
 # backend/requirements.txt'e eklenirse fabrika sunucusundaki her kurulum
 # gereksiz yere 20 MB indirir ve "İlk Kurulumu Yap" adımı uzar.
 #
-# Kurulumu Mac-Uygulama-Uret.command yapar; elle:
+# Kurulumu Mac-Uygulama-Uret.command / Windows-Uygulama-Uret.bat yapar; elle:
 #     .venv/bin/python -m pip install -r paketleme/requirements-paketleme.txt
 pyinstaller==6.22.2
+
+# İzleme ekranının KENDİ PENCERESİ (masaustu/uygulama_penceresi.py): işletim
+# sisteminin yerleşik web görünümü (Windows'ta WebView2, macOS'ta WKWebView).
+# Tarayıcı açılmaz (operatör isteği 23.09.2026). Yalnız pakete girer:
+# geliştirme kurulumunda yoksa ekran tarayıcının adres çubuksuz uygulama
+# penceresinde açılır, sistem aynen çalışır.
+pywebview==6.2.1
+# pywebview'ün Windows'taki köprüsü. 6.2.1 (Nisan 2026) pythonnet 3.0.5 ile
+# yayımlandı; 3.1.0 (Mayıs 2026) ondan sonra çıktı ve bu ikiliyle sınanmadı.
+pythonnet==3.0.5; sys_platform == "win32"
