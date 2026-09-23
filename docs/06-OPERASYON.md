@@ -339,7 +339,8 @@ görünmelidir.
 | Uyarılar gecikiyor | Kamera `sample_fps` değerini düşürün; substream kullanın; `CIKARIM_CIHAZI=cuda` (yalnız NVIDIA'lı Linux) |
 | "cuda seçili ama CPU ile çalışıyor" | Ana sayfada uyarı olarak görünür: NVIDIA sürücüsü + `onnxruntime-gpu` gerekir, ya da `.env`'de `cpu` yapın |
 | Anons çalmıyor | **Anons** sayfası → "Anonsu Dene". Sonuç satırı sebebi yazar (ses dosyası yok / adres yanlış / komut bulunamadı) |
-| Ekranda uyarı sesi gelmiyor | Tarayıcı kuralı: sayfaya bir kez tıklayın. Anons sayfasındaki kutuyu işaretleyin |
+| Ekranda uyarı sesi gelmiyor | Sağ alttaki ses çipi sebebini yazar: "KAPALI" ise tıklayın (ses bu tarayıcıda açılır); "beklemede" ise sayfaya bir kez tıklayın (tarayıcı kuralı: ses ancak bir tıklamadan sonra çalar); "çalışmıyor" ise tarayıcı ses çalamıyor — başka bir tarayıcı deneyin. Çip yoksa ekran sesi çalışıyordur |
+| Komuta ekranının üstünde kırmızı şerit | Uyarı üretilmiyor ya da kaydedilmiyor (analiz takıldı, model yüklenemedi…), kritik bir kural çalışmıyor ya da bir kameradan görüntü gelmiyor; şerit hangisi olduğunu yazar, "Ayrıntı →" Sağlık ekranını açar. Gri şerit: durum doğrulanamıyor (sunucuya ulaşılamıyor ya da model yükleniyor) |
 | Disk doluyor | Ana sayfadaki "Boş alan"; saklama sürelerini kısaltın; `veri/goruntuler` en büyük kalemdir |
 | Canlı uyarı paneli "bağlantı koptu" | Sunucu durmuş olabilir; Kontrol Paneli'nden yeniden başlatın |
 | Olaylar'da "Analiz takıldı" ya da "Analiz durdu" | Görüntü geliyor ama analiz ilerlemiyor: o sürede **hiçbir uyarı üretilmiyor**. Sistemi yeniden başlatın (sunucuda `BEKCI_TEPKISI=yeniden_baslat` bunu kendiliğinden yapar, §1.2.1). `veri/loglar/sistem.log` içinde `"bilesen": "bekci"` satırından önceki hatalara bakın |

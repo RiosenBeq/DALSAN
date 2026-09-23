@@ -28,6 +28,7 @@ from app.web.ortak import (
     OGE_IHLAL_ADLARI,
     OGELER,
     OLAY_DURUMLARI,
+    SAGLIK_SORUN_METINLERI,
     SINIF_OGELERI,
     SINIFLAR,
     baglanti_al,
@@ -71,6 +72,9 @@ sablonlar.env.globals["OLAY_DURUMLARI"] = OLAY_DURUMLARI
 # Önem hapları kılavuzda da aynı makroyla çizilir (bilesen.html onem_hapi)
 sablonlar.env.globals["IHLAL_ONEMLERI"] = IHLAL_ONEMLERI
 sablonlar.env.globals["ONEM_ADLARI"] = ONEM_ADLARI
+# Komuta şeridinin sorun metinleri (static/sistem_seridi.js); "hazır değil"i
+# açıklayan kodlar HAZIRLIGI_BOZAN_SORUNLAR'ın yanında globale verilir.
+sablonlar.env.globals["SAGLIK_SORUN_METINLERI"] = SAGLIK_SORUN_METINLERI
 
 # GİRİŞ İSTEMEYEN rotalar. Yalnız iki tane vardır ve ikisi de sistem bilgisi
 # taşımaz: tarayıcı simgesi ve canlılık yoklaması. Ayrı bir router olmalarının
@@ -176,6 +180,7 @@ HAZIRLIGI_BOZAN_SORUNLAR = frozenset(
         "olay_yazilamadi",
     }
 )
+sablonlar.env.globals["HAZIRLIGI_BOZAN_SORUNLAR"] = sorted(HAZIRLIGI_BOZAN_SORUNLAR)
 
 
 @acik_router.get("/saglik")
@@ -199,6 +204,9 @@ def saglik(istek: Request, ayrinti: int = 0, hazirlik: int = 0):
     sorunlar = _saglik_sorunlari(ayarlar)
     # Sağlık ucu hiçbir durumda düşmemeli: yöntemi olmayan nesne boş liste sayılır
     sorunlar += getattr(supervizor, "sorunlar", list)()
+    # Hazırlığı bozanlar başa: şerit ve Kontrol Paneli metinleri bu sırayla
+    # birleştirir; "model yüklenemedi" bir yapılandırma notunun arkasında kalmasın.
+    sorunlar.sort(key=lambda kod: kod not in HAZIRLIGI_BOZAN_SORUNLAR)
     hazir = (
         supervizor is not None
         and model == "hazir"

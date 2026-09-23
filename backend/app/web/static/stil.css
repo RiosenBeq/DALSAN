@@ -599,6 +599,36 @@ legend { font-size: 0.88rem; color: var(--metin-3); padding: 0 6px; }
    rengi zeminle AA kontrastı korur: koyu kehribar ve arduvaz üstünde beyaz. */
 .uyari-bandi.onem-medium { background: var(--uyari); box-shadow: 0 8px 28px var(--uyari-golge), var(--ic-isik-koyu); }
 .uyari-bandi.onem-low { background: var(--metin-2); box-shadow: var(--golge-buyuk), var(--ic-isik-koyu); }
+/* sistem olayı bandı (static/uyari.js): ihlal bandının üstünde, sessiz, 8 sn */
+.sistem-bandi {
+  position: fixed; left: 50%; transform: translateX(-50%); bottom: 78px; z-index: 59;
+  max-width: min(92vw, 720px);
+  cursor: pointer;
+  background: var(--koyu); color: var(--koyu-metin);
+  border: 1px solid var(--koyu-sinir);
+  padding: 9px 18px; border-radius: 999px;
+  font-size: 0.88rem; font-weight: 600;
+  box-shadow: var(--golge-buyuk);
+}
+.sistem-bandi[hidden] { display: none; }
+/* ekran sesi çipi (R41): ses kapalı, beklemede ya da çalışmıyorsa görünür */
+.ses-cipi {
+  position: fixed; right: 18px; bottom: 18px; z-index: 58;
+  max-width: min(88vw, 420px);
+  font: inherit; font-size: 0.82rem; font-weight: 620; text-align: left;
+  padding: 8px 14px; border-radius: 999px; cursor: pointer;
+  background: var(--cam-orta); color: var(--metin-2);
+  border: 1px solid var(--cam-sinir);
+  box-shadow: var(--golge-buyuk);
+  -webkit-backdrop-filter: var(--bulanik);
+  backdrop-filter: var(--bulanik);
+}
+.ses-cipi[hidden] { display: none; }
+/* Çip görünürken sayfanın dibinde yer açılır: en alttaki düğme çipin altında
+   kalmasın (static/uyari.js gövdeye sınıfı ekler). */
+body.ses-cipi-var { padding-bottom: 72px; }
+.ses-cipi.kapali { background: var(--uyari-zemin); color: var(--uyari-metin); border-color: var(--uyari-cizgi); }
+.ses-cipi.hata { background: var(--tehlike-zemin); color: var(--tehlike-metin); border-color: var(--tehlike-cizgi); }
 
 /* anons sayfası */
 .anons-satiri {

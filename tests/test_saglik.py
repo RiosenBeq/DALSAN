@@ -239,3 +239,14 @@ def test_saglik_ekrani_okunan_ve_islenen_hizi_ayri_gosterir(supervizorlu, test_a
     assert "islenen-dusuk" in metin and "1,2" in metin
     assert "bir kareyi işleme (p90): 130 ms" in metin
     assert "analiz yetişemiyor" in metin
+
+
+def test_hazirligi_bozan_sorunlar_basta(supervizorlu, monkeypatch):
+    """Kalibrasyon bekleyen kural (veritabanından) + model yüklenemedi
+    (süpervizörden): ekranlar metinleri bu sırayla birleştirir."""
+    from app.web import rotalar
+
+    monkeypatch.setattr(rotalar, "_saglik_sorunlari", lambda ayarlar: ["kritik_kural_pasif"])
+    istemci = supervizorlu(_HazirAnaliz(model="hata", sorunlar=("model_yuklenemedi",)))
+    govde = istemci.get("/saglik").json()
+    assert govde["sorunlar"] == ["model_yuklenemedi", "kritik_kural_pasif"]

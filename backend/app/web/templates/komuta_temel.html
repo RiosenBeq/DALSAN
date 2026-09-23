@@ -14,16 +14,16 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block baslik %}{{ ekran_basligi }} — DALSAN İSG{% endblock %}</title>
-  <link rel="icon" href="/static/logo.svg?v=30">
-  <link rel="stylesheet" href="/static/stil.css?v=30">
-  <link rel="stylesheet" href="/static/komuta.css?v=30">
+  <link rel="icon" href="/static/logo.svg?v=31">
+  <link rel="stylesheet" href="/static/stil.css?v=31">
+  <link rel="stylesheet" href="/static/komuta.css?v=31">
 </head>
 <body>
 <div class="komuta-kabuk">
 
   <aside class="komuta-raf">
     <a class="raf-marka" href="/komuta" title="NextGen Detector — DALSAN İSG">
-      <img src="/static/logo.svg?v=30" alt="NextGen Detector" width="26" height="26">
+      <img src="/static/logo.svg?v=31" alt="NextGen Detector" width="26" height="26">
     </a>
 
     <a class="raf-dugme {% if ekran == 'ana' %}aktif{% endif %}" href="/komuta">
@@ -125,6 +125,10 @@
         <span class="komuta-ekran-alt">{{ ekran_alt_basligi }}</span>
       </span>
       <span class="komuta-baslik-sag">
+        {# Canlı uyarı akışı (static/canli.js): kopunca kırmızı. Bu ekranlarda
+           ihlal bandı ve ses buna bağlıdır (docs/17 §11). #}
+        <span class="komuta-hap" id="canli-durum" data-taban="komuta-hap"
+              data-acik="uyarı akışı açık" title="Yeni ihlaller bu ekrana anında düşer">uyarı akışı bağlanıyor…</span>
         <span class="komuta-hap {{ kamera_hapi.renk }}">
           {% if kamera_hapi.nabiz %}<span class="durum-noktasi yesil nabiz"></span>{% endif %}
           {{ kamera_hapi.metin }}
@@ -134,6 +138,16 @@
     </header>
 
     <main class="komuta-icerik">
+      {# Sistem şeridi (static/sistem_seridi.js): 5 sn'de bir /saglik'e bakar.
+         Kırmızı = uyarı üretilmiyor ya da kaydedilmiyor, kamera görüntüsü yok;
+         gri = durum doğrulanamıyor. Her şey yolundayken gizlidir; bakan bir
+         tarayıcının varlığı "sorun yok" demek olmadığı için yeşile dönmez. #}
+      <div class="sistem-seridi" id="sistem-seridi" role="status" aria-live="polite" hidden
+           data-metinler='{{ SAGLIK_SORUN_METINLERI | tojson }}'
+           data-bozanlar='{{ HAZIRLIGI_BOZAN_SORUNLAR | tojson }}'>
+        <span class="serit-metni"></span>
+        <a class="serit-bag" href="/komuta/saglik">Ayrıntı →</a>
+      </div>
       {# --- kapatılabilir açıklama şeridi -------------------------------
          "Bu ekran ne işe yarar" + "Ne yapmalısınız". Kapatma tercihi YALNIZCA
          bu tarayıcıda saklanır (localStorage); sunucuya hiçbir şey yazılmaz ve
@@ -162,7 +176,7 @@
       {% endif %}
       {# Betik BURADA yüklenir (sayfanın sonunda değil): şerit öğesi çözümlenmiş
          olduğu için, kapatılmış bir şerit ekranda bir an görünüp kaybolmaz. #}
-      <script src="/static/kilavuz.js?v=30"></script>
+      <script src="/static/kilavuz.js?v=31"></script>
 
       {% block icerik %}{% endblock %}
     </main>
@@ -170,7 +184,12 @@
 
 </div>
 {# Silme onayı: eski kabukla AYNI dosya — iki ekranda farklı davranmasın. #}
-<script src="/static/onay.js?v=30"></script>
+<script src="/static/onay.js?v=31"></script>
+{# Komuta ekranları operatörün başında durduğu yerdir: ihlal bandı, ekran sesi
+   ve sistem şeridi burada da çalışır (eskiden yalnız Olaylar ve Ana Sayfa'da). #}
+<script src="/static/uyari.js?v=31"></script>
+<script src="/static/canli.js?v=31"></script>
+<script src="/static/sistem_seridi.js?v=31"></script>
 {% block betikler %}{% endblock %}
 </body>
 </html>

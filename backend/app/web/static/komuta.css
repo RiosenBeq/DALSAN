@@ -148,6 +148,33 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* ------------------------------------------------------------ sistem şeridi
+   5 sn'de bir /saglik'e bakar (static/sistem_seridi.js). Her şey yolundayken
+   gizlidir; yeşil hâli yoktur (docs/17 §11). */
+.sistem-seridi {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 0 0 14px;
+  padding: 10px 16px;
+  border-radius: var(--radius-kucuk);
+  font-size: 0.92rem;
+  font-weight: 650;
+}
+.sistem-seridi[hidden] { display: none; }
+.sistem-seridi.kirmizi {
+  background: var(--tehlike);
+  color: var(--dolu-metin);
+  box-shadow: 0 6px 20px var(--tehlike-golge);
+}
+.sistem-seridi.gri {
+  background: var(--cam-orta);
+  color: var(--metin-2);
+  border: 1px solid var(--cam-sinir);
+}
+.sistem-seridi .serit-bag { margin-left: auto; color: inherit; font-weight: 600; }
+
 /* durum hapı: başlıktaki "canlı kamera" göstergesi */
 .komuta-hap {
   display: inline-flex;

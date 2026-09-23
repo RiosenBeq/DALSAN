@@ -1,16 +1,23 @@
 // Canlı olay akışı (SSE). Sayfada #canli-liste varsa son olayları listeler;
-// her ihlalde Uyari.duyur() çağrılır (bant + isteğe bağlı ses/seslendirme).
-// Hem Olaylar hem Ana Sayfa bu dosyayı kullanır — iki ayrı kopya kod olmasın.
+// her olayda Uyari.duyur() çağrılır (ihlal bandı + isteğe bağlı ses/seslendirme;
+// sistem olayında sessiz sistem bandı). Olaylar, Ana Sayfa ve bütün komuta
+// ekranları bu dosyayı kullanır — iki ayrı kopya kod olmasın.
 (function () {
   var ONEMLER = ["critical", "high", "medium", "low"];
   var liste = document.getElementById("canli-liste");
   var durum = document.getElementById("canli-durum");
   if (!liste && !durum) return;
+  // Rozetin temel sınıfı ve "açık" metni sayfadan gelebilir: komuta başlığında
+  // hap biçimindedir (data-taban="komuta-hap").
+  var taban = (durum && durum.getAttribute("data-taban")) || "rozet";
+  var acikMetni = (durum && durum.getAttribute("data-acik")) || "canlı";
+  // Canlı uyarı alan sayfada sesin durumu köşedeki çipte görünür (R41)
+  if (window.Uyari && window.Uyari.cipiEtkinlestir) window.Uyari.cipiEtkinlestir();
 
   function durumYaz(metin, sinif) {
     if (durum) {
       durum.textContent = metin;
-      durum.className = "rozet " + sinif;
+      durum.className = taban + " " + sinif;
     }
   }
 
@@ -22,7 +29,7 @@
     return;
   }
 
-  kaynak.onopen = function () { durumYaz("canlı", "yesil"); };
+  kaynak.onopen = function () { durumYaz(acikMetni, "yesil"); };
   kaynak.onerror = function () { durumYaz("bağlantı koptu — yeniden deneniyor", "kirmizi"); };
 
   kaynak.onmessage = function (olay) {

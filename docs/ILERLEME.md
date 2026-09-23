@@ -70,6 +70,50 @@ günlüğüne yalnız değiştiren istekler ve 4xx/5xx yanıtlar yazılıyor. Ba
 GET'ler yazılmıyor: paneldeki 1,5 sn'lik yoklama dönen günlüğü iki günde
 doldururdu.
 
+**2d-4 — komuta ekranlarında canlı uyarı ve sistem şeridi.** Eskiden ihlal
+bandı yalnız Olaylar ve Ana Sayfa'da çıkıyordu. Operatörün başında durduğu
+komuta ekranları uyarı betiklerini hiç yüklemiyordu. Artık bütün komuta
+ekranlarında **ihlal bandı** ve ekran sesi var. Başlıkta bir **"uyarı akışı
+açık"** hapı duruyor; akış koparsa kırmızıya dönüyor.
+
+Üstte bir **sistem şeridi** var ve 5 sn'de bir `/saglik?ayrinti=1`'e bakıyor.
+Kırmızı olduğu durumlar:
+- uyarı üretilmiyor ya da kaydedilmiyor (analiz takıldı, durdu ya da
+  çalışmıyor; "Analiz yapılmıyor — model yüklenemedi"; olay yazılamadı);
+- kritik bir kural kalibrasyon bekliyor;
+- bir kameradan görüntü gelmiyor.
+
+Gri olduğu durumlar: sunucuya ulaşılamıyor ya da model yükleniyor. Her şey
+yolundayken şerit gizli; ekranın varlığı "sorun yok" demek olmadığı için yeşile
+dönmüyor. Sorun metinleri sunucudan geliyor (`web/ortak.py
+SAGLIK_SORUN_METINLERI`). Yapılandırma notu (kalibrasyon) analizin hiç
+çalışmadığını gizlemiyor. `/saglik` hazırlığı bozan sorunları başa alıyor.
+
+Sistem olayları (kamera koptu, analiz takıldı…) ayrı, sessiz bir bantta 8 sn
+görünüyor ve kritik ihlal bandını ezmiyor. R41: ekran sesinin boş `catch`'leri
+kalktı. Sağ altta bir ses çipi çıkıyor:
+- "Bu ekranda sesli uyarı KAPALI — açmak için tıklayın";
+- "beklemede — etkinleştirmek için tıklayın" (tarayıcı sesi ilk tıklamaya kadar
+  bekletir);
+- "çalışmıyor".
+
+Her şey yolundayken çip görünmüyor. Gizli sekmede ses ayarı artık oturum
+boyunca bellekte tutuluyor; eskiden sesi açmak hiç mümkün değildi. Statik
+damga `?v=31`.
+
+**Uçtan uca kabul (docs/17 §13, 2d).** Gerçek uygulama analiz açık ve model
+dosyası yokken çalıştırıldı:
+- `/saglik` `model: hata`, `hazir: false`, `model_yuklenemedi` verdi;
+  `?hazirlik=1` 503 döndü; gövdenin `durum`'u yine `calisiyor`'du, yani Kontrol
+  Paneli satırı "ÇALIŞIYOR" kalıyor.
+- Olaylar'a "Tespit modeli yüklenemedi" düştü.
+- Komuta, Duvar ve Sağlık ekranlarında kırmızı "Analiz yapılmıyor — model
+  yüklenemedi" şeridi çıktı.
+- `?ayrinti=1` her kamera için okunan ve işlenen hızı, p50/p90 alanlarını verdi.
+- uvicorn satırları `sistem.log`'da JSON olarak duruyordu.
+
+Tarayıcı JS hatası yok.
+
 ## Faz 2c şema 007 ve olay modeli (23.09.2026)
 
 Plan: `docs/17-V2-TASARIM.md` §6, §8.2, §8.4 ve §13 (2c satırı). Alt adımlar
