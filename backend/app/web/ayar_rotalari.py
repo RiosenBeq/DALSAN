@@ -162,6 +162,41 @@ AYAR_GRUPLARI: tuple[AyarGrubu, ...] = (
                     "sahadaki gürültü azalır."
                 ),
             ),
+            AyarAlani(
+                anahtar="ANONS_SAGLIK_ARALIGI_SN",
+                alan="anons_saglik_araligi_sn",
+                etiket="Kanal yoklama aralığı (saniye)",
+                en_az="2",
+                en_cok="300",
+                aciklama=(
+                    "Her kanal bu aralıkla yoklanır: ses çıkışı listede mi, IP "
+                    "hoparlörün adresine bağlanılabiliyor mu. Öneri: 10."
+                ),
+            ),
+            AyarAlani(
+                anahtar="ANONS_KOPUK_ESIGI_SN",
+                alan="anons_kopuk_esigi_sn",
+                etiket="Kanal kopukluk eşiği (saniye)",
+                en_az="5",
+                en_cok="3600",
+                aciklama=(
+                    "Bu süre boyunca kesintisiz bağlı görünmeyen kanal için "
+                    "Olaylar'a “Ses kanalı koptu” yazılır. Kısa aksaklık olay "
+                    "üretmez. Öneri: 30."
+                ),
+            ),
+            AyarAlani(
+                anahtar="ULASMAYAN_UYARI_ARALIGI_SN",
+                alan="ulasmayan_uyari_araligi_sn",
+                etiket="“Uyarı ulaşamadı” olay aralığı (saniye)",
+                en_az="30",
+                en_cok="86400",
+                aciklama=(
+                    "Uyarı hiçbir sesli kanala ulaşamazsa olay yazılır; aynı "
+                    "kamera için en çok bu aralıkla bir kez, aradakiler sayılıp "
+                    "olaya eklenir. Öneri: 300."
+                ),
+            ),
         ),
     ),
     AyarGrubu(

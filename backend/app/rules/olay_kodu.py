@@ -125,6 +125,7 @@ KAPANIS_SEBEPLERI = {
     "hat_yenilendi": "Kamera işleme hattı hatalar yüzünden yeniden kuruldu",
     "kapanis": "Sistem durduruldu",
     "yeniden_baslama": "Sistem yeniden başladı; olay açık kalmıştı",
+    "kanal_degisti": "Uyarı kanalı değiştirildi ya da kapatıldı",
 }
 
 # Bölge ihlalinin kodu: (yön, bölge tipi) → (tetikleyebilecek sınıflar, kod).

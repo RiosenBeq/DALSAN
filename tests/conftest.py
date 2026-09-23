@@ -116,6 +116,9 @@ def test_ayarlari(tmp_path: Path):
         sunucu_adresi="127.0.0.1",
         anons_http_bicimi="json",
         anons_bekleme_sn=30,
+        anons_saglik_araligi_sn=10,
+        anons_kopuk_esigi_sn=30,
+        ulasmayan_uyari_araligi_sn=300,
         model_dosyasi=tmp_path / "models" / "olmayan-model.onnx",
         kkd_model_dosyasi=tmp_path / "models" / "kkd.onnx",  # yok: KKD modelsiz
         nesne_izinli_uzantilar=(".jpg", ".jpeg", ".png", ".webp", ".bmp"),

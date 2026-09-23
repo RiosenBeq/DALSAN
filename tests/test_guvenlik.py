@@ -108,6 +108,9 @@ def _girisli(istemci: TestClient, sifre: str) -> None:
 
 TAM_FORM = {
     "ANONS_BEKLEME_SN": "30",
+    "ANONS_SAGLIK_ARALIGI_SN": "10",
+    "ANONS_KOPUK_ESIGI_SN": "30",
+    "ULASMAYAN_UYARI_ARALIGI_SN": "300",
     "TESPIT_INSAN_GUVEN_ESIGI": "0.28",
     "TESPIT_GUVEN_ESIGI": "0.35",
     "TESPIT_NMS_ESIGI": "0.45",

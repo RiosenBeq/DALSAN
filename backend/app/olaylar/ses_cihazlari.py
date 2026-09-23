@@ -35,6 +35,7 @@ ikili dosyalarını ister; paketlemede en kolay kırılan parça odur.
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -101,13 +102,68 @@ def cihaz_bagli_mi(kimlik: str) -> bool | None:
     None ile False AYRI tutuluyor: "hoparlörünüz koptu" demek ile "kontrol
     edemedik" demek aynı şey değildir ve birincisini yanlışlıkla söylemek
     kullanıcıyı olmayan bir arızanın peşine düşürür.
+
+    Boş seçim None'dır, asla True değil (R37): "varsayılan çıkış" denetlenemez;
+    Bluetooth hoparlör koparsa ses sunucusu varsayılanı dahili hoparlöre
+    devreder ve "bağlı" demek yalan olurdu.
     """
     if not kimlik:
-        return True  # varsayılan çıkış: işletim sistemi ne derse o
+        return None
     cihazlar = cihazlari_listele()
     if not cihazlar:
         return None
-    return any(cihaz.kimlik == kimlik for cihaz in cihazlar)
+    return any(ayni_cikis_mi(kimlik, cihaz.kimlik) for cihaz in cihazlar)
+
+
+# Bluetooth adresi (MAC) sink adında "AA_BB_CC_DD_EE_FF" ya da "AA:BB:…" biçiminde
+# geçer; önek (PipeWire bluez_output., PulseAudio bluez_sink.) ve profil soneki
+# (.1, .a2dp-sink, .a2dp_sink) kuruluma göre değişir, bu yüzden koda yazılmaz.
+_MAC_DESENI = re.compile(
+    r"(?<![0-9A-Fa-f])((?:[0-9A-Fa-f]{2}[_:]){5}[0-9A-Fa-f]{2})(?![0-9A-Fa-f])"
+)
+
+
+def bluez_mac(sink_adi: str) -> str | None:
+    """Bluetooth sink adından cihaz adresi ("AA:BB:CC:DD:EE:FF"); yoksa None.
+
+    MAC ayrıca saklanmaz, sink adından çözülür (docs/17 §7.5-2). Yalnız adında
+    "bluez" geçen sink'lerde aranır: başka bir çıkışın adındaki rastgele bir
+    onaltılık dizi adres sanılmasın.
+    """
+    if "bluez" not in sink_adi.lower():
+        return None
+    eslesme = _MAC_DESENI.search(sink_adi)
+    return eslesme.group(1).replace("_", ":").upper() if eslesme else None
+
+
+def ayni_cikis_mi(beklenen: str, kimlik: str) -> bool:
+    """Listede görülen `kimlik`, kanalın beklediği çıkış mı?
+
+    Tam eşleşme ya da aynı Bluetooth adresi: hoparlör yeniden bağlanınca
+    profil soneki değişebilir ("bluez_output.AA_….1" → "….a2dp-sink"), hoparlör
+    yine aynıdır (docs/17 §7.2; soneğin değiştiği hedef sunucuda DOĞRULANMADI).
+    """
+    if beklenen == kimlik:
+        return True
+    mac = bluez_mac(beklenen)
+    return mac is not None and mac == bluez_mac(kimlik)
+
+
+def guncel_cikis(beklenen: str, cihazlar: list[SesCihazi]) -> str:
+    """Çalmada kullanılacak ad: beklenen listedeyse kendisi, değilse aynı
+    Bluetooth adresli sink'in bugünkü adı; hiçbiri yoksa beklenen (çalıcı
+    "bulunamadı" der ve deneme başarısız kaydedilir)."""
+    if any(c.kimlik == beklenen for c in cihazlar):
+        return beklenen
+    for cihaz in cihazlar:
+        if ayni_cikis_mi(beklenen, cihaz.kimlik):
+            return cihaz.kimlik
+    return beklenen
+
+
+def bluetooth_mu(cikis_adi: str) -> bool:
+    """Çıkış Bluetooth mu? Linux'ta sink adı ("bluez…"), öbür sistemlerde ad ipucu."""
+    return _bluetooth_mu(cikis_adi)
 
 
 def _bluetooth_mu(*metinler: str) -> bool:

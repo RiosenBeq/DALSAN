@@ -83,6 +83,11 @@ class Ayarlar:
     # Biçim bütün IP hoparlörler için ortaktır.
     anons_http_bicimi: str
     anons_bekleme_sn: int
+    # Kanal sağlığı (docs/17 §7.4): yoklama aralığı, kesintisiz "kopuk" süresi
+    # (AUDIO_CHANNEL_DOWN eşiği) ve aynı kamera için ALERT_UNDELIVERED aralığı
+    anons_saglik_araligi_sn: int
+    anons_kopuk_esigi_sn: int
+    ulasmayan_uyari_araligi_sn: int
     model_dosyasi: Path
     # KKD sınıflandırıcısı (docs/17 §5.2); dosya yoksa KKD kuralı olay üretmez
     kkd_model_dosyasi: Path
@@ -404,6 +409,11 @@ def ayarlari_coz(
         # Anons, ekran uyarısından bağımsız ve daha seyrek çalar (docs/02 §7):
         # hoparlör aynı kamera+mesaj için bu süre dolmadan tekrar bağırmaz.
         anons_bekleme_sn=_tam_sayi(degerler, "ANONS_BEKLEME_SN", 30, 5, 3600),
+        anons_saglik_araligi_sn=_tam_sayi(degerler, "ANONS_SAGLIK_ARALIGI_SN", 10, 2, 300),
+        anons_kopuk_esigi_sn=_tam_sayi(degerler, "ANONS_KOPUK_ESIGI_SN", 30, 5, 3600),
+        ulasmayan_uyari_araligi_sn=_tam_sayi(
+            degerler, "ULASMAYAN_UYARI_ARALIGI_SN", 300, 30, 86400
+        ),
         model_dosyasi=kok / _metin(degerler, "MODEL_DOSYASI", "models/yolox_tiny.onnx"),
         kkd_model_dosyasi=kok / _metin(degerler, "KKD_MODEL_DOSYASI", "models/kkd.onnx"),
         # --- Nesne kütüphanesi sınırları -------------------------------------

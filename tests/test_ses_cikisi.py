@@ -191,7 +191,9 @@ def test_bagli_mi_uc_durumu_ayirir(monkeypatch):
     peşine düşürür.
     """
     monkeypatch.setattr(ses_cihazlari, "cihazlari_listele", list)
-    assert ses_cihazlari.cihaz_bagli_mi("") is True  # varsayılan çıkış
+    # Varsayılan çıkış denetlenemez (R37): Bluetooth koparsa ses sunucusu
+    # varsayılanı dahili hoparlöre devreder, "bağlı" demek yalan olurdu
+    assert ses_cihazlari.cihaz_bagli_mi("") is None
     assert ses_cihazlari.cihaz_bagli_mi("x") is None  # liste okunamadı
 
     monkeypatch.setattr(
