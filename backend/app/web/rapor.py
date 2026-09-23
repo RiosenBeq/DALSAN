@@ -30,6 +30,7 @@ from fastapi.responses import HTMLResponse, Response
 from app import zaman
 from app.hatalar import DogrulamaHatasi
 from app.rules.olay_kodu import OLAY_KODLARI
+from app.web.erisim_izi import erisim_yaz
 from app.web.komuta import kabuk_baglami
 from app.web.ortak import (
     KURAL_TIPLERI,
@@ -545,6 +546,7 @@ def rapor_csv(istek: Request, baglanti=Depends(baglanti_al)):
     dosya raporun ÖZETİDİR: aynı sayılar, satır satır.
     """
     veri = rapor_verisi(baglanti, istek.query_params)
+    erisim_yaz(baglanti, istek, "export_csv", f"rapor ({veri['donem_metni']})")
     tampon = io.StringIO()
     yazici = CsvYazici(tampon)  # formül kaçışlı, noktalı virgüllü (R31)
     yazici.writerow(["DALSAN İSG - Dönem Raporu"])

@@ -26,6 +26,7 @@ from app.rules.olay_kodu import (
     onem_daha_hafif,
 )
 from app.rules.parametreler import KuralParametreHatasi, params_dogrula, varsayilan_params
+from app.web.erisim_izi import erisim_yaz
 from app.web.ortak import (
     BOLGE_TIPLERI,
     BOLGE_ZORUNLU_KURALLAR,
@@ -216,10 +217,10 @@ async def kural_kaydet(istek: Request, baglanti=Depends(baglanti_al)):
     form = await istek.form()
     # Senkron SQLite işi threadpool'da koşar: event loop'ta koşarsa, yazma
     # kilidi beklenirken TÜM arayüz (SSE dahil) donar.
-    return await run_in_threadpool(_kural_kaydet_islemi, baglanti, form)
+    return await run_in_threadpool(_kural_kaydet_islemi, baglanti, form, istek)
 
 
-def _kural_kaydet_islemi(baglanti, form):
+def _kural_kaydet_islemi(baglanti, form, istek: Request | None = None):
     kural_id = int(form.get("kural_id") or 0)
     kamera_id = int(form.get("camera_id") or 0)
     kural_tipi = form.get("rule_type", "")
@@ -295,6 +296,7 @@ def _kural_kaydet_islemi(baglanti, form):
         golge = 1
     simdi = zaman.simdi_utc()
 
+    yeni_kural = not kural_id
     if kural_id:
         baglanti.execute(
             "UPDATE rules SET camera_id=?, rule_type=?, zone_id=?, target_classes=?, "
@@ -316,7 +318,7 @@ def _kural_kaydet_islemi(baglanti, form):
             ),
         )
     else:
-        baglanti.execute(
+        kural_id = baglanti.execute(
             "INSERT INTO rules (camera_id, rule_type, zone_id, target_classes, params, "
             "cooldown_s, announcement_id, enabled, shadow_mode, severity, updated_at) "
             "VALUES (?,?,?,?,?,?,?,?,?,?,?)",
@@ -333,13 +335,18 @@ def _kural_kaydet_islemi(baglanti, form):
                 onem,
                 simdi,
             ),
-        )
+        ).lastrowid
     baglanti.commit()
+    if istek is not None:
+        erisim_yaz(
+            baglanti, istek, "rule_change", f"rule:{kural_id}" + (" yeni" if yeni_kural else "")
+        )
     return RedirectResponse("/kurallar", status_code=303)
 
 
 @router.post("/kurallar/hazir")
 def hazir_kural_ekle(
+    istek: Request,
     zone_id: int = Form(...),
     ek: str = Form(""),
     baglanti=Depends(baglanti_al),
@@ -386,7 +393,7 @@ def hazir_kural_ekle(
         ).fetchone()
         anons_id = anons["id"] if anons else None
 
-    baglanti.execute(
+    kural_id = baglanti.execute(
         "INSERT INTO rules (camera_id, rule_type, zone_id, target_classes, params, "
         "cooldown_s, announcement_id, enabled, shadow_mode, updated_at) "
         "VALUES (?,?,?,?,?,?,?,1,?,?)",
@@ -401,13 +408,14 @@ def hazir_kural_ekle(
             1 if hazir.golge else 0,
             zaman.simdi_utc(),
         ),
-    )
+    ).lastrowid
     baglanti.commit()
+    erisim_yaz(baglanti, istek, "rule_change", f"rule:{kural_id} hazır kural")
     return RedirectResponse(f"/kameralar/{bolge['camera_id']}", status_code=303)
 
 
 @router.post("/kurallar/{kural_id}/sil")
-def kural_sil(kural_id: int, baglanti=Depends(baglanti_al)):
+def kural_sil(istek: Request, kural_id: int, baglanti=Depends(baglanti_al)):
     # Olay geçmişi korunur: events.rule_id → SET NULL, rule_snapshot zaten kayıtlı
     satir = baglanti.execute("SELECT camera_id FROM rules WHERE id = ?", (kural_id,)).fetchone()
     baglanti.execute("DELETE FROM rules WHERE id = ?", (kural_id,))
@@ -417,6 +425,8 @@ def kural_sil(kural_id: int, baglanti=Depends(baglanti_al)):
             (zaman.simdi_utc(), satir["camera_id"]),
         )
     baglanti.commit()
+    if satir is not None:
+        erisim_yaz(baglanti, istek, "rule_change", f"rule:{kural_id} silindi")
     return RedirectResponse("/kurallar", status_code=303)
 
 

@@ -29,6 +29,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 
 from app import ayarlar as ayarlar_modulu
 from app.hatalar import AyarHatasi, DogrulamaHatasi
+from app.web.erisim_izi import erisim_yaz
 from app.web.komuta import kabuk_baglami
 from app.web.ortak import baglanti_al, maskeyi_coz, rtsp_maskele
 from app.web.rotalar import sablonlar
@@ -544,7 +545,7 @@ def ayarlar_sayfasi(istek: Request, sonuc: str = "", baglanti=Depends(baglanti_a
 
 
 @router.post("/ayarlar/kaydet")
-async def ayarlari_kaydet(istek: Request):
+async def ayarlari_kaydet(istek: Request, baglanti=Depends(baglanti_al)):
     """Formu doğrular, geçerse .env'e yazar. Geçmezse dosyaya DOKUNMAZ."""
     ayarlar = istek.app.state.ayarlar
     form = await istek.form()
@@ -567,6 +568,8 @@ async def ayarlari_kaydet(istek: Request):
     # Dosyadaki mevcut değerlerin üzerine formdakiler yazılır; sistemin
     # açılışta kullandığı doğrulayıcı bu birleşik sözlüğü sınar.
     birlesik = ayarlar_modulu.env_degerlerini_oku(ayarlar.env_yolu)
+    # Erişim izine değişen ayarın yalnız ADI yazılır; değer (şifre, adres) asla
+    degisen = _degisen_anahtarlar(ayarlar, birlesik, degisiklikler)
     birlesik.update(degisiklikler)
     try:
         ayarlar_modulu.env_degisikliklerini_dogrula(degisiklikler)
@@ -575,7 +578,35 @@ async def ayarlari_kaydet(istek: Request):
         raise DogrulamaHatasi(_anlasilir_hata(hata.kullanici_mesaji), hata.teknik_ayrinti) from hata
 
     ayarlar_modulu.env_dosyasina_yaz(ayarlar.env_yolu, degisiklikler)
+    if degisen:
+        erisim_yaz(baglanti, istek, "settings_change", ", ".join(degisen))
     return RedirectResponse("/ayarlar?sonuc=kaydedildi", status_code=303)
+
+
+def _degisen_anahtarlar(ayarlar, dosyadaki: dict, degisiklikler: dict) -> list[str]:
+    """Gerçekten değişen ayarların adları (erişim izi için; değerler yazılmaz).
+
+    Önceki değer dosyadaki değerdir; dosyada yoksa sistemin o an kullandığı
+    (varsayılan) değer. Form bütün alanları gönderir: yalnız dosyaya bakılsaydı
+    hiç dokunulmamış varsayılanlar da "değişti" görünürdü. Şifre alanı yalnız
+    kutuya yazılınca ya da "kaldır" işaretlenince gelir: her gelişi değişikliktir.
+    """
+    alanlar = {alan.anahtar: alan for alan in TUM_ALANLAR}
+    degisen = []
+    for anahtar, yeni in degisiklikler.items():
+        alan = alanlar[anahtar]
+        if alan.tur == "sifre":
+            degisen.append(anahtar)
+            continue
+        if anahtar in dosyadaki:
+            onceki = dosyadaki[anahtar]
+        elif alan.maskeli:
+            onceki = str(getattr(ayarlar, alan.alan))
+        else:
+            onceki = _gosterilecek_deger(ayarlar, alan)
+        if onceki != yeni:
+            degisen.append(anahtar)
+    return sorted(degisen)
 
 
 # Şifreyi kaldırmak için ayrı onay kutusu: şifre kutusu artık boş gelir ve

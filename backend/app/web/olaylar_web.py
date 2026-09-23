@@ -214,6 +214,7 @@ def csv_disa_aktar(istek: Request, baglanti=Depends(baglanti_al)):
     satirlar = baglanti.execute(
         f"{OLAY_SORGUSU}{kosul} ORDER BY e.occurred_at DESC LIMIT 10000", degerler
     ).fetchall()
+    erisim_yaz(baglanti, istek, "export_csv", f"olaylar ({len(satirlar)} satır)")
     tampon = io.StringIO()
     yazici = CsvYazici(tampon)  # formül kaçışlı, noktalı virgüllü (R31)
     # Yeni sütunlar SONA eklendi: eski sütunların yeri değişirse kullanıcının
@@ -375,13 +376,25 @@ def olay_coz(istek: Request, olay_id: int, baglanti=Depends(baglanti_al)):
 
 
 @router.get("/goruntuler/{yol:path}")
-def kanit_fotografi(istek: Request, yol: str):
+def kanit_fotografi(istek: Request, yol: str, baglanti=Depends(baglanti_al)):
     """Kanıt fotoğrafları YALNIZCA oturumla servis edilir - snapshot dizini
-    dışarıdan doğrudan erişime kapalıdır (docs/00 KVKK)."""
+    dışarıdan doğrudan erişime kapalıdır (docs/00 KVKK). Her görüntüleme
+    erişim izine düşer (docs/17 §10.4): hangi olayın kanıtı, hangi adresten."""
     kok = istek.app.state.ayarlar.goruntu_klasoru.resolve()
     dosya = (kok / yol).resolve()
     # is_relative_to: metin ön-eki karşılaştırması '/veri/goruntuler-x' gibi
     # kardeş klasörleri yanlışlıkla kabul ederdi (yol kaçışı)
     if not dosya.is_relative_to(kok) or not dosya.is_file():
         return Response(status_code=404)
+    goreli = dosya.relative_to(kok).as_posix()
+    if goreli.startswith("kkd-ornekler/"):
+        ornek = baglanti.execute(
+            "SELECT id FROM ppe_samples WHERE crop_path = ?", (goreli,)
+        ).fetchone()
+        erisim_yaz(baglanti, istek, "view_ppe_crop", f"sample:{ornek['id']}" if ornek else goreli)
+    else:
+        olay = baglanti.execute(
+            "SELECT id FROM events WHERE snapshot_path = ?", (goreli,)
+        ).fetchone()
+        erisim_yaz(baglanti, istek, "view_snapshot", f"event:{olay['id']}" if olay else goreli)
     return FileResponse(dosya, media_type="image/jpeg")

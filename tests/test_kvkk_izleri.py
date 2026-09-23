@@ -166,3 +166,123 @@ def test_sebepsiz_dondurma_reddedilir(istemci, baglanti, test_ayarlari):
     assert yanit.status_code == 400
     assert baglanti.execute("SELECT hold FROM events WHERE id = ?", (olay_id,)).fetchone()[0] == 0
     assert _erisimler(test_ayarlari) == []
+
+
+# ------------------------------------------------------------ erişim izi (5c-2)
+
+
+def _kanitli_olay(test_ayarlari) -> tuple[int, str]:
+    b = veritabani.baglanti_ac(test_ayarlari.veritabani_yolu)
+    try:
+        olay_id = ihlal_yaz(
+            b,
+            test_ayarlari,
+            Ihlal(kural_id=1, kamera_id=1, takip_idler=[1], bolge_id=None, olculen=1.0),
+            {"rule_type": "zone_intrusion"},
+            b"kanit",
+        )
+        yol = b.execute("SELECT snapshot_path FROM events WHERE id = ?", (olay_id,)).fetchone()[0]
+    finally:
+        b.close()
+    return olay_id, yol
+
+
+def test_kanit_goruntuleme_iz_birakir_sifre_ve_cerez_yazilmaz(baglanti, test_ayarlari):
+    """docs/17 §13 5c: kanıt görüntüleme access_log'a düşer ve şifre/çerez içermez.
+    Aynı kaydın dakika içindeki tekrarı (küçük resim, yenileme) bir kez yazılır."""
+    import dataclasses
+
+    from fastapi.testclient import TestClient
+
+    from app.uygulama import uygulama_olustur
+
+    sifre = "kvkk-sifre-2026"
+    olay_id, yol = _kanitli_olay(test_ayarlari)
+    uygulama = uygulama_olustur(
+        dataclasses.replace(test_ayarlari, yonetici_sifresi=sifre), analiz=False
+    )
+    with TestClient(uygulama) as istemci:
+        istemci.post("/giris", data={"sifre": sifre, "sonra": "/"}, follow_redirects=False)
+        cerezler = [c.value for c in istemci.cookies.jar]
+        assert cerezler, "oturum çerezi alınmış olmalı"
+        for _ in range(3):
+            assert istemci.get(f"/goruntuler/{yol}").status_code == 200
+    izler = _erisimler(test_ayarlari)
+    assert [(i["action"], i["target"]) for i in izler] == [("view_snapshot", f"event:{olay_id}")]
+    ham = json.dumps(izler, ensure_ascii=False)
+    assert sifre not in ham and not any(c in ham for c in cerezler)
+
+    erisim_izi.tekrar_bellegini_temizle()  # tekrar aralığı geçti
+    with TestClient(uygulama) as istemci:
+        istemci.post("/giris", data={"sifre": sifre, "sonra": "/"}, follow_redirects=False)
+        istemci.get(f"/goruntuler/{yol}")
+    assert len(_erisimler(test_ayarlari)) == 2
+
+
+def test_kkd_kirpigi_goruntuleme_iz_birakir(istemci, baglanti, test_ayarlari):
+    kirpik = test_ayarlari.goruntu_klasoru / "kkd-ornekler" / "ornek.jpg"
+    kirpik.parent.mkdir(parents=True, exist_ok=True)
+    kirpik.write_bytes(b"jpg")
+    ornek_id = baglanti.execute(
+        "INSERT INTO ppe_samples (captured_at, crop_path, source) "
+        "VALUES (?, 'kkd-ornekler/ornek.jpg', 'auto')",
+        (zaman.simdi_utc(),),
+    ).lastrowid
+    baglanti.commit()
+    assert istemci.get(f"/kkd/ornek/{ornek_id}.jpg").status_code == 200
+    erisim_izi.tekrar_bellegini_temizle()
+    assert istemci.get("/goruntuler/kkd-ornekler/ornek.jpg").status_code == 200
+    assert [(i["action"], i["target"]) for i in _erisimler(test_ayarlari)] == [
+        ("view_ppe_crop", f"sample:{ornek_id}"),
+        ("view_ppe_crop", f"sample:{ornek_id}"),
+    ]
+
+
+def test_disa_aktarim_ve_degisiklikler_iz_birakir(istemci, baglanti, test_ayarlari):
+    _olay_ekle(test_ayarlari)
+    istemci.get("/olaylar/disa-aktar.csv")
+    istemci.get("/komuta/rapor/ozet.csv")
+    istemci.post("/kkd/toplama", data={"ac": "1", "onay": "1"}, follow_redirects=False)
+    istemci.post("/kkd/toplama", data={"ac": "0"}, follow_redirects=False)
+    kural_id = baglanti.execute(
+        "INSERT INTO rules (camera_id, rule_type, target_classes, params, updated_at) "
+        "VALUES (1, 'zone_intrusion', '[\"person\"]', '{}', ?)",
+        (zaman.simdi_utc(),),
+    ).lastrowid
+    baglanti.commit()
+    istemci.post(
+        "/komuta/uyari/golge",
+        data={"golge": "1", "kural_idler": [str(kural_id)]},
+        follow_redirects=False,
+    )
+    istemci.post(f"/kurallar/{kural_id}/sil", follow_redirects=False)
+    izler = [(i["action"], i["target"]) for i in _erisimler(test_ayarlari)]
+    assert izler[0] == ("export_csv", "olaylar (1 satır)")
+    assert izler[1][0] == "export_csv" and izler[1][1].startswith("rapor (")
+    assert izler[2:] == [
+        ("ppe_collection_gate", "acik"),
+        ("ppe_collection_gate", "kapali"),
+        ("rule_change", f"rule:{kural_id} golge=1"),
+        ("rule_change", f"rule:{kural_id} silindi"),
+    ]
+
+
+def test_ayar_degisikligi_yalniz_anahtar_adini_yazar(test_ayarlari):
+    """Değer (şifre, adres, gün sayısı) izde görünmez; değişmeyen ayar yazılmaz."""
+    from fastapi.testclient import TestClient
+
+    from app.uygulama import uygulama_olustur
+    from tests.test_ayarlar_sayfasi import ORNEK_ENV, TAM_FORM
+
+    test_ayarlari.env_yolu.write_text(ORNEK_ENV, encoding="utf-8")
+    b = veritabani.baglanti_ac(test_ayarlari.veritabani_yolu)
+    veritabani.semayi_uygula(b)
+    b.close()
+    with TestClient(uygulama_olustur(test_ayarlari, analiz=False)) as istemci:
+        istemci.post("/ayarlar/kaydet", data={**TAM_FORM, "OLAY_SAKLAMA_GUN": "200"})
+        istemci.post("/ayarlar/kaydet", data={**TAM_FORM, "OLAY_SAKLAMA_GUN": "200"})
+    izler = [(i["action"], i["target"]) for i in _erisimler(test_ayarlari)]
+    assert len(izler) == 1, "aynı değerlerle ikinci kayıt iz bırakmaz"
+    eylem, hedef = izler[0]
+    assert eylem == "settings_change" and "OLAY_SAKLAMA_GUN" in hedef.split(", ")
+    assert "200" not in hedef, "değer yazılmaz"

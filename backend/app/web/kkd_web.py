@@ -21,6 +21,7 @@ from app.hatalar import DogrulamaHatasi
 from app.loglama import log_al
 from app.olaylar.yazici import sistem_olayi_yaz
 from app.web import kkd_karnesi
+from app.web.erisim_izi import erisim_yaz
 from app.web.ortak import OGELER, baglanti_al
 from app.web.rotalar import sablonlar
 
@@ -154,6 +155,7 @@ def kkd_sayfasi(istek: Request, baglanti=Depends(baglanti_al)):
 
 @router.post("/kkd/toplama")
 def kkd_toplama_degistir(
+    istek: Request,
     ac: str = Form(...),
     onay: str = Form(""),
     baglanti=Depends(baglanti_al),
@@ -185,6 +187,7 @@ def kkd_toplama_degistir(
         detaylar={"toplama": "acik" if acilsin else "kapali"},
         kod="PPE_COLLECTION_CHANGED",
     )
+    erisim_yaz(baglanti, istek, "ppe_collection_gate", "acik" if acilsin else "kapali")
     return RedirectResponse("/kkd", status_code=303)
 
 
@@ -244,8 +247,9 @@ def veri_seti_indir(istek: Request, baglanti=Depends(baglanti_al)):
     except BaseException:
         Path(gecici).unlink(missing_ok=True)
         raise
-    # Kişi görüntüsü dışarı çıkıyor: kaç tane olduğu günlükte kalsın (KVKK
-    # erişim izi Faz 5'te access_log'a da yazılacak)
+    # Kişi görüntüsü dışarı çıkıyor: kaç tane olduğu günlükte ve erişim izinde
+    # kalsın (KVKK m.12, docs/17 §10.4)
+    erisim_yaz(baglanti, istek, "export_dataset", f"kkd ({manifest['ornek_sayisi']} örnek)")
     _log.info(
         f"KKD veri seti dışa aktarıldı: {manifest['ornek_sayisi']} örnek, "
         f"{manifest['eksik_dosya']} eksik dosya."
@@ -282,4 +286,5 @@ def ornek_goruntusu(istek: Request, ornek_id: int, baglanti=Depends(baglanti_al)
     dosya = (kok / satir["crop_path"]).resolve()
     if not dosya.is_relative_to(kok) or not dosya.is_file():
         return Response(status_code=404)
+    erisim_yaz(baglanti, istek, "view_ppe_crop", f"sample:{ornek_id}")
     return FileResponse(dosya, media_type="image/jpeg")

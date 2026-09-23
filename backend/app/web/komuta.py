@@ -27,6 +27,7 @@ from app.olaylar.teslim import teslim_ozeti
 from app.olaylar.yazici import sistem_olayi_yaz
 from app.rules.motor import KALIBRASYON_GEREKTIREN
 from app.web import kkd_karnesi
+from app.web.erisim_izi import erisim_yaz
 from app.web.kilavuz import EKRAN_ACIKLAMALARI, kurulum_durumu
 from app.web.ortak import (
     BOLGE_TIPLERI,
@@ -286,6 +287,12 @@ def golge_modu_degistir(
             },
             kod="PPE_GATE_OVERRIDDEN",
         )
+    erisim_yaz(
+        baglanti,
+        istek,
+        "rule_change",
+        "rule:" + ",".join(str(k) for k in kural_idler) + f" golge={golge}",
+    )
     return RedirectResponse("/komuta/uyari", status_code=303)
 
 
