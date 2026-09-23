@@ -100,6 +100,18 @@ PARAM_SEMALARI: dict[str, type[BaseModel]] = {
 }
 
 
+def varsayilan_params(kural_tipi: str) -> dict:
+    """Kural tipinin şema varsayılanları: kural formu bunları gösterir (R25).
+
+    Formda sayının ikinci bir kopyası yazılmaz; varsayılan değişirse form da
+    değişir.
+    """
+    sema = PARAM_SEMALARI.get(kural_tipi)
+    if sema is None:
+        raise KuralParametreHatasi(f"Bilinmeyen kural tipi: {kural_tipi}")
+    return sema().model_dump()
+
+
 def params_dogrula(kural_tipi: str, params: dict) -> dict:
     """params JSON'ını tipine göre doğrular; hatada anlaşılır Türkçe mesaj."""
     sema = PARAM_SEMALARI.get(kural_tipi)

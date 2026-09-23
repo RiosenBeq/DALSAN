@@ -26,6 +26,7 @@ KORUMALI_YOLLAR = (
     "/",
     "/kameralar",
     "/kurallar",
+    "/kurallar/onem?rule_type=zone_intrusion",  # JSON ucu da korunur
     "/olaylar",
     "/kkd",
     "/anons",

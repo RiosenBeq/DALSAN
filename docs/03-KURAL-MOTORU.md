@@ -223,6 +223,18 @@ kurallar) kodun varsayılan önemi geçerlidir; `critical` / `high` / `medium` /
 varsayılana düşer. Baret ve yelek birlikte eksikse bugün tek olay yazılır ve
 kodu baretinkidir; kalem başına ayrı olay Faz 3d'dedir.
 
+**Kural formunda önem.** Formdaki *Önem* seçimi ya "Varsayılan"dır (`warning`)
+ya da açık bir düzey. "Varsayılan"ın yanında kuralın üretebileceği olaylar ve
+önemleri yazar ("Baret yok: Yüksek; Yelek yok: Orta") — tip, bölge tipi, yön ve
+hedef sınıflardan hesaplanır (`rules/olay_kodu.py` `kural_olay_kodlari`,
+tarayıcı `/kurallar/onem`'den sorar; eşlemenin ikinci kopyası yoktur). Kuralın
+EN AĞIR olayının varsayılanından (bağlamsal yükseltme dahil) **hafif** bir
+düzey seçmek sarı bir kutuda onay ister; sunucu da kaydederken denetler ve
+onaysız kaydı reddeder. Örnek: araç yolundaki yaya için "Orta" seçmek, araç
+varken yapılan Yüksek yükseltmesini kapatır — bu da varsayılanın altına inmektir.
+Önemi yükseltmek onay istemez. Kurallar listesinin Önem sütunu, açık seçimi ya
+da "varsayılan" notuyla kodun önemini gösterir.
+
 ## 5.3 Olay yaşam döngüsü: açıldı → hatırlatma → bitti
 
 Bir ihlal artık tek bir anlık kayıt değil, başı ve sonu olan bir **olaydır**
@@ -241,7 +253,7 @@ Koşulun "sürüyor" sayılması girişten gevşektir (çıkış eşiği):
 | Kural | Açılış | Sürüyor sayılır |
 |---|---|---|
 | Bölge | ayak noktası bölgede ve kalış ≥ `min_dwell_s` | ayak noktası bölgede (kalıştan bağımsız) ya da iz kayıp toleransı içinde |
-| Mesafe | mesafe < `distance_m`, `min_frames` ardışık, araç hareketli | çift hâlâ `distance_m` altında (araç durdu diye bitmez) |
+| Mesafe | mesafe < `distance_m`, `min_frames` ardışık, araç hareketli | çift hâlâ `distance_m + histerezis_m` içinde (araç durdu diye bitmez) |
 | KKD | oy "yok" | oy hâlâ "yok"; oy **belirsize** dönerse olay `belirsiz` sebebiyle biter, belirsiz dönemde hatırlatma olmaz |
 | Hız | pencere ortancası ≥ sınır | son ortanca hâlâ sınırın üstünde |
 
@@ -252,6 +264,21 @@ kesildi, kamera ayarı değişti, sistem durdu, sistem yeniden başladı.
 
 Kapandıktan sonra aynı kişi aynı kurala yeniden takılırsa yeni olay, ancak
 kuralın bekleme süresi dolunca açılır — bugünkü tekrar bastırma kuralı.
+
+## 5.4 Kural formu
+
+- Parametre alanlarının varsayılanları şemadan gelir (`rules/parametreler.py`
+  `varsayilan_params`; R25). Formda sayıların ikinci bir kopyası yoktur.
+- `bitis_s` dört tipte ortak alandır; `gecit_haric` yalnız bölge ihlalinde,
+  `histerezis_m` yalnız güvenli mesafede görünür.
+- Kaydetmek, formda **olmayan** bir parametreyi varsayılana döndürmez: aynı
+  tipteki kuralın önceki değeri korunur. Boş bırakılan sayı alanı da önceki
+  değerde (yeni kuralda şema varsayılanında) kalır. Tip değiştirilirse eski
+  tipin parametreleri taşınmaz.
+- Cooldown yeni kuralda tipin varsayılanıyla dolar (§5) ve tip değişince —
+  elle değiştirilmediyse — yeni tipinkine geçer.
+- Şemanın her alanının formda karşılığı olduğunu `tests/test_kural_formu.py`
+  denetler: karşılığı olmayan alan hiç değiştirilemezdi.
 
 ## 6. Yeni kural tipi ekleme prosedürü
 

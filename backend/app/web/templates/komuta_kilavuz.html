@@ -327,7 +327,9 @@
         gelir: kritik ve yüksek kırmızı, orta sarı, düşük gri. Önemi ihlalin türü
         belirler — araç ile yayanın birbirine tehlikeli yaklaşması kritiktir, yaya
         yolunun dışında yürümek ortadır. Araç yolundaki bir yaya, o anda yolda bir
-        araç da varsa yüksek sayılır. İncelediğiniz olay rengini korur; yalnız
+        araç da varsa yüksek sayılır. Bir kuralın önemini kural formundaki
+        <b>Önem</b> seçiminden değiştirebilirsiniz; varsayılanın altına indirmek
+        ayrıca onay ister. İncelediğiniz olay rengini korur; yalnız
         “Yanlış alarm” işaretlenen olay griye döner.</p>
       <p class="durum-ornekleri">Önem:
         {% for anahtar in IHLAL_ONEMLERI %}{{ onem_hapi({"onem": anahtar, "onem_adi": ONEM_ADLARI[anahtar], "event_type": "violation"}) }}{% endfor %}

@@ -7,7 +7,7 @@
   {% from "ipucu.html" import ipucu %}
   <h2>{{ "Kuralı Düzenle" if kural else "Yeni Kural" }}</h2>
   <section class="kart dar">
-    <form method="post" action="/kurallar/kaydet" class="dikey-form">
+    <form method="post" action="/kurallar/kaydet" class="dikey-form" id="kural-formu">
       <input type="hidden" name="kural_id" value="{{ kural.id if kural else '' }}">
 
       <label>Kamera
@@ -31,12 +31,15 @@
         <select name="zone_id" id="zone_id"></select>
       </label>
 
+      {# Her tipin alanları `degerler[tip]`ten dolar: düzenlenen kuralın tipi
+         kayıttaki değerlerle, öbürleri şemanın varsayılanlarıyla (R25). #}
       {# --- Bölge ihlali --- #}
+      {% set pz = degerler.zone_intrusion %}
       <fieldset id="alanlar-zone_intrusion">
         <legend>Bölge ihlali ayarları</legend>
         <label>Hedef sınıflar</label>
         <div class="yatay-grup">
-          {% set hedefler = kural.target_classes if kural else ["person"] %}
+          {% set hedefler = kural.target_classes if kural and kural.rule_type == 'zone_intrusion' else ["person"] %}
           {% for deger, ad in siniflar.items() %}
           <label class="yatay"><input type="checkbox" name="target_classes" value="{{ deger }}"
             {% if deger in hedefler %}checked{% endif %}> {{ ad }}</label>
@@ -44,22 +47,27 @@
         </div>
         <label>Koşul
           <select name="mode">
-            <option value="inside" {% if kural and kural.params.get('mode') == 'inside' %}selected{% endif %}>Bölgede OLMAK ihlal (örn. yükleme alanında yaya)</option>
-            <option value="outside" {% if kural and kural.params.get('mode') == 'outside' %}selected{% endif %}>Bölge DIŞINDA olmak ihlal (örn. yaya yolunu kullanmamak)</option>
+            <option value="inside" {% if pz.mode == 'inside' %}selected{% endif %}>Bölgede OLMAK ihlal (örn. yükleme alanında yaya)</option>
+            <option value="outside" {% if pz.mode == 'outside' %}selected{% endif %}>Bölge DIŞINDA olmak ihlal (örn. yaya yolunu kullanmamak)</option>
           </select>
         </label>
         <label>Bölgede en az kalış (saniye)
-          <input name="min_dwell_s" type="number" step="0.5" min="0"
-                 value="{{ kural.params.get('min_dwell_s', 2.0) if kural else 2.0 }}">
+          <input name="min_dwell_s" type="number" step="0.5" min="0" max="600"
+                 value="{{ pz.min_dwell_s }}">
         </label>
+        <label class="yatay"><input type="checkbox" name="gecit_haric" value="1"
+          {% if pz.gecit_haric %}checked{% endif %}>
+          Yaya-araç geçidindekini ihlal sayma (önerilir)
+          {{ ipucu('gecit-haric', 'Aynı kamerada «Yaya-araç geçidi» tipinde bir bölge çizildiyse, geçidin içindeki kişi ya da araç bu kural için ihlal sayılmaz: araç yolunu geçitten geçen yaya uyarı üretmez.') }}</label>
       </fieldset>
 
       {# --- Güvenli mesafe --- #}
+      {% set pm = degerler.safe_distance %}
       <fieldset id="alanlar-safe_distance">
         <legend>Güvenli mesafe ayarları</legend>
         <label>Riskli araçlar</label>
         <div class="yatay-grup">
-          {% set nesneler = kural.params.get('object_classes', ['forklift','truck']) if kural else ['forklift','truck'] %}
+          {% set nesneler = pm.object_classes %}
           <label class="yatay"><input type="checkbox" name="object_classes" value="forklift"
             {% if 'forklift' in nesneler %}checked{% endif %}> Forklift</label>
           <label class="yatay"><input type="checkbox" name="object_classes" value="truck"
@@ -67,30 +75,36 @@
         </div>
         <label><span>Mesafe eşiği (metre)
           {{ ipucu('mesafe-esigi', 'Bir kişi ile hareket halindeki forklift/tır arasındaki mesafe bu değerin altına düşerse uyarı üretilir.') }}</span>
-          <input name="distance_m" type="number" step="0.5" min="0.5"
-                 value="{{ kural.params.get('distance_m', 3.0) if kural else 3.0 }}">
+          <input name="distance_m" type="number" step="0.5" min="0.5" max="100"
+                 value="{{ pm.distance_m }}">
         </label>
         <label>Ardışık kaç değerlendirmede eşik altında olmalı
-          <input name="min_frames" type="number" min="1"
-                 value="{{ kural.params.get('min_frames', 5) if kural else 5 }}">
+          <input name="min_frames" type="number" min="1" max="100"
+                 value="{{ pm.min_frames }}">
         </label>
         <label class="yatay"><input type="checkbox" name="require_moving_vehicle" value="1"
-          {% if not kural or kural.params.get('require_moving_vehicle', True) %}checked{% endif %}>
+          {% if pm.require_moving_vehicle %}checked{% endif %}>
           Araç duruyorsa uyarı üretme (önerilir)</label>
         <label>"Hareket halinde" hız eşiği (m/sn)
-          <input name="min_speed_mps" type="number" step="0.1" min="0"
-                 value="{{ kural.params.get('min_speed_mps', 0.3) if kural else 0.3 }}">
+          <input name="min_speed_mps" type="number" step="0.1" min="0" max="20"
+                 value="{{ pm.min_speed_mps }}">
+        </label>
+        <label><span>Olayın bitmesi için ek mesafe (metre)
+          {{ ipucu('histerezis', 'Açılan olay, kişi ile araç arasındaki mesafe «eşik + bu değer»i geçince biter. Eşiğin hemen üstünde gidip gelen bir çift için olay tekrar tekrar açılıp kapanmaz; olayın açılmasını etkilemez.') }}</span>
+          <input name="histerezis_m" type="number" step="0.1" min="0" max="50"
+                 value="{{ pm.histerezis_m }}">
         </label>
         <p class="not">Bu kural yalnızca KALİBRE edilmiş kamerada çalışır
           (kamera sayfası → Mesafe kalibrasyonu).</p>
       </fieldset>
 
       {# --- KKD --- #}
+      {% set pk = degerler.ppe_violation %}
       <fieldset id="alanlar-ppe_violation">
         <legend>KKD ayarları</legend>
         <label>Zorunlu KKD</label>
         <div class="yatay-grup">
-          {% set kkdler = kural.params.get('required_ppe', ['helmet','vest']) if kural else ['helmet','vest'] %}
+          {% set kkdler = pk.required_ppe %}
           <label class="yatay"><input type="checkbox" name="required_ppe" value="helmet"
             {% if 'helmet' in kkdler %}checked{% endif %}> Baret</label>
           <label class="yatay"><input type="checkbox" name="required_ppe" value="vest"
@@ -98,44 +112,45 @@
         </div>
         <label>Baret için en küçük kişi boyu (piksel) <span class="not">baret küçüktür; 120 px önerilir</span>
           <input name="min_person_height_px" type="number" min="20"
-                 value="{{ kural.params.get('min_person_height_px', 120) if kural else 120 }}">
+                 value="{{ pk.min_person_height_px }}">
         </label>
         <label>Yelek için en küçük kişi boyu (piksel) <span class="not">yelek büyük yüzeydir; 80 px yeterlidir</span>
           <input name="min_vest_height_px" type="number" min="20"
-                 value="{{ kural.params.get('min_vest_height_px', 80) if kural else 80 }}">
+                 value="{{ pk.min_vest_height_px }}">
         </label>
         <label><span>Güven eşiği (0-1)
           {{ ipucu('kkd-guven', 'Model kararından bu kadar emin değilse sonuç «belirsiz» sayılır ve uyarı üretilmez.') }}</span>
           <input name="min_confidence" type="number" step="0.05" min="0" max="1"
-                 value="{{ kural.params.get('min_confidence', 0.7) if kural else 0.7 }}">
+                 value="{{ pk.min_confidence }}">
         </label>
         <label><span>Gözlem penceresi
           {{ ipucu('kkd-pencere', 'Karar tek kareye değil, aynı kişinin son bu kadar gözlemine bakılarak verilir.') }}</span>
-          <input name="window_size" type="number" min="3"
-                 value="{{ kural.params.get('window_size', 15) if kural else 15 }}">
+          <input name="window_size" type="number" min="3" max="100"
+                 value="{{ pk.window_size }}">
         </label>
         <label><span>En az geçerli gözlem
           {{ ipucu('kkd-gecerli', 'Penceredeki gözlemlerin en az bu kadarı kullanılabilir olmalı; yoksa karar hiç verilmez.') }}</span>
           <input name="min_valid_observations" type="number" min="1"
-                 value="{{ kural.params.get('min_valid_observations', 8) if kural else 8 }}">
+                 value="{{ pk.min_valid_observations }}">
         </label>
         <label><span>İhlal oranı (0,5-1)
           {{ ipucu('kkd-oran', 'Geçerli gözlemlerin bu oranı «yok» derse ihlal sayılır; altında kalırsa uyarı üretilmez.') }}</span>
           <input name="violation_ratio" type="number" step="0.05" min="0.5" max="1"
-                 value="{{ kural.params.get('violation_ratio', 0.75) if kural else 0.75 }}">
+                 value="{{ pk.violation_ratio }}">
         </label>
         <label>Bölgede en az kalış (saniye)
-          <input name="min_dwell_s" type="number" step="0.5" min="0"
-                 value="{{ kural.params.get('min_dwell_s', 3.0) if kural else 3.0 }}">
+          <input name="min_dwell_s" type="number" step="0.5" min="0" max="600"
+                 value="{{ pk.min_dwell_s }}">
         </label>
         <label class="yatay"><input type="checkbox" name="require_full_bbox" value="1"
-          {% if not kural or kural.params.get('require_full_bbox', True) %}checked{% endif %}>
+          {% if pk.require_full_bbox %}checked{% endif %}>
           Kare kenarında kesik görünen kişiyi değerlendirme (önerilir)</label>
         <p class="not">"Belirsiz" HİÇBİR ZAMAN uyarı üretmez. KKD modeli henüz
           eğitilmediyse bu kural olay üretmez ama bölgeden veri toplar (KKD sekmesi).</p>
       </fieldset>
 
       {# --- Araç hız sınırı --- #}
+      {% set ph = degerler.vehicle_speed %}
       <fieldset id="alanlar-vehicle_speed">
         <legend>Araç hız sınırı ayarları</legend>
         <label>Hız sınırına tabi araçlar</label>
@@ -149,23 +164,55 @@
         <label><span>Hız sınırı (metre/saniye)
           {{ ipucu('hiz-siniri', 'Aracın ölçülen hızı bu değeri aşarsa uyarı üretilir. 2,5 m/sn ≈ 9 km/sa, 1,4 m/sn ≈ 5 km/sa.') }}</span>
           <input name="speed_limit_mps" id="speed_limit_mps" type="number" step="0.1" min="0.1"
-                 value="{{ kural.params.get('speed_limit_mps', 2.5) if kural else 2.5 }}">
+                 value="{{ ph.speed_limit_mps }}">
         </label>
         <p class="not" id="hiz-kmh"></p>
         <label><span>Kaç ölçümün ortancasına bakılsın
           {{ ipucu('hiz-pencere', 'Karar tek kareye değil, aynı aracın son bu kadar ölçümünün ortancasına göre verilir; tek karelik sıçrama uyarı üretmez.') }}</span>
           <input name="window_size" type="number" min="3" max="60"
-                 value="{{ kural.params.get('window_size', 5) if kural else 5 }}">
+                 value="{{ ph.window_size }}">
         </label>
         <p class="not">Bu kural yalnızca KALİBRE edilmiş kamerada çalışır
           (kamera sayfası → Mesafe kalibrasyonu): hız, aracın ZEMİNDEKİ yer
           değişiminden ölçülür. Bölge seçmezseniz kamera görüşünün tamamı sayılır.</p>
       </fieldset>
 
+      {% set secili_tip = kural.rule_type if kural and kural.rule_type in degerler else 'zone_intrusion' %}
+      {# Dört tipte ortak parametre: alan fieldset'lerin DIŞINDA, her zaman gönderilir. #}
+      <label><span>Olayın bitmesi için bekleme (saniye)
+        {{ ipucu('bitis', 'İhlal bu kadar saniye görülmezse olay «bitti» sayılır; bitiş zamanı, ihlalin son görüldüğü andır. Kısa kesintiler (bir an görünmeyen kişi, sınırda gidip gelen biri) aynı olayı ikiye bölmez.') }}</span>
+        <input name="bitis_s" type="number" step="0.5" min="0" max="600"
+               value="{{ degerler[secili_tip].bitis_s }}">
+      </label>
+
+      {# Önem (docs/17 §6.2): "Varsayılan" olay kodunun önemidir; hangi kod
+         olduğu tipe, bölgeye, yöne ve sınıflara bağlıdır ve sunucuda
+         hesaplanır (/kurallar/onem). Varsayılanın altına inmek sarı kutudaki
+         onayı ister; sunucu kaydederken aynı denetimi yeniden yapar. #}
+      <label><span>Önem
+        {{ ipucu('onem', 'Uyarının ne kadar ciddi olduğu: ekrandaki renk, uyarı bandı ve inceleme sırası buna göre belirlenir. «Varsayılan», olay türünün kendi önemidir; örneğin araç–yaya yakınlığı Kritik, yaya yolu dışında yürümek Orta.') }}</span>
+        <select name="severity" id="severity">
+          <option value="warning" id="onem-varsayilan-secenek"
+            {% if onem_secimi not in IHLAL_ONEMLERI %}selected{% endif %}>Varsayılan{% if onem %} ({{ onem.varsayilan_adi }}){% endif %}</option>
+          {% for o in IHLAL_ONEMLERI %}
+          <option value="{{ o }}" {% if onem_secimi == o %}selected{% endif %}>{{ ONEM_ADLARI[o] }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <p class="not" id="onem-aciklama">{% if onem %}Bu kuralın olayları: {{ onem.aciklama }}.{% endif %}</p>
+      <div class="form-uyarisi" id="onem-uyari" hidden>
+        <p>Seçtiğiniz önem bu kuralın varsayılanından
+          (<b id="onem-varsayilan-adi">{{ onem.varsayilan_adi if onem else "" }}</b>) düşük.
+          Uyarı ekranda daha sönük görünür ve incelemede geride kalır; gerçek bir
+          tehlike gözden kaçabilir.</p>
+        <label class="yatay"><input type="checkbox" name="onem_onay" value="1" id="onem_onay">
+          Önemi varsayılanın altına indirdiğimi biliyorum</label>
+      </div>
+
       <label><span>Tekrar uyarı bastırma / cooldown (saniye)
-        {{ ipucu('cooldown', 'Aynı kural aynı kamerada bu süre dolmadan ikinci kez uyarı üretmez — hoparlör üst üste bağırmaz.') }}</span>
-        <input name="cooldown_s" type="number" min="5"
-               value="{{ kural.cooldown_s if kural else 120 }}">
+        {{ ipucu('cooldown', 'Aynı kural aynı kamerada bu süre dolmadan ikinci kez uyarı üretmez — hoparlör üst üste bağırmaz. Açılmış bir olay sürerken anons da en çok bu aralıkla tekrarlanır.') }}</span>
+        <input name="cooldown_s" id="cooldown_s" type="number" min="5" max="86400"
+               value="{{ kural.cooldown_s if kural else cooldown_varsayilanlari[secili_tip] }}">
       </label>
 
       <label>Anons mesajı <span class="not">(anons sistemi bağlıysa çalar)</span>
@@ -202,6 +249,10 @@
 <script>
 var BOLGELER = {{ bolgeler_json | safe }};
 var SECILI_BOLGE = {{ kural.zone_id if kural and kural.zone_id else 'null' }};
+var COOLDOWN_VARSAYILANLARI = {{ cooldown_json | safe }};
+var ONEM_SIRASI = {{ IHLAL_ONEMLERI | list | tojson }};
+var varsayilanOnem = {{ (onem.varsayilan if onem else none) | tojson }};
+var onemIstekNo = 0;
 
 function bolgeleriDoldur() {
   var kamera = parseInt(document.getElementById("camera_id").value, 10);
@@ -221,6 +272,63 @@ function bolgeleriDoldur() {
   });
   document.getElementById("bolge-notu").textContent =
     secim.options.length === 0 ? "Bu kamerada bölge yok — önce kamera sayfasında çizin." : "";
+  onemVarsayilaniniGetir();
+}
+
+// Seçilen önem varsayılandan hafifse sarı kutu çıkar ve onay kutusu zorunlu
+// olur (işaretlenmeden form gönderilmez). "Varsayılan" sırada yok (-1).
+function onemDenetle() {
+  var secim = document.getElementById("severity").value;
+  var dusuk = !!varsayilanOnem &&
+    ONEM_SIRASI.indexOf(secim) > ONEM_SIRASI.indexOf(varsayilanOnem);
+  document.getElementById("onem-uyari").hidden = !dusuk;
+  document.getElementById("onem_onay").required = dusuk;
+}
+
+function onemVarsayilaniniGetir() {
+  var tip = document.getElementById("rule_type").value;
+  var kutu = document.getElementById("alanlar-" + tip);
+  var sorgu = new URLSearchParams();
+  sorgu.set("rule_type", tip);
+  sorgu.set("zone_id", document.getElementById("zone_id").value || "0");
+  var yon = kutu.querySelector("[name=mode]");
+  if (yon) sorgu.set("mode", yon.value);
+  kutu.querySelectorAll("[name=target_classes]:checked").forEach(function (k) { sorgu.append("hedef", k.value); });
+  kutu.querySelectorAll("[name=required_ppe]:checked").forEach(function (k) { sorgu.append("kkd", k.value); });
+  var no = ++onemIstekNo;
+  fetch("/kurallar/onem?" + sorgu.toString(), { headers: { Accept: "application/json" } })
+    .then(function (yanit) {
+      if (!yanit.ok) throw new Error("HTTP " + yanit.status);
+      return yanit.json();
+    })
+    .then(function (bilgi) {
+      if (no !== onemIstekNo) return;  // arada yeni bir seçim yapıldı
+      varsayilanOnem = bilgi.varsayilan;
+      document.getElementById("onem-varsayilan-secenek").textContent =
+        "Varsayılan (" + bilgi.varsayilan_adi + ")";
+      document.getElementById("onem-varsayilan-adi").textContent = bilgi.varsayilan_adi;
+      document.getElementById("onem-aciklama").textContent =
+        "Bu kuralın olayları: " + bilgi.aciklama + ".";
+      onemDenetle();
+    })
+    .catch(function () {
+      if (no !== onemIstekNo) return;
+      // Sessiz kalınmaz: kullanıcı neden sarı kutu görmediğini bilmeli.
+      document.getElementById("onem-aciklama").textContent =
+        "Varsayılan önem şu an hesaplanamadı; kaydederken sunucu yine denetler.";
+    });
+}
+
+// Tip değişince cooldown, elle değiştirilmediyse (önceki tipin varsayılanı
+// duruyorsa) yeni tipin varsayılanına geçer (docs/03: 90 / 120 / 180 sn).
+var oncekiTip = document.getElementById("rule_type").value;
+function cooldownGuncelle() {
+  var tip = document.getElementById("rule_type").value;
+  var alan = document.getElementById("cooldown_s");
+  if (String(alan.value) === String(COOLDOWN_VARSAYILANLARI[oncekiTip])) {
+    alan.value = COOLDOWN_VARSAYILANLARI[tip];
+  }
+  oncekiTip = tip;
 }
 
 function alanlariGoster() {
@@ -248,8 +356,18 @@ function kmhYaz() {
 document.getElementById("speed_limit_mps").addEventListener("input", kmhYaz);
 kmhYaz();
 
-document.getElementById("rule_type").addEventListener("change", alanlariGoster);
+document.getElementById("rule_type").addEventListener("change", function () {
+  alanlariGoster();
+  cooldownGuncelle();
+});
 document.getElementById("camera_id").addEventListener("change", bolgeleriDoldur);
+document.getElementById("zone_id").addEventListener("change", onemVarsayilaniniGetir);
+document.getElementById("severity").addEventListener("change", onemDenetle);
+// Varsayılan önemi değiştirebilen öbür seçimler: yön, hedef sınıflar, KKD kalemleri
+document.getElementById("kural-formu").addEventListener("change", function (olay) {
+  var ad = olay.target.name;
+  if (ad === "mode" || ad === "target_classes" || ad === "required_ppe") onemVarsayilaniniGetir();
+});
 alanlariGoster();
 </script>
 {% endblock %}

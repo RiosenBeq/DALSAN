@@ -18,7 +18,10 @@ from app.rules.olay_kodu import (
     ONEMLER,
     SUREN_SISTEM_KODLARI,
     ihlal_kodu,
+    kural_olay_kodlari,
+    kural_varsayilan_onemi,
     olay_onemi,
+    onem_daha_hafif,
 )
 
 # docs/17 §6.1 tablosu, önemleriyle. Tablo değişirse bu liste bilerek güncellenir.
@@ -221,3 +224,44 @@ def test_yaya_yolundaki_arac_kodunu_tetikleyen_sinif_verir():
         "pedestrian_path", [tespit(sinif="truck", ayak=(0.5, 0.5))], hedefler=["truck", "person"]
     )
     assert (ihlal.kod, ihlal.onem) == ("VEHICLE_ON_WALKWAY", "high")
+
+
+# ------------------------------------------------------------------ kuralın varsayılan önemi
+# Kural formu "Varsayılan"ın ne olduğunu ve seçimin onun altına inip inmediğini
+# buradan öğrenir (docs/17 §6.2).
+
+
+@pytest.mark.parametrize(
+    ("kural_tipi", "bolge_tipi", "params", "hedefler", "beklenen"),
+    [
+        ("safe_distance", None, {}, ["person", "forklift"], "critical"),
+        ("vehicle_speed", "vehicle_area", {}, ["forklift"], "high"),
+        ("zone_intrusion", "restricted", {"mode": "inside"}, ["person"], "high"),
+        ("zone_intrusion", "pedestrian_path", {"mode": "outside"}, ["person"], "medium"),
+        ("zone_intrusion", "truck_parking", {"mode": "outside"}, ["truck"], "low"),
+        # Bağlamsal yükseltme dahil: araç varken Yüksek olur
+        ("zone_intrusion", "vehicle_area", {"mode": "inside"}, ["person"], "high"),
+        # En ağır olay belirler: baret yok (Yüksek) ile yelek yok (Orta)
+        ("ppe_violation", "ppe_required", {"required_ppe": ["vest", "helmet"]}, ["person"], "high"),
+        ("ppe_violation", "ppe_required", {"required_ppe": ["vest"]}, ["person"], "medium"),
+        # Hedef seçilmemiş bölge kuralı: yedek kod
+        ("zone_intrusion", "restricted", {"mode": "inside"}, [], "medium"),
+    ],
+)
+def test_kuralin_varsayilan_onemi(kural_tipi, bolge_tipi, params, hedefler, beklenen):
+    assert kural_varsayilan_onemi(kural_tipi, bolge_tipi, params, hedefler) == beklenen
+
+
+def test_kuralin_olay_kodlari_en_agirdan_hafife():
+    kodlar = kural_olay_kodlari(
+        "zone_intrusion", "pedestrian_path", {"mode": "inside"}, ["person", "forklift", "truck"]
+    )
+    # Araç → VEHICLE_ON_WALKWAY (Yüksek); kişi → sözlükte yok → ZONE_INTRUSION (Orta)
+    assert kodlar == ["VEHICLE_ON_WALKWAY", "ZONE_INTRUSION"]
+
+
+def test_onem_daha_hafif():
+    assert onem_daha_hafif("medium", "high")
+    assert onem_daha_hafif("low", "critical")
+    assert not onem_daha_hafif("critical", "high")
+    assert not onem_daha_hafif("high", "high")

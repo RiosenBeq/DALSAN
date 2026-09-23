@@ -94,6 +94,21 @@ kurallar değişmedi). Kalibrasyonsuz kamerada etkin bir güvenli mesafe ya da
 hız kuralı varsa kurulum listesinde kırmızı **"Kalibrasyon bekleniyor"**
 maddesi çıkıyor ve `/saglik` `"sorunlar": ["kritik_kural_pasif"]` veriyor.
 
+**2c-4c — kural formu.** Formda **Önem** seçimi var: "Varsayılan (Yüksek)" gibi,
+kuralın olay türünden hesaplanan önemi ve hangi olaylardan geldiğini söylüyor
+("Baret yok: Yüksek; Yelek yok: Orta"). Varsayılanın altına inmek sarı kutuda
+onay istiyor ve sunucu da denetliyor; yükseltmek serbest. Kurallar listesinde
+**Önem** sütunu var. `bitis_s` (dört tip), `gecit_haric` (bölge) ve
+`histerezis_m` (mesafe) formda. Kaydetmek, formda olmayan bir parametreyi artık
+varsayılana döndürmüyor: aynı tipte önceki değer korunuyor. Form varsayılanları
+şemadan geliyor (R25). Cooldown yeni kuralda tipin varsayılanıyla doluyor
+(90 / 120 / 180 sn; eskiden hep 120). Başka tipin alanı artık düzenlenen kuralın
+değerini göstermiyor; örneğin KKD alanındaki kalış süresi, düzenlenen bölge
+kuralınınkini gösteriyordu. Olmayan bir kuralı "düzenleyip kaydetmek" artık
+sessizce geçmiyor. Kurulum listesindeki kalibrasyon maddesi çoğulu düzgün
+yazıyor ("… kameralarındaki … kuralları"). Sınıf kutularının katalogdan ve
+etkin modelden gelmesi, `SINIF_KATALOGU` ile F3'e kaldı. Statik damga `?v=29`.
+
 Tasarımda açık kalan iki nokta kodda şöyle kapandı: `ZONE_INTRUSION`'ın
 varsayılan önemi **Orta** (tasarım "kural satırından" diyordu ama bütün
 satırlar `warning`); kapanış sebeplerine `kamera_degisti` eklendi. Bitiş hiçbir

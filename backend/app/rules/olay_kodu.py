@@ -181,3 +181,48 @@ def olay_onemi(
     if arac_ayni_bolgede and kod == "PERSON_IN_VEHICLE_LANE":
         return ONEM_YUKSEK
     return tanim.onem
+
+
+def _en_agir_onemi(kod: str) -> str:
+    """Kodun bağlamsal yükseltme dahil ulaşabileceği en ağır varsayılan önem."""
+    return olay_onemi(kod, arac_ayni_bolgede=True)
+
+
+def kural_olay_kodlari(
+    kural_tipi: str, bolge_tipi: str | None, params: dict, hedef_siniflar
+) -> list[str]:
+    """Kuralın üretebileceği ihlal kodları, en ağır önemden hafife (kural formu).
+
+    Bölge ihlalinde her hedef sınıf ayrı kod verebilir (araç sahasında insan
+    PERSON_IN_VEHICLE_LANE, forklift ZONE_INTRUSION); KKD'de her zorunlu
+    kalem kendi kodunu verir. Kod yine `ihlal_kodu`'ndan gelir: eşleme iki
+    yerde yazılmaz.
+    """
+    if kural_tipi == "zone_intrusion":
+        yon = params.get("mode", "inside")
+        detaylar = [{"mode": yon, "sinif": s} for s in hedef_siniflar] or [{"mode": yon}]
+    elif kural_tipi == "ppe_violation":
+        detaylar = [{"eksik_kkd": [k]} for k in params.get("required_ppe") or ("helmet", "vest")]
+    else:
+        detaylar = [{}]
+    kodlar = {ihlal_kodu(kural_tipi, d, bolge_tipi) for d in detaylar}
+    return sorted(kodlar, key=lambda k: (IHLAL_ONEMLERI.index(_en_agir_onemi(k)), k))
+
+
+def kural_varsayilan_onemi(
+    kural_tipi: str, bolge_tipi: str | None, params: dict, hedef_siniflar
+) -> str:
+    """Kural satırında açık önem yokken kuralın EN AĞIR olayının önemi.
+
+    Bağlamsal yükseltme dahildir: araç yolundaki yaya Orta doğar ama aynı
+    bölgede araç varken Yüksek olur. Kural formunda "Orta" seçmek bu
+    yükseltmeyi kapatır (açık önem bağlamdan önce gelir), yani varsayılanın
+    altına inmektir ve onay ister.
+    """
+    kodlar = kural_olay_kodlari(kural_tipi, bolge_tipi, params, hedef_siniflar)
+    return _en_agir_onemi(kodlar[0])
+
+
+def onem_daha_hafif(onem: str, karsi: str) -> bool:
+    """`onem`, `karsi`dan daha mı hafif? İkisi de IHLAL_ONEMLERI'nden."""
+    return IHLAL_ONEMLERI.index(onem) > IHLAL_ONEMLERI.index(karsi)

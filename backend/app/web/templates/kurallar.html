@@ -1,6 +1,7 @@
 {% extends "temel.html" %}
 {% block baslik %}Kurallar — DALSAN İSG{% endblock %}
 {% block icerik %}
+  {% from "bilesen.html" import onem_hapi %}
   <div class="baslik-satiri">
     <h2>Kurallar</h2>
     <a class="dugme" href="/kurallar/yeni">+ Yeni Kural</a>
@@ -9,12 +10,13 @@
   {% if kurallar %}
   <section class="kart">
     <table class="liste">
-      <tr><th>Kamera</th><th>Tip</th><th>Bölge</th><th>Cooldown</th><th>Durum</th><th></th></tr>
+      <tr><th>Kamera</th><th>Tip</th><th>Bölge</th><th>Önem</th><th>Cooldown</th><th>Durum</th><th></th></tr>
       {% for r in kurallar %}
       <tr>
         <td>{{ r.kamera_adi }}</td>
         <td>{{ r.tip_adi }}</td>
         <td>{{ r.bolge_adi or "—" }}</td>
+        <td>{% if r.onem %}{{ onem_hapi(r) }}{% if r.onem_varsayilan %} <span class="not">varsayılan</span>{% endif %}{% else %}—{% endif %}</td>
         <td>{{ r.cooldown_s }} sn</td>
         <td>
           {% if not r.enabled %}<span class="rozet gri">kapalı</span>

@@ -628,6 +628,16 @@ legend { font-size: 0.88rem; color: var(--metin-3); padding: 0 6px; }
   color: var(--uyari-metin); font-size: 0.85rem;
 }
 
+/* formda onay isteyen sarı uyarı (ör. önemi varsayılanın altına indirmek) */
+.form-uyarisi {
+  padding: 10px 13px; border-radius: var(--radius-kucuk);
+  background: var(--uyari-zemin); border: 1px solid var(--uyari-cizgi);
+  color: var(--uyari-metin); font-size: 0.88rem;
+}
+.form-uyarisi[hidden] { display: none; }
+.form-uyarisi p { margin: 0 0 6px; }
+.form-uyarisi label.yatay { color: var(--uyari-metin); font-weight: 600; }
+
 /* hazır kural kutusu */
 .hazir-kural {
   margin-top: 14px; padding: 12px 14px; border-radius: var(--radius-kucuk);
