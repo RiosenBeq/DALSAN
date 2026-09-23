@@ -1,5 +1,39 @@
 # İlerleme
 
+## Hata avı ve uygulama üretim hattı (23.09.2026)
+
+Operatör: *"bugları da çözüp tamamen profesyonel ve basitçe yapılabilen bir
+sistem haline getir"*, *"windowsta exe uygulama olacak macbookta da öyle"*.
+
+- **Tarama:** tanıtım kurulumunda (örnek video, kamera, iki bölge, kurallar,
+  iki hoparlör kanalı) 24 sayfa türünün tamamı tarayıcı otomasyonuyla gezildi,
+  1440 ve uygulama penceresinin en küçüğü olan 1024 genişlikte. Sunucu hatası,
+  konsol hatası, kırık istek, kırık görsel ve yatay taşma: **yok**. Formlar
+  sayfanın kendi değerleriyle gönderildi (ayarlar, kural ekle/düzenle, olay
+  durumu, kamera düzenle, hoparlör ve anons deneme, filtreler): hepsi temiz.
+  Canlı ekranlar olay akarken 20'şer saniye izlendi: konsol hatası yok.
+- **Bulunan hata (düzeltildi):** kurala anons mesajı seçilmemişse (formun
+  varsayılanı buydu) ya da mesaj kapatılmışsa süpervizör olayı dağıtıcıya hiç
+  vermiyordu. Tanıtımda 1364 ekran teslimine karşı **sıfır** hoparlör teslimi
+  vardı ve `/saglik` yine "uyarı garantisi var" diyordu. docs/17 K21'e ve
+  operatörün hoparlör isteğine aykırıydı. Artık olay kendi adıyla duyurulur:
+  ses çıkışı uyarı tonunu çalar, IP hoparlör olayın adını okur, garanti ve
+  "ulaşmadı" denetimi çalışır. Çalışan tanıtımda doğrulandı: Bluetooth
+  hoparlör 30 sn arayla tonu çaldı, aradaki tekrarlar bastırıldı. Uçtan uca
+  test iki durumu da sınar; eski satırı geri koymak testi kırıyor.
+- **Üretim hattı:** `.github/workflows/uygulama-uret.yml` Windows, Apple M
+  çipli Mac ve Intel Mac paketlerini üretir ve yayımlamadan önce açar. İlk
+  çalıştırmada Windows (Server 2025, WebView2 152) ve Apple M Mac'te bütün
+  adımlar geçti: pencere bileşeni pakette, izleme penceresi gerçek web
+  görünümünde açıldı (motor Edge WebView2, canlı akış var), HAZIR dedi, öne
+  geldi, kanal kapanınca kendini kapattı; uygulamanın tamamı sistemi başlattı
+  ve Kontrol Paneli izleme penceresini kendiliğinden açtı. Windows paketi
+  123 MB (açılınca 307 MB).
+- **Ağ politikası:** bu çalışma ortamı GitHub'ın paket deposuna
+  (`productionresultssa15.blob.core.windows.net`) erişemiyor; paketler ve
+  sınama sırasında alınan ekran görüntüleri GitHub'da Actions sayfasından
+  indirilir (docs/13 §3.2).
+
 ## İzleme ekranı kendi penceresinde, tarayıcısız (23.09.2026)
 
 Operatör: *"zaten exe olarak olması lazım tarayıcı da açılmaması lazım ve bunu

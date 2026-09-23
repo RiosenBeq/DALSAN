@@ -1797,6 +1797,14 @@ docs/07'ye satır olur.
   istisnası). Yedek, Edge/Chrome/Brave uygulama kipidir; olağan tarayıcı sekmesine düşüş
   kaldırıldı. pywebview'ün WebView2 yokken Internet Explorer motoruna düşmesi reddedilir.
   Uygulama `masaustu/uygulama_penceresi.py`, docs/13 §3.1.
+- **23.09.2026, mesajı olmayan kural (hata düzeltmesi, K21):** kurala anons mesajı
+  seçilmemişse (ya da mesaj kapatılmış, silinmişse) süpervizör olayı dağıtıcıya hiç
+  vermiyordu: hoparlör susuyor, garanti aranmıyor, `ALERT_UNDELIVERED` çıkmıyordu
+  (tanıtım kurulumunda 1364 ekran teslimine karşı sıfır hoparlör; `/saglik` yine
+  "garanti var" diyordu). K21 "gölgede olmayan her güvenlik olayı" der ve operatör
+  risk anında hoparlörün susmamasını istedi. Artık olay kendi adıyla duyurulur
+  (`anons.genel_uyari_mesaji`): ses çıkışı uyarı tonunu çalar, IP hoparlör olayın adını
+  okur, garanti aranır. Susturmanın tek yolu gölge moddur. docs/14 §2.3.
 
 | # | GÖREV | Soru | Neden önemli | Varsayılan seçenek | Gerektiği an |
 |---|---|---|---|---|---|

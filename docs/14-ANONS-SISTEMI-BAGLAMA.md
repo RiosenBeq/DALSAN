@@ -172,6 +172,13 @@ ulaşmış sayılır. Anons sayfasında bu mesajlar "ses dosyası yok" rozetiyle
 görünür. Ton bir yedektir: kim ne yapmalı söylemez, sözlü kayıt yine gerekir
 (operatör isteği 23.09.2026: risk anında hoparlörden uyarı verilsin).
 
+**Kurala mesaj seçilmemişse de hoparlör susmaz.** Kural formunda "mesaj yok"
+seçili kalmışsa (ya da kuralın mesajı kapatılmış, silinmişse) olay kendi
+adıyla duyurulur: ses çıkışı uyarı tonunu çalar, IP hoparlör olayın Türkçe
+adını okur (örneğin "Yükleme alanında yaya"), teslim kaydına "kurala anons
+mesajı bağlanmamış" yazılır ve "uyarı ulaşmadı" denetimi bu olaylar için de
+çalışır (docs/17 K21). Bir kuralı tamamen susturmanın yolu **gölge mod**dur.
+
 | Mesaj anahtarı | Varsayılan metin |
 |---|---|
 | `safe_distance` | Lütfen iş makinelerinden güvenli mesafede durunuz. |
