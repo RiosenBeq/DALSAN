@@ -1767,6 +1767,11 @@ docs/07'ye satır olur.
   ürün dışıdır (S31). Cevap gelene kadar hukuk görüşü olmadan yeni ön eğitimli ağırlık ya da
   kamu veri seti kullanılmaz.
 - **Açık:** S1, S5, S6, S7, S13, S15 (kayıtlı saha videosu gerekir), S20, S27, S35.
+- **23.09.2026, çizgi işareti:** operatör "sistem genelinde çizgi işareti olarak `-`
+  kullan" dedi. Kodda, yorumda, arayüz metninde, belgede, günlük iletisinde ve commit
+  mesajında uzun çizgi (U+2014), orta çizgi (U+2013), eksi işareti (U+2212) ve benzeri
+  tipografik çizgiler kullanılmaz; yerine düz tire yazılır. Depodaki 1893 çizgi bir kez
+  çevrildi; kural CLAUDE.md §7'de, bekçisi `tests/test_yazim_kurallari.py`.
 
 | # | GÖREV | Soru | Neden önemli | Varsayılan seçenek | Gerektiği an |
 |---|---|---|---|---|---|

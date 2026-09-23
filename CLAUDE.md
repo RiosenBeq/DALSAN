@@ -134,6 +134,7 @@ sonucu kullanıcıya **göster**.
 | Model ağırlıklarını commit'lemek | `models/indir.sh` |
 | "Şimdilik geçici çözüm" | Doğrusunu yap veya işi böl |
 | Kullanıcıya kod okutup onay istemek | Davranışı tarif et: "şunu yap, şunu görmelisin" |
+| Uzun çizgi (U+2014), orta çizgi (U+2013), eksi işareti (U+2212) ya da başka tipografik çizgi | Yalnız düz tire `-`: kodda, yorumda, arayüz metninde, belgede, günlük iletisinde ve commit mesajında (operatör kararı 23.09.2026; `tests/test_yazim_kurallari.py` denetler) |
 
 ---
 
@@ -145,6 +146,8 @@ sonucu kullanıcıya **göster**.
 - **Hata mesajlarını sadeleştirme** - kullanıcı günlükten kopyalayıp yapıştıracak.
 - **Terminal komutu vermek yerine** mümkünse Kontrol Paneli'ne düğme ekle.
 - **Türkçe konuş.** Kod içi isimler İngilizce, kullanıcıya görünen her şey Türkçe.
+- **Çizgi işareti yalnız düz tire (`-`).** Uzun ya da orta çizgi yazma; ara
+  cümle için " - ", aralık için "2-10" (§7; operatör kararı 23.09.2026).
 - Her çalışan aşamadan sonra git commit'i öner.
 
 ---

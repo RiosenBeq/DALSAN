@@ -1,5 +1,15 @@
 # İlerleme
 
+## Yazım kuralı: çizgi işareti (23.09.2026)
+
+Operatör kararı: sistem genelinde çizgi işareti olarak yalnız düz tire (`-`)
+kullanılır. Depodaki 234 dosyada 1893 tipografik çizgi (uzun çizgi, orta çizgi,
+eksi işareti) düz tireye çevrildi: kod, yorum, arayüz metni, şablon, CSS/JS,
+belge. Anlam değişmedi: yer tutucu "-" hem sunucuda hem `uyari.js`'te aynı
+karakterdir. Kural CLAUDE.md §7 ve §8'de ve docs/17 §16 karar kaydında;
+`tests/test_yazim_kurallari.py` depoda bu karakterlerden biri kalırsa dosya ve
+satırıyla kırmızı olur. Statik damga `?v=39`.
+
 ## Faz 4 uyarı kanalları (23.09.2026)
 
 Plan: `docs/17-V2-TASARIM.md` §7 ve §13 (4a-4e satırları), operatörün kabul ettiği
