@@ -19,6 +19,10 @@ Docker gerekmez. Kontrol Paneli yeter:
 **İlk Kurulumu Yap** → **Sistemi Başlat**. Tarayıcı `http://127.0.0.1:8080`
 adresinde açılır. Tespit modeli yoksa sistem ilk açılışta **kendisi indirir**
 (internet gerekir); ana sayfadaki "Tespit modeli" satırı "Hazır" olana kadar bekleyin.
+Şirket ağında güvenlik duvarı varsa bu ilk indirme için `github.com` ve GitHub'ın dosya
+sunucusu `release-assets.githubusercontent.com` açık olmalı: hazır modeller YOLOX'un resmi
+yayınından, forklift tanıyan modeller bu deponun kendi yayınından (GitHub Release) iner.
+İkisi de SHA-256 ile doğrulanır; tutmayan dosya kullanılmaz.
 
 Ayrıntı: `NASIL-CALISIR.md`.
 

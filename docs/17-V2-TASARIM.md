@@ -1590,7 +1590,7 @@ Ultralytics Construction-PPE de öyle.
 | Kaynak | Lisans (docs/16 doğrulama düzeyi) | Kullanım | Koşul |
 |---|---|---|---|
 | **DALSAN saha verisi** | Müşterinin; KVKK dayanağı ve Rev.02 şart | KKD ince ayarı ve **bütün** değerlendirme; forklift/tır ince ayarı | KKD veri toplama kapısı (`ppe_collection_gate`); S10 |
-| **LOCO** (TUM) | CC0 1.0 (DOĞRULANDI) | forklift, `pallet_jack` ("pallet truck"), palet | `person` yok; el kamerası perspektifi; indirme bağlantısı bu ortamdan açılamadı |
+| **LOCO** (TUM) | CC0 1.0 (DOĞRULANDI) | **Kullanılıyor (23.09.2026):** forklift ek başının eğitimi ve testi (§12.3, `egitim/forklift`); `pallet_jack` ayrı sınıf, palet atılır | `person` yok (ek baş kişi öğrenmez, gerekmez); el kamerası perspektifi; arşiv GitHub makinesinden iner (yoklama: 769 MB zip) |
 | YOLOX kodu ve resmi ağırlıklar | Apache-2.0 (DOĞRULANDI) | Mevcut tespit; ince ayar başlangıcı | Ağırlıkların COCO/Flickr görüntü kökeni için hukuk görüşü (S20) |
 | YuNet `2023mar` | MIT (DOĞRULANDI) | İsteğe bağlı yüz bulanıklaştırma | sha256 ile indirilir |
 | Roboflow Construction Site Safety (`roboflow-universe-projects`) | CC BY 4.0 (DOĞRULANMADI, arama özeti) | **Koşullu:** yalnız KKD ön eğitimi | Sürüm sabitlenir; lisans satırının ekran görüntüsü `LICENSE-THIRD-PARTY`'ye; ürünle dağıtılmaz |
@@ -1607,24 +1607,47 @@ gölge mod. Hedef veri miktarı docs/04 §4.5'tedir; bu belge yeni sayı koymaz.
 
 ### 12.3 Forklift / tır özel sınıfı yolu
 
-1. Bugün forklift üretilmiyor; car/bus/truck tek "truck" (`tespit.py:26-36`). Bu sürede bilinen
-   sınırlar: binek araç `VEHICLE_ON_WALKWAY` ve mesafe kuralını tetikler; sürücü muafiyeti yalnız
-   "truck" görünen araçta çalışır.
-2. Veri: müşteri kameralarından KVKK dayanaklı birkaç yüz kare (alan kayması için en değerlisi) +
-   LOCO (forklift, pallet truck). LOCO'da `person` yok; kişi bilgisini unutmamak için COCO'dan
-   `person`/`truck`/`car` içeren küçük bir alt küme stdlib ile süzülüp eklenir (docs/16 §2).
-3. Eğitim: YOLOX depo klonu, ayrı venv, GPU'lu makine; `tools/train.py -f <Exp> … -c <ağırlık>`;
-   sınıf başı sıfırdan başlar (docs/16 §2). COCO JSON birleştirme ve sınıf eşleme ~50 satırlık
-   stdlib betiği (ürün dışı); betik saha karelerinde kamera+gün bölmesini zorlar ve kutu
-   etiketleme kuralı docs/04 §5'in "tespit kutuları" alt bölümündedir (Ç45). Uzman işi, tek
-   seferlik; runbook docs/04 §6 (Ç37, S31).
-4. Sınıf sırası katalog kimliğine göre yazılır ve ONNX metadata'sına konur (§4.2). `loader` yalnız
-   sahada varsa ve yalnız müşteri görüntüsüyle (S12).
+**Durum (23.09.2026): eğitim hattı kuruldu ve GitHub'da uçtan uca sınandı, ilk tam eğitim
+sürüyor** (operatör: "forklifti tanıması lazım ... en iyi şekilde eğit"; karar kaydı §16).
+Sonuçlar ve seçilen model docs/ILERLEME'ye yazılır. Aşağıdaki 1-3, ilk planın (GPU'lu
+makinede bütün ağın ince ayarı, COCO alt kümesiyle) yerini alır.
+
+1. **Yöntem: donuk resmi model + ek baş.** Resmi YOLOX COCO modeli (tiny 416, s 640)
+   DEĞİŞMEZ. Yanına yalnız iki sınıfı (forklift, el transpaleti `pallet_jack`) öğrenen küçük
+   bir ek baş eğitilir; resmi başın kendi özniteliklerini kullanır. `v1`: yalnız 1x1 sınıf ve
+   nesne katmanları (işlemci yükü neredeyse sıfır); `v2`: ek başın kendi sınıf dalı (iki 3x3
+   evrişim). Dışa aktarımda ikisi TEK ONNX'te birleşir: kutular ve insan/araç puanları resmi
+   modelinkiyle bit bit aynıdır (591 görüntüde, ürünün kendi `Tespitci`siyle doğrulandı),
+   forklift puanı ek baştan gelir. İnsan ve araç tanıma bu yüzden yapı gereği korunur ve
+   COCO görüntüsüne ya da öğretmen etiketine gerek kalmaz.
+2. **Kişi önceliği.** Birleşik modelde forklift puanı resmi insan puanıyla bastırılır:
+   `forklift x (1 - insan)^k`. k = 1'de resmi modelin 0,5 ve üstü güvenle bulduğu HİÇBİR kişi,
+   ek baş ne yaparsa yapsın kaybolmaz (her yerde "forklift" diyen bozuk bir ek başla denendi:
+   düz birleştirmede kişilerin %100'ü, k = 1'de 0,5 ve üstü güvenli 369 kişiden hiçbiri
+   kaybolmadı). k model kartına yazılır; adaylar k = 0, 1, 2 ile ölçülür.
+3. **Veri ve eğitim.** LOCO (CC0 1.0), yazarların ortam ayrık bölmesi: 2-3-5 eğitim (2820 kare,
+   474 forklift kutusu; forkliftli kareler 3 kez), 1-4 test (2277 kare, 124 forklift kutusu).
+   Eğitim GitHub Actions'ın CPU makinesinde (`.github/workflows/forklift-egit.yml`); veri,
+   başlangıç ağırlıkları ve YOLOX kaynak kodu SHA-256 ya da commit ile sabitlenir. Her aday
+   ürünün kendi tespit motoruyla ölçülür (`egitim/forklift/degerlendir.py`) ve adaylar bir ön
+   sürüm (GitHub Release) olarak yayımlanır. Eğitim `main`'e gönderimle başlar:
+   `egitim/forklift/istek.json` değişirse tam eğitim, başka değişiklikte kısa duman sınaması.
+   **Saha görüntüsü bu hatta ASLA girmez** (iş kayıtları ve yayınlar herkese açıktır, KVKK);
+   sahadan ince ayar ayrı ve kapalı yapılır.
+4. Sınıf sırası ve üst veri: çıktı sütunları `person, forklift, truck, pallet_jack, car, bus`;
+   `dalsan_classes` sözlük biçimindedir, `pallet_jack` eşlenmez (katalogda yok, S12), car ve
+   bus bugünkü gibi "truck" sayılır. `loader` yalnız sahada varsa ve yalnız müşteri
+   görüntüsüyle (S12).
 5. **Güvenlik gerilemesi uyarısı:** car/truck ayrılınca forklift, model onu "car" sanarsa mesafe
    kuralından kaçabilir. Ayrım ancak saha ölçümünde forklift recall'u görüldükten sonra
-   devreye alınır; o zamana kadar mesafe kuralının `object_classes`'ı araç grubunun tamamını alır.
-6. Doğruluk (mAP50) yalnız etiketli saha test gününde ölçülür (§14); kutu etiketlemeyi kimin
-   yapacağı S11.
+   devreye alınır; o zamana kadar mesafe kuralının `object_classes`'ı araç grubunun tamamını
+   alır. Forklift sınıflı modelde yalnız "Tır/Araç" seçili kurallar forklifti GÖRMEZ: kurulum
+   listesi bu kuralları adıyla söyler (`web/kilavuz.py`).
+6. Doğruluk: LOCO testi, Open Images forklift ve sanayi fotoğrafları ve bir yaya videosu
+   vekil ölçümdür (sonuçlar docs/ILERLEME). Kabul için asıl ölçüm hâlâ etiketli saha test
+   günüdür (§14); kutu etiketlemeyi kimin yapacağı S11.
+7. Sürücü: mesafe kuralında sürücü muafiyeti yoktur; forklifti daha iyi tanıyan model,
+   hareket eden forkliftin kendi sürücüsüyle eşleşmesini de daha sık görebilir (S38).
 
 ### 12.4 Export, kuantizasyon, çalışma zamanı
 
@@ -1775,8 +1798,8 @@ docs/07'ye satır olur.
 - **S20** o listede operatöre gösterilmedi. Kabul edilmiş sayılmaz. Ürün kodunu etkilemez: eğitim
   ürün dışıdır (S31). Cevap gelene kadar hukuk görüşü olmadan yeni ön eğitimli ağırlık ya da
   kamu veri seti kullanılmaz.
-- **Açık:** S1, S5, S6, S7, S13, S15 (kayıtlı saha videosu gerekir), S20, S27, S35, S37
-  (S37 23.09.2026 eksik denetiminde eklendi; docs/ILERLEME).
+- **Açık:** S1, S5, S6, S7, S13, S15 (kayıtlı saha videosu gerekir), S20, S27, S35, S37, S38
+  (S37 23.09.2026 eksik denetiminde, S38 forklift modeliyle eklendi; docs/ILERLEME).
 - **23.09.2026, hoparlör:** operatör "risk anında hoparlörden uyarı verdiğinden emin ol
   (bağlı hoparlör)" dedi. Ses çıkışı kanalı mesajın WAV'ı yoksa artık susmaz: üretilmiş
   uyarı tonu çalar (`olaylar/ton.py`, docs/14 §2.3). §7.9'daki "sabit mesaj = insan sesiyle
@@ -1797,6 +1820,15 @@ docs/07'ye satır olur.
   istisnası). Yedek, Edge/Chrome/Brave uygulama kipidir; olağan tarayıcı sekmesine düşüş
   kaldırıldı. pywebview'ün WebView2 yokken Internet Explorer motoruna düşmesi reddedilir.
   Uygulama `masaustu/uygulama_penceresi.py`, docs/13 §3.1.
+- **23.09.2026, forklift modeli (S20'nin bu iş için cevabı):** operatör "forklifti tanıması
+  lazım ve bunun gibi eğitilmesi gerekiyorsa en iyi şekilde eğit" dedi. Bu, S20'nin "hukuk
+  görüşüne kadar yeni kamu veri seti kullanılmaz" varsayılanını forklift eğitimi için
+  kaldırır. Lisans riski yine en az tutuldu: eğitim verisi yalnız LOCO'dur (CC0 1.0,
+  doğrulandı); ürünün ZATEN kullandığı resmi YOLOX ağırlıkları donuk kalır ve onların
+  dışında hiçbir hazır ağırlık, COCO/Open Images/Roboflow görüntüsü eğitime GİRMEDİ. Open Images
+  fotoğrafları yalnız ölçümde kullanıldı, ürünle dağıtılmaz. COCO kökenli hazır ağırlıklar
+  için hukuk görüşü sorusu (S20'nin kalanı) bugünkü ürün için neyse aynen odur, açıktır.
+  Yöntem §12.3; lisans atfı `LICENSE-THIRD-PARTY` 5. madde.
 - **23.09.2026, mesajı olmayan kural (hata düzeltmesi, K21):** kurala anons mesajı
   seçilmemişse (ya da mesaj kapatılmış, silinmişse) süpervizör olayı dağıtıcıya hiç
   vermiyordu: hoparlör susuyor, garanti aranmıyor, `ALERT_UNDELIVERED` çıkmıyordu
@@ -1845,6 +1877,7 @@ docs/07'ye satır olur.
 | S35 | §4.9 | Disk dolarken kanıt fotoğrafı ve KKD kırpığı yazımı hangi boş alanda dursun? | Disk dolarsa SQLite de yazamaz, olay kaydı durur | `DISK_DUR_GB` = 1 (öneri; `DISK_UYARI_GB` = 5'in altında) | Faz 5 |
 | S36 | CLAUDE.md §7 | §6.2'deki "belgelenmiş sabitler" listesi kabul mü? CLAUDE.md §7'ye "iç mekanik sabitler gerekçesiyle belgelenerek kodda kalabilir" notu eklensin mi? | §7 "sabit kodlanmış eşik yok" der; hepsini `.env`'e taşımak Ayarlar'ı onlarca anlaşılmaz satıra çıkarır (Ç36) | Evet; olay üreten ya da arızanın görünme süresini belirleyen her eşik `.env`/kural parametresinde | **Faz 2 öncesi** |
 | S37 | §4.8 | Aylık çalışma süresi (≥ %99,5) hangi saate oranlansın: ayın bütün saatlerine mi (7/24), fabrikanın çalıştığı saatlere mi? Planlı duruş (bakım, tatil, sistemin bilerek kapatılması) paydan düşsün mü? | Veri tutuluyor (`analysis_hours`, `CAMERA_DOWN`, `SYSTEM_STARTED/STOPPED`, §14) ama payda tanımsız: bilerek kapatılan gece saatleri 7/24 paydada hedefi tek başına düşürür, planlı duruş tanımı ise elle girilecek bir takvim ister | Takvim saati (7/24), planlı duruş düşülmez; Rapor'da kamera başına "analiz edilen saat ÷ dönem saati" yüzdesi. Soru denetimde çıktı, henüz kodlanmadı | Faz 5 (saha kabulünden önce) |
+| S38 | §12.3-7 | Güvenli mesafe kuralında forklift/tır SÜRÜCÜSÜ muaf mı? Hareket eden forkliftin kendi sürücüsü "araca yakın kişi" sayılıp kritik uyarı üretebilir. KKD kuralındaki basit "kişi araç kutusunun içinde" testi burada kullanılamaz: forkliftin önünde ya da arkasında (geri geri giderken) duran yaya da görüntüde aynı kutunun içine düşer ve en tehlikeli durum susturulmuş olur | Forklift sınıflı model forklifti daha sık gördüğü için sürücüyle eşleşme de sıklaşabilir; yanlış alarm yorgunluğu kuralın kapatılmasına yol açar. Öte yandan yanlış bir muafiyet gerçek bir çarpma anını susturur | Muafiyet YOK (bugünkü davranış): şüphede alarm verilir. Sahada gölge modda sayılır; kural gerekirse sürücüyü kişinin araçla BİRLİKTE hareketinden (aynı hız ve yön, belirli süre) tanıyacak biçimde, İSG ile birlikte tasarlanır | Saha kurulumu (gölge ölçümünden sonra) |
 
 ---
 

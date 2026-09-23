@@ -1,5 +1,41 @@
 # İlerleme
 
+## Forklift tanıyan model (23.09.2026)
+
+Operatör: *"forklifti tanıması lazım ve bunun gibi eğitilmesi gerekiyorsa en iyi şekilde
+eğit"*. Karar kaydı ve lisans çerçevesi docs/17 §16, yöntem §12.3.
+
+- **Sorun ölçüldü:** hazır model (NextGen AI Hızlı), Open Images'teki 104 forklift
+  fotoğrafında forkliftlerin yalnız %59'unu araç olarak bile buluyor; gerisini hiç görmüyor.
+- **Yöntem: donuk resmi model + ek baş.** Resmi YOLOX modeli hiç değişmez; yanına yalnız
+  forklift ve el transpaletini öğrenen küçük bir baş eğitilir, ikisi tek ONNX'te birleşir.
+  Eğitimsiz birleşik model ürünün kendi `Tespitci`siyle 591 görüntüde resmi modelle bit bit
+  aynı sonucu verdi (güven farkı 0, hız aynı); eğitimden sonra da resmi kısımların 450
+  tensörü (222 BN istatistiği dahil) bit bit aynı kaldı. Böylece insan ve araç tanıma yapı
+  gereği korunur, COCO görüntüsü ve öğretmen etiketi gerekmez (S20 riski artmaz).
+- **Kişi önceliği:** birleşik modelde forklift puanı `x (1 - insan)^k`. Her yerde "forklift"
+  diyen bozuk bir ek başla denendi: düz birleştirmede kişilerin %100'ü kayboldu; k = 1'de
+  resmi modelin 0,5 ve üstü güvenle bulduğu 369 kişiden hiçbiri kaybolmadı.
+- **Veri:** LOCO (CC0 1.0). Etiketler sabit commit'ten, görüntü arşivi (769 MB) TUM'un
+  sunucusundan GitHub makinesinde iner (yoklama işiyle doğrulandı; bu geliştirme ortamından
+  erişilemiyor). Ortam ayrık bölme: 2-3-5 eğitim, 1-4 test.
+- **Eğitim hattı** (`egitim/forklift/`, `.github/workflows/forklift-egit*.yml`): veri
+  hazırlama, CPU eğitimi (6 saatlik iş sınırı için ara kayıtlı bacaklar), dışa aktarım ve
+  sözleşme denetimi, ürünün tespit motoruyla ölçüm, adayların ön sürüm olarak yayımı.
+  Ürün dışıdır (CLAUDE.md §4 istisnası); saha görüntüsü bu hatta girmez.
+- **Uygulama tarafı:** tespit modeli açılışta sözleşmeye göre sınanır (yanlış dışa aktarılmış
+  model reddedilir); forklift sınıflı modelde yalnız "Tır/Araç" seçili kurallar kurulum
+  listesinde söylenir; paket sınaması modelin gerçekten yüklendiğini bekler; modeller bu
+  deponun yayınından SHA-256 ile iner; Ayarlar'da "Tanıma modeli" seçimi.
+- **GitHub'da sınandı:** duman çalıştırması (3) 12 işin hepsinde yeşil: LOCO arşivi 2 dakikada
+  indi ve SHA-256'sı sabitlendi, üç bacaklı zincir ara kayıttan sürdü, eski sınıflar resmi
+  modelle aynı çıktı, model testleri makinede de geçti; ölçümde insan ve araç kaybı 0.
+  İlk tam eğitim isteği (çalıştırma 4) bir kip hatasıyla dumana düştü: kuyruk ifadesi push
+  olayının commit listesinden değişen dosyaları okuyordu, Actions'ta o liste boş gelir. Kip
+  artık yalnız git farkından verilir, kuyruk kaldırıldı; tam eğitim çalıştırma 5'te sürüyor
+  (tiny 30, s 20 devir; tiny'de adım 1,3 sn, aday başına tahminen 2,5-4 saat).
+- **Sonuçlar:** tam eğitim bitince buraya yazılır.
+
 ## Hata avı ve uygulama üretim hattı (23.09.2026)
 
 Operatör: *"bugları da çözüp tamamen profesyonel ve basitçe yapılabilen bir
