@@ -1769,7 +1769,8 @@ docs/07'ye satır olur.
 - **S20** o listede operatöre gösterilmedi. Kabul edilmiş sayılmaz. Ürün kodunu etkilemez: eğitim
   ürün dışıdır (S31). Cevap gelene kadar hukuk görüşü olmadan yeni ön eğitimli ağırlık ya da
   kamu veri seti kullanılmaz.
-- **Açık:** S1, S5, S6, S7, S13, S15 (kayıtlı saha videosu gerekir), S20, S27, S35.
+- **Açık:** S1, S5, S6, S7, S13, S15 (kayıtlı saha videosu gerekir), S20, S27, S35, S37
+  (S37 23.09.2026 eksik denetiminde eklendi; docs/ILERLEME).
 - **23.09.2026, çizgi işareti:** operatör "sistem genelinde çizgi işareti olarak `-`
   kullan" dedi. Kodda, yorumda, arayüz metninde, belgede, günlük iletisinde ve commit
   mesajında uzun çizgi (U+2014), orta çizgi (U+2013), eksi işareti (U+2212) ve benzeri
@@ -1814,6 +1815,7 @@ docs/07'ye satır olur.
 | S34 | §4.11 | KKD uyum istatistikleri (vardiya / gün / hafta) isteniyor mu? Vardiya saatleri nedir? | Uyum oranı her kararlı izin sayılmasını ister; kişi bazlı kırılım KVKK 8770'e aykırı (Ç40) | Bu turda yok; istenirse kamera/bölge bazında, kişi kırılımı olmadan, 008'de sayaçlarla | Faz 3 |
 | S35 | §4.9 | Disk dolarken kanıt fotoğrafı ve KKD kırpığı yazımı hangi boş alanda dursun? | Disk dolarsa SQLite de yazamaz, olay kaydı durur | `DISK_DUR_GB` = 1 (öneri; `DISK_UYARI_GB` = 5'in altında) | Faz 5 |
 | S36 | CLAUDE.md §7 | §6.2'deki "belgelenmiş sabitler" listesi kabul mü? CLAUDE.md §7'ye "iç mekanik sabitler gerekçesiyle belgelenerek kodda kalabilir" notu eklensin mi? | §7 "sabit kodlanmış eşik yok" der; hepsini `.env`'e taşımak Ayarlar'ı onlarca anlaşılmaz satıra çıkarır (Ç36) | Evet; olay üreten ya da arızanın görünme süresini belirleyen her eşik `.env`/kural parametresinde | **Faz 2 öncesi** |
+| S37 | §4.8 | Aylık çalışma süresi (≥ %99,5) hangi saate oranlansın: ayın bütün saatlerine mi (7/24), fabrikanın çalıştığı saatlere mi? Planlı duruş (bakım, tatil, sistemin bilerek kapatılması) paydan düşsün mü? | Veri tutuluyor (`analysis_hours`, `CAMERA_DOWN`, `SYSTEM_STARTED/STOPPED`, §14) ama payda tanımsız: bilerek kapatılan gece saatleri 7/24 paydada hedefi tek başına düşürür, planlı duruş tanımı ise elle girilecek bir takvim ister | Takvim saati (7/24), planlı duruş düşülmez; Rapor'da kamera başına "analiz edilen saat ÷ dönem saati" yüzdesi. Soru denetimde çıktı, henüz kodlanmadı | Faz 5 (saha kabulünden önce) |
 
 ---
 

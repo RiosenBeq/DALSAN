@@ -10,6 +10,54 @@ karakterdir. Kural CLAUDE.md §7 ve §8'de ve docs/17 §16 karar kaydında;
 `tests/test_yazim_kurallari.py` depoda bu karakterlerden biri kalırsa dosya ve
 satırıyla kırmızı olur. Statik damga o gün `?v=39`, 4b'den sonra `?v=40`.
 
+## Eksik denetimi (23.09.2026)
+
+GÖREV ve docs/17 §13-§14 satır satır koda ve belgelere karşı tarandı. Açık
+soruya ya da sahaya bağlı olmayan maddelerin hepsi yapıldı. Bu denetimde
+tamamlananlar:
+
+- **K26 (kodda eksikti):** kalibrasyonun şeritle kontrol ölçümü yok (S7), bu
+  yüzden mesafe ve hız olayı `kalibrasyon_dogrulanmadi` işaretini taşır, ekran
+  değeri "≈ 1,85 m" diye yaklaşık yazar ve inceleme ekranı "Kalibrasyon:
+  doğrulanmadı" der (docs/03).
+- **docs/06 §8:** saha kabul listesine §13'ün 5e satırının istediği ama listede
+  olmayan beş madde eklendi: kamera kablosu çekme, bölgelerin sahaya oturması
+  ve kalibrasyon, bütün sesli kanallar kapalıyken kırmızı uyarı, hedef
+  donanımda `tests/hiz_kiyas`, uzun süreli çalışma provası.
+- **docs/07 #24-#29:** koşullu maddelerin (Ç35: "cevap evet değilse docs/07'ye
+  satır olur") altısının satırı yoktu: dışlama kipi, kalibrasyon kontrol
+  ölçümü, `/metrics`, systemd bildirimi, KKD uyum istatistiği, olay yazıcı
+  kuyruğu.
+- **S37:** aylık çalışma süresi hedefinin (≥ %99,5) paydası hiçbir belgede
+  tanımlı değildi; docs/17 §16'ya soru olarak yazıldı.
+
+**Açık soru bekleyen (kodlanmadı):**
+
+| Madde | Bekleyen |
+|---|---|
+| GPU imajı, ayrı GPU gereksinim dosyası, hedef donanımda duman testi (5a) | S1 |
+| systemd bildirimi (5b); container'ın root olmayan kullanıcıyla çalışması, R32 (5d) | S1 |
+| `DISK_DUR_GB`: disk dolarken fotoğraf ve kırpık yazımını durdurma (5b) | S35 |
+| Saklama günleri, roller, olay klibi, erişim izinin saklama süresi (5c) | S5 |
+| Yüz bulanıklaştırma (5c) | S27 |
+| `/metrics` ve `METRIK_ANAHTARI` | S13 |
+| Kalibrasyonun şeritle kontrol ölçümü (2c) | S7 |
+| ByteTrack yeni iz eşiğinin insan eşiğiyle hizalanması | S15 (kayıtlı saha videosu) |
+| Kamera yerleşimi, gece ışığı, RTSP ses kanalı, VLAN | S6 |
+| Aylık çalışma süresi yüzdesi | S37 |
+| Yeni ön eğitimli ağırlık ya da kamu veri seti | S20 (operatöre hiç gösterilmedi) |
+
+**Varsayılanla kapanan koşullu maddeler (kodlanmaz, docs/07):** webhook (S4),
+dakika sınırı ve birleştirme (S23), Bluetooth yeniden bağlanma bekçisi (S9),
+uygulama içi eşleştirme (S8), dışlama kipi (S3), KKD uyum istatistiği (S34).
+
+**Saha ve ölçüm bekleyen:** tespit doğruluğu (`tests/dogruluk_kiyas`, etiketli
+saha kareleri), hedef donanımda hız ve uyarı gecikmesi, KKD precision (model ve
+en az 3 günlük gölge), yanlış alarm / saat, hoparlör gecikmesi, uzun süreli
+prova. Kayıt kuyruğu (5b) yalnız ölçüm gerektirirse yazılır: sahada
+`/saglik?ayrinti=1` içindeki her kameranın `ihlal_yaz_p90_ms` değerine bakılır.
+Çalışan temsilcisine danışma maddesi avukat görüşünü bekliyor (docs/18).
+
 ## Faz 5 sertleştirme (23.09.2026)
 
 **5b - R34 ve NTP.** Örnekleme hızı değişince hat artık yeniden kurulmuyor:

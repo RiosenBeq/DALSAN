@@ -445,7 +445,16 @@ görünmelidir.
 - [ ] Sistem, sunucu yeniden başlatma sonrası kendiliğinden ayakta (K8)
 - [ ] Sunucu saati NTP ile eşitleniyor (`timedatectl`: "synchronized: yes"); kameralar ve NVR aynı NTP'de (§1.2.3)
 - [ ] 3-4 kameranın tamamı ≥ 24 saat kesintisiz `çevrimiçi` (K1)
+- [ ] Bir kameranın kablosu çekildi: ~10 sn içinde kamera "çevrimdışı" ve Olaylar'da
+      "Kamera çevrimdışı"; takılınca birkaç saniye sonra "Kamera tekrar çevrimiçi"
+      (`KAMERA_KOPUK_ESIGI_SN`, `KAMERA_UP_KARARLILIK_SN`)
 - [ ] Bölge ve kurallar arayüzden değiştirilebiliyor, restart gerekmiyor (K3)
+- [ ] Bölgeler sahadaki yere oturuyor: her kamerada canlı önizlemede bölge çizgileri
+      yerdeki işaretlerle (yaya yolu, yasak alan, geçit) çakışıyor; bir kişi bölge
+      sınırında yürüdü ve olay doğru bölgede açıldı
+- [ ] Mesafe ya da hız kuralı olan her kamera kalibre edildi: kurulum listesinde
+      "Kalibrasyon bekleniyor" yok. Kalibrasyonun kontrol ölçümü yalnız docs/17 S7
+      cevabı "evet" ise yapılır
 - [ ] Test ihlali ≤ 2 sn içinde ekrana düşüyor (K4)
 - [ ] Olay kaydı + kanıt fotoğrafı doğru, filtre çalışıyor (K5)
 - [ ] Anons: **Anons sayfasından denendi**, çalışıyor veya "altyapı uygun değil" olarak yazılı kayıt altında (K6)
@@ -453,14 +462,26 @@ görünmelidir.
 - [ ] Sesli kanalların hepsi Bluetooth değil (kurulum listesinde "Sesli anons" adımı yeşil; GÖREV §7)
 - [ ] Bluetooth hoparlör kapatıldı: ~30-40 sn içinde rozet "koptu", Olaylar'da "Ses kanalı koptu"; bu sırada üretilen test ihlali "Tüm fabrika" kanalından **duyuldu**; hoparlör açılınca "tekrar bağlandı" (kendiliğinden bağlanmadıysa bu tutanağa yazıldı, docs/14 §2.1.1)
 - [ ] Hoparlör gecikmesi telefon videosuyla ölçüldü ve tutanağa yazıldı (§8.1)
+- [ ] Bütün sesli kanallar kapatıldı ve test ihlali üretildi: izleme ekranı açıkken
+      bile sistem şeridinde ve Kontrol Paneli'nde kırmızı "Son uyarı hiçbir hoparlöre
+      ulaşmadı", Olaylar'da "Uyarı hiçbir sesli kanala ulaşamadı"; kanallar açılıp
+      bir kanalda **▶ Dene** çalınca kırmızı kalktı
 - [ ] Yedek alındı, **geri yükleme prova edildi** (K7)
 - [ ] KKD gölge modda ≥ 3 gün çalıştı, precision ölçüldü, eşikler ayarlandı (K10, K11)
 - [ ] KKD anonsu ancak precision kabul edildikten **sonra** açıldı: KKD sayfasındaki
       gölge karnesinde baret ve yelek için "kapı açık"; Olaylar'da "KKD anonsu
       ölçülmeden açıldı" kaydı yok (varsa gerekçesi tutanağa yazıldı)
+- [ ] Hedef donanımda hız ölçüldü: `.venv/bin/python -m tests.hiz_kiyas` (KKD modeli
+      konduysa `--kkd` turu da); kamera başına en az 6 kare/sn (docs/17 §14) ve
+      `/saglik?ayrinti=1` içinde her kameranın `islenen_fps`'i; komut ve ham çıktı
+      tutanağa (docs/AUDIT-OLCUM)
 - [ ] Tespit doğruluğu KVKK dayanaklı etiketli saha karelerinde ölçüldü: `.venv/bin/python -m tests.dogruluk_kiyas --klasor veri/dogruluk --json dogruluk.json` (insan recall ≥ 0,95; tır ve forklift AP50 ≥ 0,90; kare ve kutu sayısıyla tutanağa, docs/17 §14). Kareler `veri/` altında kalır, depoya girmez
 - [ ] Yanlış alarm hedefi ölçüldü: Komuta → Rapor'da her kamera için incelemesi tam günlerden hesaplanan yanlış alarm / saat, hedefin (saatte en çok 2) altında (`17-V2-TASARIM.md` §14)
 - [ ] Bakım (retention) çalıştığı günlükten doğrulandı, KVKK süreleriyle uyumlu
+- [ ] Uzun süreli çalışma provası yapıldı; süre operatörle belirlenir (docs/17 §13
+      5e). Sonunda Rapor'daki analiz edilen saat ile Olaylar'daki "Analiz takıldı",
+      "Analiz yavaşladı", "Kamera çevrimdışı" ve "Sistem durdu" sayıları tutanağa
+      yazıldı
 - [ ] **Giriş şifresi geri eklendi** (`docs/07` #0) - ağa açık kurulumda zorunlu
 - [ ] Kullanım dokümanı teslim edildi, kullanıcı eğitimi yapıldı (K9)
 - [ ] Her açık kameranın görüş alanında mahremiyet alanı olmadığı kamera sayfasında onaylandı (kurulum listesi adım 9)
