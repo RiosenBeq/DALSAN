@@ -362,6 +362,44 @@ def test_motor_adimi_forkliftin_ayri_sinif_olup_olmadigini_soyler(istemci):
     assert "Forklift ayrı bir sınıf değil" not in metin
 
 
+def test_forklift_modelinde_yalniz_tir_secili_kurallar_soylenir(istemci, test_ayarlari):
+    """Hazır modelde forklift çoğu zaman "tır" göründüğü için yalnız "Tır/Araç"
+    seçili kural forklifte de tepki veriyordu. Forklift ayrı sınıf olunca aynı
+    kural onu GÖRMEZ: kurulum listesi bunu söyler. Tır park alanı kuralı bilerek
+    yalnız tır içindir, sayılmaz; forklifti de seçmiş kural sayılmaz."""
+    kamera = _kamera_ekle(istemci, "Rampa 1", "Sevkiyat")
+    simdi = zaman.simdi_utc()
+    _yaz(
+        test_ayarlari,
+        "INSERT INTO zones (id, camera_id, name, zone_type, polygon, updated_at) VALUES "
+        "(10, ?, 'Yaya yolu', 'pedestrian_path', '[[0.1,0.1],[0.9,0.1],[0.5,0.9]]', ?), "
+        "(11, ?, 'Tır parkı', 'truck_parking', '[[0.1,0.1],[0.9,0.1],[0.5,0.9]]', ?)",
+        (kamera, simdi, kamera, simdi),
+    )
+    kurallar = [
+        ("zone_intrusion", 10, '["truck"]', "{}"),  # yaya yolunda yalnız tır: SAYILIR
+        ("safe_distance", None, '["person"]', '{"object_classes": ["truck"]}'),  # SAYILIR
+        ("safe_distance", None, '["person"]', '{"object_classes": ["forklift", "truck"]}'),
+        ("zone_intrusion", 11, '["truck"]', '{"mode": "outside"}'),  # tır parkı: bilerek
+        ("zone_intrusion", 10, '["person"]', "{}"),
+    ]
+    for tip, bolge, hedef, params in kurallar:
+        _yaz(
+            test_ayarlari,
+            "INSERT INTO rules (camera_id, rule_type, zone_id, target_classes, params, "
+            "updated_at) VALUES (?, ?, ?, ?, ?, ?)",
+            (kamera, tip, bolge, hedef, params, simdi),
+        )
+    istemci.app.state.supervizor = SahteSupervizor("hazir", forklift=True)
+    metin = istemci.get("/komuta").text
+    assert "Forklift ayrı sınıf olarak tanınıyor." in metin
+    assert "Rampa 1 kamerasındaki 2 kural yalnız “Tır/Araç” için kurulu" in metin
+
+    # Hazır modelde (forklift "tır" görünür) uyarı anlamsızdır: gösterilmez.
+    istemci.app.state.supervizor = SahteSupervizor("hazir", forklift=False)
+    assert "forklifti görmez" not in istemci.get("/komuta").text
+
+
 def test_model_hatasi_adimda_gorunuyor(istemci):
     _motoru_hazirla(istemci, "hata", "NextGen AI Hızlı başlatılamadı. Kontrol Paneli'nde…")
     metin = istemci.get("/komuta").text

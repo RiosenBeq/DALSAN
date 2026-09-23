@@ -18,9 +18,12 @@ import riski yok.
 
 from __future__ import annotations
 
+import json
+
 from app.analiz.model_adi import gorunen_model_adi
 from app.olaylar.kanallar import kanal_sagligi_ozeti
 from app.rules.motor import KALIBRASYON_GEREKTIREN
+from app.rules.tipler import SINIF_FORKLIFT, SINIF_TIR
 
 # ---------------------------------------------------------------------------
 # EKRAN AÇIKLAMALARI
@@ -141,15 +144,56 @@ DURUM_ROZETLERI = {
 }
 
 
-def _forklift_notu(supervizor) -> str:
+def forklifti_gormeyen_kurallar(baglanti) -> list[dict]:
+    """Araç için kurulmuş ama "Forklift"i seçmemiş etkin kurallar.
+
+    Hazır modelde forklift çoğu zaman "tır" görünür; yalnız "Tır/Araç" seçili
+    bir kural bu yüzden forklifte de tepki veriyordu. Forklift ayrı sınıf olunca
+    (egitim/forklift, docs/17 §12.3) aynı kural forklifti GÖRMEZ. Güvenli
+    mesafede araç listesi `object_classes`, bölge ve hız kuralında kuralın
+    hedef sınıflarıdır. Tır park alanı kuralı bilerek yalnız tır içindir.
+    """
+    bulunan = []
+    for satir in baglanti.execute(
+        "SELECT r.id, r.rule_type, r.target_classes, r.params, c.name AS kamera_adi, "
+        "z.zone_type FROM rules r JOIN cameras c ON c.id = r.camera_id "
+        "LEFT JOIN zones z ON z.id = r.zone_id WHERE r.enabled = 1 ORDER BY c.name, r.id"
+    ):
+        try:
+            if satir["rule_type"] == "safe_distance":
+                siniflar = json.loads(satir["params"] or "{}").get("object_classes", [])
+            else:
+                siniflar = json.loads(satir["target_classes"] or "[]")
+        except (ValueError, TypeError, AttributeError):
+            continue  # bozuk satırı kural motoru zaten yüklemez ve günlüğe yazar
+        if (
+            SINIF_TIR in siniflar
+            and SINIF_FORKLIFT not in siniflar
+            and satir["zone_type"] != "truck_parking"
+        ):
+            bulunan.append(dict(satir))
+    return bulunan
+
+
+def _forklift_notu(supervizor, baglanti=None) -> str:
     """Forklift ayrı sınıf mı (docs/17 §4.2, §12.3; docs/08 R1)?
 
     Hazır model (COCO) forklifti tanımaz; çoğu zaman "tır" (araç) görür ve
     kurallar onu araç olarak işler, hiç göremediği de olur. Forklift sınıflı
-    bir model yüklenince (sınıf listesi dosyanın içinde) bu not değişir.
+    bir model yüklenince (sınıf listesi dosyanın içinde) bu not değişir ve
+    forklifti artık görmeyecek kurallar varsa onları söyler.
     """
     if getattr(getattr(supervizor, "tespitci", None), "forklift_taniyor", False):
-        return "Forklift ayrı sınıf olarak tanınıyor."
+        not_ = "Forklift ayrı sınıf olarak tanınıyor."
+        kurallar = forklifti_gormeyen_kurallar(baglanti) if baglanti is not None else []
+        if kurallar:
+            kameralar = _ve_ile(sorted({k["kamera_adi"] for k in kurallar}))
+            not_ += (
+                f" Dikkat: {kameralar} kamerasındaki {len(kurallar)} kural yalnız "
+                "“Tır/Araç” için kurulu ve forklifti görmez. Kuralı açıp “Forklift”i "
+                "de işaretleyin (tır park alanı kuralı bilerek yalnız tır içindir)."
+            )
+        return not_
     return (
         "Forklift ayrı bir sınıf değil: hazır model forklifti çoğu zaman araç (tır) "
         "olarak görür ve kurallar onu araç olarak işler, ama hiç görmediği de olur. "
@@ -158,7 +202,7 @@ def _forklift_notu(supervizor) -> str:
     )
 
 
-def _model_adimi(supervizor, ayarlar) -> dict:
+def _model_adimi(supervizor, ayarlar, baglanti=None) -> dict:
     """1. adım - tespit motoru.
 
     Bu adım SONRAKİ adımları engellemez (`engeller=False`): model inerken ya da
@@ -177,7 +221,7 @@ def _model_adimi(supervizor, ayarlar) -> dict:
     durum = getattr(supervizor, "model_durumu", None) if supervizor is not None else None
 
     if durum == "hazir":
-        aciklama = f"{ad} çalışıyor. {_forklift_notu(supervizor)}"
+        aciklama = f"{ad} çalışıyor. {_forklift_notu(supervizor, baglanti)}"
         return {**ortak, "tamam": True, "hal": "", "aciklama": aciklama}
     if durum in ("indiriliyor", "yukleniyor"):
         return {
@@ -382,7 +426,7 @@ def _ham_adimlar(baglanti, supervizor, ayarlar) -> list[dict]:
     kural_yolu = f"/kameralar/{bolgeli_kamera['camera_id']}" if bolgeli_kamera else "/kurallar/yeni"
 
     adimlar = [
-        _model_adimi(supervizor, ayarlar),
+        _model_adimi(supervizor, ayarlar, baglanti),
         {
             "no": 2,
             "baslik": "En az bir kamera eklendi mi?",
