@@ -22,8 +22,11 @@ teslim etmeden önce bunu çalıştırır; elle de çalıştırılabilir:
 
 `tam` - uygulamanın tamamı, kullanıcının çift tıklamasıyla aynı: Kontrol
   Paneli açılır, sistemi kendisi başlatır (ilk açılışta modeli indirir) ve
-  izleme penceresini açar. /saglik yanıt verene, sonra pencere süreci
-  görünene kadar beklenir, ekranın görüntüsü alınır, uygulama kapatılır.
+  izleme penceresini açar. /saglik yanıt verene, tespit modeli inip
+  yüklenene ("model": "hazir"), sonra pencere süreci görünene kadar
+  beklenir, ekranın görüntüsü alınır, uygulama kapatılır. Model inmez ya da
+  yüklenemezse (yayın dosyası yok, özeti tutmuyor, biçimi uymuyor) paket
+  tespitsiz çalışırdı: sınama bunu yakalar.
 
 Bir adım tutmazsa sebebini yazar ve 1 ile biter. Yalnız standart kütüphane:
 bunu uygulamanın içindeki değil, üretim işinin kendi Python'u çalıştırır.
@@ -197,6 +200,8 @@ def tam_sina(program: str, ekran: str | None) -> None:
     try:
         saglik = _saglik_bekle(surec)
         print(f"sistem: /saglik yanıt verdi ({', '.join(sorted(saglik))[:300]})")
+        saglik = _model_bekle(surec)
+        print(f"model: {saglik.get('model')} (sorunlar: {', '.join(saglik.get('sorunlar', []))})")
         _pencere_bekle(surec)
         print("pencere: Kontrol Paneli izleme penceresini kendiliğinden açtı")
         time.sleep(10)  # sayfa ve canlı akış otursun
@@ -217,6 +222,35 @@ def _saglik_bekle(surec: subprocess.Popen) -> dict:
         except (urllib.error.URLError, OSError, ValueError):
             time.sleep(2)
     raise SinamaHatasi(f"sistem {SISTEM_BEKLEMESI_SN} sn içinde açılmadı (/saglik yanıtsız)")
+
+
+def _model_bekle(surec: subprocess.Popen) -> dict:
+    """Tespit modeli inip yüklenene kadar bekler; yüklenemezse sebebiyle düşer.
+
+    /saglik'taki "model": indiriliyor / yukleniyor / hazir / hata / kapali.
+    """
+    son = time.monotonic() + SISTEM_BEKLEMESI_SN
+    saglik: dict = {}
+    while time.monotonic() < son:
+        if surec.poll() is not None:
+            raise SinamaHatasi(f"uygulama {surec.returncode} koduyla kapandı")
+        try:
+            with urllib.request.urlopen(SAGLIK_ADRESI, timeout=3) as yanit:
+                saglik = json.loads(yanit.read(65536))
+        except (urllib.error.URLError, OSError, ValueError):
+            saglik = {}
+        if saglik.get("model") == "hazir":
+            return saglik
+        if saglik.get("model") == "hata":
+            raise SinamaHatasi(
+                "tespit modeli yüklenemedi (sorunlar: "
+                f"{', '.join(saglik.get('sorunlar', [])) or '-'})"
+            )
+        time.sleep(2)
+    raise SinamaHatasi(
+        f"tespit modeli {SISTEM_BEKLEMESI_SN} sn içinde hazır olmadı "
+        f"(son durum: {saglik.get('model', 'yanıt yok')})"
+    )
 
 
 def _pencere_bekle(surec: subprocess.Popen) -> None:

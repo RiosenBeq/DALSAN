@@ -646,3 +646,64 @@ def test_uretim_hattinin_pencere_sinamasi_ie_motorunu_yakalar(sahte_webview, tmp
     sinama = _sinama_modulu()
     with pytest.raises(sinama.SinamaHatasi, match="HAZIR demeden 4"):
         sinama.pencere_sina(_program_sarici(tmp_path), None)
+
+
+class _SaglikSunucusu:
+    """/saglik yanıtlarını sırayla veren yerel sunucu (tam sınamanın model beklemesi)."""
+
+    def __init__(self, yanitlar: list[dict]) -> None:
+        import http.server
+        import threading
+
+        kalan = list(yanitlar)
+
+        class _Isleyici(http.server.BaseHTTPRequestHandler):
+            def do_GET(self):  # noqa: N802 - http.server arayüzü
+                govde = json.dumps(kalan.pop(0) if len(kalan) > 1 else kalan[0]).encode()
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(govde)
+
+            def log_message(self, *_):
+                pass
+
+        self.sunucu = http.server.ThreadingHTTPServer(("127.0.0.1", 0), _Isleyici)
+        threading.Thread(target=self.sunucu.serve_forever, daemon=True).start()
+        self.adres = f"http://127.0.0.1:{self.sunucu.server_address[1]}/saglik"
+
+    def kapat(self) -> None:
+        self.sunucu.shutdown()
+        self.sunucu.server_close()
+
+
+class _CalisanSurec:
+    returncode = None
+
+    def poll(self):
+        return None
+
+
+@pytest.mark.parametrize(
+    ("yanitlar", "beklenen"),
+    [
+        ([{"model": "indiriliyor"}, {"model": "yukleniyor"}, {"model": "hazir"}], "hazir"),
+        ([{"model": "indiriliyor"}, {"model": "hata", "sorunlar": ["model_yuklenemedi"]}], None),
+    ],
+)
+def test_tam_sinama_modelin_yuklenmesini_bekler(monkeypatch, yanitlar, beklenen):
+    """Model inmez ya da yüklenemezse paket tespitsiz çalışırdı; /saglik yanıt
+    veriyor diye sınama geçmemeli. Forklift modeli ilk açılışta DALSAN'ın
+    kendi yayınından iner: yayın dosyası eksikse burada yakalanır."""
+    sinama = _sinama_modulu()
+    sunucu = _SaglikSunucusu(yanitlar)
+    monkeypatch.setattr(sinama, "SAGLIK_ADRESI", sunucu.adres)
+    monkeypatch.setattr(sinama.time, "sleep", lambda _sn: None)
+    try:
+        if beklenen:
+            assert sinama._model_bekle(_CalisanSurec())["model"] == beklenen
+        else:
+            with pytest.raises(sinama.SinamaHatasi, match="model_yuklenemedi"):
+                sinama._model_bekle(_CalisanSurec())
+    finally:
+        sunucu.kapat()
