@@ -51,6 +51,7 @@ SONUC_BAYAT = "stale"
 SONUC_KESILDI = "preempted"
 SONUC_DINLEYEN_YOK = "no_listener"
 SONUC_BASTIRILDI = "suppressed_cooldown"
+SONUC_GERI_DUSUS = "fallback"  # bölüm kanalı koptu, uyarı "Tüm fabrika"ya gitti
 
 
 @dataclass

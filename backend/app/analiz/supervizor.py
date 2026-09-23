@@ -349,6 +349,12 @@ class AnalizSupervizoru:
             self._acilis_olaylarini_yaz(baglanti)
         except Exception as hata:  # noqa: BLE001 - olay yazılamadı diye analiz başlamamazlık etmez
             self._log.error(f"Açılış olayları yazılamadı: {hata}", exc_info=hata)
+        # Uyarı kanallarının sağlığı (docs/17 §7.4) açılış süpürmesinden SONRA
+        # başlar: ilk "koptu" olayı "yeniden başladı" diye hemen kapanmasın
+        try:
+            self._anons.saglik_baslat()
+        except Exception as hata:  # noqa: BLE001 - sağlık izlenemese de analiz sürer
+            self._log.error(f"Uyarı kanalı sağlık izlemesi başlatılamadı: {hata}", exc_info=hata)
         try:
             self._tespitciyi_kur(baglanti)
         except Exception as hata:  # noqa: BLE001 - model kurulamadı diye kameralar durmaz
@@ -403,6 +409,11 @@ class AnalizSupervizoru:
                 self._dur.wait(0.05)
         finally:
             self._analiz_saatlerini_yaz(baglanti)
+            # Sağlık yoklaması kapanış kaydından ÖNCE durur (bkz. saglik_baslat)
+            try:
+                self._anons.saglik_durdur()
+            except Exception as hata:  # noqa: BLE001 - kapanış kayıtları yine yazılmalı
+                self._log.error(f"Uyarı kanalı sağlık izlemesi durdurulamadı: {hata}")
             try:
                 self._kapanis_olaylarini_yaz(baglanti)
             except Exception as hata:  # noqa: BLE001 - bağlantı yine kapanmalı
@@ -676,8 +687,8 @@ class AnalizSupervizoru:
             )
         }
         self._kkd_surumunu_denetle(baglanti)
-        # Anons, ihlalin olduğu BÖLÜMÜN hoparlörüne gider (şema 002).
-        # Bölge tanımlanmamışsa liste boş kalır ve .env'deki tek adres kullanılır.
+        # Uyarı, ihlalin olduğu BÖLÜMÜN kanallarına, yoksa "Tüm fabrika"ya gider
+        # (docs/17 §7.3-1). Kanal yoksa ses çalmaz; /saglik "sesli_kanal_yok" der.
         self._anons.bolgeleri_yukle(baglanti.execute("SELECT * FROM speaker_zones ORDER BY id"))
 
         aktif_idler = set()
@@ -1183,6 +1194,9 @@ class AnalizSupervizoru:
             sorunlar.append("olay_yazilamadi")
         if getattr(self.tespitci, "ort_paket_cakismasi", False):
             sorunlar.append("ort_paket_cakismasi")
+        if getattr(self._anons, "ulasmiyor", False):
+            # Son uyarı hiçbir sesli/uzak kanala ulaşmadı (docs/17 §7.4-a)
+            sorunlar.append("uyari_ulasmiyor")
         return sorunlar
 
     def analiz_tur_yasi(self) -> float | None:

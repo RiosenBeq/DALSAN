@@ -1,18 +1,27 @@
-"""Uyarı kanallarının sağlığı: durum makinesi ve yoklama (docs/17 §7.4; Faz 4b).
+"""Uyarı kanallarının sağlığı ve uyarı garantisi (docs/17 §7.3-1, §7.4; Faz 4b).
 
 - Durum makinesi: kesintisiz "bağlı değil" ANONS_KOPUK_ESIGI_SN'yi (30) doldurunca
   bir kez AUDIO_CHANNEL_DOWN; iki ardışık "bağlı" ile AUDIO_CHANNEL_UP. 29 sn
-  olay üretmez. "Öğrenemedik" (None) olay üretmez.
+  olay üretmez. "Öğrenemedik" (None) olay üretmez ve garantiyi null yapar.
 - Yoklama: boş çıkış adı None (R37); listede olmayan bluez sink False; aynı
   adresli sink (profil soneki değişmiş) True; çalıcı yok False; TCP reddi False.
+- Yönlendirme: bölüm kanalı koptuysa uyarı "Tüm fabrika"ya düşer.
+- Garanti: açılışı hiçbir sesli/uzak kanala ulaşmayan olay ALERT_UNDELIVERED
+  (kamera başına hız sınırlı) ve /saglik "uyari_ulasmiyor"; ekran sayılmaz.
 Gerçek ses ÇALINMAZ, gerçek ağa çıkılmaz (yalnız 127.0.0.1).
 """
 
 from __future__ import annotations
 
+import json
 import socket
 
-from app.olaylar import anons
+import pytest
+
+from app import veritabani
+from app.olaylar import anons, ekran
+from app.olaylar.anons import AnonsHatasi, AnonsYoneticisi, OlayBilgisi
+from app.olaylar.dagitici import ASAMA_HATIRLATMA
 from app.olaylar.kanal_sagligi import (
     HAL_KOPTU,
     KOD_GELDI,
@@ -21,6 +30,7 @@ from app.olaylar.kanal_sagligi import (
     ilerle,
     kanal_yokla,
 )
+from app.olaylar.kanallar import kanal_sagligi_ozeti
 from app.olaylar.ses_cihazlari import SesCihazi
 
 BT = "bluez_output.AA_BB_CC_DD_EE_FF.1"
@@ -130,3 +140,323 @@ def test_ip_hoparlor_r30_reddi_koptu_sayilir():
     kanal = {"kind": "http", "address": "http://127.0.0.1/anons"}
     sonuc, neden = _yokla(kanal, adres_dogrula=anons.hoparlor_adresini_dogrula)
     assert sonuc is False and neden
+
+
+# ------------------------------------------------------------ yönetici
+
+
+@pytest.fixture
+def db(test_ayarlari):
+    baglanti = veritabani.baglanti_ac(test_ayarlari.veritabani_yolu)
+    veritabani.semayi_uygula(baglanti)
+    try:
+        yield baglanti
+    finally:
+        baglanti.close()
+
+
+def _kanal_ekle(db, kid: int, alan: str = "", tur: str = "http", **ek) -> dict:
+    satir = {
+        "id": kid,
+        "name": ek.get("name", f"K{kid}"),
+        "area": alan,
+        "kind": tur,
+        "address": ek.get("address", f"http://10.0.0.{kid}/anons" if tur == "http" else ""),
+        "device": ek.get("device", ""),
+        "enabled": ek.get("enabled", 1),
+        "health": ek.get("health"),
+    }
+    db.execute(
+        "INSERT INTO speaker_zones (id, name, area, address, kind, device, enabled, health, "
+        "created_at, updated_at) VALUES (:id, :name, :area, :address, :kind, :device, "
+        ":enabled, :health, '2026-09-23', '2026-09-23')",
+        satir,
+    )
+    db.commit()
+    return satir
+
+
+@pytest.fixture
+def yonetici(test_ayarlari, db):
+    y = AnonsYoneticisi(test_ayarlari)
+    yield y
+    y.kapat(2.0)
+
+
+@pytest.fixture
+def yoklama(monkeypatch):
+    """Kanal id → sıradaki yoklama sonucu; verilmeyen kanal "bağlı"."""
+    sonuclar: dict[int, bool | None] = {}
+
+    def _kanal_yokla(kanal, cihazlar, **_):
+        sonuc = sonuclar.get(kanal["id"], True)
+        return sonuc, "" if sonuc else "sahte sebep"
+
+    monkeypatch.setattr(anons, "kanal_yokla", _kanal_yokla)
+    return sonuclar
+
+
+def _olaylar(db, kod: str) -> list[dict]:
+    satirlar = db.execute(
+        "SELECT * FROM events WHERE event_code = ? ORDER BY id", (kod,)
+    ).fetchall()
+    return [dict(s) for s in satirlar]
+
+
+def _saglik(db, kid: int):
+    return db.execute("SELECT health FROM speaker_zones WHERE id = ?", (kid,)).fetchone()[0]
+
+
+def test_saglik_turu_koptu_ve_geldi_olaylari(yonetici, yoklama, db):
+    _kanal_ekle(db, 1, name="Rampa hoparlörü")
+    yonetici.saglik_turu(db, simdi=0.0)
+    assert _saglik(db, 1) == "ok"
+    yoklama[1] = False
+    for t in (10.0, 20.0, 39.0):
+        yonetici.saglik_turu(db, simdi=t)
+    assert _olaylar(db, KOD_KOPTU) == [] and _saglik(db, 1) == "ok"
+    yonetici.saglik_turu(db, simdi=40.0)
+    (koptu,) = _olaylar(db, KOD_KOPTU)
+    assert koptu["resolved_at"] is None, "koptu olayı SÜREN bir olaydır"
+    assert "Rampa hoparlörü" in json.loads(koptu["details"])["mesaj"]
+    assert _saglik(db, 1) == "down"
+    yonetici.saglik_turu(db, simdi=50.0)
+    assert len(_olaylar(db, KOD_KOPTU)) == 1
+    yoklama[1] = True
+    yonetici.saglik_turu(db, simdi=60.0)
+    assert _olaylar(db, KOD_GELDI) == []
+    yonetici.saglik_turu(db, simdi=70.0)
+    assert len(_olaylar(db, KOD_GELDI)) == 1 and _saglik(db, 1) == "ok"
+    (koptu,) = _olaylar(db, KOD_KOPTU)
+    assert koptu["resolved_at"] is not None
+    assert json.loads(koptu["details"])["kapanis_sebebi"] == "kosul_bitti"
+
+
+def test_bilinmiyor_olay_yok_garanti_null(yonetici, yoklama, db):
+    _kanal_ekle(db, 1)
+    yoklama[1] = None
+    for t in (0.0, 100.0):
+        yonetici.saglik_turu(db, simdi=t)
+    assert _olaylar(db, KOD_KOPTU) == [] and _saglik(db, 1) == "unknown"
+    assert kanal_sagligi_ozeti(db, canli=True)["uyari_garantisi"] is None
+
+
+def test_kapatilan_kanalin_acik_koptu_olayi_kapanir(yonetici, yoklama, db):
+    _kanal_ekle(db, 1)
+    yoklama[1] = False
+    yonetici.saglik_turu(db, simdi=0.0)
+    yonetici.saglik_turu(db, simdi=30.0)
+    db.execute("UPDATE speaker_zones SET enabled = 0 WHERE id = 1")
+    db.commit()
+    yonetici.saglik_turu(db, simdi=40.0)
+    (koptu,) = _olaylar(db, KOD_KOPTU)
+    assert json.loads(koptu["details"])["kapanis_sebebi"] == "kanal_degisti"
+    assert _saglik(db, 1) is None, "yeniden açılınca eski karar bayat görünmesin"
+
+
+def test_cikisi_degisen_kanalin_eski_durumu_gecersiz(yonetici, yoklama, db):
+    _kanal_ekle(db, 1)
+    yoklama[1] = False
+    yonetici.saglik_turu(db, simdi=0.0)
+    yonetici.saglik_turu(db, simdi=30.0)
+    db.execute("UPDATE speaker_zones SET address = 'http://10.0.0.99/a' WHERE id = 1")
+    db.commit()
+    yoklama[1] = True
+    yonetici.saglik_turu(db, simdi=31.0)
+    (koptu,) = _olaylar(db, KOD_KOPTU)
+    assert json.loads(koptu["details"])["kapanis_sebebi"] == "kanal_degisti"
+    assert _saglik(db, 1) == "ok", "yeni adres ilk yoklamada bağlı sayılır"
+
+
+def test_acilis_onceki_kararla_baslar(yonetici, yoklama, db):
+    """Açılışta sütundaki son karar korunur: ekran ve /saglik boşa düşmez."""
+    _kanal_ekle(db, 1, health="ok")
+    yoklama[1] = False
+    yonetici.saglik_turu(db, simdi=0.0)
+    assert _saglik(db, 1) == "ok"
+    assert yonetici.kanal_halleri()[1] == ("ok", "sahte sebep")
+
+
+# ------------------------------------------------------------ yönlendirme
+
+
+@pytest.fixture
+def http_calanlar(monkeypatch):
+    """HTTP kanalına gidenleri (adres, metin) olarak kaydeder; `hatalar`daki adres düşer."""
+    kayit: list[tuple[str, str]] = []
+    hatalar: set[str] = set()
+
+    def _cal(self, anahtar, metin, ses, kes=None):
+        kayit.append((self._adres, metin))
+        if self._adres in hatalar:
+            raise AnonsHatasi("Anons adresine ulaşılamadı.")
+
+    monkeypatch.setattr(anons.HttpAnonscu, "cal", _cal)
+    kayit_ve_hatalar = (kayit, hatalar)
+    return kayit_ve_hatalar
+
+
+def _mesaj(mid: int = 1) -> dict:
+    return {"id": mid, "key": "helmet", "text": f"Mesaj {mid}", "enabled": 1, "audio_file": None}
+
+
+def _teslimler(db) -> list[tuple[int, str]]:
+    satirlar = db.execute("SELECT speaker_zone_id, result FROM alert_deliveries ORDER BY id")
+    return [(s["speaker_zone_id"], s["result"]) for s in satirlar]
+
+
+def _yukle(yonetici, db) -> None:
+    yonetici.bolgeleri_yukle(db.execute("SELECT * FROM speaker_zones ORDER BY id"))
+
+
+def test_bolum_kanali_koptuysa_tum_fabrikaya_duser(yonetici, http_calanlar, db):
+    kayit, _ = http_calanlar
+    _kanal_ekle(db, 1, alan="Sevkiyat")
+    _kanal_ekle(db, 2)  # Tüm fabrika
+    _yukle(yonetici, db)
+    yonetici._haller[1] = KanalHali(hal=HAL_KOPTU, saglik="down")
+    yonetici.duyur(7, "Sevkiyat", 0.0, _mesaj(), olay=OlayBilgisi(olay_id=None, kod="HELMET"))
+    assert yonetici.bosalt(5.0)
+    assert [adres for adres, _ in kayit] == ["http://10.0.0.2/anons"]
+    assert sorted(_teslimler(db)) == [(1, "fallback"), (2, "ok")]
+    assert yonetici.ulasmiyor is False
+
+
+def test_her_sey_koptuysa_yine_denenir(yonetici, http_calanlar, db):
+    """Belki şimdi bağlanmıştır; denemenin sonucu kayda düşer."""
+    kayit, _ = http_calanlar
+    _kanal_ekle(db, 1, alan="Sevkiyat")
+    _kanal_ekle(db, 2)
+    _yukle(yonetici, db)
+    for kid in (1, 2):
+        yonetici._haller[kid] = KanalHali(hal=HAL_KOPTU, saglik="down")
+    yonetici.duyur(7, "Sevkiyat", 0.0, _mesaj())
+    assert yonetici.bosalt(5.0)
+    assert [adres for adres, _ in kayit] == ["http://10.0.0.1/anons"]
+
+
+# ------------------------------------------------------------ garanti
+
+
+def test_kanal_yoksa_ulasmadi_kamera_basina_hiz_sinirli(yonetici, db):
+    for _ in range(3):
+        yonetici.duyur(7, "Sevkiyat", 0.0, _mesaj(), olay=OlayBilgisi(olay_id=None))
+    assert yonetici.bosalt(5.0)
+    assert yonetici.ulasmiyor is True
+    (olay,) = _olaylar(db, "ALERT_UNDELIVERED")
+    assert olay["camera_id"] is None or olay["camera_id"] == 7
+    assert "sesli kanal tanımlı değil" in json.loads(olay["details"])["mesaj"]
+    # Aralık dolunca aradaki iki uyarı sayılarak bir kayıt daha düşer
+    yonetici._ulasmayan_son[7] -= yonetici._ulasmayan_araligi + 1
+    yonetici.duyur(7, "Sevkiyat", 0.0, _mesaj())
+    assert yonetici.bosalt(5.0)
+    ilk, ikinci = _olaylar(db, "ALERT_UNDELIVERED")
+    ayrinti = json.loads(ikinci["details"])
+    assert ayrinti["arada_ulasmayan"] == 2 and "2 uyarı daha" in ayrinti["mesaj"]
+
+
+def test_butun_kanallar_calamazsa_ulasmadi_sonra_duzelir(yonetici, http_calanlar, db):
+    _, hatalar = http_calanlar
+    _kanal_ekle(db, 1)
+    _yukle(yonetici, db)
+    hatalar.add("http://10.0.0.1/anons")
+    yonetici.duyur(7, "", 0.0, _mesaj(1))
+    assert yonetici.bosalt(5.0)
+    assert yonetici.ulasmiyor is True
+    assert len(_olaylar(db, "ALERT_UNDELIVERED")) == 1
+    hatalar.clear()
+    yonetici.duyur(7, "", 0.0, _mesaj(2))
+    assert yonetici.bosalt(5.0)
+    assert yonetici.ulasmiyor is False, "ulaşan uyarı bayrağı siler"
+
+
+def test_bastirilan_uyari_ulasmis_sayilir(yonetici, http_calanlar, db):
+    """Aynı anons o kanaldan az önce çaldı: garanti sağlanmıştır."""
+    _kanal_ekle(db, 1)
+    _yukle(yonetici, db)
+    yonetici.duyur(7, "", 0.0, _mesaj())
+    assert yonetici.bosalt(5.0)
+    yonetici.duyur(7, "", 1.0, _mesaj())
+    assert yonetici.bosalt(5.0)
+    assert [r for _, r in _teslimler(db)] == ["ok", "suppressed_cooldown"]
+    assert yonetici.ulasmiyor is False and _olaylar(db, "ALERT_UNDELIVERED") == []
+
+
+def test_hatirlatma_ve_golge_garantiye_girmez(yonetici, http_calanlar, db):
+    _, hatalar = http_calanlar
+    _kanal_ekle(db, 1)
+    _yukle(yonetici, db)
+    hatalar.add("http://10.0.0.1/anons")
+    yonetici.duyur(7, "", 0.0, _mesaj(), olay=OlayBilgisi(asama=ASAMA_HATIRLATMA))
+    yonetici.golge_kaydet(7, "", _mesaj(2))
+    assert yonetici.bosalt(5.0)
+    assert yonetici.ulasmiyor is False and _olaylar(db, "ALERT_UNDELIVERED") == []
+
+
+def test_basarili_kanal_denemesi_bayragi_siler(yonetici, http_calanlar, db):
+    kanal = _kanal_ekle(db, 1)
+    yonetici.ulasmiyor = True
+    sonuc, _, _ = yonetici.kanali_dene(kanal, "deneme", "Deneme", None, zaman_asimi=5.0)
+    assert sonuc == "ok" and yonetici.ulasmiyor is False
+
+
+def test_supervizor_ulasmiyor_sorununu_bildirir(test_ayarlari):
+    from app.analiz.supervizor import AnalizSupervizoru
+
+    supervizor = AnalizSupervizoru(test_ayarlari)
+    try:
+        assert "uyari_ulasmiyor" not in supervizor.sorunlar()
+        supervizor._anons.ulasmiyor = True
+        assert "uyari_ulasmiyor" in supervizor.sorunlar()
+    finally:
+        supervizor._anons.kapat(1.0)
+
+
+# ------------------------------------------------------------ özet ve /saglik
+
+
+def test_kanal_yoksa_sesli_kanal_yok_ve_garanti_false(db):
+    ozet = kanal_sagligi_ozeti(db, canli=True)
+    assert (ozet["uyari_garantisi"], ozet["sorunlar"]) == (False, ["sesli_kanal_yok"])
+    assert kanal_sagligi_ozeti(db, canli=False)["uyari_garantisi"] is False
+
+
+def test_ekran_bagliyken_de_kanallar_olduyse_garanti_false(db):
+    """Ekran garantiye sayılmaz (K21): izleme penceresi açık diye "sağlandı" denmez."""
+    _kanal_ekle(db, 1, health="down")
+    _kanal_ekle(db, 2, health="down")
+    ekran.baglandi()
+    try:
+        assert kanal_sagligi_ozeti(db, canli=True)["uyari_garantisi"] is False
+    finally:
+        ekran.ayrildi()
+
+
+def test_analiz_kapaliyken_garanti_dogrulanamaz(db):
+    _kanal_ekle(db, 1, health="ok")
+    assert kanal_sagligi_ozeti(db, canli=True)["uyari_garantisi"] is True
+    ozet = kanal_sagligi_ozeti(db, canli=False)
+    assert ozet["uyari_garantisi"] is None, "sütun önceki çalışmadan kalmadır"
+    assert ozet["kanallar"] == [{"ad": "K1", "tur": "http", "saglik": None}]
+
+
+def test_tek_bluetooth_kanali_kirmizi(db):
+    _kanal_ekle(db, 1, tur="ses_karti", device=BT, health="ok")
+    assert "tek_kanal_bluetooth" in kanal_sagligi_ozeti(db, canli=True)["sorunlar"]
+    _kanal_ekle(db, 2, health="down")
+    assert "tek_kanal_bluetooth" in kanal_sagligi_ozeti(db, canli=True)["sorunlar"], (
+        "kopuk IP hoparlör yedek sayılmaz"
+    )
+    assert "tek_kanal_bluetooth" not in kanal_sagligi_ozeti(db, canli=False)["sorunlar"], (
+        "analiz kapalıyken yalnız yapılandırmaya bakılır"
+    )
+    db.execute("UPDATE speaker_zones SET health = 'ok' WHERE id = 2")
+    db.commit()
+    assert "tek_kanal_bluetooth" not in kanal_sagligi_ozeti(db, canli=True)["sorunlar"]
+
+
+def test_bolum_kanali_var_yedek_yoksa_sorun(db):
+    _kanal_ekle(db, 1, alan="Sevkiyat", health="ok")
+    assert kanal_sagligi_ozeti(db, canli=True)["sorunlar"] == ["yedek_ses_kanali_yok"]
+    _kanal_ekle(db, 2, health="ok")
+    assert kanal_sagligi_ozeti(db, canli=True)["sorunlar"] == []

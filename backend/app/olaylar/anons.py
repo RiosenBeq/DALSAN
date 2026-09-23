@@ -24,6 +24,7 @@ import ipaddress
 import json
 import shutil
 import socket
+import sqlite3
 import subprocess
 import sys
 import threading
@@ -33,25 +34,36 @@ import urllib.parse
 import urllib.request
 from dataclasses import dataclass
 
-from app import zaman
+from app import veritabani, zaman
 from app.ayarlar import Ayarlar
 from app.loglama import adres_maskele, log_al
-from app.olaylar import ekran
+from app.olaylar import ekran, ses_cihazlari
 from app.olaylar.dagitici import (
     ASAMA_ACILDI,
     ASAMA_TEST,
     SONUC_BASARISIZ,
     SONUC_BASTIRILDI,
     SONUC_DINLEYEN_YOK,
+    SONUC_GERI_DUSUS,
     SONUC_GOLGE,
     SONUC_KESILDI,
     SONUC_TAMAM,
     CikisIscisi,
     UyariOgesi,
 )
+from app.olaylar.kanal_sagligi import (
+    HAL_KOPTU,
+    KOD_KOPTU,
+    KanalHali,
+    ilerle,
+    kanal_imzasi,
+    kanal_yokla,
+)
 from app.olaylar.kanallar import kanal_ozeti
 from app.olaylar.teslim import TeslimKaydedici, teslim_satiri
+from app.olaylar.yazici import olay_kapat, sistem_olayi_yaz
 from app.rules.cooldown import Cooldown
+from app.rules.olay_kodu import OLAY_KODLARI
 
 _log = log_al("anons")
 
@@ -453,6 +465,33 @@ class OlayBilgisi:
     kare_zamani: float | None = None  # kare yakalama anı (time.monotonic)
 
 
+class _Dagitim:
+    """Bir olayın bütün sesli/uzak kanal denemelerini toplar (garanti, §7.4-a).
+
+    Denemelerin hepsi bitince olay "ulaştı" (en az biri çaldı ya da az önce
+    zaten duyurulduğu için bastırıldı) ya da "ulaşmadı" sayılır. Bayat, kesilen
+    ve başarısız deneme ulaşmış sayılmaz; ekran bu garantiye hiç girmez.
+    """
+
+    def __init__(self, yonetici: AnonsYoneticisi, olay: OlayBilgisi, kamera_id, beklenen: int):
+        self._yonetici = yonetici
+        self.olay = olay
+        self.kamera_id = kamera_id
+        self._kalan = beklenen
+        self._ulasti = False
+        self._kilit = threading.Lock()
+
+    def sonuc(self, sonuc: str) -> None:
+        with self._kilit:
+            if sonuc in (SONUC_TAMAM, SONUC_BASTIRILDI):
+                self._ulasti = True
+            self._kalan -= 1
+            if self._kalan != 0:
+                return
+            ulasti = self._ulasti
+        self._yonetici._dagitim_bitti(self, ulasti)
+
+
 class AnonsYoneticisi:
     """Uyarıyı kanallara dağıtır (docs/17 §7.3).
 
@@ -488,6 +527,26 @@ class AnonsYoneticisi:
         self._kayit = TeslimKaydedici(ayarlar.veritabani_yolu)
         self._kapandi = False
         self.son_sonuc: str = "Henüz anons denenmedi."
+        # Kanal sağlığı (docs/17 §7.4): "anons-saglik" iş parçacığı doldurur
+        self._saglik_araligi = float(ayarlar.anons_saglik_araligi_sn)
+        self._kopuk_esigi = float(ayarlar.anons_kopuk_esigi_sn)
+        self._haller: dict[int, KanalHali] = {}
+        self._haller_kilidi = threading.Lock()
+        self._saglik_is: threading.Thread | None = None
+        self._saglik_dur = threading.Event()
+        # Kanal listesi değişince beklemeden yoklansın (yeni kanal "denetleniyor"da kalmasın)
+        self._saglik_uyandir = threading.Event()
+        # Son yoklamanın çıkış listesi: Bluetooth hoparlör yeniden bağlanınca
+        # adı (profil soneki) değişirse çalma bugünkü ada yapılır (§7.5-2)
+        self._son_cihazlar: list[ses_cihazlari.SesCihazi] = []
+        # Garanti (§7.4-a): son uyarı hiçbir sesli kanala ulaşmadıysa True;
+        # /saglik "uyari_ulasmiyor". Sonraki ulaşan uyarı ya da başarılı bir
+        # kanal denemesi siler.
+        self.ulasmiyor = False
+        self._ulasmayan_araligi = float(ayarlar.ulasmayan_uyari_araligi_sn)
+        self._ulasmayan_son: dict = {}
+        self._ulasmayan_birikim: dict = {}
+        self._ulasmayan_kilidi = threading.Lock()
 
     @property
     def ad(self) -> str:
@@ -495,8 +554,10 @@ class AnonsYoneticisi:
         return kanal_ozeti(sum(1 for b in self._bolgeler if b.get("enabled")))
 
     def bolgeleri_yukle(self, satirlar) -> None:
-        """Kanal satırlarını tazeler (speaker_zones)."""
+        """Kanal satırlarını tazeler (speaker_zones) ve sağlık yoklamasını uyandırır:
+        eklenen ya da değişen kanal 10 sn "denetleniyor"da beklemesin."""
         self._bolgeler = [dict(satir) for satir in satirlar]
+        self._saglik_uyandir.set()
 
     def bolge_sec(self, kamera_alani: str | None) -> dict | None:
         """İhlalin olduğu bölümün ilk kanalı (bkz. modül düzeyindeki bolge_sec)."""
@@ -522,11 +583,31 @@ class AnonsYoneticisi:
             return
         olay = olay or OlayBilgisi()
         anahtar, metin = mesaj.get("key", ""), mesaj.get("text", "")
-        kanallar = _cikislara_gore_tekille(bolgeleri_sec(self._bolgeler, kamera_alani))
+        hedefler, atlananlar = self._hedefleri_sec(kamera_alani)
+        kanallar = _cikislara_gore_tekille(hedefler)
+        # Garanti yalnız olayın AÇILIŞINDA aranır; hatırlatma aynı olaydır
+        garanti = olay.asama == ASAMA_ACILDI
         if not kanallar:
             # Kanal yoksa ses çalmaz; bu bir hata değil, kurulum eksiğidir
             self._cal_ve_kaydet(anahtar, metin, None)
+            if garanti:
+                self._ulasmadi(olay, kamera_id, "sesli kanal tanımlı değil")
             return
+        for kanal in atlananlar:
+            self._teslimi_kaydet(
+                UyariOgesi(
+                    kanal=dict(kanal),
+                    anahtar=anahtar,
+                    metin=metin,
+                    onem=olay.onem,
+                    asama=olay.asama,
+                    olay_id=olay.olay_id,
+                    olay_kodu=olay.kod,
+                    sonuc=SONUC_GERI_DUSUS,
+                    ayrinti="bölüm kanalı koptu; uyarı “Tüm fabrika” kanalından duyuruldu",
+                )
+            )
+        grup = _Dagitim(self, olay, kamera_id, len(kanallar)) if garanti else None
         ses_yolu, ses_hatasi = self._ses_yolu(mesaj)
         # Kritik olayın açılışı bastırmadan muaftır (docs/17 §7.3-7a)
         muaf = olay.onem == "critical" and olay.asama == ASAMA_ACILDI
@@ -543,6 +624,7 @@ class AnonsYoneticisi:
                 olay_kodu=olay.kod,
                 kamera_id=kamera_id,
                 kare_zamani=olay.kare_zamani,
+                grup=grup,
             )
             bastirma = ("anons", kamera_id, mesaj.get("id"), kanal.get("id"))
             with self._bastirma_kilidi:
@@ -561,6 +643,8 @@ class AnonsYoneticisi:
                     "içinde duyuruldu ya da sırada"
                 )
                 self._teslimi_kaydet(oge)
+                if grup is not None:
+                    grup.sonuc(SONUC_BASTIRILDI)
                 continue
             oge.bastirma, oge.bastirma_zamani = bastirma, zaman_s
             self._siraya_koy(oge)
@@ -677,12 +761,231 @@ class AnonsYoneticisi:
         """Süreç kapanırken kuyrukları en çok `zaman_asimi` sn boşaltır (kritik
         önce; sıra zaten öncelikli), sonra işçileri durdurur (docs/17 §7.3-11)."""
         self._kapandi = True
+        self.saglik_durdur(1.0)
         son = time.monotonic() + zaman_asimi
         with self._iscilar_kilidi:
             iscilar = list(self._iscilar.values())
         for isci in iscilar:
             isci.durdur(max(0.0, son - time.monotonic()))
         self._kayit.durdur(max(0.5, son - time.monotonic()))
+
+    # ------------------------------------------------------------ kanal sağlığı
+
+    def saglik_baslat(self) -> None:
+        """Kanal sağlığı iş parçacığını ("anons-saglik") başlatır (süpervizör açılırken)."""
+        if self._saglik_is is not None:
+            return
+        self._saglik_dur.clear()
+        self._saglik_is = threading.Thread(
+            target=self._saglik_dongusu, name="anons-saglik", daemon=True
+        )
+        self._saglik_is.start()
+
+    def saglik_durdur(self, zaman_asimi: float = 2.0) -> None:
+        """Sağlık iş parçacığını durdurur. Süpervizör açık olayları kapatmadan
+        ÖNCE çağırır: kapanış kaydından sonra yeni bir "koptu" yazılmasın."""
+        self._saglik_dur.set()
+        self._saglik_uyandir.set()
+        if self._saglik_is is not None:
+            self._saglik_is.join(timeout=zaman_asimi)
+            self._saglik_is = None
+
+    def kanal_halleri(self) -> dict[int, tuple[str | None, str]]:
+        """Kanal id → (kararlaşmış sağlık ok|down|unknown|None, son yoklamanın açıklaması)."""
+        with self._haller_kilidi:
+            return {kid: (h.saglik, h.aciklama) for kid, h in self._haller.items()}
+
+    def _saglik_dongusu(self) -> None:
+        baglanti: sqlite3.Connection | None = None
+        try:
+            while not self._saglik_dur.is_set():
+                try:
+                    if baglanti is None:
+                        baglanti = veritabani.baglanti_ac(self._veritabani_yolu)
+                    self.saglik_turu(baglanti)
+                except (sqlite3.Error, OSError) as hata:
+                    _log.warning(f"Kanal sağlığı yazılamadı: {hata}")
+                    if baglanti is not None:
+                        baglanti.close()
+                    baglanti = None
+                except Exception as hata:  # noqa: BLE001 - yoklama durursa kopma görünmez
+                    _log.error(f"Kanal sağlığı yoklanamadı: {hata}", exc_info=hata)
+                self._saglik_uyandir.wait(self._saglik_araligi)
+                self._saglik_uyandir.clear()
+        finally:
+            if baglanti is not None:
+                baglanti.close()
+
+    def saglik_turu(self, baglanti: sqlite3.Connection, simdi: float | None = None) -> None:
+        """Açık kanalları bir kez yoklar, durumları ilerletir, değişeni yazar.
+
+        Kanallar her turda veritabanından okunur: sağlık, analizin yapılandırma
+        yüklemesini beklemez ve karşılaştırma sütunun GERÇEK değeriyle yapılır.
+        Testler sahte saatle doğrudan çağırır (`simdi`).
+        """
+        simdi = time.monotonic() if simdi is None else simdi
+        kanallar = [
+            dict(k)
+            for k in baglanti.execute("SELECT * FROM speaker_zones WHERE enabled = 1 ORDER BY id")
+        ]
+        ses_var = any(k.get("kind") == "ses_karti" for k in kanallar)
+        cihazlar = ses_cihazlari.cihazlari_listele() if ses_var and sys.platform != "win32" else []
+        self._son_cihazlar = cihazlar
+        secim = ses_cihazlari.secim_destekleniyor_mu()
+        calici_var = sys.platform == "win32" or _ses_komutu("deneme") is not None
+        for kanal in kanallar:
+            if self._saglik_dur.is_set():
+                return  # kapanış: süpervizörün kapanış kayıtlarından sonra olay yazılmasın
+            self._kanali_yokla(baglanti, kanal, cihazlar, secim, calici_var, simdi)
+        # Silinen ya da kapatılan kanalın açık "koptu" olayı asılı kalmasın
+        acik_idler = {int(k["id"]) for k in kanallar}
+        with self._haller_kilidi:
+            gidenler = [(kid, h) for kid, h in self._haller.items() if kid not in acik_idler]
+            for kid, _ in gidenler:
+                del self._haller[kid]
+        for kid, hali in gidenler:
+            if hali.acik_olay is not None:
+                olay_kapat(baglanti, hali.acik_olay, "kanal_degisti")
+            # Kapatılan kanalın eski kararı, yeniden açılınca bayat görünmesin
+            baglanti.execute(
+                "UPDATE speaker_zones SET health = NULL, health_changed_at = ? WHERE id = ?",
+                (zaman.simdi_utc(), kid),
+            )
+            baglanti.commit()
+
+    def _kanali_yokla(
+        self,
+        baglanti: sqlite3.Connection,
+        kanal: dict,
+        cihazlar: list[ses_cihazlari.SesCihazi],
+        secim: bool,
+        calici_var: bool,
+        simdi: float,
+    ) -> None:
+        kid = int(kanal["id"])
+        imza = kanal_imzasi(kanal)
+        with self._haller_kilidi:
+            hali = self._haller.get(kid)
+            eski = hali if hali is not None and hali.imza != imza else None
+            if hali is None or eski is not None:
+                # İlk yoklama sütundaki son karardan başlar (açılışta ekran ve
+                # /saglik boşa düşmesin); çıkışı ya da adresi değişen kanalın
+                # eski kararı ise geçersizdir
+                hali = KanalHali(imza=imza, saglik=None if eski else kanal.get("health"))
+                self._haller[kid] = hali
+        if eski is not None and eski.acik_olay is not None:
+            olay_kapat(baglanti, eski.acik_olay, "kanal_degisti")
+        sonuc, aciklama = kanal_yokla(
+            kanal,
+            cihazlar,
+            secim=secim,
+            calici_var=calici_var,
+            adres_dogrula=hoparlor_adresini_dogrula,
+        )
+        with self._haller_kilidi:
+            kod = ilerle(hali, sonuc, simdi, self._kopuk_esigi)
+            hali.aciklama = aciklama
+            yeni = hali.saglik
+        if yeni != kanal.get("health"):
+            # updated_at'e DOKUNULMAZ: yapılandırma damgası her yoklamada
+            # değişip süpervizör kanalları boş yere yeniden yüklemesin
+            baglanti.execute(
+                "UPDATE speaker_zones SET health = ?, health_changed_at = ? WHERE id = ?",
+                (yeni, zaman.simdi_utc(), kid),
+            )
+            baglanti.commit()
+        if kod is not None:
+            self._saglik_olayi(baglanti, kanal, hali, kod, aciklama)
+
+    def _saglik_olayi(
+        self, baglanti: sqlite3.Connection, kanal: dict, hali: KanalHali, kod: str, aciklama: str
+    ) -> None:
+        ad = kanal.get("name", "")
+        detay = {"kanal_id": kanal["id"], "kanal": ad, "tur": kanal.get("kind"), "sebep": aciklama}
+        if kod == KOD_KOPTU:
+            _log.error(f"Ses kanalı koptu: {ad} ({aciklama})")
+            hali.acik_olay = sistem_olayi_yaz(
+                baglanti,
+                f"Ses kanalı koptu: {ad}. {aciklama}. Bu kanaldan anons duyulmaz; "
+                "bölümün başka kanalı ya da “Tüm fabrika” kanalı kullanılır.",
+                None,
+                detay,
+                kod="AUDIO_CHANNEL_DOWN",
+            )
+            return
+        _log.info(f"Ses kanalı tekrar bağlandı: {ad}")
+        if hali.acik_olay is not None:
+            olay_kapat(baglanti, hali.acik_olay, "kosul_bitti")
+            hali.acik_olay = None
+        sistem_olayi_yaz(
+            baglanti, f"Ses kanalı tekrar bağlandı: {ad}.", None, detay, kod="AUDIO_CHANNEL_UP"
+        )
+
+    def _koptu_mu(self, kanal: dict) -> bool:
+        hali = self._haller.get(kanal.get("id"))
+        return hali is not None and hali.hal == HAL_KOPTU
+
+    def _hedefleri_sec(self, kamera_alani: str | None) -> tuple[list[dict], list[dict]]:
+        """(çalınacak kanallar, geri düşüldüğü için atlanan bölüm kanalları).
+
+        Seçim `bolgeleri_sec` ile aynıdır, yalnız KOPTU kanalı atlar: bölümde
+        sağlıklı kanal kalmadıysa geri düşüş "Tüm fabrika"dır (docs/17 §7.3-1).
+        Her şey kopuksa yine denenir: belki şimdi bağlanmıştır; sonuç kayda düşer.
+        """
+        alan = (kamera_alani or "").strip()
+        acik = [b for b in self._bolgeler if b.get("enabled")]
+        bolum = [b for b in acik if alan and (b.get("area") or "").strip() == alan]
+        genel = [b for b in acik if not (b.get("area") or "").strip()]
+        genel_saglikli = [b for b in genel if not self._koptu_mu(b)]
+        if bolum:
+            saglikli = [b for b in bolum if not self._koptu_mu(b)]
+            if saglikli:
+                return saglikli, []
+            if genel_saglikli:
+                return genel_saglikli, bolum
+            return bolum, []
+        return (genel_saglikli or genel), []
+
+    # ------------------------------------------------------------ garanti
+
+    def _dagitim_bitti(self, grup: _Dagitim, ulasti: bool) -> None:
+        if ulasti:
+            self.ulasmiyor = False
+            return
+        self._ulasmadi(grup.olay, grup.kamera_id, "hiçbir sesli kanal çalamadı")
+
+    def _ulasmadi(self, olay: OlayBilgisi, kamera_id, sebep: str) -> None:
+        """Gölgede olmayan olay hiçbir sesli/uzak kanala ulaşmadı (§7.4-a):
+        CRITICAL günlük, /saglik "uyari_ulasmiyor" ve aynı kamera için en çok
+        ULASMAYAN_UYARI_ARALIGI_SN'de bir ALERT_UNDELIVERED; aradakiler sayılır."""
+        self.ulasmiyor = True
+        tanim = OLAY_KODLARI.get(olay.kod or "")
+        ad = tanim.ad if tanim else "İhlal"
+        _log.critical(
+            f"Uyarı hiçbir sesli kanala ulaşamadı: {ad} (kamera {kamera_id}, olay "
+            f"{olay.olay_id}) - {sebep}"
+        )
+        simdi = time.monotonic()
+        with self._ulasmayan_kilidi:
+            son = self._ulasmayan_son.get(kamera_id)
+            if son is not None and simdi - son < self._ulasmayan_araligi:
+                self._ulasmayan_birikim[kamera_id] = self._ulasmayan_birikim.get(kamera_id, 0) + 1
+                return
+            arada = self._ulasmayan_birikim.pop(kamera_id, 0)
+            self._ulasmayan_son[kamera_id] = simdi
+        mesaj = f"Uyarı hiçbir sesli kanala ulaşamadı: {ad} - {sebep}."
+        if arada:
+            mesaj += f" Önceki kayıttan bu yana {arada} uyarı daha ulaşamadı."
+        self._kayit.ulasmayan_uyari(
+            mesaj,
+            kamera_id,
+            {
+                "olay_id": olay.olay_id,
+                "olay_kodu": olay.kod,
+                "arada_ulasmayan": arada,
+                "sebep": sebep,
+            },
+        )
 
     def kuyruk_durumu(self) -> dict[str, int]:
         """Çıkış başına bekleyen öğe sayısı (sağlık ayrıntısı için)."""
@@ -746,8 +1049,16 @@ class AnonsYoneticisi:
             nereye = oge.kanal.get("name", "")
             self.son_sonuc = f"Son anons ÇALINAMADI ({nereye}) - {oge.ses_hatasi}"
         else:
+            kanal = oge.kanal
+            if kanal.get("kind") == "ses_karti" and kanal.get("device") and self._son_cihazlar:
+                # Bluetooth hoparlör yeniden bağlanınca sink adının profil soneki
+                # değişebilir; aynı adresli sink'in bugünkü adına çalınır (§7.5-2)
+                kanal = {
+                    **kanal,
+                    "device": ses_cihazlari.guncel_cikis(kanal["device"], self._son_cihazlar),
+                }
             oge.sonuc, oge.ayrinti = self._cal_ve_kaydet(
-                oge.anahtar, oge.metin, oge.ses_yolu, oge.kanal, kes=kes
+                oge.anahtar, oge.metin, oge.ses_yolu, kanal, kes=kes
             )
         oge.bitis_utc = zaman.simdi_utc()
 
@@ -761,7 +1072,11 @@ class AnonsYoneticisi:
                     self._cooldown.kaydet(oge.bastirma, oge.bastirma_zamani)
         if oge.sonuc == SONUC_TAMAM and oge.kanal.get("id") is not None:
             self._son_anonsu_yaz(int(oge.kanal["id"]))
+            if oge.asama == ASAMA_TEST:
+                self.ulasmiyor = False  # kanal sınandı ve çaldı
         self._teslimi_kaydet(oge)
+        if oge.grup is not None:
+            oge.grup.sonuc(oge.sonuc)
 
     def _teslimi_kaydet(self, oge: UyariOgesi) -> None:
         self._kayit.teslim(

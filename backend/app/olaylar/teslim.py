@@ -21,6 +21,7 @@ from pathlib import Path
 
 from app import veritabani, zaman
 from app.loglama import adres_maskele, log_al
+from app.olaylar.yazici import sistem_olayi_yaz
 
 _log = log_al("anons")
 
@@ -46,6 +47,11 @@ class TeslimKaydedici:
     def son_anons(self, kanal_id: int, zaman_utc: str) -> None:
         self._baslat()
         self._kuyruk.put(("son_anons", (kanal_id, zaman_utc)))
+
+    def ulasmayan_uyari(self, mesaj: str, kamera_id: int | None, detaylar: dict) -> None:
+        """ALERT_UNDELIVERED sistem olayı (docs/17 §7.4-a); çağıran beklemez."""
+        self._baslat()
+        self._kuyruk.put(("ulasmayan", (mesaj, kamera_id, detaylar)))
 
     def bosalt(self, zaman_asimi: float) -> bool:
         """Sıradaki yazmalar bitene kadar bekler (testler ve kapanış)."""
@@ -82,6 +88,11 @@ class TeslimKaydedici:
                         baglanti = veritabani.baglanti_ac(self._yol)
                     if tur == "teslim":
                         _teslim_ekle(baglanti, veri)
+                    elif tur == "ulasmayan":
+                        mesaj, kamera_id, detaylar = veri
+                        sistem_olayi_yaz(
+                            baglanti, mesaj, kamera_id, detaylar, kod="ALERT_UNDELIVERED"
+                        )
                     else:
                         baglanti.execute(
                             "UPDATE speaker_zones SET last_announced_at = ? WHERE id = ?",

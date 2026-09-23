@@ -21,6 +21,7 @@ from pathlib import Path
 from app import zaman
 from app.ayarlar import env_degerlerini_oku
 from app.loglama import adres_maskele
+from app.olaylar import ses_cihazlari
 
 KANAL_TURLERI = {
     "ses_karti": "Ses çıkışı (kablolu ya da Bluetooth)",
@@ -43,6 +44,73 @@ def kanal_ozeti(acik_kanal: int) -> str:
 
 def acik_kanal_sayisi(baglanti: sqlite3.Connection) -> int:
     return baglanti.execute("SELECT COUNT(*) FROM speaker_zones WHERE enabled = 1").fetchone()[0]
+
+
+def bluetooth_kanali_mi(satir) -> bool:
+    """Ses çıkışı kanalı bir Bluetooth hoparlör mü (çıkışın adından)."""
+    return satir["kind"] == "ses_karti" and ses_cihazlari.bluetooth_mu(satir["device"] or "")
+
+
+def kanal_sagligi_ozeti(baglanti: sqlite3.Connection, canli: bool) -> dict:
+    """/saglik, sistem şeridi, Kontrol Paneli ve kurulum listesi için kanal özeti
+    (docs/17 §7.3-1, §7.4, §9.1). Açık kanallara bakar; ekran kanalı sayılmaz.
+
+    `canli`: sağlık izlemesi çalışıyor mu (analiz açık). Kapalıyken `health`
+    sütunu önceki çalışmadan kalmadır: garanti doğrulanamaz (None) ve Bluetooth
+    denetimi yalnız yapılandırmaya bakar ("Bluetooth dışında kanal var mı").
+
+    Döner:
+      uyari_garantisi  True: en az bir kanal bağlı · False: kanal yok ya da hepsi
+                       koptu · None: doğrulanamıyor (bilinmiyor, henüz yoklanmadı,
+                       analiz kapalı)
+      sorunlar         sesli_kanal_yok · yedek_ses_kanali_yok · tek_kanal_bluetooth
+      kanallar         [{"ad", "tur", "saglik"}] (oturumlu ayrıntı)
+      bluetooth_disi   Bluetooth olmayan açık kanal sayısı (kurulum listesinin cümlesi)
+    """
+    satirlar = baglanti.execute(
+        "SELECT name, area, kind, device, health FROM speaker_zones WHERE enabled = 1 "
+        "ORDER BY (area = ''), area, name"
+    ).fetchall()
+    kanallar = [
+        {"ad": s["name"], "tur": s["kind"], "saglik": s["health"] if canli else None}
+        for s in satirlar
+    ]
+    if not satirlar:
+        return {
+            "uyari_garantisi": False,
+            "sorunlar": ["sesli_kanal_yok"],
+            "kanallar": [],
+            "bluetooth_disi": 0,
+        }
+    sagliklar = [k["saglik"] for k in kanallar]
+    if not canli:
+        garanti = None
+    elif "ok" in sagliklar:
+        garanti = True
+    elif any(d in (None, "unknown") for d in sagliklar):
+        garanti = None
+    else:
+        garanti = False  # hepsi koptu
+    sorunlar = []
+    # Bölümlü kanal var ama geri düşülecek "Tüm fabrika" satırı yok: kanalı
+    # olmayan ya da kanalları kopan bölümün uyarısı hiçbir yerden duyulmaz
+    bolumlu = any((s["area"] or "").strip() for s in satirlar)
+    if bolumlu and not any(not (s["area"] or "").strip() for s in satirlar):
+        sorunlar.append("yedek_ses_kanali_yok")
+    # GÖREV §7: Bluetooth tek uyarı kanalı olamaz (Ç38, S32). Canlıyken Bluetooth
+    # dışındaki kanalların şu an bağlı olması gerekir, kapalıyken var olması.
+    bluetooth = [bluetooth_kanali_mi(s) for s in satirlar]
+    disi = [k for k, bt in zip(kanallar, bluetooth, strict=True) if not bt]
+    if any(bluetooth):
+        yedek = any(k["saglik"] == "ok" for k in disi) if canli else bool(disi)
+        if not yedek:
+            sorunlar.append("tek_kanal_bluetooth")
+    return {
+        "uyari_garantisi": garanti,
+        "sorunlar": sorunlar,
+        "kanallar": kanallar,
+        "bluetooth_disi": len(disi),
+    }
 
 
 def _aktarim_gerekli_mi(baglanti: sqlite3.Connection) -> bool:
