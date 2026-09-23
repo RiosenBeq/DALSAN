@@ -127,6 +127,13 @@ class Ayarlar:
     analiz_yavas_sure_sn: float = 60.0
     # Bir kamerada üst üste bu kadar kare işlenemezse hattı yeniden kurulur.
     analiz_hata_esigi: int = 30
+    # --- KKD anons kapısı (docs/17 §5.7, K16; S33) ---
+    # Gölgedeki KKD kuralının anonsu, kalem ve model sürümü başına bu şartlar
+    # sağlanmadan açılmaz (web/kkd_karnesi.py). Açık onayla zorla açılabilir;
+    # onay sistem olayı olarak yazılır.
+    kkd_kapi_precision: float = 0.90
+    kkd_kapi_gun: int = 3
+    kkd_kapi_en_az_olay: int = 30
 
 
 def _yerel_adres_mi(adres: str) -> bool:
@@ -481,6 +488,13 @@ def ayarlari_coz(
         bekci_tepkisi=_secenek(degerler, "BEKCI_TEPKISI", "uyar", _BEKCI_TEPKILERI),
         analiz_yavas_sure_sn=_ondalik(degerler, "ANALIZ_YAVAS_SURE_SN", 60.0, 10.0, 3600.0),
         analiz_hata_esigi=_tam_sayi(degerler, "ANALIZ_HATA_ESIGI", 30, 3, 10000),
+        # --- KKD anons kapısı (docs/17 §5.7; docs/04 §8.1 hedef 0,90; S33) ---
+        # Precision 0,5'in altına indirilemez: yarısı yanlış alarm olan bir
+        # anons kapı değildir. En az olay 1'e kadar inebilir ama 30'un altında
+        # ölçülen precision istatistikçe zayıftır (Ayarlar sayfası söyler).
+        kkd_kapi_precision=_ondalik(degerler, "KKD_KAPI_PRECISION", 0.90, 0.5, 1.0),
+        kkd_kapi_gun=_tam_sayi(degerler, "KKD_KAPI_GUN", 3, 1, 90),
+        kkd_kapi_en_az_olay=_tam_sayi(degerler, "KKD_KAPI_EN_AZ_OLAY", 30, 1, 10000),
     )
 
 

@@ -95,6 +95,8 @@ OLAY_KODLARI: dict[str, OlayKodu] = _tablo(
     OlayKodu("SYSTEM_STOPPED", ONEM_SISTEM, "Sistem durdu"),
     OlayKodu("PPE_COLLECTION_CHANGED", ONEM_SISTEM, "KKD veri toplama değişti"),  # 2e
     OlayKodu("PPE_MODEL_CHANGED", ONEM_SISTEM, "KKD modeli değişti"),  # F3
+    # Anons, kapının şartları sağlanmadan açık onayla açıldı (docs/17 §5.7)
+    OlayKodu("PPE_GATE_OVERRIDDEN", ONEM_SISTEM, "KKD anonsu ölçülmeden açıldı"),  # F3
     OlayKodu("AUDIO_CHANNEL_DOWN", ONEM_SISTEM, "Ses kanalı koptu"),  # F4
     OlayKodu(
         "AUDIO_CHANNEL_UP",

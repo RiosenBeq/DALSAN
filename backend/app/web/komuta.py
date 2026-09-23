@@ -20,12 +20,13 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from app import zaman
 from app.hatalar import DogrulamaHatasi
 from app.olaylar.anons import bolge_sec
+from app.olaylar.yazici import sistem_olayi_yaz
 from app.rules.motor import KALIBRASYON_GEREKTIREN
 
 # Ses çıkışı bölümünün verisi TEK yerde üretilir (web/anons_web.py). İki ayrı
 # yerde üretilseydi bu ekran hoparlörü bağlı, öbürü kopmuş gösterebilirdi.
 # Ters yönde bağımlılık YOKTUR (anons_web komuta'yı import etmez).
-from app.web import anons_web
+from app.web import anons_web, kkd_karnesi
 from app.web.kilavuz import EKRAN_ACIKLAMALARI, kurulum_durumu
 from app.web.ortak import (
     ANONS_KISA_ADLARI,
@@ -214,7 +215,7 @@ def kamera_sagligi(istek: Request, baglanti=Depends(baglanti_al)):
 @router.get("/komuta/uyari", response_class=HTMLResponse)
 def uyari_zinciri(istek: Request, baglanti=Depends(baglanti_al)):
     baglam = kabuk_baglami(istek, baglanti, "uyari")
-    baglam.update(uyari_baglami(baglanti, istek.app.state.ayarlar))
+    baglam.update(uyari_baglami(baglanti, istek.app.state.ayarlar, kkd_karnesi.yuklu_surum(istek)))
     return sablonlar.TemplateResponse(istek, "komuta_uyari.html", baglam)
 
 
@@ -223,6 +224,7 @@ def golge_modu_degistir(
     istek: Request,
     golge: str = Form(...),
     kural_idler: list[int] = Form(...),
+    olcmeden: str = Form(""),
     baglanti=Depends(baglanti_al),
 ):
     """Zincirdeki bir satırı gölge moda alır ya da anonsu açar.
@@ -234,35 +236,76 @@ def golge_modu_degistir(
     Kural motoruna DOKUNULMAZ: yalnızca rules.shadow_mode yazılır, kararı yine
     kural motoru verir. updated_at da yazılır ki süpervizör değişikliği
     5 saniye içinde yeniden başlatmadan alsın.
+
+    KKD kuralının anonsu KAPIDAN geçer (docs/17 §5.7, web/kkd_karnesi.py):
+    şartlar sağlanmadıysa yalnız "ölçülmeden açıyorum" onayıyla açılır ve bu
+    onay PPE_GATE_OVERRIDDEN olarak Olaylar'a yazılır. Kapı sunucuda
+    denetlenir; ekrandaki gri düğme yalnız bunu önceden söyler.
     """
     if golge not in ("0", "1"):
         raise DogrulamaHatasi(f"Geçersiz gölge mod değeri: {golge}")
     if not kural_idler:
         raise DogrulamaHatasi("Değiştirilecek kural seçilmedi.")
+    surum = kkd_karnesi.yuklu_surum(istek)
+    kkd_idler: list[int] = []
+    eksikler: list[str] = []
+    if golge == "0":
+        kkd_idler, kalemler = _kkd_kurallari(baglanti, kural_idler)
+        if kkd_idler:
+            karne = kkd_karnesi.karne_hesapla(baglanti, istek.app.state.ayarlar, surum)
+            eksikler = kkd_karnesi.kapi_eksikleri(karne, kalemler)
+        if eksikler and olcmeden != "1":
+            raise DogrulamaHatasi(
+                "KKD anonsu açılmadı: kapının şartları sağlanmadı ("
+                + "; ".join(eksikler)
+                + "). Ölçmeden açmak için “ölçülmeden açıyorum” kutusunu işaretleyin; "
+                "bu karar Olaylar'a yazılır."
+            )
     simdi = zaman.simdi_utc()
     baglanti.executemany(
         "UPDATE rules SET shadow_mode = ?, updated_at = ? WHERE id = ?",
         [(int(golge), simdi, kural_id) for kural_id in kural_idler],
     )
-    if golge == "0":
+    if golge == "0" and surum:
         # KKD anonsu açılırken yüklü model sürümü onaylanır (docs/17 §5.7-4):
         # sonra model değişirse süpervizör kuralı yeniden gölgeye alır. Model
         # yüklü değilse sürüm yazılmaz; ilk model yüklendiğinde gölgeye döner.
-        surum = _yuklu_kkd_surumu(istek)
-        if surum:
-            baglanti.executemany(
-                "UPDATE rules SET approved_model_version = ? "
-                "WHERE id = ? AND rule_type = 'ppe_violation'",
-                [(surum, kural_id) for kural_id in kural_idler],
-            )
+        baglanti.executemany(
+            "UPDATE rules SET approved_model_version = ? "
+            "WHERE id = ? AND rule_type = 'ppe_violation'",
+            [(surum, kural_id) for kural_id in kkd_idler],
+        )
     baglanti.commit()
+    if eksikler:
+        sistem_olayi_yaz(
+            baglanti,
+            f"KKD anonsu ölçülmeden açıldı ({len(kkd_idler)} kural, model "
+            f"{surum or 'yüklü değil'}). Sağlanmayan şartlar: {'; '.join(eksikler)}.",
+            detaylar={
+                "kural_idler": kkd_idler,
+                "model_version": surum or None,
+                "eksik_sartlar": eksikler,
+            },
+            kod="PPE_GATE_OVERRIDDEN",
+        )
     return RedirectResponse("/komuta/uyari", status_code=303)
 
 
-def _yuklu_kkd_surumu(istek: Request) -> str:
-    supervizor = getattr(istek.app.state, "supervizor", None)
-    kkd = getattr(supervizor, "kkd", None)
-    return kkd.model_surumu if kkd is not None and kkd.model_var else ""
+def _kkd_kurallari(baglanti, kural_idler: list[int]) -> tuple[list[int], list[str]]:
+    """İstekteki KKD kuralları ve istedikleri kalemlerin birleşimi."""
+    isaretler = ", ".join("?" * len(kural_idler))
+    idler: list[int] = []
+    kalemler: list[str] = []
+    for satir in baglanti.execute(
+        f"SELECT id, params FROM rules WHERE rule_type = 'ppe_violation' AND id IN ({isaretler}) "
+        "ORDER BY id",
+        kural_idler,
+    ):
+        idler.append(satir["id"])
+        for kalem in kkd_karnesi.kural_kalemleri(_json_sozluk(satir["params"])):
+            if kalem not in kalemler:
+                kalemler.append(kalem)
+    return idler, kalemler
 
 
 @router.get("/komuta/anons", response_class=HTMLResponse)
@@ -1066,6 +1109,11 @@ def _zincir(baglanti, ayarlar, hoparlorler: list[dict]) -> list[dict]:
                 "rozet_rengi": rozet_rengi,
                 "golge": bool(satir["shadow_mode"]),
                 "kapali": not satir["enabled"],
+                # KKD satırının karnesi ve anons kapısı (uyari_baglami doldurur)
+                "kkd_kalemleri": kkd_karnesi.kural_kalemleri(params)
+                if satir["rule_type"] == "ppe_violation"
+                else [],
+                "kkd": None,
             }
         grup["kural_idler"].append(satir["id"])
         grup["kamera_adlari"].append(satir["kamera_adi"])
@@ -1108,11 +1156,12 @@ def _zincir(baglanti, ayarlar, hoparlorler: list[dict]) -> list[dict]:
     return zincir
 
 
-def uyari_baglami(baglanti, ayarlar) -> dict:
+def uyari_baglami(baglanti, ayarlar, kkd_surumu: str = "") -> dict:
     hoparlorler = [
         dict(satir) for satir in baglanti.execute("SELECT * FROM speaker_zones ORDER BY id")
     ]
     zincir = _zincir(baglanti, ayarlar, hoparlorler)
+    _kkd_karnelerini_ekle(baglanti, ayarlar, kkd_surumu, zincir)
     return {
         "zincir": zincir,
         "golge_sayisi": sum(1 for z in zincir if z["golge"]),
@@ -1120,7 +1169,38 @@ def uyari_baglami(baglanti, ayarlar) -> dict:
         "anons_yolu": ANONS_KISA_ADLARI.get(ayarlar.anons, ayarlar.anons),
         "anons_kapali": ayarlar.anons == "null",
         "anons_bekleme_sn": ayarlar.anons_bekleme_sn,
+        # Gölge mod panelindeki kapı cümlesi; eşikler ayarlardan (KKD_KAPI_*)
+        "kkd_kapi": {
+            "precision": kkd_karnesi.oran_metni(ayarlar.kkd_kapi_precision),
+            "gun": ayarlar.kkd_kapi_gun,
+            "en_az_olay": ayarlar.kkd_kapi_en_az_olay,
+        },
     }
+
+
+def _kkd_karnelerini_ekle(baglanti, ayarlar, kkd_surumu: str, zincir: list[dict]) -> None:
+    """KKD satırlarına gölge karnesi ve kapının eksik şartları (docs/17 §5.7).
+
+    Karne kalem başınadır ve kameralar arasında toplanır: her KKD satırı aynı
+    karneden kendi kalemlerini gösterir. Kapalı satırda karne gösterilmez.
+    Eksik şart yalnız gölgedeki satırda yazılır: anonsu açık satırda kapı
+    zaten geçilmiş (ya da açık onayla aşılmış) demektir.
+    """
+    kkd_satirlari = [z for z in zincir if z["kkd_kalemleri"] and not z["kapali"]]
+    if not kkd_satirlari:
+        return
+    karne = kkd_karnesi.karne_hesapla(baglanti, ayarlar, kkd_surumu)
+    for satir in kkd_satirlari:
+        satir["kkd"] = {
+            "model": karne["model"],
+            "kalemler": [karne["kalemler"][k] for k in satir["kkd_kalemleri"]]
+            if karne["model"]
+            else [],
+            "eksikler": kkd_karnesi.kapi_eksikleri(karne, satir["kkd_kalemleri"])
+            if satir["golge"]
+            else [],
+            "eksik_ozeti": kkd_karnesi.kapi_ozeti(karne, satir["kkd_kalemleri"]),
+        }
 
 
 # =====================================================================

@@ -49,6 +49,7 @@ TASARIMDAKI_KODLAR = {
     "SYSTEM_STOPPED": "system",
     "PPE_COLLECTION_CHANGED": "system",
     "PPE_MODEL_CHANGED": "system",
+    "PPE_GATE_OVERRIDDEN": "system",
     "AUDIO_CHANNEL_DOWN": "system",
     "AUDIO_CHANNEL_UP": "system",
     "ALERT_UNDELIVERED": "system",

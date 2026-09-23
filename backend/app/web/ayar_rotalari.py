@@ -378,6 +378,58 @@ AYAR_GRUPLARI: tuple[AyarGrubu, ...] = (
         ),
     ),
     AyarGrubu(
+        baslik="KKD anons kapısı",
+        aciklama=(
+            "KKD kuralı gölge modda doğar: olay yazılır, hoparlör susar. Olaylar "
+            "“İncelendi” ya da “Yanlış alarm” diye işaretlendikçe KKD sayfasındaki "
+            "karne dolar. Anons, baret ve yelek için ayrı ayrı ve yüklü model "
+            "sürümü için şu dört şart sağlanınca açılır: precision eşiği, en az gün, "
+            "en az incelenmiş olay ve incelenmemiş olay kalmaması. Yeni model sürümü "
+            "sayacı sıfırdan başlatır."
+        ),
+        alanlar=(
+            AyarAlani(
+                anahtar="KKD_KAPI_PRECISION",
+                alan="kkd_kapi_precision",
+                etiket="En düşük precision",
+                tur="ondalik",
+                en_az="0.5",
+                en_cok="1",
+                adim="0.01",
+                aciklama=(
+                    "İncelenen olayların kaçta kaçı gerçek ihlal olmalı. 0.90: her 10 "
+                    "uyarıdan en az 9'u gerçek (docs/04 §8.1). Düşürmek, çalışanı "
+                    "boşuna uyaran bir anonsu açmak demektir. Öneri: 0.90."
+                ),
+            ),
+            AyarAlani(
+                anahtar="KKD_KAPI_GUN",
+                alan="kkd_kapi_gun",
+                etiket="Gölge modda en az gün",
+                en_az="1",
+                en_cok="90",
+                aciklama=(
+                    "O kalem ve model sürümünün ilk olayından bu yana geçmesi gereken "
+                    "süre. Tek bir vardiyanın ışığı ve işi bütün sahayı temsil etmez. "
+                    "Öneri: 3."
+                ),
+            ),
+            AyarAlani(
+                anahtar="KKD_KAPI_EN_AZ_OLAY",
+                alan="kkd_kapi_en_az_olay",
+                etiket="En az incelenmiş olay",
+                en_az="1",
+                en_cok="10000",
+                aciklama=(
+                    "Tek doğru olayla precision %100 çıkar ama hiçbir şey söylemez. "
+                    "Hiç yanlış alarm yokken bile 30 olayla söylenebilecek en iyi şey "
+                    "“hata oranı %95 güvenle en çok %10”dur; 30'un altında ölçülen "
+                    "precision güvenilmez. Öneri: 30."
+                ),
+            ),
+        ),
+    ),
+    AyarGrubu(
         baslik="Nesne arama (Nesneler sayfası)",
         aciklama=(
             "Yalnızca Nesneler sayfasında, sizin yüklediğiniz fotoğraflarda yapılan "

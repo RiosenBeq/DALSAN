@@ -2,7 +2,8 @@
 
 - KKD kuralı gölgede doğar: hazır kural da formdan kurulan da. Form anonsu
   AÇAMAZ; anonsu Komuta → Uyarı zinciri açar ve yüklü model sürümünü onaylı
-  olarak yazar.
+  olarak yazar. Anons kapısının kendisi test_kkd_kapisi.py'de; buradaki
+  testler kapıyı "ölçülmeden açıyorum" onayıyla geçer.
 - Onaylı sürüm yüklü modelden farklıysa (ya da hiç yoksa) süpervizör kuralı
   gölgeye alır ve PPE_MODEL_CHANGED yazar; kural parametreleri değişmez, bu
   yüzden pencere ve bekleme süreleri sıfırlanmaz.
@@ -108,7 +109,7 @@ def test_uyari_zincirinden_acilan_kkd_anonsu_formla_kapanmaz(istemci, test_ayarl
     kural_id = _satirlar(test_ayarlari, "SELECT MAX(id) AS m FROM rules")[0]["m"]
     istemci.post(
         "/komuta/uyari/golge",
-        data={"golge": "0", "kural_idler": [str(kural_id)]},
+        data={"golge": "0", "kural_idler": [str(kural_id)], "olcmeden": "1"},
         follow_redirects=False,
     )
     istemci.post(
@@ -136,7 +137,7 @@ def test_anonsu_acmak_yuklu_surumu_onaylar(istemci, test_ayarlari, supervizor, b
     try:
         istemci.post(
             "/komuta/uyari/golge",
-            data={"golge": "0", "kural_idler": [str(kkd_id)]},
+            data={"golge": "0", "kural_idler": [str(kkd_id)], "olcmeden": "1"},
             follow_redirects=False,
         )
     finally:
@@ -144,6 +145,12 @@ def test_anonsu_acmak_yuklu_surumu_onaylar(istemci, test_ayarlari, supervizor, b
     kural = _kural(test_ayarlari, kkd_id)
     assert kural["shadow_mode"] == 0
     assert kural["approved_model_version"] == beklenen
+    # Hiç olay yokken kapı kapalıdır: açık onay sistem olayı olarak kaldı
+    olay = _satirlar(
+        test_ayarlari, "SELECT details FROM events WHERE event_code = 'PPE_GATE_OVERRIDDEN'"
+    )
+    assert len(olay) == 1
+    assert json.loads(olay[0]["details"])["model_version"] == beklenen
 
 
 # ------------------------------------------------------------------ süpervizör
