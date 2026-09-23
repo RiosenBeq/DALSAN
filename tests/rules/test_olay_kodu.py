@@ -53,6 +53,7 @@ TASARIMDAKI_KODLAR = {
     "AUDIO_CHANNEL_DOWN": "system",
     "AUDIO_CHANNEL_UP": "system",
     "ALERT_UNDELIVERED": "system",
+    "ALERT_ARCHIVE_FAILED": "system",
 }
 
 

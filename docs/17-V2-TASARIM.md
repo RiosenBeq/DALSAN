@@ -730,6 +730,7 @@ Durum: `exists` (var, yalnız kod verilir) · `rename` (var, adı ve önemi v2'y
 | `AUDIO_CHANNEL_DOWN` | yok (`cihaz_bagli_mi` yalnız `/anons` render edilirken, `anons_web.py:81`) | new (F4) | system; 30 sn kesintisiz "koptu" |
 | `AUDIO_CHANNEL_UP` | yok | new (F4) | system; 2 ardışık "bağlı"; açık DOWN'u kapatır |
 | `ALERT_UNDELIVERED` | yok (başarısız anons yalnız `son_sonuc` metninde, `anons.py:360-366`) | new (F4) | system; aynı kamera için en çok `ULASMAYAN_UYARI_ARALIGI_SN`'de (öneri 300) bir kez; aradaki ulaşmayanlar sayılıp olay `details`'ine yazılır |
+| `ALERT_ARCHIVE_FAILED` | yok | new (23.09.2026) | system; uyarı kayıtları arşiv klasörüne yazılamadı ya da doğrulanamadı, hiçbir kayıt silinmedi; bakım ertesi gün yeniden dener (`olaylar/uyari_arsivi.py`) |
 | (007 öncesi olaylar) | `event_code` NULL | exists | geriye dönük kod yazılmaz; ekran kural tipi adını kullanır (`ortak.py:239`); 007 bunlara `resolved_at = occurred_at` yazar |
 | düşme, ek KKD sınıfları, mesajlaşma/ışıklı kule kanalları | docs/07 #13, #8, #4 | deferred | §4'te v1 kapsamında değil |
 

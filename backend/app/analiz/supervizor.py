@@ -45,6 +45,7 @@ from app.analiz.model_indir import (
 from app.analiz.tespit import ModelHatasi, Tespitci
 from app.ayarlar import Ayarlar
 from app.loglama import log_al
+from app.olaylar import uyari_arsivi
 from app.olaylar.anons import AnonsYoneticisi, OlayBilgisi
 from app.olaylar.yazici import acik_olaylari_kapat, ihlal_yaz, olay_kapat, sistem_olayi_yaz
 from app.rules.olay_durumu import ACILDI, HATIRLATMA, KAPANDI, OlayGecisi
@@ -1513,6 +1514,9 @@ class AnalizSupervizoru:
         yazılır. Her koşu `purge_log`'a bir satır bırakır (kişisel veri yok).
         """
         a = self.ayarlar
+        # Uyarı kayıtları olaydan ÖNCE: olay silinirse teslim kaydı da gider
+        # (CASCADE) ve arşive hiç girmezdi.
+        arsiv = self._uyari_kaydini_arsivle(baglanti)
         sinir = zaman.gun_once_utc(a.olay_saklama_gun)
         sistem_siniri = zaman.gun_once_utc(a.sistem_olay_saklama_gun)
         atlanan_donmus = baglanti.execute(
@@ -1532,11 +1536,14 @@ class AnalizSupervizoru:
         # Teslim kaydı olayla birlikte gider (ON DELETE CASCADE); olay satırı
         # olmayanlar (fail-safe, test sesi) ihlal saklama süresiyle silinir.
         # Dondurulan olayın teslim kaydı kanıtın parçasıdır ("uyarı çaldı mı").
-        baglanti.execute(
-            "DELETE FROM alert_deliveries WHERE queued_at < ? AND (event_id IS NULL "
-            "OR event_id NOT IN (SELECT id FROM events WHERE hold = 1))",
-            (sinir,),
-        )
+        # Arşiv açıksa teslim kaydı yalnız arşivden sonra silinir: burada
+        # silinseydi masaüstüne yazılmadan giderdi.
+        if not a.uyari_kaydi_arsiv_gun:
+            baglanti.execute(
+                "DELETE FROM alert_deliveries WHERE queued_at < ? AND (event_id IS NULL "
+                "OR event_id NOT IN (SELECT id FROM events WHERE hold = 1))",
+                (sinir,),
+            )
         baglanti.commit()
 
         korunanlar = {
@@ -1558,7 +1565,12 @@ class AnalizSupervizoru:
         baglanti.commit()
         silinen_kkd = self._kkd_hamlarini_sil(baglanti)
         self._imha_kaydi_yaz(
-            baglanti, silinen_olay + silinen_sistem, silinen_foto, silinen_kkd, atlanan_donmus
+            baglanti,
+            silinen_olay + silinen_sistem,
+            silinen_foto,
+            silinen_kkd,
+            atlanan_donmus,
+            arsiv,
         )
 
         import shutil as _shutil
@@ -1577,22 +1589,63 @@ class AnalizSupervizoru:
                 kod="DISK_LOW",
             )
 
+    def _uyari_kaydini_arsivle(self, baglanti) -> uyari_arsivi.ArsivSonucu | None:
+        """Uyarı kayıtları: önce arşiv klasörüne CSV, doğrulanınca silme.
+
+        Operatör isteği (23.09.2026): 15 günde bir temizlik, öncesinde
+        masaüstüne kayıt. Dosya yazılamazsa HİÇBİR kayıt silinmez; olay
+        listesine sistem olayı düşer ve bakım ertesi gün yeniden dener.
+        """
+        try:
+            sonuc = uyari_arsivi.arsivle_ve_temizle(baglanti, self.ayarlar)
+        except uyari_arsivi.ArsivHatasi as hata:
+            self._log.error(f"Uyarı kayıtları arşivlenemedi, hiçbir kayıt silinmedi: {hata}")
+            self._sistem_olayi(
+                baglanti,
+                f"Uyarı kayıtları arşiv klasörüne yazılamadı ({hata}); hiçbir kayıt "
+                "silinmedi. Klasörün var ve yazılabilir olduğunu kontrol edin; bakım "
+                "ertesi gün yeniden dener.",
+                kod="ALERT_ARCHIVE_FAILED",
+            )
+            return None
+        if sonuc is not None:
+            self._log.info(f"Uyarı kayıtları arşivlendi: {sonuc.satir} kayıt, {sonuc.dosya}")
+        return sonuc
+
     def _imha_kaydi_yaz(
-        self, baglanti, olay: int, foto: int, ornek: int, atlanan_donmus: int
+        self,
+        baglanti,
+        olay: int,
+        foto: int,
+        ornek: int,
+        atlanan_donmus: int,
+        arsiv: uyari_arsivi.ArsivSonucu | None = None,
     ) -> None:
-        """`purge_log` satırı: sayılar ve o anki saklama gün sayıları (docs/17 §10.1)."""
+        """`purge_log` satırı: sayılar, o anki saklama gün sayıları (docs/17 §10.1)
+        ve arşivlenip silinen uyarı kaydı ile dosyası (011)."""
         a = self.ayarlar
         politika = {
             "olay_gun": a.olay_saklama_gun,
             "sistem_olay_gun": a.sistem_olay_saklama_gun,
             "goruntu_gun": a.goruntu_saklama_gun,
             "kkd_ham_veri_gun": a.kkd_ham_veri_saklama_gun,
+            "uyari_kaydi_gun": a.uyari_kaydi_arsiv_gun,
         }
         try:
             baglanti.execute(
                 "INSERT INTO purge_log (ran_at, events_deleted, photos_deleted, "
-                "samples_deleted, held_skipped, policy) VALUES (?, ?, ?, ?, ?, ?)",
-                (zaman.simdi_utc(), olay, foto, ornek, atlanan_donmus, json.dumps(politika)),
+                "samples_deleted, held_skipped, policy, alerts_archived, alert_archive_file) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                (
+                    zaman.simdi_utc(),
+                    olay,
+                    foto,
+                    ornek,
+                    atlanan_donmus,
+                    json.dumps(politika),
+                    arsiv.satir if arsiv else 0,
+                    str(arsiv.dosya) if arsiv else None,
+                ),
             )
             baglanti.commit()
         except sqlite3.Error as hata:

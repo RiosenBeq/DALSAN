@@ -105,6 +105,8 @@ OLAY_KODLARI: dict[str, OlayKodu] = _tablo(
         kapattigi="AUDIO_CHANNEL_DOWN",
     ),  # F4
     OlayKodu("ALERT_UNDELIVERED", ONEM_SISTEM, "Uyarı hiçbir sesli kanala ulaşamadı"),  # F4
+    # Uyarı kaydı arşivi masaüstüne yazılamadı; hiçbir kayıt silinmedi (23.09.2026)
+    OlayKodu("ALERT_ARCHIVE_FAILED", ONEM_SISTEM, "Uyarı kayıtları arşivlenemedi"),
 )
 
 # Açık doğan (resolved_at boş) sistem olayları: kapatanı olanlar.

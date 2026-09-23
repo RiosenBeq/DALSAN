@@ -267,3 +267,67 @@ def test_ayar_varsayilani_15_gun_ve_sinirlar(tmp_path, monkeypatch):
     assert ayarlari_coz(tmp_path, {"UYARI_KAYDI_ARSIV_GUN": "0"}).uyari_kaydi_arsiv_gun == 0
     with pytest.raises(AyarHatasi):
         ayarlari_coz(tmp_path, {"UYARI_KAYDI_ARSIV_GUN": "400"})
+
+
+# ------------------------------------------------------------ bakım
+
+
+def _bakim(ayarlar, b) -> None:
+    from app.analiz.supervizor import AnalizSupervizoru
+    from app.loglama import log_al
+
+    supervizor = AnalizSupervizoru.__new__(AnalizSupervizoru)
+    supervizor.ayarlar = ayarlar
+    supervizor._log = log_al("test")
+    supervizor._bakim_yap(b)
+
+
+def test_bakim_arsivler_ve_imha_kaydina_yazar(baglanti, test_ayarlari):
+    _teslim(baglanti, 16, _olay(baglanti, 16))
+    _bakim(test_ayarlari, baglanti)
+    (dosya,) = _klasor(test_ayarlari).iterdir()
+    kayit = baglanti.execute("SELECT * FROM purge_log ORDER BY id DESC").fetchone()
+    assert (kayit["alerts_archived"], kayit["alert_archive_file"]) == (1, str(dosya))
+    assert _teslim_sayisi(baglanti) == 0
+
+
+def test_bakim_olaydan_once_arsivler(baglanti, test_ayarlari):
+    """Saklama süresi dolan olay silinince teslim kaydı da gider (CASCADE);
+    arşiv önce çalışmasaydı o kayıt masaüstüne hiç yazılmazdı."""
+    gun = test_ayarlari.olay_saklama_gun + 5
+    olay = _olay(baglanti, gun)
+    _teslim(baglanti, gun, olay)
+    _bakim(test_ayarlari, baglanti)
+    assert not baglanti.execute("SELECT 1 FROM events WHERE id = ?", (olay,)).fetchone()
+    (dosya,) = _klasor(test_ayarlari).iterdir()
+    _, satir = _csv_satirlari(dosya)
+    assert satir[5] == str(olay)
+
+
+def test_bakimda_yazilamazsa_silinmez_ve_sistem_olayi_duser(baglanti, test_ayarlari, tmp_path):
+    engel = tmp_path / "dosya-bu"
+    engel.write_text("klasör değil", encoding="utf-8")
+    ayarlar = dataclasses.replace(test_ayarlari, uyari_kaydi_arsiv_klasoru=str(engel / "alt"))
+    _teslim(baglanti, 16, _olay(baglanti, 16))
+
+    _bakim(ayarlar, baglanti)
+
+    assert _teslim_sayisi(baglanti) == 1
+    olay = baglanti.execute(
+        "SELECT details FROM events WHERE event_code = 'ALERT_ARCHIVE_FAILED'"
+    ).fetchone()
+    assert olay is not None and "hiçbir kayıt" in olay["details"]
+    kayit = baglanti.execute("SELECT * FROM purge_log ORDER BY id DESC").fetchone()
+    assert (kayit["alerts_archived"], kayit["alert_archive_file"]) == (0, None)
+
+
+def test_arsiv_aciksa_eski_teslim_kaydi_arsivsiz_silinmez(baglanti, test_ayarlari, tmp_path):
+    """Arşiv yazılamazken ihlal saklama süresi de dolmuşsa: olay satırı olmayan
+    kayıt (deneme sesi) eskiden 180 günde silinirdi; arşiv açıkken yalnız
+    arşivden sonra silinir."""
+    engel = tmp_path / "dosya-bu"
+    engel.write_text("klasör değil", encoding="utf-8")
+    ayarlar = dataclasses.replace(test_ayarlari, uyari_kaydi_arsiv_klasoru=str(engel / "alt"))
+    _teslim(baglanti, test_ayarlari.olay_saklama_gun + 5, None)
+    _bakim(ayarlar, baglanti)
+    assert _teslim_sayisi(baglanti) == 1

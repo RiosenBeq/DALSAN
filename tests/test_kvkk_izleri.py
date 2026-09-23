@@ -105,7 +105,15 @@ def test_her_bakim_kosusu_imha_kaydi_yazar(baglanti, test_ayarlari):
     assert (ikinci["events_deleted"], ikinci["photos_deleted"]) == (0, 0)
     politika = json.loads(ilk["policy"])
     assert politika["olay_gun"] == test_ayarlari.olay_saklama_gun
-    assert set(politika) == {"olay_gun", "sistem_olay_gun", "goruntu_gun", "kkd_ham_veri_gun"}
+    assert set(politika) == {
+        "olay_gun",
+        "sistem_olay_gun",
+        "goruntu_gun",
+        "kkd_ham_veri_gun",
+        "uyari_kaydi_gun",  # 011: uyarı kaydı arşivi (23.09.2026)
+    }
+    # Arşivlenecek uyarı kaydı yoktu: sayı 0, dosya yok
+    assert (ilk["alerts_archived"], ilk["alert_archive_file"]) == (0, None)
 
 
 def _olay_ekle(test_ayarlari) -> int:
