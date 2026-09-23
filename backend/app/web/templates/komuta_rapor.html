@@ -150,6 +150,39 @@
 
 {% endif %}
 
+{# Yanlış alarm / saat (docs/17 §14): payda analiz edilen süre, yalnız
+   incelemesi tam günler. Ölçülemeyen sayı uydurulmaz: "ölçülemedi".
+   İhlalsiz dönemde de görünür: "0 / sa" en iyi sonuçtur, gizlenmemeli. #}
+<section class="komuta-panel rapor-bolum" id="analiz-saatleri">
+  <div class="panel-basligi">
+    <h2>Analiz edilen süre ve yanlış alarm / saat</h2>
+    <span class="panel-notu">hedef: kamera başına saatte en çok {{ hedef_yanlis_alarm }} yanlış alarm</span>
+  </div>
+  {% if analiz_saatleri %}
+  <div class="rapor-tablo">
+    <div class="rapor-satiri saat-satiri rapor-tablo-basligi">
+      <span>Kamera</span>
+      <span class="sayisal">Analiz edilen</span>
+      <span class="sayisal">İncelemesi tam</span>
+      <span class="sayisal">Yanlış alarm / saat</span>
+      <span class="sayisal">Gölgede yanlış alarm</span>
+    </div>
+    {% for satir in analiz_saatleri %}
+    <div class="rapor-satiri saat-satiri">
+      <span class="satir-adi">{{ satir.kamera }}</span>
+      <span class="sayisal">{{ satir.analiz }}</span>
+      <span class="sayisal">{{ satir.olculen }}<span class="panel-notu"> ({{ satir.kapsama }})</span></span>
+      <span class="sayisal {% if satir.hedef_asildi %}hedef-asildi{% endif %}">{{ satir.oran }}{% if satir.oran != "ölçülemedi" %}<span class="panel-notu"> ({{ satir.yanlis }} yanlış alarm)</span>{% endif %}</span>
+      <span class="sayisal">{{ satir.golge_yanlis }}</span>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="panel-notu">Bu dönemde analiz saati kaydı yok: analiz edilen süre, tespit modeli
+    yüklüyken kameradan görüntü işlendikçe kaydedilir.</p>
+  {% endif %}
+</section>
+
 <section class="komuta-panel rapor-bolum rapor-notlar">
   <div class="panel-basligi"><h2>Bu rapor nasıl okunur</h2></div>
   <ul>

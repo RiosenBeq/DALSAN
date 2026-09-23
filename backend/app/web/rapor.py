@@ -22,6 +22,7 @@ from __future__ import annotations
 import csv
 import io
 import json
+import math
 from collections import Counter, defaultdict
 
 from fastapi import APIRouter, Depends, Request
@@ -52,6 +53,10 @@ EN_COK_OLAY = 200_000
 # Gün çubuğu bu sayıdan fazlaysa etiketler okunmaz olur; yalnız her N'inci
 # günün etiketi yazılır (çubuklar yine hepsi çizilir).
 GUN_ETIKET_SINIRI = 14
+
+# docs/17 §4.8 hedefi: kamera başına saatte en çok 2 yanlış alarm. Rapor
+# yalnız gösterir; sayı ölçülemiyorsa hedef "tuttu" denmez.
+HEDEF_YANLIS_ALARM_SAAT = 2.0
 
 _SILINMIS_KAMERA = "Kamerası silinmiş"
 _BOLGESIZ = "Bölgesiz (tüm kare)"
@@ -98,7 +103,7 @@ def _olaylari_getir(baglanti, baslangic: str, bitis: str, alan: str) -> list[dic
         kosullar.append("c.area = ?")
         degerler.append(alan)
     satirlar = baglanti.execute(
-        "SELECT e.occurred_at, e.status, e.rule_snapshot, "
+        "SELECT e.occurred_at, e.status, e.rule_snapshot, e.camera_id, "
         "       c.name AS kamera_adi, c.area AS kamera_alani "
         "FROM events e LEFT JOIN cameras c ON c.id = e.camera_id "
         f"WHERE {' AND '.join(kosullar)} "
@@ -239,6 +244,11 @@ def rapor_verisi(baglanti, sorgu) -> dict:
 
     toplam = len(olaylar)
     isaretli = durumlar["reviewed"] + durumlar["false_alarm"]
+    # Olay sınırına dayanıldıysa en eski gün eksik okundu (sorgu yeniden eskiye)
+    kesim_gunu = (
+        zaman.yerel_tarih_iso(olaylar[-1]["occurred_at"]) if toplam >= EN_COK_OLAY else None
+    )
+    analiz_saatleri = _analiz_saatleri(baglanti, baslangic, bitis, alan, olaylar, kesim_gunu)
     saatler = saat_sutunlari([o["occurred_at"] for o in olaylar], "ihlal")
     gun_grafigi = _gun_sutunlari(gunler, baslangic, bitis)
 
@@ -259,6 +269,8 @@ def rapor_verisi(baglanti, sorgu) -> dict:
             _kirilim(bolum_sayaci, "Bölüme göre", "Bölüm"),
             _kirilim(bolge_sayaci, "Bölgeye göre", "Bölge"),
         ],
+        "analiz_saatleri": analiz_saatleri,
+        "hedef_yanlis_alarm": sayi_metni(HEDEF_YANLIS_ALARM_SAAT),
         "saat_sutunlari": saatler["sutunlar"],
         "saat_tepesi": saatler["tepe"],
         "gun_sutunlari": gun_grafigi["sutunlar"],
@@ -267,6 +279,132 @@ def rapor_verisi(baglanti, sorgu) -> dict:
         "sinira_dayandi": toplam >= EN_COK_OLAY,
         "en_cok_olay": EN_COK_OLAY,
     }
+
+
+def _saat_metni(saniye: float) -> str:
+    """Analiz süresi, Türkçe: '12,5 sa'; hiç yoksa '—'. Birkaç dakikalık süre
+    "0,0 sa" yazılmaz: sıfır sanılırdı."""
+    if saniye <= 0:
+        return "—"
+    if saniye < 180:
+        return "< 0,1 sa"
+    return f"{saniye / 3600:.1f}".replace(".", ",") + " sa"
+
+
+def _yanlis_orani_metni(oran: float | None) -> str:
+    """'1,25 / sa'; ölçülemediyse söylenir. İki basamak: 25 saatte 1 yanlış
+    alarm (0,04) sıfıra yuvarlanmasın; daha küçüğü de "0" değil "< 0,01"."""
+    if oran is None:
+        return "ölçülemedi"
+    if 0 < oran < 0.005:
+        return "< 0,01 / sa"
+    return f"{sayi_metni(oran, basamak=2)} / sa"
+
+
+def _kapsama_metni(olculen_s: float, analiz_s: float) -> str:
+    """Analiz edilen sürenin incelemesi tam kısmı. AŞAĞI yuvarlanır: %99,6
+    "%100" görünüp eksik bir günü gizlemesin."""
+    if analiz_s <= 0:
+        return "—"
+    return f"%{math.floor(olculen_s / analiz_s * 100)}"
+
+
+def _analiz_saatleri(
+    baglanti, baslangic: str, bitis: str, alan: str, olaylar, kesim_gunu: str | None
+) -> list[dict]:
+    """Kamera başına analiz edilen süre ve yanlış alarm / saat (docs/17 §14).
+
+    Payda OLAY değil SAAT'tir (analysis_hours: model yüklüyken işlenen kareler
+    arası süre; kopukluk ve model yokluğu sayılmaz). Oran yalnız inceleme
+    kapsamı TAM olan kamera × gün dilimlerinden hesaplanır: o günün gölgede
+    olmayan her ihlali "İncelendi" ya da "Yanlış alarm" işaretli olmalı.
+    Eksik dilim hesaba girseydi, işaretlenmemiş olaylar paydan düşerken saat
+    paydada kalır ve oran yapay olarak düşük (hedef "tuttu") görünürdü.
+    Gölge moddaki olaylar operatöre ulaşmadığı için orana girmez, ayrı sayılır.
+
+    Olaylarını bilemediğimiz dilim TAM sayılmaz — "olaysız gün" sanılıp oranı
+    sıfıra çekerdi: silinmiş kameranın dilimleri (olayları kamerasız kaldı,
+    ON DELETE SET NULL) ve olay sınırına dayanınca eksik okunan en eski günler
+    (`kesim_gunu` ve öncesi). `olaylar` _kural_bilgisi'nden geçmiştir
+    (olay["golge"] dolu).
+    """
+    kosullar = ["h.hour_utc >= ?", "h.hour_utc < ?"]
+    # Türkiye saati tam saat farkıdır: gün sınırları saat başına düşer
+    degerler: list = [
+        zaman.yerel_gun_baslangici_utc(baslangic)[:13],
+        zaman.yerel_gun_sonu_utc(bitis)[:13],
+    ]
+    if alan:
+        kosullar.append("c.area = ?")
+        degerler.append(alan)
+    # Kamera anahtarı (kimlik, silinmiş mi): kimlik yeniden kullanılabilir
+    # (INTEGER PRIMARY KEY), silinen kameranın saatleri yenisine yazılmasın
+    sureler: dict[tuple[tuple[int, bool], str], float] = defaultdict(float)
+    adlar: dict[tuple[int, bool], str] = {}
+    for satir in baglanti.execute(
+        "SELECT h.camera_id, h.hour_utc, h.analyzed_s, c.name AS kamera_adi "
+        "FROM analysis_hours h LEFT JOIN cameras c "
+        "  ON c.id = h.camera_id AND h.hour_utc >= substr(c.created_at, 1, 13) "
+        f"WHERE {' AND '.join(kosullar)} ORDER BY h.camera_id, h.hour_utc",
+        degerler,
+    ):
+        silinmis = satir["kamera_adi"] is None
+        kamera = (satir["camera_id"], silinmis)
+        gun = zaman.yerel_tarih_iso(satir["hour_utc"] + ":00:00+00:00")
+        sureler[(kamera, gun)] += satir["analyzed_s"]
+        adlar[kamera] = (
+            f"{_SILINMIS_KAMERA} (#{satir['camera_id']})" if silinmis else satir["kamera_adi"]
+        )
+
+    dilimler: dict[tuple[tuple[int, bool], str], Counter] = defaultdict(Counter)
+    for olay in olaylar:
+        if olay["camera_id"] is None:
+            continue  # kamerası silinmiş: hangi kameranın olayı olduğu bilinmez
+        kamera = (olay["camera_id"], False)
+        adlar.setdefault(kamera, olay["kamera_adi"] or _SILINMIS_KAMERA)
+        sayac = dilimler[(kamera, zaman.yerel_tarih_iso(olay["occurred_at"]))]
+        if olay["golge"]:
+            sayac["golge_yanlis"] += 1 if olay["status"] == "false_alarm" else 0
+            continue
+        sayac["adet"] += 1
+        sayac["isaretli"] += 1 if olay["status"] in ("reviewed", "false_alarm") else 0
+        sayac["yanlis"] += 1 if olay["status"] == "false_alarm" else 0
+
+    kameralar: dict[tuple[int, bool], Counter] = defaultdict(Counter)
+    # Sıralı gezilir: kayan nokta toplamı her açılışta aynı çıksın
+    for kamera, gun in sorted(set(sureler) | set(dilimler)):
+        sure = sureler.get((kamera, gun), 0.0)
+        sayac = dilimler.get((kamera, gun), Counter())
+        toplam = kameralar[kamera]
+        toplam["analiz_s"] += sure
+        toplam["golge_yanlis"] += sayac["golge_yanlis"]
+        tam = (
+            sure > 0
+            and not kamera[1]
+            and (kesim_gunu is None or gun > kesim_gunu)
+            and sayac["isaretli"] == sayac["adet"]
+        )
+        if tam:
+            toplam["olculen_s"] += sure
+            toplam["yanlis"] += sayac["yanlis"]
+
+    satirlar = []
+    for kamera, toplam in kameralar.items():
+        olculen_saat = toplam["olculen_s"] / 3600
+        oran = toplam["yanlis"] / olculen_saat if olculen_saat > 0 else None
+        satirlar.append(
+            {
+                "kamera": adlar[kamera],
+                "analiz": _saat_metni(toplam["analiz_s"]),
+                "olculen": _saat_metni(toplam["olculen_s"]),
+                "kapsama": _kapsama_metni(toplam["olculen_s"], toplam["analiz_s"]),
+                "oran": _yanlis_orani_metni(oran),
+                "yanlis": toplam["yanlis"],
+                "hedef_asildi": oran is not None and oran > HEDEF_YANLIS_ALARM_SAAT,
+                "golge_yanlis": toplam["golge_yanlis"],
+            }
+        )
+    return sorted(satirlar, key=lambda s: s["kamera"])
 
 
 def _kartlar(toplam: int, gun_grafigi: dict, saatler: dict, durumlar, isaretli: int) -> list[dict]:
@@ -339,6 +477,16 @@ def _notlar(toplam: int, isaretli: int, golge: int) -> list[str]:
             "hoparlörden anons ÇALMAMIŞ, ekranda uyarı bandı çıkmamıştır."
         )
     notlar.append(
+        "Yanlış alarm / saat, kameranın ANALİZ EDİLEN süresine bölünür (kamera koptuğunda "
+        "ya da tespit modeli yokken geçen süre sayılmaz) ve yalnız incelemesi TAM olan "
+        "günlerden hesaplanır: o günün gölgede olmayan her ihlali işaretlenmiş olmalı. "
+        "Kapsama, analiz edilen sürenin ne kadarının bu ölçüme girdiğini söyler; hiç tam "
+        'gün yoksa "ölçülemedi" yazar. Hedef: kamera başına saatte en çok '
+        f"{sayi_metni(HEDEF_YANLIS_ALARM_SAAT)} yanlış alarm. Kuralı olmayan ya da yalnız "
+        'gölgede kuralı olan kamerada "0 / sa" bir başarı değildir: o kamera operatöre '
+        "uyarı üretmemiştir."
+    )
+    notlar.append(
         "Sayılar olay anındaki kural görüntüsünden okunur. Kural sonradan "
         "değiştirilse ya da silinse bile geçmiş dönem raporu aynı kalır."
     )
@@ -399,6 +547,30 @@ def rapor_csv(istek: Request, baglanti=Depends(baglanti_al)):
                 ]
             )
         yazici.writerow([])
+
+    yazici.writerow(["Analiz edilen süre ve yanlış alarm / saat"])
+    yazici.writerow(
+        [
+            "Kamera",
+            "Analiz edilen",
+            "İncelemesi tam",
+            "Kapsama",
+            "Yanlış alarm / saat",
+            "Gölgede yanlış alarm",
+        ]
+    )
+    for satir in veri["analiz_saatleri"]:
+        yazici.writerow(
+            [
+                satir["kamera"],
+                satir["analiz"],
+                satir["olculen"],
+                satir["kapsama"],
+                satir["oran"],
+                satir["golge_yanlis"],
+            ]
+        )
+    yazici.writerow([])
 
     yazici.writerow(["Saatlik dağılım"])
     yazici.writerow(["Saat", "İhlal"])

@@ -36,6 +36,31 @@ bitiş ve bitiş sebebi ±0,5 sn ile karşılaştırılıyor. İlk beş sahne:
 Beklenen zamanlar elle hesaplandı, ölçüm geometriyle birebir tuttu. Biçim ve
 "sahadan gelen yanlış alarm buraya eklenir" yöntemi docs/03'ün ekinde.
 
+**2e-3 — rapor: analiz edilen süre ve yanlış alarm / saat.** Komuta → Rapor'da
+yeni bir tablo var. Her kamera için dört sayı gösteriyor:
+- analiz edilen süre;
+- incelemesi tam süre, kapsama yüzdesiyle;
+- yanlış alarm / saat;
+- gölgede kalan yanlış alarm.
+
+Payda olay değil saat: `analysis_hours` (2d-2), yani tespit modeli yüklüyken
+işlenen süre; kopukluk ve model yokluğu sayılmıyor. Oran yalnız incelemesi tam
+kamera × gün dilimlerinden hesaplanıyor: o günün gölgede olmayan her ihlali
+"İncelendi" ya da "Yanlış alarm" işaretli olmalı. Hiç tam gün yoksa hücrede
+**"ölçülemedi"** yazıyor. Hedef (saatte en çok 2) aşılınca oran kırmızı. Tablo
+ihlalsiz dönemde de görünüyor, çünkü "0 / sa" en iyi sonuçtur. CSV'de aynı
+satırlar var.
+
+Olaylarını bilemediğimiz dilim tam sayılmıyor; sayılsaydı "olaysız gün" sanılıp
+oranı sıfıra çekerdi:
+- silinmiş kameranın saatleri: olayları kamerasız kalıyor. Kimliği yeniden
+  kullanılan yeni kamera eski saatleri devralmıyor, kuruluş zamanıyla ayrılıyor;
+- 200 000 olay sınırına dayanınca eksik okunan en eski günler.
+
+Kapsama aşağı yuvarlanıyor: %99,6 "%100" görünmüyor. Çok küçük oran "0" değil
+"< 0,01 / sa" yazıyor. Dar ekranda kamera adı kendi satırına çıkıyor; 390 px
+telefonda taşma yok (ölçüldü). Statik damga `?v=33`.
+
 ## Faz 2d görünür arıza ve sağlık (23.09.2026)
 
 Plan: `docs/17-V2-TASARIM.md` §3.5, §3.6, §9 ve §13 (2d satırı). Alt adımlar

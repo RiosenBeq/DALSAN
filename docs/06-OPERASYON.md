@@ -337,6 +337,7 @@ görünmelidir.
 | KKD sayfasına yeni örnek düşmüyor | Sayfanın üstündeki "Veri toplama" kapısı **KAPALI** olabilir (varsayılan). Rev.02 onayından sonra açılır; kapalıyken kişi görüntüsü bilerek toplanmaz. Açıksa: kişi KKD zorunlu alanda mı, muaf alanın dışında mı, kural boyundan (`min_person_height_px`) uzun mu |
 | KKD hiç olay üretmiyor | Model henüz eğitilmedi — bu **beklenen** davranıştır (docs/04). Veri toplanıyor mu: KKD sekmesi |
 | KKD çok fazla yanlış alarm | `04-KKD-BARET-YELEK.md` §8.3 tablosu |
+| Rapor'da yanlış alarm / saat "ölçülemedi" ya da kapsama düşük | O kameranın bazı günlerinde işaretlenmemiş ihlal var. Komuta → İnceleme'de o günlerin olaylarını "İncelendi" ya da "Yanlış alarm" diye işaretleyin: oran yalnız bütün ihlalleri işaretli günlerden hesaplanır. "Analiz edilen: —" ise o dönemde analiz kaydı yok (model yüklenmemiş, kamera kopuk ya da dönem bu kayıt başlamadan önce) |
 | Uyarılar gecikiyor | Kamera `sample_fps` değerini düşürün; substream kullanın; `CIKARIM_CIHAZI=cuda` (yalnız NVIDIA'lı Linux) |
 | "cuda seçili ama CPU ile çalışıyor" | Ana sayfada uyarı olarak görünür: NVIDIA sürücüsü + `onnxruntime-gpu` gerekir, ya da `.env`'de `cpu` yapın |
 | Anons çalmıyor | **Anons** sayfası → "Anonsu Dene". Sonuç satırı sebebi yazar (ses dosyası yok / adres yanlış / komut bulunamadı) |
@@ -361,6 +362,7 @@ görünmelidir.
 - [ ] Yedek alındı, **geri yükleme prova edildi** (K7)
 - [ ] KKD gölge modda ≥ 3 gün çalıştı, precision ölçüldü, eşikler ayarlandı (K10, K11)
 - [ ] KKD anonsu ancak precision kabul edildikten **sonra** açıldı
+- [ ] Yanlış alarm hedefi ölçüldü: Komuta → Rapor'da her kamera için incelemesi tam günlerden hesaplanan yanlış alarm / saat, hedefin (saatte en çok 2) altında (`17-V2-TASARIM.md` §14)
 - [ ] Bakım (retention) çalıştığı günlükten doğrulandı, KVKK süreleriyle uyumlu
 - [ ] **Giriş şifresi geri eklendi** (`docs/07` #0) — ağa açık kurulumda zorunlu
 - [ ] Kullanım dokümanı teslim edildi, kullanıcı eğitimi yapıldı (K9)

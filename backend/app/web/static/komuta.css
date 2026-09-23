@@ -1319,6 +1319,11 @@
 }
 .rapor-satiri .sayisal { font-variant-numeric: tabular-nums; text-align: right; }
 .rapor-satiri .sayisal .panel-notu { font-size: 11px; }
+/* Analiz süresi tablosu: kamera · analiz · tam · oran · gölge */
+.rapor-satiri.saat-satiri {
+  grid-template-columns: minmax(120px, 1.3fr) 96px 150px minmax(150px, 1.2fr) 110px;
+}
+.rapor-satiri .hedef-asildi { color: var(--tehlike-metin); font-weight: 640; }
 
 /* Gün grafiği 31 sütuna kadar çıkabilir: sayı yazısı sığmaz, yalnız çubuk
    ve seyreltilmiş etiket kalır (değer, çubuğun title'ında). */
@@ -1334,6 +1339,14 @@
   /* Dar ekranda beş sütun sığmaz; çubuk düşer, sayılar kalır. */
   .rapor-satiri { grid-template-columns: minmax(90px, 1.6fr) 52px 48px 96px; }
   .rapor-satiri .komuta-bar { display: none; }
+  /* Analiz tablosu: kamera adı kendi satırına çıkar (dar sütunda kelime
+     ortasından bölünüyordu), altında üç sayı; gölge sütunu düşer, parantez
+     içi notlar alt satıra iner. 390 px telefonda taşmaz (ölçüldü). */
+  .rapor-satiri.saat-satiri { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2px 8px; }
+  .rapor-satiri.saat-satiri > :first-child { grid-column: 1 / -1; }
+  .rapor-satiri.saat-satiri > :last-child,
+  .rapor-tablo-basligi.saat-satiri > :first-child { display: none; }
+  .rapor-satiri.saat-satiri .panel-notu { display: block; }
 }
 
 @media print {

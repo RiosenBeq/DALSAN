@@ -390,3 +390,7 @@ fotoğrafından ve bölge çiziminden sahne kurulur, beklenen olay listesi (ço�
 zaman boş) yazılır. Önce test kırmızıya döner, düzeltme onu yeşile çevirir; aynı
 hata ikinci kez gelmez.
 
+Hangi kamerada yanlış alarm biriktiğini Komuta → Rapor'daki "yanlış alarm /
+saat" tablosu gösterir. Oran yalnız incelemesi tam günlerden hesaplanır; önce
+İnceleme ekranında işaretleme tamamlanmalıdır (`06-OPERASYON.md` §7).
+
