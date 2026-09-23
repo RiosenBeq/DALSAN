@@ -14,9 +14,9 @@ from pathlib import Path
 import pytest
 
 from app import veritabani, zaman
-from app.web.ortak import csv_hucresi
+from app.csv_yazici import csv_hucresi
 
-WEB = Path(__file__).resolve().parents[1] / "backend" / "app" / "web"
+UYGULAMA = Path(__file__).resolve().parents[1] / "backend" / "app"
 
 
 @pytest.mark.parametrize(
@@ -43,12 +43,24 @@ def test_hucre_kacisi(deger, beklenen):
     assert csv_hucresi(deger) == beklenen
 
 
-def test_web_katmaninda_kacissiz_csv_yazici_yok():
-    """Kaçış tek yerde (ortak.CsvYazici): yeni bir dışa aktarma onu atlamasın."""
-    for dosya in WEB.glob("*.py"):
-        if dosya.name == "ortak.py":
+def test_uygulamada_kacissiz_csv_yazici_yok():
+    """Kaçış tek yerde (csv_yazici.CsvYazici): yeni bir dışa aktarma onu
+    atlamasın. Web ekranları da bakımın uyarı kaydı arşivi de oradan yazar."""
+    # KKD veri setinin etiket dosyası (egitim/veri_seti.py) eğitim betiğinin
+    # okuduğu virgüllü CSV'dir ve zip içinde sha256 ile kilitlidir; hücrelerinin
+    # hepsi sistemin ürettiği değerlerdir (kimlik, tarih, sabit etiket, sayı),
+    # kullanıcı metni taşımaz. Biçimi Excel'e göre değiştirilemez.
+    istisnalar = {"csv_yazici.py", "veri_seti.py"}
+    for dosya in UYGULAMA.rglob("*.py"):
+        if dosya.name in istisnalar:
             continue
         assert "csv.writer(" not in dosya.read_text(encoding="utf-8"), dosya.name
+
+
+def test_web_katmani_ayni_kacisi_kullanir():
+    from app.web import ortak
+
+    assert ortak.csv_hucresi is csv_hucresi
 
 
 def _kamera(baglanti, ad: str, alan: str = "Sevkiyat") -> int:

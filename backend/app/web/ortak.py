@@ -4,7 +4,6 @@ hazır kuralları."""
 
 from __future__ import annotations
 
-import csv
 import json
 from collections.abc import Iterator
 from dataclasses import dataclass
@@ -12,6 +11,7 @@ from dataclasses import dataclass
 from fastapi import Request
 
 from app import veritabani, zaman
+from app.csv_yazici import BOS_DEGER, CsvYazici, csv_hucresi  # noqa: F401 - dışarıya
 from app.hatalar import DogrulamaHatasi
 from app.loglama import ADRES_KIMLIGI, ADRES_MASKESI, adres_maskele
 from app.rules.olay_kodu import KAPANIS_SEBEPLERI, OLAY_KODLARI, ONEM_ADLARI
@@ -520,38 +520,6 @@ def guvenli_json(veri) -> str:
     """
     metin = json.dumps(veri, ensure_ascii=False)
     return metin.replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
-
-
-# CSV formül enjeksiyonu (docs/17 §10.5 R31). Excel ve LibreOffice = + - @ ile
-# (ya da sekme / satır başı ile) başlayan hücreyi FORMÜL olarak okur. Kamera
-# adı, bölüm, bölge adı ve inceleme notu kullanıcıdan gelir: adı
-# `=HYPERLINK(...)` olan bir kamera, raporu açan kişinin bilgisayarında
-# tıklanabilir bir bağlantıya ya da dış veri isteğine dönüşürdü. Böyle başlayan
-# METİN hücresinin başına tek tırnak eklenir; sayı hücreleri (negatif sayı
-# dahil) değişmez.
-_FORMUL_BASLARI = ("=", "+", "-", "@", "\t", "\r")
-# Tek başına "-" boş değer işaretidir (ekranda ve raporda "değer yok"). Ardında
-# formül olmadığı için çalışacak bir şey taşımaz; kaçışlansaydı raporda "'-"
-# görünürdü.
-BOS_DEGER = "-"
-
-
-def csv_hucresi(deger):
-    if isinstance(deger, str) and deger != BOS_DEGER and deger.startswith(_FORMUL_BASLARI):
-        return "'" + deger
-    return deger
-
-
-class CsvYazici:
-    """Noktalı virgüllü CSV (Türkçe Excel bunu bekler); her hücre
-    `csv_hucresi`'nden geçer. Dışa aktarılan her CSV bunu kullanır: kaçış tek
-    yerde olmasaydı yeni bir sütun ya da yeni bir dosya onu unuturdu."""
-
-    def __init__(self, tampon) -> None:
-        self._yazici = csv.writer(tampon, delimiter=";")
-
-    def writerow(self, satir) -> None:
-        self._yazici.writerow([csv_hucresi(hucre) for hucre in satir])
 
 
 # ---------------------------------------------------------------- hazır kurallar
