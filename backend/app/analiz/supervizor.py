@@ -34,7 +34,7 @@ from app.analiz.kamera import (
     DURUM_ONLINE,
     KameraKaynagi,
 )
-from app.analiz.kkd_siniflandirici import KkdSiniflandirici, kisi_kirp
+from app.analiz.kkd_siniflandirici import KkdSiniflandirici, kisi_kirp, netlik_olc
 from app.analiz.model_adi import gorunen_model_adi
 from app.analiz.model_indir import (
     ModelIndirmeHatasi,
@@ -1183,7 +1183,8 @@ class AnalizSupervizoru:
             kirpik = kisi_kirp(kare, tespit.kutu)
             if kirpik is None:
                 continue
-            self._kkd_ornek_kaydet(baglanti, kamera_id, kirpik)
+            boy_px = round(tespit.kutu[3] - tespit.kutu[1])
+            self._kkd_ornek_kaydet(baglanti, kamera_id, kirpik, boy_px, netlik_olc(kirpik))
             break  # bu turda tek örnek yeter
 
     def _kkd_toplama_acik_mi(self, baglanti) -> bool:
@@ -1198,7 +1199,9 @@ class AnalizSupervizoru:
             return False
         return bool(satir and satir["enabled"])
 
-    def _kkd_ornek_kaydet(self, baglanti, kamera_id: int, kirpik) -> None:
+    def _kkd_ornek_kaydet(
+        self, baglanti, kamera_id: int, kirpik, boy_px: int, netlik: float
+    ) -> None:
         import cv2
 
         simdi_utc = zaman.simdi_utc()
@@ -1231,10 +1234,12 @@ class AnalizSupervizoru:
         # Kamera bu arada silinmiş olabilir (konfig penceresi) — FK hatası yerine
         # örnek kamerasız kaydedilir; eğitim verisi yine de değerlidir.
         kamera_var = baglanti.execute("SELECT 1 FROM cameras WHERE id = ?", (kamera_id,)).fetchone()
+        # Boy ve netlik veri setinde kırılım olur (şema 008): hangi boydaki
+        # ve netlikteki kişide modelin yanıldığı ancak böyle görülür
         baglanti.execute(
-            "INSERT INTO ppe_samples (camera_id, captured_at, crop_path, source) "
-            "VALUES (?, ?, ?, 'auto')",
-            (kamera_id if kamera_var else None, simdi_utc, goreli),
+            "INSERT INTO ppe_samples (camera_id, captured_at, crop_path, source, "
+            "person_height_px, sharpness) VALUES (?, ?, ?, 'auto', ?, ?)",
+            (kamera_id if kamera_var else None, simdi_utc, goreli, boy_px, round(netlik, 1)),
         )
         baglanti.commit()
 

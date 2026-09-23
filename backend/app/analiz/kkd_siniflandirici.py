@@ -36,6 +36,20 @@ def kisi_kirp(kare: np.ndarray, kutu: tuple[float, float, float, float]) -> np.n
     return cv2.resize(kirpik, CROP_BOYUT, interpolation=cv2.INTER_LINEAR)
 
 
+def netlik_olc(kirpik: np.ndarray) -> float:
+    """Kırpığın netliği: gri tonda Laplacian varyansı (docs/17 §5.3).
+
+    KIRPIK üzerinde ölçülür, kaynak karede değil: model de bu 128x256
+    görüntüyü görür. Küçük bir kişiyi büyütmek onu bulanıklaştırır ve bu
+    sayı bunu yansıtmalıdır. Hesap burada (OpenCV); "ne kadar bulanık
+    belirsizdir" kararı kuralın `min_netlik` parametresinde (rules/).
+    """
+    import cv2
+
+    gri = cv2.cvtColor(kirpik, cv2.COLOR_BGR2GRAY) if kirpik.ndim == 3 else kirpik
+    return float(cv2.Laplacian(gri, cv2.CV_64F).var())
+
+
 class KkdSiniflandirici:
     """Eğitilmiş model arayüzü. Şimdilik tek gerçek: model dosyası yok.
 

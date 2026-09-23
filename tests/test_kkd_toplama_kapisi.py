@@ -150,6 +150,16 @@ def test_kapi_aciginca_yazilir_kapaninca_ilk_denemede_durur(ornekleme):
     assert ornek_sayisi() == 1, "kapatma gecikmesiz olmalı"
 
 
+def test_ornekle_kisi_boyu_ve_netlik_kaydedilir(ornekleme, test_ayarlari):
+    """Şema 008: boy ve netlik veri setinde kırılım olur (docs/17 §5.8)."""
+    dene, kapi, _ = ornekleme
+    kapi(True)
+    dene(_kisi(boy_px=240))
+    satir = _satirlar(test_ayarlari, "SELECT person_height_px, sharpness FROM ppe_samples")[0]
+    assert satir["person_height_px"] == 240
+    assert satir["sharpness"] == 0.0  # düz gri kare: hiç kenar yok
+
+
 def test_kural_boyundan_kisa_kisiden_ornek_alinmaz(ornekleme):
     dene, kapi, ornek_sayisi = ornekleme
     kapi(True)

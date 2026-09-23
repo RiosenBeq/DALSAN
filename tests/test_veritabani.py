@@ -353,6 +353,34 @@ def test_007_goc_bolge_kural_ve_olay_baglarini_korur(tmp_path):
         baglanti.close()
 
 
+def test_008_goc_kkd_orneklerini_ve_kurallari_korur(tmp_path):
+    """008 yalnız sütun ekler (docs/17 §8.3): eski örnek ve kural aynen kalır,
+    yeni sütunlar boş doğar; tablo yeniden kurulmadığı için göç yedeği alınmaz."""
+    yol = _eski_kurulum(tmp_path, "008")
+    baglanti = veritabani.baglanti_ac(yol)
+    try:
+        baglanti.execute(
+            "INSERT INTO ppe_samples (id, camera_id, captured_at, crop_path, helmet_label, "
+            "vest_label, source, labeled_at) VALUES (7, 1, '2026-09-01T09:00:00+00:00', "
+            "'kkd-ornekler/a.jpg', 'yes', 'no', 'auto', '2026-09-01T10:00:00+00:00')"
+        )
+        baglanti.commit()
+        once = [tuple(s) for s in baglanti.execute("SELECT * FROM ppe_samples")]
+        kural_once = [tuple(s) for s in baglanti.execute("SELECT * FROM rules")]
+        veritabani.semayi_uygula(baglanti)
+        ornek = dict(baglanti.execute("SELECT * FROM ppe_samples WHERE id = 7").fetchone())
+        assert tuple(ornek[k] for k in list(ornek)[: len(once[0])]) == once[0]
+        assert ornek["person_height_px"] is None and ornek["sharpness"] is None
+        assert ornek["hard_case"] is None
+        kural = dict(baglanti.execute("SELECT * FROM rules WHERE id = 1").fetchone())
+        assert tuple(kural[k] for k in list(kural)[: len(kural_once[0])]) == kural_once[0]
+        assert kural["approved_model_version"] is None
+        assert baglanti.execute("PRAGMA foreign_key_check").fetchall() == []
+    finally:
+        baglanti.close()
+    assert not list(tmp_path.glob("yedekler/goc-oncesi-008*"))
+
+
 def test_bos_veritabaninda_goc_yedegi_olusmaz(tmp_path):
     """Yeni kurulumda (ve testlerde) her çağrı boş bir yedek bırakırdı."""
     baglanti = veritabani.baglanti_ac(tmp_path / "yeni.db")
