@@ -278,14 +278,18 @@ def test_wav_disi_ses_dosyasi_reddedilir(istemci, test_ayarlari):
     assert "wav" in yanit.json()["hata"].lower()
 
 
-def test_kapali_anons_denemesi_dogru_soyler(test_ayarlari):
-    """ANONS=null iken 'Anonsu Dene' başarılı demez — hoparlörden ses çıkmaz."""
+def test_kanalsiz_anons_denemesi_dogru_soyler(test_ayarlari):
+    """Sesli kanal yokken 'Anonsu Dene' başarılı demez — hoparlörden ses çıkmaz.
+
+    Eskiden bu durum .env'deki ANONS=null'du; kanal yapılandırması hoparlör
+    satırlarına taşındı (docs/17 K22), beklenen metin de onu söyler (§4.6).
+    """
     from app.olaylar.anons import AnonsYoneticisi
 
-    yonetici = AnonsYoneticisi(test_ayarlari)  # test ayarlarında anons="null"
+    yonetici = AnonsYoneticisi(test_ayarlari)  # kanal satırı yüklenmedi
     yonetici._cal_ve_kaydet("helmet", "Baret takınız", None)
     assert "ÇALINAMADI" in yonetici.son_sonuc
-    assert "ANONS=null" in yonetici.son_sonuc
+    assert "sesli kanal tanımlı değil" in yonetici.son_sonuc
 
 
 def test_windows_ses_yolu_komut_metnine_girmez(monkeypatch):

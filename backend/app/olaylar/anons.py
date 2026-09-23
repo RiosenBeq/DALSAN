@@ -1,22 +1,21 @@
-"""Anons adaptörü (docs/02 §7): Null / Ses kartı / HTTP.
+"""Anons kanalları (docs/02 §7, docs/17 §7): ses çıkışı ve IP hoparlör.
 
-Seçim .env'deki ANONS ayarıyla yapılır: null | ses_karti | http.
+KANALLAR speaker_zones satırlarıdır (şema 009, K22): `kind` = `ses_karti`
+(bu bilgisayarın ses çıkışı; `device` = çıkışın adı) ya da `http` (IP hoparlör,
+`address`). Olay, kameranın BÖLÜMÜNDEKİ bütün açık kanallara gider; bölümde
+kanal yoksa "Tüm fabrika" (area boş) kanallarına. Hiç kanal yoksa ses çalmaz ve
+bunu söyler; sistem anonstan bağımsız çalışır (K6). Eskiden kanalı .env'deki
+ANONS ayarı seçiyordu; o ayar ilk açılışta bir kez satıra aktarılır
+(olaylar/kanallar.py).
+
 Anons cooldown'u ekran uyarısından BAĞIMSIZ ve daha uzundur — ekranda 3 olay
 görünmesi sorun değil; hoparlörün 3 kez bağırması sorundur (docs/03 §5).
-
-Anons altyapısı yoksa (ANONS=null) sistem bundan tamamen bağımsız çalışır (K6).
 
 HTTP BİÇİMİ (.env → ANONS_HTTP_BICIMI): sahadaki IP hoparlörlerin HTTP
 arayüzü tek tip değildir. Üç biçim desteklenir — `json` (gövdede JSON,
 varsayılan), `form` (gövdede form alanı), `get` (adres çağrılır, mesaj adresteki
 {anahtar}/{metin} yer tutucularına yazılır). Hangi cihaz için hangisinin
 seçileceği docs/14-ANONS-SISTEMI-BAGLAMA.md'de tarif edilir.
-
-HOPARLÖR BÖLGELERİ (şema 002): ANONS=http iken anons, ihlalin olduğu BÖLÜMÜN
-hoparlörüne gönderilir (speaker_zones tablosu, `area` alanı cameras.area ile
-eşleşir). Bölüme ait bölge yoksa "tüm fabrika" bölgesi, o da yoksa .env'deki
-tek adres kullanılır — yani bölge tanımlanmamış bir kurulumda davranış
-eskisiyle birebir aynıdır.
 """
 
 from __future__ import annotations
@@ -45,20 +44,6 @@ class AnonsHatasi(Exception):
     """Ses çalınamadı — sebebi Anons sayfasında gösterilir."""
 
 
-class NullAnonscu:
-    """Varsayılan: hiçbir şey çalmaz. Geliştirme + anons altyapısız fabrika."""
-
-    ad = "kapalı"
-
-    def cal(self, anahtar: str, metin: str, ses_dosyasi: str | None) -> None:
-        _log.info(f"Anons (kapalı, çalınmadı): {metin}")
-        raise AnonsHatasi(
-            "Anons KAPALI (.env dosyasında ANONS=null). Hoparlörden ses çıkmaz; "
-            "yalnızca ekran uyarısı verilir. Ses kartına bağlamak için ANONS=ses_karti, "
-            "IP hoparlör için ANONS=http yapıp sistemi yeniden başlatın."
-        )
-
-
 def _ses_komutu(ses_dosyasi: str, cihaz: str = "") -> list[str] | None:
     """İşletim sistemine göre WAV çalma komutu.
 
@@ -67,7 +52,7 @@ def _ses_komutu(ses_dosyasi: str, cihaz: str = "") -> list[str] | None:
     Windows'ta KOMUT YOKTUR: ses Python'un kendi `winsound` modülüyle, süreç
     açmadan çalınır (`_windows_cal`); bu işlev orada None döner.
 
-    `cihaz` (.env → ANONS_SES_CIHAZI) hangi ses ÇIKIŞINA çalınacağıdır ve
+    `cihaz` (kanal satırının `device`'ı) hangi ses ÇIKIŞINA çalınacağıdır ve
     yalnızca Linux'ta işe yarar: paplay/aplay çıkışı adıyla alır, afplay ve
     winsound almaz. Mac/Windows'ta çıkış, işletim sisteminin ses
     ayarlarından seçilir — ayrıntı: olaylar/ses_cihazlari.py.
@@ -128,7 +113,7 @@ class SesKartiAnonscu:
     ad = "ses kartı"
 
     def __init__(self, cihaz: str = "") -> None:
-        # Hangi ses çıkışına çalınacağı (.env → ANONS_SES_CIHAZI). Boşsa
+        # Hangi ses çıkışına çalınacağı (kanal satırının `device`'ı). Boşsa
         # işletim sisteminin varsayılan çıkışı kullanılır.
         self.cihaz = cihaz
         # Windows'ta komut her zaman vardır; diğerlerinde varlığı sınanır
@@ -136,8 +121,8 @@ class SesKartiAnonscu:
         if not self._kullanilabilir:
             _log.error(
                 "Ses çalma komutu bulunamadı (afplay/aplay/paplay). "
-                "Linux'ta 'sudo apt install alsa-utils' kurun ya da "
-                ".env dosyasında ANONS=null yapın."
+                "Linux'ta 'sudo apt install pulseaudio-utils' kurun ya da bu kanalı "
+                "Anons sayfasından kapatın."
             )
 
     def cal(self, anahtar: str, metin: str, ses_dosyasi: str | None) -> None:
@@ -319,38 +304,46 @@ class HttpAnonscu:
         http_gonder(self._adres, anahtar, metin, self._bicim)
 
 
-def bolge_sec(bolgeler: list[dict], kamera_alani: str | None) -> dict | None:
-    """İhlalin olduğu bölümün hoparlörü — seçim kuralının TEK yeri.
+def bolgeleri_sec(bolgeler: list[dict], kamera_alani: str | None) -> list[dict]:
+    """Olayın duyurulacağı kanallar — seçim kuralının TEK yeri (docs/17 §7.3-1).
 
-    Önce bölümü BİREBİR eşleşen açık bölge, sonra "tüm fabrika" (area boş)
-    bölgesi. Hiçbiri yoksa None döner ve .env'deki tek adres kullanılır; yani
-    hiç bölge tanımlanmamış bir kurulumda davranış eskisiyle aynıdır.
+    Kameranın bölümündeki BÜTÜN açık kanallar (bir bölümde ses çıkışı ve IP
+    hoparlör birlikte olabilir); bölümde kanal yoksa "Tüm fabrika" (area boş)
+    açık kanalları. İkisi de yoksa boş liste: ses çalmaz.
 
     Modül düzeyinde ve saf: Anons ekranı "bu kamera hangi hoparlöre bağlı"
     yazarken de bunu çağırır. İki ayrı seçim kodu olsaydı ekran bir hoparlörü
     gösterip anons başka hoparlörden çalabilirdi.
     """
     alan = (kamera_alani or "").strip()
+    acik = [b for b in bolgeler if b.get("enabled")]
     if alan:
-        for bolge in bolgeler:
-            if bolge.get("enabled") and (bolge.get("area") or "").strip() == alan:
-                return bolge
-    for bolge in bolgeler:
-        if bolge.get("enabled") and not (bolge.get("area") or "").strip():
-            return bolge
-    return None
+        bolumdekiler = [b for b in acik if (b.get("area") or "").strip() == alan]
+        if bolumdekiler:
+            return bolumdekiler
+    return [b for b in acik if not (b.get("area") or "").strip()]
 
 
-def anonscu_kur(ayarlar: Ayarlar):
-    if ayarlar.anons == "ses_karti":
-        return SesKartiAnonscu(ayarlar.anons_ses_cihazi)
-    if ayarlar.anons == "http":
-        return HttpAnonscu(ayarlar.anons_http_adresi, ayarlar.anons_http_bicimi)
-    return NullAnonscu()
+def bolge_sec(bolgeler: list[dict], kamera_alani: str | None) -> dict | None:
+    """Seçilen kanallardan ilki (tek hoparlör adı yazan eski ekranlar için)."""
+    secilenler = bolgeleri_sec(bolgeler, kamera_alani)
+    return secilenler[0] if secilenler else None
+
+
+def kanal_anonscu(kanal: dict, http_bicimi: str = "json"):
+    """Kanal satırından adaptör: ses çıkışı ya da IP hoparlör.
+
+    HTTP biçimi .env'de tek yerde durur (ANONS_HTTP_BICIMI): fabrikadaki
+    hoparlörler aynı marka olur; kanal başına biçim, öğrenilecek ikinci bir
+    kavram olurdu.
+    """
+    if kanal.get("kind") == "ses_karti":
+        return SesKartiAnonscu(kanal.get("device") or "")
+    return HttpAnonscu(kanal.get("address") or "", http_bicimi)
 
 
 class AnonsYoneticisi:
-    """Anons cooldown'unu uygular ve mesajı adaptöre iletir.
+    """Anons cooldown'unu uygular ve mesajı kanallara iletir.
 
     Anons çağrısı HER ZAMAN ayrı bir iş parçacığında yapılır: HTTP anons
     sunucusu kapalıysa urlopen 5 saniye bekler ve o süre boyunca TEK analiz
@@ -359,26 +352,28 @@ class AnonsYoneticisi:
     """
 
     def __init__(self, ayarlar: Ayarlar) -> None:
-        self._anonscu = anonscu_kur(ayarlar)
+        self._http_bicimi = ayarlar.anons_http_bicimi
         self._bekleme_sn = ayarlar.anons_bekleme_sn
         self._goruntu_koku = ayarlar.kok_dizin
         self._veritabani_yolu = ayarlar.veritabani_yolu
         self._cooldown = Cooldown()
-        # speaker_zones satırları (dict). Süpervizör, konfigürasyon her
-        # değiştiğinde yeniler; boş liste = eski davranış (.env'deki tek adres).
+        # Kanal satırları (speaker_zones, dict). Süpervizör yapılandırma her
+        # değiştiğinde yeniler; yeniden başlatma gerekmez.
         self._bolgeler: list[dict] = []
         self.son_sonuc: str = "Henüz anons denenmedi."
 
     @property
     def ad(self) -> str:
-        return self._anonscu.ad
+        """Ana sayfadaki kısa durum: kaç açık sesli kanal var."""
+        adet = sum(1 for b in self._bolgeler if b.get("enabled"))
+        return f"{adet} sesli kanal" if adet else "sesli kanal yok"
 
     def bolgeleri_yukle(self, satirlar) -> None:
-        """Hoparlör bölgelerini tazeler (speaker_zones satırları)."""
+        """Kanal satırlarını tazeler (speaker_zones)."""
         self._bolgeler = [dict(satir) for satir in satirlar]
 
     def bolge_sec(self, kamera_alani: str | None) -> dict | None:
-        """İhlalin olduğu bölümün hoparlörü (bkz. modül düzeyindeki bolge_sec)."""
+        """İhlalin olduğu bölümün ilk kanalı (bkz. modül düzeyindeki bolge_sec)."""
         return bolge_sec(self._bolgeler, kamera_alani)
 
     def duyur(
@@ -390,10 +385,13 @@ class AnonsYoneticisi:
         anahtar = ("anons", kamera_id, mesaj["id"])
         if not self._cooldown.izinli_mi(anahtar, zaman_s, float(self._bekleme_sn)):
             return
-        self.hemen_cal(mesaj, self.bolge_sec(kamera_alani))
+        kanallar = bolgeleri_sec(self._bolgeler, kamera_alani)
+        for kanal in kanallar or [None]:
+            self.hemen_cal(mesaj, kanal)
 
     def hemen_cal(self, mesaj: dict, bolge: dict | None = None) -> None:
-        """Cooldown'suz çalar (arayüzdeki 'Anonsu Dene' düğmesi bunu kullanır)."""
+        """Cooldown'suz çalar. Kanal verilmezse "Tüm fabrika" kanallarından
+        (arayüzdeki 'Anonsu Dene' düğmesi bunu kullanır)."""
         ses = mesaj.get("audio_file")
         ses_yolu = None
         if ses:
@@ -405,34 +403,36 @@ class AnonsYoneticisi:
                 _log.error(f"Anons ses dosyası proje klasörünün dışında, çalınmadı: {ses}")
                 return
             ses_yolu = str(tam)
-        threading.Thread(
-            target=self._cal_ve_kaydet,
-            args=(mesaj.get("key", ""), mesaj.get("text", ""), ses_yolu, bolge),
-            name="anons",
-            daemon=True,
-        ).start()
+        kanallar = [bolge] if bolge is not None else bolgeleri_sec(self._bolgeler, "")
+        for kanal in kanallar or [None]:
+            threading.Thread(
+                target=self._cal_ve_kaydet,
+                args=(mesaj.get("key", ""), mesaj.get("text", ""), ses_yolu, kanal),
+                name="anons",
+                daemon=True,
+            ).start()
 
-    def _hedef_anonscu(self, bolge: dict | None):
-        """Bölge seçildiyse AYNI adaptör, o bölgenin adresiyle.
-
-        Hoparlör bölgesi yalnızca IP hoparlörde (ANONS=http) anlamlıdır: ses
-        kartına bağlı tek amfide "hangi bölüme çalsın" diye bir seçim yoktur.
-        """
-        if bolge is None or not isinstance(self._anonscu, HttpAnonscu):
-            return self._anonscu
-        # Biçim .env'de tek yerde durur: bölge yalnızca ADRESİ değiştirir.
-        # Bölge başına ayrı biçim, kullanıcının öğrenmesi gereken ikinci bir
-        # kavram olurdu ve fabrikadaki hoparlörler zaten aynı marka olur.
-        return HttpAnonscu(bolge["address"], self._anonscu.bicim)
+    def _hedef_anonscu(self, bolge: dict):
+        """Kanal satırının adaptörü (HTTP biçimi .env'den, tek yerde)."""
+        return kanal_anonscu(bolge, self._http_bicimi)
 
     def _cal_ve_kaydet(
         self, anahtar: str, metin: str, ses_yolu: str | None, bolge: dict | None = None
     ) -> None:
-        nereye = f" ({bolge['name']})" if bolge else ""
+        if bolge is None:
+            # Kanal yoksa ses çalmaz; bu bir hata değil, kurulum eksiğidir
+            self.son_sonuc = (
+                "Son anons ÇALINAMADI — sesli kanal tanımlı değil. Anons sayfasından bir "
+                "ses çıkışı ya da IP hoparlör ekleyin; o zamana kadar yalnızca ekran uyarısı "
+                "verilir."
+            )
+            _log.info(f"Anons çalınmadı (sesli kanal yok): {metin}")
+            return
+        nereye = f" ({bolge.get('name', '')})"
         try:
             self._hedef_anonscu(bolge).cal(anahtar, metin, ses_yolu)
             self.son_sonuc = f"Son anons ÇALINDI{nereye}: {metin}"
-            if bolge is not None:
+            if bolge.get("id") is not None:
                 self._son_anonsu_yaz(int(bolge["id"]))
         except AnonsHatasi as hata:
             # Bilinen sebep: kullanıcıya olduğu gibi göster

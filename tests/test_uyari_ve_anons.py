@@ -186,14 +186,27 @@ def test_anons_bloklamadan_calar(test_ayarlari, monkeypatch):
     tek analiz iş parçacığı durursa TÜM kameralar kör kalır."""
     import time
 
-    from app.olaylar.anons import AnonsYoneticisi
+    from app.olaylar import anons
 
-    yonetici = AnonsYoneticisi(test_ayarlari)
+    yonetici = anons.AnonsYoneticisi(test_ayarlari)
+    yonetici.bolgeleri_yukle(
+        [
+            {
+                "id": 1,
+                "name": "Tüm fabrika",
+                "area": "",
+                "kind": "http",
+                "enabled": 1,
+                "address": "http://10.0.0.9/anons",
+                "device": "",
+            }
+        ]
+    )
 
-    def yavas_cal(anahtar, metin, ses):
+    def yavas_cal(self, anahtar, metin, ses):
         time.sleep(1.5)
 
-    monkeypatch.setattr(yonetici._anonscu, "cal", yavas_cal)
+    monkeypatch.setattr(anons.HttpAnonscu, "cal", yavas_cal)
     basladi = time.monotonic()
     yonetici.hemen_cal({"id": 1, "key": "helmet", "text": "Baret", "enabled": 1})
     gecen = time.monotonic() - basladi
