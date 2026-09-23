@@ -5,6 +5,7 @@
     .venv/bin/python -m tests.hiz_kiyas
     .venv/bin/python -m tests.hiz_kiyas --tek --tur 50
     .venv/bin/python -m tests.hiz_kiyas --dort --sure 20
+    .venv/bin/python -m tests.hiz_kiyas --kkd
 
 Motoru DEĞİŞTİRMEZ; yalnız ölçer. Gerçek `app.analiz.tespit.Tespitci`
 sınıfını kendi genel API'siyle çağırır, yani ölçülen şey sahada çalışan
@@ -15,6 +16,9 @@ yolun ta kendisidir: ön işleme + çıkarım + son işleme.
   2. Dört kamera — dört iş parçacığı TEK paylaşılan Tespitci'yi kilitle
      sırayla kullanır (sahadaki desen). docs/05 §3 bütçesi 4 × 6 fps'tir;
      ölçüm bu bütçenin yüzde kaçının karşılandığını söyler.
+  3. KKD sınıflandırıcısı (docs/17 §5.2) — karedeki kişilerin tek toplu
+     çağrısı. Yalnız models/kkd.onnx varsa (ve özeti tutuyorsa) koşar; bütçe
+     aşılırsa önce KKD kadansı büyütülür, sonra GPU gerekir.
 
 DİKKAT: sonuçlar çalıştığı makineye aittir. Fabrika sunucusunda (GPU'lu)
 ölçüm ayrıca yapılmalıdır; geliştirme makinesinin sayısı oraya taşınmaz.
@@ -157,6 +161,32 @@ def dort_kamera(model: Path, is_parcacigi: int, sure_sn: float) -> dict:
     }
 
 
+def kkd_turu(tur: int, kisi: int = _KAMERA) -> dict | None:
+    """KKD sınıflandırıcısının bir karedeki `kisi` kişilik toplu çağrısı.
+    Model dosyası yoksa None: tur atlanır, uydurma sayı basılmaz."""
+    from app.analiz.kkd_siniflandirici import KkdSiniflandirici
+
+    yol = _KOK / "models" / "kkd.onnx"
+    if not yol.exists():
+        return None
+    kkd = KkdSiniflandirici(yol)  # özet tutmazsa ModelHatasi
+    rng = np.random.default_rng(3)
+    kirpiklar = [rng.integers(0, 256, size=(256, 128, 3), dtype=np.uint8) for _ in range(kisi)]
+    for _ in range(3):  # ısınma
+        kkd.degerlendir_toplu(kirpiklar)
+    sureler = []
+    for _ in range(tur):
+        baslangic = time.perf_counter()
+        kkd.degerlendir_toplu(kirpiklar)
+        sureler.append((time.perf_counter() - baslangic) * 1000)
+    return {
+        "model": kkd.model_surumu,
+        "kisi": kisi,
+        "ortanca_ms": statistics.median(sureler),
+        "p90_ms": statistics.quantiles(sureler, n=10)[-1] if len(sureler) > 1 else sureler[0],
+    }
+
+
 def _modeller() -> list[Path]:
     bulunan = [_KOK / "models" / ad for ad in ("yolox_tiny.onnx", "yolox_s.onnx")]
     return [m for m in bulunan if m.exists()]
@@ -169,6 +199,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     ayristirici.add_argument("--tek", action="store_true", help="yalnız tek akış ölçümü")
     ayristirici.add_argument("--dort", action="store_true", help="yalnız dört kamera ölçümü")
+    ayristirici.add_argument("--kkd", action="store_true", help="yalnız KKD sınıflandırıcı turu")
     ayristirici.add_argument("--tur", type=int, default=25, help="tek akışta kaç kare (25)")
     ayristirici.add_argument("--sure", type=float, default=12.0, help="dört kamera kaç sn (12)")
     ayristirici.add_argument("--json", action="store_true", help="tabloyu değil JSON'u bas")
@@ -181,7 +212,7 @@ def main(argv: list[str] | None = None) -> int:
 
     import onnxruntime
 
-    hepsi = not (secenek.tek or secenek.dort)
+    hepsi = not (secenek.tek or secenek.dort or secenek.kkd)
     sonuc: dict = {
         "ortam": {
             "python": sys.version.split()[0],
@@ -190,6 +221,7 @@ def main(argv: list[str] | None = None) -> int:
         },
         "tek_akis": [],
         "dort_kamera": [],
+        "kkd": None,
     }
 
     try:
@@ -200,6 +232,8 @@ def main(argv: list[str] | None = None) -> int:
         if secenek.dort or hepsi:
             for model in modeller:
                 sonuc["dort_kamera"].append(dort_kamera(model, 0, secenek.sure))
+        if secenek.kkd or hepsi:
+            sonuc["kkd"] = kkd_turu(secenek.tur)
     except ModelHatasi as hata:
         print(hata.kullanici_mesaji, file=sys.stderr)
         return 1
@@ -232,6 +266,14 @@ def main(argv: list[str] | None = None) -> int:
                 f"{r['ortanca_ms']:7.1f}ms {r['p90_ms']:6.1f}ms"
             )
         print()
+
+    if secenek.kkd or hepsi:
+        r = sonuc["kkd"]
+        if r is None:
+            print("KKD modeli yok (models/kkd.onnx): sınıflandırıcı turu atlandı.\n")
+        else:
+            print(f"— KKD sınıflandırıcı, {r['kisi']} kişilik toplu çağrı, {secenek.tur} tur —")
+            print(f"{r['model']}: ortanca {r['ortanca_ms']:.1f}ms, p90 {r['p90_ms']:.1f}ms\n")
     return 0
 
 

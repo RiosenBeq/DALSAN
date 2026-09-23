@@ -120,6 +120,7 @@ def test_ayarlari(tmp_path: Path):
         anons_http_bicimi="json",
         anons_bekleme_sn=30,
         model_dosyasi=tmp_path / "models" / "olmayan-model.onnx",
+        kkd_model_dosyasi=tmp_path / "models" / "kkd.onnx",  # yok: KKD modelsiz
         nesne_izinli_uzantilar=(".jpg", ".jpeg", ".png", ".webp", ".bmp"),
         nesne_foto_en_buyuk_mb=12,
         nesne_tarama_en_cok_dosya=6,

@@ -86,6 +86,8 @@ class Ayarlar:
     anons_http_bicimi: str
     anons_bekleme_sn: int
     model_dosyasi: Path
+    # KKD sınıflandırıcısı (docs/17 §5.2); dosya yoksa KKD kuralı olay üretmez
+    kkd_model_dosyasi: Path
     nesne_izinli_uzantilar: tuple[str, ...]
     nesne_foto_en_buyuk_mb: int
     nesne_tarama_en_cok_dosya: int
@@ -429,6 +431,7 @@ def ayarlari_coz(
         # hoparlör aynı kamera+mesaj için bu süre dolmadan tekrar bağırmaz.
         anons_bekleme_sn=_tam_sayi(degerler, "ANONS_BEKLEME_SN", 30, 5, 3600),
         model_dosyasi=kok / _metin(degerler, "MODEL_DOSYASI", "models/yolox_tiny.onnx"),
+        kkd_model_dosyasi=kok / _metin(degerler, "KKD_MODEL_DOSYASI", "models/kkd.onnx"),
         # --- Nesne kütüphanesi sınırları -------------------------------------
         # Yükleme doğrulaması koda gömülmez (CLAUDE.md §7): hangi uzantı kabul
         # edilir, dosya en fazla kaç MB olur, bir taramada kaç dosya işlenir —

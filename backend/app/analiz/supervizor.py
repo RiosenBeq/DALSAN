@@ -187,7 +187,10 @@ class AnalizSupervizoru:
         self.cihaz_uyarisi: str = ""
         # yukleniyor | indiriliyor | hazir | hata — ana sayfa bunu gösterir
         self.model_durumu: str = "yukleniyor"
-        self.kkd = KkdSiniflandirici(None)  # model 9. adımda eğitilecek
+        # KKD modeli analiz iş parçacığında yüklenir (_kkd_modelini_kur); o
+        # zamana kadar ve dosya yoksa gözlem üretilmez
+        self.kkd = KkdSiniflandirici(None)
+        self.kkd_hatasi: str | None = None
         self._anons = AnonsYoneticisi(ayarlar)
         self.bekci = Bekci(self, ayarlar)
 
@@ -362,6 +365,7 @@ class AnalizSupervizoru:
                 f"Tespit modeli yüklenemedi: {self.tespit_hatasi}",
                 kod="MODEL_LOAD_FAILED",
             )
+        self._kkd_modelini_kur(baglanti)
         # Bakım açılıştan hemen sonra bir kez, sonra her 24 saatlik UYGULAMA
         # çalışma süresinde bir çalışsın (makinenin uptime'ından bağımsız).
         self._son_bakim = time.monotonic() - _BAKIM_ARALIGI_SN
@@ -529,6 +533,30 @@ class AnalizSupervizoru:
                 f"Tespit modeli yüklenemedi: {hata.kullanici_mesaji}",
                 kod="MODEL_LOAD_FAILED",
             )
+
+    def _kkd_modelini_kur(self, baglanti) -> None:
+        """KKD modeli (docs/17 §5.2, §12.5). Dosya yoksa sessiz: model henüz
+        eğitilmedi, KKD kuralı olay üretmez ve KKD sayfası bunu söyler. Dosya
+        VAR ama doğrulanamıyorsa (özet yok ya da tutmuyor, açılmıyor, sözleşmeye
+        uymuyor) MODEL_LOAD_FAILED yazılır ve modelsiz devam edilir: bölge,
+        yakınlık ve hız kuralları bundan etkilenmez."""
+        try:
+            self.kkd = KkdSiniflandirici(self.ayarlar.kkd_model_dosyasi)
+        except ModelHatasi as hata:
+            self.kkd = KkdSiniflandirici(None)
+            self.kkd_hatasi = hata.kullanici_mesaji
+            self._log.error(hata.kullanici_mesaji, extra={"ayrinti": hata.teknik_ayrinti})
+            self._sistem_olayi(baglanti, hata.kullanici_mesaji, kod="MODEL_LOAD_FAILED")
+            return
+        except Exception as hata:  # noqa: BLE001 — KKD modeli analizi durdurmamalı
+            self.kkd = KkdSiniflandirici(None)
+            self.kkd_hatasi = "KKD modeli yüklenemedi; ayrıntı sistem günlüğünde."
+            self._log.error(f"KKD modeli yüklenemedi: {hata}", exc_info=hata)
+            self._sistem_olayi(baglanti, self.kkd_hatasi, kod="MODEL_LOAD_FAILED")
+            return
+        self.kkd_hatasi = None
+        if self.kkd.model_var:
+            self._log.info(f"KKD modeli yüklendi: {self.kkd.model_surumu}")
 
     def _modeli_hazirla(self) -> None:
         """Model dosyası yoksa ve bilinen bir YOLOX modeliyse bir kez indirir.

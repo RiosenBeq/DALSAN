@@ -341,6 +341,34 @@ Birkaç bin crop, hafif omurga → modern bir GPU'da **dakikalar**. Pahalı olan
 model değil, **veri ve etiketlemedir.** Plan yaparken efor buna göre dağıtılır:
 %70 veri toplama + etiketleme + politika kararları, %10 eğitim, %20 eşik ayarı.
 
+### 6.6 Ürüne teslim: ONNX sözleşmesi ve bütünlük (Faz 3c)
+
+Eğitim ürün dışındadır (ayrı ortam, PyTorch, GPU; docs/17 S31). Ürüne yalnız tek bir
+`.onnx` dosyası girer ve sistem onu **yüklerken bu sözleşmeyi dener**. Uymayan model
+yüklenmez; Olaylar'a "Model yüklenemedi" düşer ve KKD sayfası sebebini yazar
+(`backend/app/analiz/kkd_siniflandirici.py`).
+
+| | Sözleşme |
+|---|---|
+| Girdi | Tek girdi, `float32 [N, 3, 256, 128]`: **RGB**, 0–1 aralığı (255'e bölünmüş). N değişken olursa karedeki kişiler tek çağrıda verilir; 1 sabitse tek tek |
+| Normalizasyon | Ortalama/sapma **modelin içindedir** (dışa aktarırken grafa eklenir). Ürün ikinci bir ön işleme bilmez: iki taraf ayrı normalizasyon yapıp sessizce ayrışamaz |
+| Çıktı | `baret` ve `yelek` adlı iki çıktı; her biri `[N, 3]` **olasılık** (softmax ve §6.4'teki sıcaklık ölçeklemesi modelin içinde), sıra **[var, yok, görünmüyor]** |
+| Kart | ONNX `custom_metadata_map`: sürüm, veri penceresi (tarih aralığı, kamera listesi), bölme özeti, test metrikleri, eğitim tarihi, kaynak veri setleri ve lisansları. KKD sayfası olduğu gibi gösterir |
+| Kırpma | Veri seti dışa aktarımındaki kırpıklarla aynı: kutunun üstüne %10 pay, 128×256 (§2) |
+
+**Teslim adımları:**
+1. Dosya `models/kkd.onnx` adıyla konur. Başka bir ad istenirse `.env`'de
+   `KKD_MODEL_DOSYASI` değişir.
+2. Özeti `models/SHA256SUMS`'a eklenir: `sha256sum kkd.onnx >> SHA256SUMS`. Özet
+   satırı yoksa ya da tutmuyorsa model **yüklenmez**. Docker imajı da derlenirken
+   aynı satırı denetler.
+3. Sistem yeniden başlatılır; Docker kurulumunda önce imaj yeniden derlenir
+   (`docker compose build`, sonra `up -d`). KKD sayfasında "Model: kkd-<ilk 12 hane>,
+   doğrulandı" yazar. Aynı sürüm adı her KKD olayına `details.ppe.model_version`
+   olarak girer.
+4. `python -m tests.hiz_kiyas --kkd` sınıflandırıcının hedef donanımdaki süresini
+   ölçer. Bütçe aşılırsa önce KKD kadansı büyütülür, sonra GPU gerekir.
+
 ---
 
 ## 7. Kural motoruna bağlanma

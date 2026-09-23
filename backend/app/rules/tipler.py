@@ -67,6 +67,9 @@ class KkdGozlem:
     # Hangi olayın hangi model sürümüyle üretildiği bilinmeden "model
     # iyileşti mi" sorusu cevaplanamaz (docs/04 §9) — olay kaydına yazılır.
     model_surumu: str = ""
+    # Kırpığın netliği (Laplacian varyansı; analiz katmanı ölçer). Bulanık
+    # gözlemi belirsiz sayan eşik kuralın `min_netlik`'idir (docs/17 §5.3).
+    netlik: float | None = None
 
 
 @dataclass

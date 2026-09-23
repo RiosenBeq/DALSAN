@@ -86,7 +86,8 @@ OLAY_KODLARI: dict[str, OlayKodu] = _tablo(
     OlayKodu("CAMERA_UP", ONEM_SISTEM, "Kamera tekrar çevrimiçi", kapattigi="CAMERA_DOWN"),
     OlayKodu("VIDEO_FINISHED", ONEM_SISTEM, "Video analizi tamamlandı"),
     OlayKodu("DISK_LOW", ONEM_SISTEM, "Disk azalıyor"),
-    OlayKodu("MODEL_LOAD_FAILED", ONEM_SISTEM, "Tespit modeli yüklenemedi"),
+    # Tespit modeli de KKD modeli de (docs/17 §6.1); hangisi olduğunu mesaj söyler
+    OlayKodu("MODEL_LOAD_FAILED", ONEM_SISTEM, "Model yüklenemedi"),
     OlayKodu("INFERENCE_DEVICE_FALLBACK", ONEM_SISTEM, "GPU istendi, CPU kullanılıyor"),
     OlayKodu("ANALYSIS_STALLED", ONEM_SISTEM, "Analiz takıldı"),  # 2d (bekçi)
     OlayKodu("ANALYSIS_DEGRADED", ONEM_SISTEM, "Analiz yavaşladı"),  # 2d
