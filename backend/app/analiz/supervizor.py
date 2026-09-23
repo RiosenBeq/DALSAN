@@ -534,6 +534,49 @@ class AnalizSupervizoru:
                 kod="MODEL_LOAD_FAILED",
             )
 
+    def _kkd_surumunu_denetle(self, baglanti) -> None:
+        """Onaylanmamış KKD model sürümüyle anons çalmaz (docs/17 §5.7-4).
+
+        Anonsu açık (gölgede olmayan) bir KKD kuralının onaylı sürümü yüklü
+        modelden farklıysa ya da hiç onaylanmamışsa kural gölgeye alınır ve
+        PPE_MODEL_CHANGED yazılır. Olay kaydı sürer, yalnız hoparlör susar;
+        kapı yeni sürümle yeniden ölçülür. Gölge bilgisi kural imzasına girmez:
+        pencereler ve bekleme süreleri sıfırlanmaz (rules/motor.py).
+        """
+        if not self.kkd.model_var:
+            return  # model yoksa KKD olayı da yok; onay sorusu doğmaz
+        surum = self.kkd.model_surumu
+        satirlar = baglanti.execute(
+            "SELECT id, camera_id, approved_model_version FROM rules "
+            "WHERE rule_type = 'ppe_violation' AND shadow_mode = 0 "
+            "AND (approved_model_version IS NULL OR approved_model_version != ?)",
+            (surum,),
+        ).fetchall()
+        for satir in satirlar:
+            onayli = satir["approved_model_version"]
+            try:
+                baglanti.execute(
+                    "UPDATE rules SET shadow_mode = 1, updated_at = ? WHERE id = ?",
+                    (zaman.simdi_utc(), satir["id"]),
+                )
+                baglanti.commit()
+            except sqlite3.Error as hata:
+                _geri_al(baglanti)
+                self._log.error(f"KKD kuralı #{satir['id']} gölgeye alınamadı: {hata}")
+                continue
+            if satir["id"] in self._kural_haritasi:
+                self._kural_haritasi[satir["id"]]["shadow_mode"] = 1  # beklemeden sussun
+            onceki = f"onaylı sürüm {onayli}" if onayli else "hiçbir sürüm onaylanmamış"
+            self._sistem_olayi(
+                baglanti,
+                f"KKD modeli değişti ({onceki}, yüklü {surum}): KKD kuralı #{satir['id']} "
+                "gölge moda alındı. Olaylar kaydedilir, anons KKD kapısı yeni sürümle "
+                "ölçülene kadar çalmaz.",
+                kod="PPE_MODEL_CHANGED",
+                kamera_id=satir["camera_id"],
+                detaylar={"kural_id": satir["id"], "onayli_surum": onayli, "yuklu_surum": surum},
+            )
+
     def _kkd_modelini_kur(self, baglanti) -> None:
         """KKD modeli (docs/17 §5.2, §12.5). Dosya yoksa sessiz: model henüz
         eğitilmedi, KKD kuralı olay üretmez ve KKD sayfası bunu söyler. Dosya
@@ -629,6 +672,7 @@ class AnalizSupervizoru:
                 "SELECT id, shadow_mode, announcement_id, severity FROM rules"
             )
         }
+        self._kkd_surumunu_denetle(baglanti)
         # Anons, ihlalin olduğu BÖLÜMÜN hoparlörüne gider (şema 002).
         # Bölge tanımlanmamışsa liste boş kalır ve .env'deki tek adres kullanılır.
         self._anons.bolgeleri_yukle(baglanti.execute("SELECT * FROM speaker_zones ORDER BY id"))

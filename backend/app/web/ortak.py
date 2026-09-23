@@ -648,6 +648,8 @@ HAZIR_KURALLAR: dict[str, HazirKural] = {
         anons_anahtari=None,  # baret ve yelek mesajı ayrıdır; kullanıcı seçer
         cooldown_s=None,
         kisa_ad="KKD (baret/yelek) kuralı",
+        # Gölgede doğar (docs/17 §5.7-1, S25): anons KKD kapısından sonra açılır
+        golge=True,
         aciklama=(
             "Bu bölgede baret veya yelek takmayan kişi uyarı üretir. Karar tek kareye değil "
             "{window_size} gözlemlik pencereye bakılarak verilir; emin olunamayan durum ihlal "

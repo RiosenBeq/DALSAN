@@ -369,6 +369,10 @@ yüklenmez; Olaylar'a "Model yüklenemedi" düşer ve KKD sayfası sebebini yaza
 4. `python -m tests.hiz_kiyas --kkd` sınıflandırıcının hedef donanımdaki süresini
    ölçer. Bütçe aşılırsa önce KKD kadansı büyütülür, sonra GPU gerekir.
 
+**Model değişince** anonsu açık KKD kuralları kendiliğinden gölge moda döner ve
+Olaylar'a "KKD modeli değişti" düşer: yeni sürümün isabeti ölçülmeden hoparlör
+çalmaz (docs/03 §3, docs/17 §5.7).
+
 ---
 
 ## 7. Kural motoruna bağlanma

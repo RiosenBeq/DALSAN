@@ -96,7 +96,25 @@ yeterince tutarlı biçimde takmıyor mu?
 | `violation_ratio` | 0.75 | Geçerli gözlemlerin bu oranı `no` demeli |
 | `min_dwell_s` | 3.0 | Bölgede minimum kalış |
 | `require_full_bbox` | true | Kare kenarında kesik kutu değerlendirilmez |
-| `cooldown_s` | 180 | Track başına |
+| `surucu_muaf` | true | Forklift/tır kabinindeki sürücü değerlendirilmez (aşağıda) |
+| `surucu_ortusme_orani` | 0.6 | Kişi kutusunun bu kadarı araçla örtüşürse sürücü sayılır |
+| `max_kisi_ortusmesi` | boş = kapalı | İki kişi kutusu bu IoU'yu aşarsa o an belirsiz |
+| `min_netlik` | boş = kapalı | Kırpık netliği (Laplacian varyansı) altındaysa o an belirsiz |
+| `cooldown_s` | 180 | Kişi **ve kalem** başına |
+
+**Kalem başına olay (Faz 3d).** Baret ve yelek ayrı karar, ayrı olay ve ayrı
+beklemedir: yalnız yelek eksikse yalnız `PPE_NO_VEST` (orta) açılır, ikisi eksikse
+`PPE_NO_HELMET` (yüksek) ve `PPE_NO_VEST` iki ayrı olay olur. Olay anahtarı
+`(kural, kamera, iz, kalem)`; bir kalemin kararı belirsize dönerse yalnız o
+kalemin olayı `belirsiz` sebebiyle kapanır. `details.eksik_kkd` tek elemanlıdır;
+ayrıntı iki kalemin kararını da taşır.
+
+**Gölge ve model sürümü.** KKD kuralı gölge modda doğar (hazır kural da formdan
+kurulan da); form anonsu açamaz. Anonsu Komuta → Uyarı zinciri açar ve o an yüklü
+KKD model sürümünü `rules.approved_model_version`'a yazar. Süpervizör yüklü
+modelin sürümünü bununla karşılaştırır: farklıysa ya da hiç onaylanmamışsa kuralı
+gölgeye alır ve `PPE_MODEL_CHANGED` yazar. Olay kaydı sürer, hoparlör susar;
+pencereler ve bekleme süreleri sıfırlanmaz (gölge kural imzasına girmez).
 
 ### Üç durumlu karar — motorun en önemli kuralı
 
@@ -106,8 +124,12 @@ no      → ihlal adayı, zamansal oylamaya girer
 unknown → HİÇBİR ZAMAN olay üretmez
 ```
 
-`unknown` üretilen durumlar: kişi çok küçük · kare kenarında kesik · başka nesneyle
-ağır örtüşme · model güveni eşik altı · baş/gövde görünmüyor.
+`unknown` üretilen durumlar: kişi çok küçük · kare kenarında kesik · model güveni
+eşik altı · baş/gövde görünmüyor (modelin "görünmüyor" çıkışı) · kabindeki sürücü
+(`surucu_muaf`: ayak noktası forklift/tır kutusunda ya da kişi kutusu araçla
+`surucu_ortusme_orani` kadar örtüşüyor) · üst üste iki kişi (`max_kisi_ortusmesi`)
+· bulanık kırpık (`min_netlik`). Son üçü o karede İKİ kalemi de belirsiz yapar.
+Örtüşme ve netlik eşikleri gölge moddaki ölçümle seçilir; ölçülene kadar kapalıdır.
 
 **KKD muaf alan (`ppe_exempt`).** Zorunlu alanın içine çizilen muaf alan (kabin,
 ofis köşesi) oyulur: içindeki kişi bölge dışında sayılır, değerlendirilmez. Oyma
@@ -129,11 +151,15 @@ olarak yazılır ve testle korunur (`test_unknown_never_produces_event`).
     "helmet": {"decision": "no", "valid_obs": 11, "negative_obs": 9, "mean_conf": 0.83},
     "vest": {"decision": "yes"},
     "person_height_px": 168,
-    "model_version": "ppe-v3",
+    "model_version": "kkd-3f2a9c1b04de",
     "dwell_s": 5.2
-  }
+  },
+  "eksik_kkd": ["helmet"]
 }
 ```
+
+`model_version` sınıflandırıcının sürümüdür: dosya adı + sha256'nın ilk 12 hanesi
+(docs/04 §6.6).
 
 `model_version` olmadan "model iyileşti mi" sorusu cevaplanamaz. Zorunludur.
 

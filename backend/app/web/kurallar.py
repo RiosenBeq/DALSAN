@@ -252,9 +252,10 @@ def _kural_kaydet_islemi(baglanti, form):
     # eklenecek bir alan, elle ayarlanmış bir eşik) sessizce varsayılana
     # döndürmemeli. Tip değiştiyse eski tipin parametreleri taşınmaz.
     onceki_params: dict = {}
+    eski = None
     if kural_id:
         eski = baglanti.execute(
-            "SELECT rule_type, params FROM rules WHERE id = ?", (kural_id,)
+            "SELECT rule_type, params, shadow_mode FROM rules WHERE id = ?", (kural_id,)
         ).fetchone()
         if eski is None:
             raise DogrulamaHatasi(
@@ -284,6 +285,14 @@ def _kural_kaydet_islemi(baglanti, form):
     # Gölge mod: kural çalışır ve olay yazar, ama anons çalmaz / ekranda uyarı
     # bandı çıkmaz (docs/04 §8.2). Yeni kuralın güvenli deneme yoludur.
     golge = 1 if form.get("shadow_mode") == "1" else 0
+    # KKD kuralında anons form ile AÇILMAZ (docs/17 §5.7): yeni kural gölgede
+    # doğar, gölgedeki kural gölgede kalır. Anonsu Komuta → Uyarı zinciri açar;
+    # o düğme yüklü model sürümünü onaylı olarak yazar. Formdan açılsaydı
+    # süpervizör onaysız sürüm yüzünden kuralı hemen gölgeye geri alırdı.
+    if kural_tipi == "ppe_violation" and (
+        eski is None or eski["rule_type"] != kural_tipi or eski["shadow_mode"]
+    ):
+        golge = 1
     simdi = zaman.simdi_utc()
 
     if kural_id:

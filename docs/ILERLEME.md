@@ -55,6 +55,27 @@ Renk her 5. karedeki gözlemle titremesin diye son gözlem yalnız çizim için 
 Hız kıyasına `--kkd` turu eklendi; model yoksa tur atlanıyor, sayı uydurulmuyor.
 Gerçek model olmadığı için testler sahte ORT oturumuyla koşuyor. Statik damga `?v=35`.
 
+**3d — KKD kararı.** Baret ve yelek artık ayrı karar, ayrı olay ve ayrı bekleme:
+- yalnız yelek eksikse yalnız "Yelek yok" (orta) açılıyor;
+- ikisi eksikse "Baret yok" (yüksek) ve "Yelek yok" iki ayrı olay oluyor;
+- bir kalem belirsize dönerse yalnız onun olayı kapanıyor.
+
+Olay anahtarı kalemi taşıyor; yaşam döngüsünün iz denetimi buna göre düzeldi.
+Şüpheli karede iki kalem de belirsiz yazılıyor (belirsiz asla olay değil):
+- forklift/tır kabinindeki sürücü (varsayılan açık; ayak noktası araç kutusunda
+  ya da kişi kutusunun %60'ı araçla örtüşüyor);
+- üst üste iki kişi;
+- bulanık kırpık.
+
+Son ikisinin eşiği boş = kapalı; gölge ölçümüyle seçilecek. Dördü de kural
+formunda.
+
+KKD kuralı gölgede doğuyor: hazır kural (2c-4'te atlanmıştı) da formdan kurulan
+da. Form anonsu açamıyor. Anonsu Komuta → Uyarı zinciri açıyor ve o an yüklü
+model sürümünü onaylı olarak yazıyor. Süpervizör yüklü modeli onaylı sürümle
+karşılaştırıyor. Farklıysa ya da hiç onaylanmamışsa kuralı gölgeye alıyor ve
+"KKD modeli değişti" yazıyor. Pencere ve bekleme süreleri sıfırlanmıyor.
+
 ## Faz 5d kalan güvenlik (23.09.2026)
 
 Plan: `docs/17-V2-TASARIM.md` §10.5 (R16, R18, R31, R32) ve §13 (5d satırı).

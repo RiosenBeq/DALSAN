@@ -220,6 +220,7 @@ def uyari_zinciri(istek: Request, baglanti=Depends(baglanti_al)):
 
 @router.post("/komuta/uyari/golge")
 def golge_modu_degistir(
+    istek: Request,
     golge: str = Form(...),
     kural_idler: list[int] = Form(...),
     baglanti=Depends(baglanti_al),
@@ -238,12 +239,30 @@ def golge_modu_degistir(
         raise DogrulamaHatasi(f"Geçersiz gölge mod değeri: {golge}")
     if not kural_idler:
         raise DogrulamaHatasi("Değiştirilecek kural seçilmedi.")
+    simdi = zaman.simdi_utc()
     baglanti.executemany(
         "UPDATE rules SET shadow_mode = ?, updated_at = ? WHERE id = ?",
-        [(int(golge), zaman.simdi_utc(), kural_id) for kural_id in kural_idler],
+        [(int(golge), simdi, kural_id) for kural_id in kural_idler],
     )
+    if golge == "0":
+        # KKD anonsu açılırken yüklü model sürümü onaylanır (docs/17 §5.7-4):
+        # sonra model değişirse süpervizör kuralı yeniden gölgeye alır. Model
+        # yüklü değilse sürüm yazılmaz; ilk model yüklendiğinde gölgeye döner.
+        surum = _yuklu_kkd_surumu(istek)
+        if surum:
+            baglanti.executemany(
+                "UPDATE rules SET approved_model_version = ? "
+                "WHERE id = ? AND rule_type = 'ppe_violation'",
+                [(surum, kural_id) for kural_id in kural_idler],
+            )
     baglanti.commit()
     return RedirectResponse("/komuta/uyari", status_code=303)
+
+
+def _yuklu_kkd_surumu(istek: Request) -> str:
+    supervizor = getattr(istek.app.state, "supervizor", None)
+    kkd = getattr(supervizor, "kkd", None)
+    return kkd.model_surumu if kkd is not None and kkd.model_var else ""
 
 
 @router.get("/komuta/anons", response_class=HTMLResponse)
