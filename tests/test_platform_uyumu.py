@@ -195,6 +195,34 @@ def test_bagimliliklar_sabit_surumlu():
         assert "==" in satir, f"{paket} sürümü sabitlenmeli: {satir}"
 
 
+@pytest.mark.parametrize(
+    ("platform", "makine", "beklenen"),
+    [
+        ("linux", "x86_64", "1.30.0"),
+        ("win32", "AMD64", "1.30.0"),
+        ("darwin", "arm64", "1.30.0"),
+        # x86_64 macOS tekerleği olan son sürüm 1.23.2 (docs/16 §5); daha
+        # yenisinde pip kaynaktan derlemeye kalkar ve kurulum kırılır.
+        ("darwin", "x86_64", "1.23.2"),
+    ],
+)
+def test_ort_surumu_platforma_gore(platform, makine, beklenen):
+    """docs/17 S19: 1.30.0 (CVE-2026-14647'nin gömülü onnx'i, ~%25 hız);
+    Intel Mac'te ortam işaretçisiyle 1.23.2. Her platformda TEK satır geçerli."""
+    from packaging.requirements import Requirement
+
+    metin = (KOK / "backend" / "requirements.txt").read_text(encoding="utf-8")
+    ortam = {"sys_platform": platform, "platform_machine": makine}
+    gecerli = [
+        str(gereksinim.specifier)
+        for gereksinim in (
+            Requirement(satir) for satir in metin.splitlines() if satir.startswith("onnxruntime")
+        )
+        if gereksinim.marker is None or gereksinim.marker.evaluate(ortam)
+    ]
+    assert gecerli == [f"=={beklenen}"]
+
+
 # ---- görüntü üzerine yazı ----
 
 

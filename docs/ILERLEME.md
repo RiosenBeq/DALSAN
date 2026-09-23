@@ -1,6 +1,6 @@
 # İlerleme
 
-## Faz 2a güvenlik tabanı (ilk yarı) ve öğe dili (23.09.2026)
+## Faz 2a güvenlik tabanı ve öğe dili (23.09.2026)
 
 Plan: `docs/17-V2-TASARIM.md` §10.5 ve §13. Her madde Faz 0 denetiminde
 (`docs/AUDIT.md`) koddan doğrulanmış bir açıktır; testleri `tests/test_guvenlik.py`.
@@ -31,6 +31,32 @@ ağa açık kurulumda başka cihazdan sunucunun IP'siyle girmek için o IP liste
 yazılmalı; yazılmamışsa sayfa ne yapılacağını söyler, açılışta da uyarı düşer.
 `docs/15` ve Kılavuz buna göre güncellendi. `/docs`, `/redoc`, `/openapi.json`
 kapatıldı (bütün rotaları girişsiz listeliyordu).
+
+**Anons, ayar dosyası, model (R14, R17, R26, winsound).** Windows'ta ses artık
+stdlib `winsound` ile çalınıyor; yol PowerShell komut metnine gömülmüyor ve
+`SND_NODEFAULT` sayesinde bozuk dosya "bip" çalıp başarılı dönmüyor. `.env`'e
+yazılan değerde satır sonu ve kontrol karakteri reddediliyor — önce
+çalıştırılarak doğrulandı: `hdmi\nYONETICI_SIFRESI=` ses çıkışı adı şifreyi
+siliyordu. Model indirmesi SHA-256 ile doğrulanıyor (özetler resmi yayından iki
+ayrı indirmeyle ölçüldü; `models/SHA256SUMS`, `indir.sh`, Dockerfile ve kod aynı
+değerleri taşıyor, test eşitliği denetliyor). docs/06'daki systemd birimi var
+olmayan `app.main:uygulama`'yı gösteriyordu; `app.main:app` — iki komut da
+çalıştırılarak denendi.
+
+**Python, Docker, ONNX Runtime (R10, R13, R27, S19).** Kontrol Paneli yalnız
+Python 3.12 kabul ediyor; 3.14 kullanıcısına "çok eski" değil "henüz
+desteklenmiyor, 3.12 yan yana kurulabilir" deniyor, betikler önce 3.12'yi
+arıyor, 3.11 ile kurulmuş eski `.venv` İlk Kurulum'da `--clear` ile yeniden
+kuruluyor. Docker'da şifre zorunlu (kapsayıcı 0.0.0.0'ı dinler, SUNUCU_ADRESI
+kilidi orada işlemiyordu). **Davranış değişikliği:** Docker'da ayarlar artık
+`ayar/.env` (dizin bağlama); tek dosya `:ro` bağlamada Ayarlar sayfası hiç
+kaydedemiyordu. Eski kurulumda bir kez `mkdir -p ayar && mv .env ayar/.env`.
+ONNX Runtime 1.19.2 → 1.30.0 (CVE-2026-14647'nin gömülü `onnx`'i; Intel Mac'te
+ortam işaretçisiyle 1.23.2). Dört hedefte cp312 tekerleği indirilerek
+doğrulandı; gerçek bir fotoğrafta (bus.jpg) iki model de otobüsü ve kişileri
+buldu. Model açılmazsa artık GPU sağlayıcısı hatası (CPU'da çalışmaya devam),
+sağlam dosya + kurulum sorunu (özet tutuyor) ve bozuk dosya ayrı söyleniyor;
+iki ORT paketi birlikte kuruluysa uyarılıyor. İmaj burada derlenmedi (Docker yok).
 
 **Öğe dili.** İnsan, forklift, tır, yaya yolu, baret, yelek, hoparlör, Bluetooth
 için simgeler (Lucide ISC + elle çizilmiş yelek) ve tek tablo (`web/ortak.py`

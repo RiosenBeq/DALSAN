@@ -44,6 +44,25 @@ def indirilebilir_mi(model_dosyasi: Path) -> bool:
     return model_dosyasi.name in BILINEN_MODELLER
 
 
+def resmi_yayinla_ayni_mi(model_dosyasi: Path) -> bool:
+    """Dosya, hazır modellerden birinin resmi yayınıyla bayt bayt aynı mı (SHA-256)?
+
+    Hazır olmayan (kendi eğitilmiş) model için karşılaştırılacak özet yoktur;
+    okunamayan dosya da "aynı" sayılmaz — ikisinde de False.
+    """
+    beklenen = BILINEN_MODELLER.get(model_dosyasi.name)
+    if beklenen is None:
+        return False
+    ozet = hashlib.sha256()
+    try:
+        with model_dosyasi.open("rb") as dosya:
+            for parca in iter(lambda: dosya.read(1024 * 1024), b""):
+                ozet.update(parca)
+    except OSError:
+        return False
+    return ozet.hexdigest() == beklenen
+
+
 def ozel_model_hatasi(model_dosyasi: Path) -> ModelIndirmeHatasi:
     """Hazır listede olmayan model için ORTAK açıklama (tek metin kaynağı).
 

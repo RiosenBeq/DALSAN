@@ -15,10 +15,16 @@ ruff
 # SÜRÜMLER SABİT: en yeni sürümler her platform için hazır paket (wheel)
 # yayınlamıyor. opencv-python 5.x yalnız macOS 13+/arm64 ve macOS 14+/x86_64
 # için tekerlek veriyor; Intel Mac'te pip kaynaktan derlemeye kalkıyor ve
-# "İlk Kurulumu Yap" 10 dakika hata basıp başarısız oluyordu. onnxruntime
-# 1.29 ise macOS x86_64 için hiç tekerlek yayınlamıyor.
+# "İlk Kurulumu Yap" 10 dakika hata basıp başarısız oluyordu.
 opencv-python==4.10.0.84
-onnxruntime==1.19.2
+# ONNX Runtime (docs/17 S19, docs/16 §5): 1.30.0. İçine gömülü onnx 1.22.0
+# model yükleme yolunu sertleştirir (CVE-2026-14647: onnx 1.21.x ve öncesi,
+# 1.19.2 onnx 1.16.1 taşıyordu) ve aynı makinede CPU çıkarımı ~%25 hızlı.
+# Intel Mac'te x86_64 tekerleği olan SON sürüm 1.23.2'dir (1.24.1 ve sonrası
+# yalnız arm64); orada pip kaynaktan derlemeye kalkmasın diye 1.23.2 kurulur.
+# 1.23.2'nin CVE durumu doğrulanmadı — Intel Mac yalnız geliştirme içindir.
+onnxruntime==1.30.0; sys_platform != "darwin" or platform_machine != "x86_64"
+onnxruntime==1.23.2; sys_platform == "darwin" and platform_machine == "x86_64"
 numpy
 supervision==0.25.1
 

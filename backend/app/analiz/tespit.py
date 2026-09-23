@@ -13,6 +13,7 @@ tablosu bu yüzden tek yerdedir: model değişince yalnızca burası güncelleni
 from __future__ import annotations
 
 import threading
+from importlib import metadata
 from pathlib import Path
 
 import cv2
@@ -50,6 +51,56 @@ SINIF_OVERLAY = {"person": "insan", "truck": "tir", "forklift": "forklift"}
 
 class ModelHatasi(DalsanHata):
     """Model dosyası yok/bozuk — analiz tespitsiz devam eder, sistem çökmez."""
+
+
+def _ort_paketleri() -> list[str]:
+    """Kurulu ONNX Runtime paketleri. İKİSİ birden kuruluysa GPU sessizce kaybolur.
+
+    onnxruntime (CPU) ile onnxruntime-gpu aynı `onnxruntime` modülünü yazar;
+    birlikte kurulduklarında hangisinin dosyalarının kaldığı kurulum sırasına
+    bağlıdır ve CUDA çoğu zaman görünmez olur (docs/16 §5). pip bunu
+    engellemez: GPU tekerleği CPU paketini "sağladığını" bildirmiyor.
+    """
+    kurulu = []
+    for ad in ("onnxruntime", "onnxruntime-gpu"):
+        try:
+            metadata.distribution(ad)
+        except metadata.PackageNotFoundError:
+            continue
+        kurulu.append(ad)
+    return kurulu
+
+
+def _acilamadi(model_dosyasi: Path, hata: Exception) -> ModelHatasi:
+    """Model CPU'da da açılmadı: dosya mı bozuk, kurulum mu? Ekrana doğrusu çıkar.
+
+    Açılmayan bir model için "dosya bozuk" demek her zaman doğru değildir:
+    dosya resmi yayınla aynıysa (SHA-256) sorun kurulumdadır ve dosyayı
+    değiştirmek hiçbir şeyi düzeltmez. Kendi eğitilmiş model için
+    karşılaştırılacak özet yoktur; o zaman bozuk varsayılır.
+    """
+    from app.analiz.model_indir import resmi_yayinla_ayni_mi
+
+    ad = gorunen_model_adi(model_dosyasi.name)
+    teknik = f"Tespit modeli yüklenemedi: {model_dosyasi} — {hata!r}"
+    if resmi_yayinla_ayni_mi(model_dosyasi):
+        return ModelHatasi(
+            f"{ad} açılamadı ama model dosyası sağlam (doğrulandı): sorun programın "
+            "kurulumunda. Kontrol Paneli'nde 'İlk Kurulumu Yap' düğmesi varsa ona basın, "
+            "yoksa programı yeniden kurun; sonra Sistemi Başlat'a basın. Düzelmezse "
+            "program klasöründeki veri/loglar/sistem.log dosyasını destek ekibine iletin.",
+            f"{teknik} | dosyanın SHA-256 özeti resmi yayınla aynı: dosya sağlam",
+        )
+    # Bozuk dosya yerinde DURDUĞU için yeniden başlatmak tek başına yetmeyebilir
+    # (dosya varsa indirme atlanır). Mesaj bunu saklamaz: önce ucuz olanı
+    # söyler, sonra kesin çözüm yolunu gösterir.
+    return ModelHatasi(
+        f"{ad} açılamadı: dosyası bozuk. "
+        "Kontrol Paneli'nde Durdur'a, sonra Sistemi Başlat'a basın. Düzelmezse "
+        "bozuk dosyanın değiştirilmesi gerekir: program klasöründeki "
+        "veri/loglar/sistem.log dosyasını destek ekibine iletin.",
+        teknik,
+    )
 
 
 class Tespitci:
@@ -99,21 +150,25 @@ class Tespitci:
             secenekler.intra_op_num_threads = is_parcacigi
             secenekler.inter_op_num_threads = 1
             ek_argumanlar["sess_options"] = secenekler
+        # Kurulan GPU sağlayıcısı hatası ile bozuk dosya AYRI şeylerdir (docs/17
+        # §13, 2a). Önceden ikisi de "dosya bozuk" diye bildiriliyordu:
+        # kullanıcı sağlam bir dosyayı değiştirmeye uğraşırken asıl sorun
+        # sürücüdeydi. Aynı dosya yalnız CPU ile açılıyorsa sorun GPU'dadır.
+        gpu_hatasi = None
         try:
             self._oturum = onnxruntime.InferenceSession(
                 str(model_dosyasi), providers=saglayicilar, **ek_argumanlar
             )
         except Exception as hata:  # onnxruntime kendi hata tipini garanti etmiyor
-            # Bozuk dosya yerinde DURDUĞU için yeniden başlatmak tek başına
-            # yetmeyebilir (dosya varsa indirme atlanır). Mesaj bunu saklamaz:
-            # önce ucuz olanı söyler, sonra kesin çözüm yolunu gösterir.
-            raise ModelHatasi(
-                f"{gorunen_model_adi(model_dosyasi.name)} açılamadı: dosyası bozuk. "
-                "Kontrol Paneli'nde Durdur'a, sonra Sistemi Başlat'a basın. Düzelmezse "
-                "bozuk dosyanın değiştirilmesi gerekir: program klasöründeki "
-                "veri/loglar/sistem.log dosyasını destek ekibine iletin.",
-                f"Tespit modeli yüklenemedi: {model_dosyasi} — {hata!r}",
-            ) from hata
+            if saglayicilar == ["CPUExecutionProvider"]:
+                raise _acilamadi(model_dosyasi, hata) from hata
+            try:
+                self._oturum = onnxruntime.InferenceSession(
+                    str(model_dosyasi), providers=["CPUExecutionProvider"], **ek_argumanlar
+                )
+            except Exception as cpu_hatasi:
+                raise _acilamadi(model_dosyasi, cpu_hatasi) from cpu_hatasi
+            gpu_hatasi = hata
 
         # CUDA istendi ama sağlayıcı yoksa onnxruntime SESSİZCE CPU'ya düşer.
         # Ana sayfada "cuda" yazarken CPU'da sürünen sistem, teşhis edilemez
@@ -123,13 +178,33 @@ class Tespitci:
             "cuda" if "CUDAExecutionProvider" in self._oturum.get_providers() else "cpu"
         )
         self.cihaz_uyarisi = ""
-        if cihaz == "cuda" and self.etkin_cihaz != "cuda":
-            self.cihaz_uyarisi = (
-                "CIKARIM_CIHAZI=cuda seçili ama bu bilgisayarda CUDA çalıştırıcısı yok; "
-                "sistem CPU ile çalışıyor (daha yavaş). GPU için NVIDIA sürücüsü ve "
-                "onnxruntime-gpu paketi gerekir; ya da .env'de CIKARIM_CIHAZI=cpu yapın."
+        paketler = _ort_paketleri()
+        cakisma = len(paketler) > 1
+        if cakisma:
+            log_al("tespit").warning(
+                "İki ONNX Runtime paketi birlikte kurulu (onnxruntime ve onnxruntime-gpu): "
+                "GPU sessizce kaybolabilir. İkisini de kaldırıp yalnız birini kurun."
             )
-            log_al("tespit").warning(self.cihaz_uyarisi)
+        if cihaz == "cuda" and self.etkin_cihaz != "cuda":
+            if gpu_hatasi is not None:
+                sebep = (
+                    "GPU çalıştırıcısı başlatılamadı (NVIDIA sürücüsü ya da CUDA sürümü "
+                    "uyumsuz olabilir)"
+                )
+            elif cakisma:
+                sebep = (
+                    "CPU ve GPU çalışma zamanı paketleri birlikte kurulu; GPU paketinin "
+                    "çalışması için CPU paketinin kaldırılması gerekir"
+                )
+            else:
+                sebep = "bu bilgisayarda CUDA çalıştırıcısı yok"
+            self.cihaz_uyarisi = (
+                f"CIKARIM_CIHAZI=cuda seçili ama {sebep}; sistem CPU ile çalışıyor "
+                "(daha yavaş). GPU için NVIDIA sürücüsü ve onnxruntime-gpu paketi gerekir; "
+                "ya da .env'de CIKARIM_CIHAZI=cpu yapın."
+            )
+            ek = {"extra": {"ayrinti": f"GPU oturum hatası: {gpu_hatasi!r}"}} if gpu_hatasi else {}
+            log_al("tespit").warning(self.cihaz_uyarisi, **ek)
 
         girdi = self._oturum.get_inputs()[0]
         self._girdi_adi = girdi.name
