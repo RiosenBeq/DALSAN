@@ -8,6 +8,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 import json
 import os
 import time
@@ -62,7 +63,10 @@ def _eski_olay(baglanti, ayarlar, gun: int, dondur: bool = False) -> int:
 
 def _bakim(ayarlar, baglanti) -> None:
     supervizor = AnalizSupervizoru.__new__(AnalizSupervizoru)
-    supervizor.ayarlar = ayarlar
+    # Disk uyarısı kapalı: makinenin diski azsa bakım DISK_LOW sistem olayı
+    # yazar ve SQLite ona az önce silinen olayın kimliğini verir; "olay
+    # silindi" denetimi o zaman test makinesinin boş diskine bağlı kalırdı.
+    supervizor.ayarlar = dataclasses.replace(ayarlar, disk_uyari_gb=0)
     supervizor._log = log_al("test")
     supervizor._bakim_yap(baglanti)
 

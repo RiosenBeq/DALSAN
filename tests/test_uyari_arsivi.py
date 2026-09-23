@@ -324,7 +324,10 @@ def _bakim(ayarlar, b) -> None:
     from app.loglama import log_al
 
     supervizor = AnalizSupervizoru.__new__(AnalizSupervizoru)
-    supervizor.ayarlar = ayarlar
+    # Disk uyarısı kapalı: makinenin diski azsa bakım DISK_LOW sistem olayı
+    # yazar ve SQLite ona az önce silinen olayın kimliğini verir; "olay
+    # silindi" denetimi o zaman test makinesinin boş diskine bağlı kalırdı.
+    supervizor.ayarlar = dataclasses.replace(ayarlar, disk_uyari_gb=0)
     supervizor._log = log_al("test")
     supervizor._bakim_yap(b)
 
