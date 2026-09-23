@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import csv
 import io
 import json
 
@@ -19,7 +18,13 @@ from fastapi.responses import (
 from app import veritabani, zaman
 from app.hatalar import DogrulamaHatasi
 from app.rules.olay_kodu import IHLAL_ONEMLERI, ONEM_ADLARI
-from app.web.ortak import OLAY_DURUMLARI, OLAY_SORGUSU, baglanti_al, olay_hazirla
+from app.web.ortak import (
+    OLAY_DURUMLARI,
+    OLAY_SORGUSU,
+    CsvYazici,
+    baglanti_al,
+    olay_hazirla,
+)
 from app.web.rotalar import sablonlar
 
 router = APIRouter()
@@ -205,7 +210,7 @@ def csv_disa_aktar(istek: Request, baglanti=Depends(baglanti_al)):
         f"{OLAY_SORGUSU}{kosul} ORDER BY e.occurred_at DESC LIMIT 10000", degerler
     ).fetchall()
     tampon = io.StringIO()
-    yazici = csv.writer(tampon, delimiter=";")  # Türkçe Excel noktalı virgül bekler
+    yazici = CsvYazici(tampon)  # formül kaçışlı, noktalı virgüllü (R31)
     # Yeni sütunlar SONA eklendi: eski sütunların yeri değişirse kullanıcının
     # Excel'de kurduğu formüller ve pivot tablolar sessizce yanlış sütunu okur.
     yazici.writerow(

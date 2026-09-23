@@ -19,7 +19,6 @@ farklı sayı gösteremez.
 
 from __future__ import annotations
 
-import csv
 import io
 import json
 import math
@@ -33,6 +32,7 @@ from app.hatalar import DogrulamaHatasi
 from app.web.komuta import kabuk_baglami
 from app.web.ortak import (
     KURAL_TIPLERI,
+    CsvYazici,
     baglanti_al,
     cubuk_yuzdesi,
     saat_sutunlari,
@@ -521,7 +521,7 @@ def rapor_csv(istek: Request, baglanti=Depends(baglanti_al)):
     """
     veri = rapor_verisi(baglanti, istek.query_params)
     tampon = io.StringIO()
-    yazici = csv.writer(tampon, delimiter=";")  # Türkçe Excel noktalı virgül bekler
+    yazici = CsvYazici(tampon)  # formül kaçışlı, noktalı virgüllü (R31)
     yazici.writerow(["DALSAN İSG — Dönem Raporu"])
     yazici.writerow(["Dönem", veri["donem_metni"]])
     yazici.writerow(["Bölüm", veri["alan"] or "tüm fabrika"])

@@ -1,8 +1,10 @@
 """Web katmanının ortak yardımcıları: istek başına veritabanı bağlantısı,
-RTSP maskeleme, Türkçe etiket tabloları ve bölge tiplerinin hazır kuralları."""
+RTSP maskeleme, güvenli CSV, Türkçe etiket tabloları ve bölge tiplerinin
+hazır kuralları."""
 
 from __future__ import annotations
 
+import csv
 import json
 import re
 from collections.abc import Iterator
@@ -475,6 +477,34 @@ def guvenli_json(veri) -> str:
     """
     metin = json.dumps(veri, ensure_ascii=False)
     return metin.replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
+
+
+# CSV formül enjeksiyonu (docs/17 §10.5 R31). Excel ve LibreOffice = + - @ ile
+# (ya da sekme / satır başı ile) başlayan hücreyi FORMÜL olarak okur. Kamera
+# adı, bölüm, bölge adı ve inceleme notu kullanıcıdan gelir: adı
+# `=HYPERLINK(...)` olan bir kamera, raporu açan kişinin bilgisayarında
+# tıklanabilir bir bağlantıya ya da dış veri isteğine dönüşürdü. Böyle başlayan
+# METİN hücresinin başına tek tırnak eklenir; sayı hücreleri (negatif sayı
+# dahil) değişmez.
+_FORMUL_BASLARI = ("=", "+", "-", "@", "\t", "\r")
+
+
+def csv_hucresi(deger):
+    if isinstance(deger, str) and deger.startswith(_FORMUL_BASLARI):
+        return "'" + deger
+    return deger
+
+
+class CsvYazici:
+    """Noktalı virgüllü CSV (Türkçe Excel bunu bekler); her hücre
+    `csv_hucresi`'nden geçer. Dışa aktarılan her CSV bunu kullanır: kaçış tek
+    yerde olmasaydı yeni bir sütun ya da yeni bir dosya onu unuturdu."""
+
+    def __init__(self, tampon) -> None:
+        self._yazici = csv.writer(tampon, delimiter=";")
+
+    def writerow(self, satir) -> None:
+        self._yazici.writerow([csv_hucresi(hucre) for hucre in satir])
 
 
 # ---------------------------------------------------------------- hazır kurallar
