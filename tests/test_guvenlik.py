@@ -17,6 +17,7 @@ from app.web.giris import cerez_gecerli, cerez_uret, denemeleri_sifirla
 
 SIFRE = "dalsan2026"
 TURKCE_SIFRE = "şİğüçö2026"
+SIR = bytes(range(32))  # kuruluma özgü sırrın yerine sabit
 
 
 @pytest.fixture(autouse=True)
@@ -94,8 +95,8 @@ def test_giris_kutusuna_turkce_harf_yazmak_500_vermez(test_ayarlari):
 
 
 def test_ascii_disi_cerez_imzasi_cokmez():
-    assert cerez_gecerli("9999999999.şğ", SIFRE) is False
-    assert cerez_gecerli(cerez_uret(TURKCE_SIFRE), TURKCE_SIFRE) is True
+    assert cerez_gecerli("9999999999.şğ", SIFRE, sir=SIR) is False
+    assert cerez_gecerli(cerez_uret(TURKCE_SIFRE, sir=SIR), TURKCE_SIFRE, sir=SIR) is True
 
 
 # ------------------------------------------------ R9: şifre sayfaya basılmaz

@@ -171,6 +171,10 @@ kayıtlar kaybolmuş sayılırdı.
 Paketlenmiş programda `.env` dosyası ilk açılışta `.env.example`'dan **bir kez**
 üretilir; sonraki açılışlarda üzerine yazılmaz.
 
+`veri/oturum.anahtar` giriş çerezlerini imzalayan, kuruluma özgü rastgele
+sırdır. İlk girişte üretilir ve yalnız sahibi okuyabilir. Kimseyle paylaşmayın.
+Silinirse yenisi üretilir ve açık oturumlar bir kez düşer; başka zararı yoktur.
+
 ---
 
 ## 2. Servis
@@ -223,6 +227,9 @@ docker compose logs -f --tail=100
 > olarak bağlanıyor ve Docker'da şifre zorunlu. `docker compose up -d`'den önce
 > `mkdir -p ayar && mv .env ayar/.env` yapın ve `YONETICI_SIFRESI`'nin dolu
 > olduğunu kontrol edin; yoksa sistem açılmaz ve sebebini günlüğe yazar.
+>
+> Aynı sürümde oturum çerezleri kuruluma özgü bir sırla imzalanmaya başladı
+> (R16): güncellemeden sonra herkes **bir kez** yeniden giriş yapar.
 
 Geri alma:
 `git checkout <önceki-sürüm>` → `docker compose build` → `up -d`.
@@ -344,6 +351,8 @@ görünmelidir.
 | Ekranda uyarı sesi gelmiyor | Sağ alttaki ses çipi sebebini yazar: "KAPALI" ise tıklayın (ses bu tarayıcıda açılır); "beklemede" ise sayfaya bir kez tıklayın (tarayıcı kuralı: ses ancak bir tıklamadan sonra çalar); "çalışmıyor" ise tarayıcı ses çalamıyor — başka bir tarayıcı deneyin. Çip yoksa ekran sesi çalışıyordur |
 | Komuta ekranının üstünde kırmızı şerit | Uyarı üretilmiyor ya da kaydedilmiyor (analiz takıldı, model yüklenemedi…), kritik bir kural çalışmıyor ya da bir kameradan görüntü gelmiyor; şerit hangisi olduğunu yazar, "Ayrıntı →" Sağlık ekranını açar. Gri şerit: durum doğrulanamıyor (sunucuya ulaşılamıyor ya da model yükleniyor) |
 | Disk doluyor | Ana sayfadaki "Boş alan"; saklama sürelerini kısaltın; `veri/goruntuler` en büyük kalemdir |
+| Herkes aynı anda oturumdan düştü | Şifre değişti, sistem yeni sürüme güncellendi ya da `veri/oturum.anahtar` silindi veya bozuldu (yenisi üretilir, günlükte uyarı). Yeniden giriş yapmak yeter |
+| Kamera ya da hoparlör formunda adres `••••@` ile görünüyor | Beklenen: kullanıcı adı ve şifre sayfaya basılmaz. •••• olduğu gibi bırakılırsa kayıtlı şifre korunur, ip ya da yol değişse de. Değiştirmek için •••• yerine `kullanici:sifre` yazın |
 | Canlı uyarı paneli "bağlantı koptu" | Sunucu durmuş olabilir; Kontrol Paneli'nden yeniden başlatın |
 | Olaylar'da "Analiz takıldı" ya da "Analiz durdu" | Görüntü geliyor ama analiz ilerlemiyor: o sürede **hiçbir uyarı üretilmiyor**. Sistemi yeniden başlatın (sunucuda `BEKCI_TEPKISI=yeniden_baslat` bunu kendiliğinden yapar, §1.2.1). `veri/loglar/sistem.log` içinde `"bilesen": "bekci"` satırından önceki hatalara bakın |
 | Olaylar'da "Analiz yavaşladı" | Ya kamerada kare üst üste işlenemedi (hattı yeniden kuruldu; günlükte "Kare işlenemedi" satırları sebebi yazar) ya da işlenen görüntü hızı hedefin altında kaldı: kamera `sample_fps`'ini düşürün, kamera sayısını azaltın ya da daha güçlü donanım kullanın. Eşikler Ayarlar → Analiz sağlığı |

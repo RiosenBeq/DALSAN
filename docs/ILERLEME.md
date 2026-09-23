@@ -1,5 +1,46 @@
 # İlerleme
 
+## Faz 5d kalan güvenlik (23.09.2026)
+
+Plan: `docs/17-V2-TASARIM.md` §10.5 (R16, R18, R31, R32) ve §13 (5d satırı).
+Faz 3 operatörün cevaplarını beklediği için soru bağlamayan bu adım öne alındı.
+
+**R31 — CSV formül enjeksiyonu.** Olay listesi ve rapor CSV'leri artık tek bir
+yazıcıdan geçiyor (`web/ortak.CsvYazici`). `=`, `+`, `-`, `@`, sekme ya da satır
+başıyla başlayan metin hücresinin başına tek tırnak ekleniyor: adı
+`=HYPERLINK(...)` olan bir kamera Excel'de formüle dönüşmüyor. Sayı hücreleri
+değişmiyor. Web katmanında kaçışsız `csv.writer` kalmadığını bir test denetliyor.
+
+**R18 — adresteki şifre.** Üç form adresi artık •••• ile basıyor:
+- kamera düzenleme;
+- hoparlör bölgesi;
+- Ayarlar'daki IP hoparlör adresi.
+
+•••• olduğu gibi kalırsa kayıtlı kullanıcı adı ve şifre korunuyor, ip ya da yol
+değişse de. Yeni kimlik yazılırsa o geçerli. docs/17 yalnız kamera formunu
+sayıyordu; öbür ikisinde aynı şifre açıkta kalacaktı.
+
+Anons HTTP hatası tam adresi günlüğe yazıyordu; artık adres de hata sebebi de
+maskeli. Bozuk adreste urllib'in hatası `try` dışında doğuyor ve adresle
+birlikte ham çıkıyordu; o da düzeldi. Günlük biçimleyicisi de son savunma
+olarak her satırı maskeliyor. Maske deseni tek yerde (`loglama.ADRES_KIMLIGI`);
+şifrede ham `@` olsa da tamamı gizleniyor.
+
+**R16 — çerez anahtarı.** Oturum çerezinin imza anahtarı şifreyle birlikte
+kuruluma özgü rastgele bir sırdan türüyor: `veri/oturum.anahtar`. Dosya ilk
+girişte üretiliyor ve yalnız sahibi okuyabiliyor. Ele geçen bir çerezle şifre
+artık çevrimdışı denenemiyor; şifre değişince oturumlar yine düşüyor. Dosya
+bozuksa yenisi üretiliyor. Yazılamıyorsa giriş yine çalışıyor, sır o çalışma
+boyunca bellekte duruyor. **Bu sürüme geçince herkes bir kez yeniden giriş
+yapar.**
+
+**R32 ertelendi.** Container'ı root dışı kullanıcıyla çalıştırmak, mevcut Docker
+kurulumlarında `veri/` klasörünün sahipliğini değiştirmeyi gerektiriyor;
+değiştirilmezse güncellemeden sonra sistem veritabanına yazamaz. İmaj bu
+ortamda derlenemediği için değişiklik doğrulanamaz. S1 (kurulum Docker mı,
+systemd mi?) cevaplanınca yapılacak; `ffmpeg` paketi RTSP provasından sonra
+kalkacak (docs/17).
+
 ## Faz 2e KVKK tabanı ve ölçüm (23.09.2026)
 
 Plan: `docs/17-V2-TASARIM.md` §5.5, §5.8, §10.2, §14 ve §13 (2e satırı).

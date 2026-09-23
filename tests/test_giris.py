@@ -19,6 +19,7 @@ from app.uygulama import uygulama_olustur
 from app.web.giris import cerez_gecerli, cerez_uret, denemeleri_sifirla
 
 SIFRE = "dalsan2026"
+SIR = bytes(range(32))  # kuruluma özgü sırrın yerine sabit
 
 # Şifre koyunca korunması BEKLENEN sayfalar — her biri sistemi değiştirebilir
 # ya da fabrika görüntüsü/olay geçmişi gösterir.
@@ -168,23 +169,23 @@ def test_cikis_dugmesi_gorunur(sifreli_istemci):
 
 def test_cerez_sifre_tasimaz():
     """Çerez çalınsa bile şifre ele geçmemeli."""
-    assert SIFRE not in cerez_uret(SIFRE)
+    assert SIFRE not in cerez_uret(SIFRE, sir=SIR)
 
 
 def test_sifre_degisince_eski_cerez_duser():
-    cerez = cerez_uret(SIFRE)
-    assert cerez_gecerli(cerez, SIFRE)
-    assert not cerez_gecerli(cerez, "baska-sifre")
+    cerez = cerez_uret(SIFRE, sir=SIR)
+    assert cerez_gecerli(cerez, SIFRE, sir=SIR)
+    assert not cerez_gecerli(cerez, "baska-sifre", sir=SIR)
 
 
 def test_suresi_dolan_cerez_gecersiz():
-    cerez = cerez_uret(SIFRE, simdi=0)
-    assert not cerez_gecerli(cerez, SIFRE, simdi=10**12)
+    cerez = cerez_uret(SIFRE, sir=SIR, simdi=0)
+    assert not cerez_gecerli(cerez, SIFRE, sir=SIR, simdi=10**12)
 
 
 def test_bozuk_cerez_cokmez():
     for bozuk in (None, "", "abc", "abc.def", ".", "999999999999"):
-        assert not cerez_gecerli(bozuk, SIFRE)
+        assert not cerez_gecerli(bozuk, SIFRE, sir=SIR)
 
 
 @pytest.mark.parametrize("kotu", ["//evil.com", "/\\evil.com", "https://evil.com"])

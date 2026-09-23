@@ -156,6 +156,10 @@ Yine de zorundaysanız, **en azından** şunlar yapılmalıdır:
 > Sistem ters vekil arkasında çalıştığını anlar: `X-Forwarded-Proto: https`
 > gelirse oturum çerezini **yalnız HTTPS'te gönderilecek** biçimde işaretler.
 >
+> Çerezin imzası şifreyle birlikte kuruluma özgü bir sırdan türer
+> (`veri/oturum.anahtar`): ele geçen bir çerezle şifre çevrimdışı denenemez.
+> Bu dosyayı paylaşmayın.
+>
 > Yanlış şifre kilidi için gerçek istemci adresini uvicorn yazar, ama yalnız
 > **güvendiği** vekilden gelen bağlantıda. Varsayılan güvenilen vekil aynı
 > makinedir (127.0.0.1). Vekil başka bir makinedeyse, ya da sistem Docker'da

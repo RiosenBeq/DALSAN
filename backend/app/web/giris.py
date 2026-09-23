@@ -15,9 +15,12 @@ kötüdür.
 Yetki kontrolü TEK dependency'dedir (`oturum_gerekli`). İleride kullanıcı
 tablosuna geçilirse (docs/07 #5) yalnızca bu dosya değişir.
 
-Çerez, şifrenin kendisini TAŞIMAZ: son kullanma zamanı + o zamanın şifreyle
-imzası tutulur. Şifre değişince eski çerezlerin imzası tutmaz ve tüm oturumlar
-kendiliğinden düşer.
+Çerez, şifrenin kendisini TAŞIMAZ: son kullanma zamanı + o zamanın imzası
+tutulur. İmza anahtarı şifre ile KURULUMA ÖZGÜ rastgele bir sırdan türer
+(`veri/oturum.anahtar`, docs/17 §10.5 R16). Şifre değişince eski çerezlerin
+imzası tutmaz ve tüm oturumlar kendiliğinden düşer. Sır olmasaydı anahtar
+yalnız şifreden türerdi: ele geçen tek bir çerezle şifre, sunucuya hiç
+dokunmadan (kaba kuvvet kilidine takılmadan) çevrimdışı denenebilirdi.
 
 KABA KUVVET KORUMASI: tek şifreli bir sistemde sınırsız deneme, şifreyi
 fiilen yok sayar — saniyede yüzlerce deneme yapan bir betik altı haneli bir
@@ -32,7 +35,11 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import os
+import secrets
+import threading
 import time
+from pathlib import Path
 
 from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -61,17 +68,66 @@ _EN_COK_ADRES = 1000
 _denemeler: dict[str, tuple[int, float]] = {}
 
 
-def _anahtar(sifre: str) -> bytes:
-    return hashlib.sha256(("dalsan-oturum:" + sifre).encode("utf-8")).digest()
+# Kuruluma özgü sır (R16): veri klasöründe, ilk girişte üretilir. Silinirse
+# yenisi üretilir ve açık oturumlar bir kez düşer; başka bir zararı yoktur.
+SIR_DOSYASI = "oturum.anahtar"
+_SIR_BAYT = 32
+_sirlar: dict[Path, bytes] = {}  # her istekte dosya okunmasın
+_sir_kilidi = threading.Lock()
 
 
-def _imzala(veri: str, sifre: str) -> str:
-    return hmac.new(_anahtar(sifre), veri.encode("utf-8"), hashlib.sha256).hexdigest()
+def oturum_sirri(ayarlar) -> bytes:
+    """Bu kurulumun imza sırrı; yoksa ya da bozuksa üretir."""
+    yol = Path(ayarlar.veri_dizini) / SIR_DOSYASI
+    sir = _sirlar.get(yol)
+    if sir is None:
+        with _sir_kilidi:  # aynı anda iki ilk giriş iki ayrı sır üretmesin
+            sir = _sirlar.get(yol) or _sirri_oku_ya_da_uret(yol)
+            _sirlar[yol] = sir
+    return sir
 
 
-def cerez_uret(sifre: str, simdi: float | None = None) -> str:
+def _sirri_oku_ya_da_uret(yol: Path) -> bytes:
+    try:
+        sir = bytes.fromhex(yol.read_text(encoding="ascii").strip())
+        if len(sir) >= _SIR_BAYT:
+            return sir
+        _log.warning("Oturum anahtarı dosyası bozuk; yenisi üretildi, açık oturumlar kapandı.")
+    except FileNotFoundError:
+        pass
+    except (OSError, ValueError) as hata:
+        _log.warning(
+            f"Oturum anahtarı okunamadı ({hata}); yenisi üretildi, açık oturumlar kapandı."
+        )
+    sir = secrets.token_bytes(_SIR_BAYT)
+    gecici = yol.with_name(yol.name + ".yeni")
+    try:
+        yol.parent.mkdir(parents=True, exist_ok=True)
+        # Yalnız sahibi okuyabilir (0600); yarım yazılmış dosya asıl adı almaz
+        tanimlayici = os.open(gecici, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        with os.fdopen(tanimlayici, "w", encoding="ascii") as dosya:
+            dosya.write(sir.hex())
+        os.replace(gecici, yol)
+    except OSError as hata:
+        # Giriş yine çalışır; yalnız oturumlar yeniden başlatmada düşer
+        _log.error(
+            f"Oturum anahtarı kaydedilemedi ({hata}); yalnız bu çalışma boyunca geçerli.",
+            extra={"ayrinti": str(yol)},
+        )
+    return sir
+
+
+def _anahtar(sifre: str, sir: bytes) -> bytes:
+    return hmac.new(sir, ("dalsan-oturum:" + sifre).encode("utf-8"), hashlib.sha256).digest()
+
+
+def _imzala(veri: str, sifre: str, sir: bytes) -> str:
+    return hmac.new(_anahtar(sifre, sir), veri.encode("utf-8"), hashlib.sha256).hexdigest()
+
+
+def cerez_uret(sifre: str, *, sir: bytes, simdi: float | None = None) -> str:
     son = int((time.time() if simdi is None else simdi) + _OTURUM_SURESI_SN)
-    return f"{son}.{_imzala(str(son), sifre)}"
+    return f"{son}.{_imzala(str(son), sifre, sir)}"
 
 
 def _esit(birinci: str, ikinci: str) -> bool:
@@ -88,11 +144,11 @@ def _esit(birinci: str, ikinci: str) -> bool:
     )
 
 
-def cerez_gecerli(cerez: str | None, sifre: str, simdi: float | None = None) -> bool:
+def cerez_gecerli(cerez: str | None, sifre: str, *, sir: bytes, simdi: float | None = None) -> bool:
     if not cerez or "." not in cerez:
         return False
     son_metni, imza = cerez.rsplit(".", 1)
-    if not _esit(imza, _imzala(son_metni, sifre)):
+    if not _esit(imza, _imzala(son_metni, sifre, sir)):
         return False
     try:
         return int(son_metni) > (time.time() if simdi is None else simdi)
@@ -165,7 +221,9 @@ def oturum_gecerli_mi(istek: Request) -> bool:
     ayarlar = istek.app.state.ayarlar
     if not ayarlar.yonetici_sifresi:
         return True
-    return cerez_gecerli(istek.cookies.get(_CEREZ_ADI), ayarlar.yonetici_sifresi)
+    return cerez_gecerli(
+        istek.cookies.get(_CEREZ_ADI), ayarlar.yonetici_sifresi, sir=oturum_sirri(ayarlar)
+    )
 
 
 def oturum_gerekli(istek: Request) -> None:
@@ -238,7 +296,7 @@ def giris_yap(istek: Request, sifre: str = Form(...), sonra: str = Form("/")):
     yanit = RedirectResponse(sonra, status_code=303)
     yanit.set_cookie(
         _CEREZ_ADI,
-        cerez_uret(ayarlar.yonetici_sifresi),
+        cerez_uret(ayarlar.yonetici_sifresi, sir=oturum_sirri(ayarlar)),
         max_age=_OTURUM_SURESI_SN,
         httponly=True,
         samesite="lax",
