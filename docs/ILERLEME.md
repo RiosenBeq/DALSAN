@@ -10,6 +10,20 @@ karakterdir. Kural CLAUDE.md §7 ve §8'de ve docs/17 §16 karar kaydında;
 `tests/test_yazim_kurallari.py` depoda bu karakterlerden biri kalırsa dosya ve
 satırıyla kırmızı olur. Statik damga o gün `?v=39`, 4b'den sonra `?v=40`.
 
+## Faz 5 sertleştirme (23.09.2026)
+
+**5b - R34 ve NTP.** Örnekleme hızı değişince hat artık yeniden kurulmuyor:
+eskiden süpervizör hattı atıyordu ve izler, kalış sayaçları, cooldown'lar,
+bölge sayımları gidiyor, açık olaylar "kamera değişti" diye kapanıyordu; aynı
+kişiye yeniden uyarı üretilebiliyordu. `KameraHatti.fps_guncelle` yalnız
+saniyeden kareye çevrilen iki sayıyı yeni hıza göre günceller: ByteTrack'in
+kayıp iz hafızası (`max_time_lost`) ve kural/sayaç kayıp toleransı
+(`ceil(TAKIP_HAFIZA_SN × fps)`). Testler aynı hat, aynı takipçi, aynı
+değerlendirici ve aynı takip kimliğinin korunduğunu, süpervizörün hattı
+bırakmadığını sınıyor. NTP bir belge maddesidir: docs/06 §1.2.3
+(timedatectl/timesyncd, chrony, kameralar ve NVR aynı saatte) ve kabul
+listesinde bir madde.
+
 ## Faz 4 uyarı kanalları (23.09.2026)
 
 Plan: `docs/17-V2-TASARIM.md` §7 ve §13 (4a-4e satırları), operatörün kabul ettiği

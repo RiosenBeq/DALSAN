@@ -157,6 +157,32 @@ docker compose start
 > `-wal` ve `-shm` dosyalarını silmek **şart**: SQLite bunları bulursa eski
 > günlüğü yeni veritabanının üstüne uygular.
 
+### 1.2.3 Saat eşitleme (NTP)
+
+Olayın zamanı, kanıt fotoğrafının adı, rapor dilimleri ve saklama süreleri
+sunucunun saatine dayanır. Saat kayarsa kanıtın zamanı yanlış olur: "14:02'de
+yaya yolunda forklift" kaydı gerçekte 14:07'de olmuş olabilir ve kameranın
+kendi kaydıyla (NVR) eşleşmez; hukuki süreçte kanıtın değeri düşer. Sunucu
+saati ağdan eşitlenmelidir (docs/17 §9.5):
+
+```bash
+timedatectl status          # "System clock synchronized: yes" ve "NTP service: active" görünmeli
+sudo timedatectl set-ntp true      # Ubuntu'da hazır gelen systemd-timesyncd'yi açar
+```
+
+Fabrika ağından dışarıya NTP çıkışı yoksa yerel NTP sunucusunun adresini bilgi
+işlemden alın ve `/etc/systemd/timesyncd.conf` içinde `[Time]` altına
+`NTP=<yerel sunucu>` yazıp `sudo systemctl restart systemd-timesyncd` çalıştırın.
+chrony kullanan sunucuda denetim `chronyc tracking` ("Leap status : Normal"),
+ayar `/etc/chrony/chrony.conf`'tadır.
+
+- Docker container'ı saati host'tan alır; ayrıca ayar gerekmez.
+- **Kameraların ve NVR'nin saati de aynı NTP sunucusuna** bağlanmalıdır:
+  olay zamanıyla kamera kaydının zamanı ancak böyle eşleşir.
+- Yazılım süreleri (kalış, bekleme, bekçi) monotonik saatle ölçer; saatin ileri
+  geri alınması bunları bozmaz ve bitiş zamanı başlangıçtan önce yazılmaz
+  (`olaylar/yazici.py`). Etkilenen, kayda yazılan duvar saatidir.
+
 ### 1.3 Verinin ve ayarların yeri
 
 İki soru birbirinden ayrıdır ve ikisi de `backend/app/kaynaklar.py` içinde,
@@ -387,6 +413,7 @@ görünmelidir.
 ## 8. Devreye alma kontrol listesi (8. hafta)
 
 - [ ] Sistem, sunucu yeniden başlatma sonrası kendiliğinden ayakta (K8)
+- [ ] Sunucu saati NTP ile eşitleniyor (`timedatectl`: "synchronized: yes"); kameralar ve NVR aynı NTP'de (§1.2.3)
 - [ ] 3-4 kameranın tamamı ≥ 24 saat kesintisiz `çevrimiçi` (K1)
 - [ ] Bölge ve kurallar arayüzden değiştirilebiliyor, restart gerekmiyor (K3)
 - [ ] Test ihlali ≤ 2 sn içinde ekrana düşüyor (K4)
