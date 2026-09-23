@@ -76,8 +76,10 @@ LOCO_ARSIV_ADRESLERI = (
     "?folder=73e976ba&path=LOCO%5Cv1%5Cdataset.zip",
 )
 LOCO_ARSIV_BOYUTU = 769_055_500
-# İlk gerçek indirmeden sonra sabitlenir; None iken özet yalnız günlüğe yazılır.
-LOCO_ARSIV_SHA256: str | None = None
+# İlk gerçek indirmede (GitHub Actions, 23.09.2026, 5689 üye) ölçüldü ve
+# sabitlendi: arşiv değişirse veri.py indirmeyi reddeder. None iken özet yalnız
+# günlüğe yazılırdı.
+LOCO_ARSIV_SHA256: str | None = "f3629d989071b824edc63e000f45ccc5826cfbb201a338f16ed87ab3e10bcdcf"
 
 # Yazarların kendi bölmesi, ortam ayrık: 2-3-5 eğitim, 1-4 test.
 EGITIM_ALT_KUMELERI = ("subset-2", "subset-3", "subset-5")
