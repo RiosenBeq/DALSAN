@@ -29,6 +29,32 @@ kırpıklar, etiket CSV'si, bölme ve her dosyanın sha256'sı var. Testler iki 
 denetliyor: aynı kamera ve gün iki kümede olamıyor, manifest dosyalarla tutarlı.
 Biçim docs/04 §5.4'te. Statik damga `?v=34`.
 
+**3c — KKD sınıflandırıcısı.** `models/kkd.onnx` konunca ONNX Runtime ile
+çalışıyor. Sözleşme docs/04 §6.6'da: girdi RGB 0–1 128×256; normalizasyon modelin
+içinde; `baret` ve `yelek` çıktıları olasılık, sıra var / yok / görünmüyor.
+Yüklemede sırayla dört şey denetleniyor:
+- `models/SHA256SUMS`'ta özet satırı var mı;
+- özet dosyayla tutuyor mu;
+- dosya açılıyor mu;
+- sıfır görüntüyle deneme çalıştırması sözleşmeye uyuyor mu.
+
+Biri tutmazsa model yüklenmiyor. Olaylar'a "Model yüklenemedi" düşüyor (kod adı
+artık iki modeli de kapsıyor), sistem modelsiz devam ediyor. Karedeki kişiler tek
+toplu çağrıda değerlendiriliyor. Eşik uygulanmıyor: "görünmüyor" belirsiz sayılıyor,
+düşük güven kararını kural veriyor. Gözlem kırpığın netliğini de taşıyor (3d'deki
+`min_netlik` için).
+
+KKD sayfasının üstünde **KKD modeli** kartı var: doğrulandı ve sürüm, yüklü değil,
+yüklenemedi (sebebiyle) ya da analiz kapalı. Önizlemede KKD zorunlu alandaki kişinin
+kutusu renk alıyor; yalnız kuralın istediği kalemlere bakılıyor:
+- yeşil: istenen kalemler var;
+- ince kırmızı: eksik görüldü (ihlal kalın kırmızı);
+- gri: belirsiz.
+
+Renk her 5. karedeki gözlemle titremesin diye son gözlem yalnız çizim için tutuluyor.
+Hız kıyasına `--kkd` turu eklendi; model yoksa tur atlanıyor, sayı uydurulmuyor.
+Gerçek model olmadığı için testler sahte ORT oturumuyla koşuyor. Statik damga `?v=35`.
+
 ## Faz 5d kalan güvenlik (23.09.2026)
 
 Plan: `docs/17-V2-TASARIM.md` §10.5 (R16, R18, R31, R32) ve §13 (5d satırı).

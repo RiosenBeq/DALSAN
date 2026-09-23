@@ -342,7 +342,8 @@ görünmelidir.
 | Çok fazla yanlış tespit | Aynı eşikleri yükseltin; **NextGen AI İsabetli** (`MODEL_DOSYASI=models/yolox_s.onnx`) daha isabetlidir (daha yavaş) |
 | Olay üretilmiyor | Kural açık mı; bölge doğru tipte mi; mesafe kuralında kalibrasyon var mı (Kurallar sayfasındaki rozet söyler) |
 | KKD sayfasına yeni örnek düşmüyor | Sayfanın üstündeki "Veri toplama" kapısı **KAPALI** olabilir (varsayılan). Rev.02 onayından sonra açılır; kapalıyken kişi görüntüsü bilerek toplanmaz. Açıksa: kişi KKD zorunlu alanda mı, muaf alanın dışında mı, kural boyundan (`min_person_height_px`) uzun mu |
-| KKD hiç olay üretmiyor | Model henüz eğitilmedi — bu **beklenen** davranıştır (docs/04). Veri toplanıyor mu: KKD sekmesi |
+| KKD hiç olay üretmiyor | Model henüz eğitilmedi — bu **beklenen** davranıştır (docs/04). KKD sekmesinin üstündeki "KKD modeli" kartı durumu yazar; veri toplanıyor mu da orada |
+| KKD sekmesinde "KKD modeli yüklenmedi" | Model dosyası `models/SHA256SUMS`'taki özetle tutmuyor ya da özet satırı yok, açılamıyor veya sözleşmeye uymuyor (docs/04 §6.6). Kartta sebep yazar; modeli veren uzmandan doğru dosyayı ve özet satırını isteyin, sonra yeniden başlatın. Bu sırada diğer kurallar çalışır |
 | KKD çok fazla yanlış alarm | `04-KKD-BARET-YELEK.md` §8.3 tablosu |
 | Rapor'da yanlış alarm / saat "ölçülemedi" ya da kapsama düşük | O kameranın bazı günlerinde işaretlenmemiş ihlal var. Komuta → İnceleme'de o günlerin olaylarını "İncelendi" ya da "Yanlış alarm" diye işaretleyin: oran yalnız bütün ihlalleri işaretli günlerden hesaplanır. "Analiz edilen: —" ise o dönemde analiz kaydı yok (model yüklenmemiş, kamera kopuk ya da dönem bu kayıt başlamadan önce) |
 | Uyarılar gecikiyor | Kamera `sample_fps` değerini düşürün; substream kullanın; `CIKARIM_CIHAZI=cuda` (yalnız NVIDIA'lı Linux) |

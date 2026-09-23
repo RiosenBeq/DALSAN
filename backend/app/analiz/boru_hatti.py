@@ -27,6 +27,7 @@ from app.rules.tipler import (
     Bolge,
     Ihlal,
     Kalibrasyon,
+    KkdGozlem,
     Kural,
     Tespit,
 )
@@ -65,6 +66,11 @@ _BOLGE_RENGI = (200, 60, 160)  # mor — araç mavisiyle karışmasın
 _BARET_RENGI = (255, 200, 60)
 _YELEK_RENGI = (0, 220, 245)
 _KKD_YOK_RENGI = (0, 0, 220)
+# KKD modeli yüklüyken kişi kutusunun rengi (docs/17 §5.10): yeşil = istenen
+# kalemler var, ince kırmızı = biri eksik GÖZLENDİ (ihlal değil; ihlal kalın
+# kırmızıdır), gri = belirsiz.
+_KKD_BELIRSIZ_RENGI = (150, 150, 150)
+_KKD_ALAN_ADLARI = {"helmet": "baret", "vest": "yelek"}
 # Önizleme JPEG kalitesi: ağ trafiği ile okunabilirlik arasında denge
 _JPEG_KALITE = [int(cv2.IMWRITE_JPEG_QUALITY), 80]
 
@@ -165,6 +171,12 @@ class KameraHatti:
         self._tarama_renk_kati: np.ndarray | None = None
         self._tarama_harman: np.ndarray | None = None
         self._kkd_sayac: dict[int, int] = {}  # takip_id -> işlenen kare sayısı
+        # Son KKD gözlemi YALNIZ ÇİZİM içindir: gözlem her 5. karede gelir, kutu
+        # rengi aradaki karelerde titremesin. Kurala giden `kkd_gozlemi` değildir
+        # (pencereye aynı gözlem iki kez girmez).
+        self._kkd_son: dict[int, KkdGozlem] = {}
+        # Kameranın KKD kurallarının istediği kalemler (renk için; kuralsız: ikisi)
+        self._kkd_kalemler: set[str] = set(_KKD_ALAN_ADLARI)
         self._kilit = threading.Lock()
         # ÖNİZLEME TEMBELDİR: kare saklanır, JPEG ancak İSTENDİĞİNDE üretilir.
         #
@@ -198,6 +210,13 @@ class KameraHatti:
             if k.tip == "ppe_violation"
         ]
         self._kkd_en_kucuk_boy = min(boylar) if boylar else _KKD_VARSAYILAN_BOY
+        kalemler = {
+            kalem
+            for k in kurallar
+            if k.tip == "ppe_violation"
+            for kalem in k.params.get("required_ppe", list(_KKD_ALAN_ADLARI))
+        }
+        self._kkd_kalemler = kalemler or set(_KKD_ALAN_ADLARI)
 
     def isle(
         self,
@@ -360,10 +379,13 @@ class KameraHatti:
         # aksi halde sözlük 7x24 çalışmada sınırsız büyürdü.
         mevcutlar = {t.takip_id for t in tespitler}
         self._kkd_sayac = {t: s for t, s in self._kkd_sayac.items() if t in mevcutlar}
+        self._kkd_son = {t: g for t, g in self._kkd_son.items() if t in mevcutlar}
+        sirada: list[tuple[Tespit, np.ndarray]] = []
         for tespit in tespitler:
             if tespit.sinif != SINIF_INSAN:
                 continue
             if not self.kkd_bolgesinde_mi(tespit, kare_boyutu):
+                self._kkd_son.pop(tespit.takip_id, None)  # bölgeden çıktı: renk söner
                 continue
             sayac = self._kkd_sayac.get(tespit.takip_id, 0) + 1
             self._kkd_sayac[tespit.takip_id] = sayac
@@ -371,7 +393,13 @@ class KameraHatti:
                 continue
             kirpik = kisi_kirp(kare, tespit.kutu)
             if kirpik is not None:
-                tespit.kkd_gozlemi = kkd.degerlendir(kirpik)
+                sirada.append((tespit, kirpik))
+        # Karedeki kişiler tek çağrıda (docs/17 §5.2)
+        gozlemler = kkd.degerlendir_toplu([kirpik for _, kirpik in sirada])
+        for (tespit, _), gozlem in zip(sirada, gozlemler, strict=True):
+            tespit.kkd_gozlemi = gozlem
+            if gozlem is not None:
+                self._kkd_son[tespit.takip_id] = gozlem
 
     def _overlay_guncelle(
         self, kare: np.ndarray, tespitler: list[Tespit], ihlaller: list[Ihlal]
@@ -384,6 +412,8 @@ class KameraHatti:
             x1, y1, x2, y2 = (int(v) for v in tespit.kutu)
             ihlalli = tespit.takip_id in ihlal_takipleri
             renk = _IHLAL_RENGI if ihlalli else _RENKLER.get(tespit.sinif, (180, 180, 180))
+            if not ihlalli and tespit.sinif == SINIF_INSAN and tespit.takip_id in self._kkd_son:
+                renk = self._kkd_kutu_rengi(self._kkd_son[tespit.takip_id])
             cv2.rectangle(gorsel, (x1, y1), (x2, y2), renk, 3 if ihlalli else 2)
             etiket = f"{SINIF_OVERLAY.get(tespit.sinif, tespit.sinif)} #{tespit.takip_id}"
             _yazi(gorsel, etiket, (x1, max(y1 - 6, 12)), renk)
@@ -533,16 +563,27 @@ class KameraHatti:
             cv2.LINE_AA,
         )
 
+    def _kkd_kutu_rengi(self, gozlem: KkdGozlem) -> tuple[int, int, int]:
+        """Yalnız kameranın KKD kuralının istediği kalemlere bakılır: yelek
+        istemeyen bir kural için yeleksiz kişi kırmızı çizilmez."""
+        durumlar = [getattr(gozlem, _KKD_ALAN_ADLARI[k]) for k in sorted(self._kkd_kalemler)]
+        if YOK in durumlar:
+            return _KKD_YOK_RENGI
+        if all(d == VAR for d in durumlar):
+            return _RENKLER[SINIF_INSAN]
+        return _KKD_BELIRSIZ_RENGI
+
     def _kkd_isaretle(
         self, gorsel: np.ndarray, tespit: Tespit, kutu: tuple[int, int, int, int]
     ) -> None:
         """Kişinin baret/yelek durumunu kutunun sağ üstüne küçük rozetlerle çizer.
 
         ÜÇ DURUM gösterilir: var (renkli dolu), yok (kırmızı çapraz), belirsiz
-        (gri boş). "Belirsiz" ihlal DEĞİLDİR (docs/04 §1) ve öyle de görünmelidir;
-        KKD modeli henüz eğitilmediği sürece tüm kişiler belirsizdir.
+        (gri boş). "Belirsiz" ihlal DEĞİLDİR (docs/04 §1) ve öyle de görünmelidir.
+        Model yüklü değilse gözlem yoktur ve rozet çizilmez. Son gözlem çizilir:
+        gözlem her 5. karede gelir, rozet aradaki karelerde kaybolmasın.
         """
-        gozlem = tespit.kkd_gozlemi
+        gozlem = self._kkd_son.get(tespit.takip_id)
         if gozlem is None:
             return
         x1, y1, x2, _ = kutu

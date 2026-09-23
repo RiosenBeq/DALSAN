@@ -78,6 +78,31 @@ def toplama_durumu(baglanti) -> dict:
     }
 
 
+def kkd_model_durumu(istek: Request) -> dict:
+    """KKD modelinin durumu, sayfanın dilinde (docs/17 §5.10)."""
+    supervizor = getattr(istek.app.state, "supervizor", None)
+    if supervizor is None:
+        return {
+            "durum": "bilinmiyor",
+            "metin": "Analiz çalışmıyor: KKD modelinin durumu bilinmiyor.",
+        }
+    if getattr(supervizor, "kkd_hatasi", None):
+        return {"durum": "hata", "metin": supervizor.kkd_hatasi}
+    kkd = supervizor.kkd
+    if kkd.model_var:
+        return {
+            "durum": "hazir",
+            "metin": f"Model: {kkd.model_surumu}, doğrulandı (sha256).",
+            "kart": kkd.kart,
+        }
+    return {
+        "durum": "yok",
+        "metin": "Model yüklü değil: KKD kuralı olay üretmez. Model, toplanan veriyle ürün "
+        "dışında eğitilip özetiyle birlikte models/ klasörüne konunca yeniden başlatmada "
+        "yüklenir (docs/04 §6).",
+    }
+
+
 _ETIKETLER = ("yes", "no", "unknown")
 _ALANLAR = {"helmet": "helmet_label", "vest": "vest_label"}
 
@@ -116,6 +141,7 @@ def kkd_sayfasi(istek: Request, baglanti=Depends(baglanti_al)):
             "toplama_onay_metni": TOPLAMA_ONAY_METNI,
             "saat_limiti": istek.app.state.ayarlar.kkd_ornek_saat_limit,
             "zor_ornekler": veri_seti.ZOR_ORNEKLER,
+            "model": kkd_model_durumu(istek),
             "veri_seti": veri_seti.ozet(veri_seti.etiketli_ornekler(baglanti)),
         },
     )

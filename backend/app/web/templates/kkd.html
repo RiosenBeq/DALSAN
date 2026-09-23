@@ -33,6 +33,17 @@
     {% endif %}
   </section>
 
+  {# KKD modeli (docs/17 §5.10): yoksa kural olay üretmez ve bunu burada söyler #}
+  <section class="kart kkd-model {{ model.durum }}" id="kkd-model">
+    <h3>KKD modeli</h3>
+    <p>{{ model.metin }}</p>
+    {% if model.kart %}
+    <table class="kkd-model-karti">
+      {% for anahtar, deger in model.kart.items() %}<tr><th>{{ anahtar }}</th><td>{{ deger }}</td></tr>{% endfor %}
+    </table>
+    {% endif %}
+  </section>
+
   <section class="kart">
     <h3>Durum</h3>
     {# Her kart: öğe · sayı / asgari · çubuk. Asgari miktarlar docs/04 §4.5

@@ -687,6 +687,14 @@ body.ses-cipi-var { padding-bottom: 72px; }
 .kkd-toplama { border-left: 4px solid var(--cam-sinir); }
 .kkd-toplama.kapali { border-left-color: var(--uyari); }
 .kkd-toplama.acik { border-left-color: var(--basari); }
+/* KKD modeli kartı: yüklü yeşil, yüklenemedi kırmızı, yok/bilinmiyor gri */
+.kkd-model { border-left: 4px solid var(--cam-sinir); }
+.kkd-model.hazir { border-left-color: var(--basari); }
+.kkd-model.hata { border-left-color: var(--tehlike); }
+.kkd-model.hata p { color: var(--tehlike-metin); }
+.kkd-model-karti { font-size: 0.8rem; border-collapse: collapse; }
+.kkd-model-karti th { text-align: left; padding: 2px 12px 2px 0; color: var(--metin-3); font-weight: 600; }
+.kkd-model-karti td { padding: 2px 0; overflow-wrap: anywhere; }
 
 /* hazır kural kutusu */
 .hazir-kural {
