@@ -1,5 +1,18 @@
 # İlerleme
 
+## Faz 3 KKD (23.09.2026)
+
+Plan: `docs/17-V2-TASARIM.md` §5 ve §13 (3a–3e satırları). Operatör Faz 3 ve Faz 4
+sorularının varsayılanlarını kabul etti; karar kaydı docs/17 §16'da.
+
+**3a — politika belgesi.** `docs/kkd-politika.md` şablonu İSG ile doldurulmayı
+bekliyor. Belgede şunlar var:
+- Rev.02 imza satırları;
+- kapsam soruları (S3);
+- docs/04 §5.3'teki on soru: her birinin sistemdeki karşılığı (etiket kuralı,
+  bölge çizimi ya da kural ayarı) ve cevap gelene kadarki sistem varsayılanı;
+- zor örnek kodları.
+
 ## Faz 5d kalan güvenlik (23.09.2026)
 
 Plan: `docs/17-V2-TASARIM.md` §10.5 (R16, R18, R31, R32) ve §13 (5d satırı).

@@ -1741,6 +1741,19 @@ Hedef tutmazsa gerçek sayı, nedeni ve sonraki adım yazılır (GÖREV §4.8); 
 en geç ne zaman gerekir. Ç35 gereği "koşullu" işaretli maddeler cevap "evet" olmadıkça **kodlanmaz**,
 docs/07'ye satır olur.
 
+**Karar kaydı.**
+
+- **Faz 1 onayı:** "Faz 2 öncesi" soruların (S10, S18, S19, S22, S25, S26, S30, S36)
+  varsayılanları kabul edildi. Faz 2, S14, S17 ve S24'ü varsayılanlarıyla kodladı.
+- **23.09.2026:** operatör Faz 3 ve Faz 4 sorularının varsayılanlarını kabul etti (S2, S3, S4,
+  S8, S9, S11, S12, S16, S21, S23, S28, S29, S31, S32, S33, S34). Bu yüzden koşullu maddeler
+  kodlanmaz: webhook, dakika sınırı/birleştirme, dışlama kipi, BT bekçisi, uygulama içi
+  eşleştirme, KKD uyum istatistiği.
+- **S20** o listede operatöre gösterilmedi. Kabul edilmiş sayılmaz. Ürün kodunu etkilemez: eğitim
+  ürün dışıdır (S31). Cevap gelene kadar hukuk görüşü olmadan yeni ön eğitimli ağırlık ya da
+  kamu veri seti kullanılmaz.
+- **Açık:** S1, S5, S6, S7, S13, S15 (kayıtlı saha videosu gerekir), S20, S27, S35.
+
 | # | GÖREV | Soru | Neden önemli | Varsayılan seçenek | Gerektiği an |
 |---|---|---|---|---|---|
 | S1 | §8-1 | Fabrika sunucusunun kesin donanımı nedir (GPU modeli, sürücünün CUDA 12 mi 13 mü desteklediği, çekirdek sayısı, VNNI, Ubuntu sürümü)? Kurulum Docker mı, systemd mi, paketli masaüstü mü? | GPU imajını, ORT sürümünü (GPU imajı pratikte ORT ≥ 1.21 ister, `preload_dlls`), ses/Bluetooth yolunu, bekçinin tepkisini, systemd bildiriminin yazılıp yazılmayacağını ve §4.8 gecikme hedefinin tutup tutmayacağını belirler | Ubuntu + Docker tek container (CLAUDE.md §4); GPU doğrulanana kadar `yolox_tiny` + CPU; systemd bildirimi (koşullu) yazılmaz | Faz 5 (bekçi için Faz 2) |
