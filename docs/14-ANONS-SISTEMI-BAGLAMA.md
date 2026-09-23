@@ -186,8 +186,17 @@ Gönderilen gövde: `{"key": "helmet", "text": "Lütfen baretinizi takınız."}`
 ### 3.4 Adres kullanıcı adı/şifre içeriyorsa
 
 `http://kullanici:sifre@10.0.0.9/play` biçiminde yazılabilir. Sistem bu adresi
-**ekranda maskeler** — şifre hiçbir sayfada, hiçbir hata mesajında görünmez.
-Yalnızca `veri/loglar/sistem.log` dosyasına düşer.
+**maskeler** — şifre hiçbir sayfada, hiçbir hata mesajında ve günlükte
+(`veri/loglar/sistem.log`) görünmez; formda `••••` olarak durur ve öyle
+bırakılırsa kayıtlı şifre korunur (docs/17 R18).
+
+### 3.5 Adres bu bilgisayarı gösteremez
+
+Hoparlör adresi `127.0.0.1`, `localhost`, `::1`, `0.0.0.0` ya da bağlantı-yerel
+bir adres (`169.254.x.x`, `fe80::`) olamaz; form bunu kaydetmez ve anons
+gönderilirken de yeniden denetlenir (docs/17 R30). Hoparlör fabrika ağındadır
+(`10.x`, `172.16–31.x`, `192.168.x` serbesttir). Adres bir ad ise (`anons.fabrika`)
+ad çözülür ve sonuç da aynı denetimden geçer.
 
 ---
 

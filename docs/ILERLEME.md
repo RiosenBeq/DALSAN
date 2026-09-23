@@ -1,5 +1,22 @@
 # İlerleme
 
+## Faz 4 uyarı kanalları (23.09.2026)
+
+Plan: `docs/17-V2-TASARIM.md` §7 ve §13 (4a–4e satırları), operatörün kabul ettiği
+varsayılanlarla: webhook (S4), dakika sınırı ve birleştirme (S23), Bluetooth
+yeniden bağlanma bekçisi (S9) ve uygulama içi eşleştirme (S8) kodlanmaz;
+kapsayıcıda ses yolu (A) (S29); tek sesli kanal Bluetooth ise çalar ve kırmızı
+uyarır (S32).
+
+**4a-1 — hoparlör adresinde SSRF reddi (R30).** IP hoparlör adresi bu bilgisayarı
+(`127.x`, `localhost`, `::1`, `0.0.0.0`) ya da bağlantı-yerel ağı (`169.254.x.x`,
+`fe80::`) gösteremez. Hoparlör formu kaydetmez; her anons gönderimi de yeniden
+denetler, istek hiç çıkmaz. Adres ad ise çözülür ve her sonuç denetlenir
+(`2130706433` gibi yazımlar da yakalanır). Özel ağ adresleri serbest. Hata ve
+günlük adresi maskeli yazar. 127.0.0.1:9'u "bağlantı reddedildi" örneği olarak
+kullanan iki test, fabrika ağı adresi ve sahte `urlopen` ile aynı davranışı
+sınıyor.
+
 ## Faz 3 KKD (23.09.2026)
 
 Plan: `docs/17-V2-TASARIM.md` §5 ve §13 (3a–3e satırları). Operatör Faz 3 ve Faz 4

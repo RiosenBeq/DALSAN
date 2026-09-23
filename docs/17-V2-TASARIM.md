@@ -1530,7 +1530,7 @@ taşıyabilecek bir sütun olmadığını doğrulayan test F2'de eklenir.
 | R27 | Docker'da `.env` salt okunur tek dosya bağlanıyor; Ayarlar kaydı `replace()` ile yazıyor ve orada başarısız olur (AUDIT R27, kod okuması, DOĞRULANMADI) | `docker-compose.yml:24`; `ayarlar.py:430-433` | `.env` bir `ayar/` dizini içinde bağlanır (salt okunur değil); `ayarlar.py` yolu `resolve()` ile çözer, geçici dosya hedefle aynı dizinde oluşur. Olmazsa belgeye "Docker'da ayarlar sunucudaki dosyadan değiştirilir + yeniden başlatma" yazılır ve Ayarlar sayfası bunu söyler. İmaj derlenmedi | F2a |
 | R16 | Çerez HMAC anahtarı yalnız şifreden | `web/giris.py:62-63` | Kuruluma özgü rastgele sır | F5 |
 | R18 | RTSP şifresi formda açık; HTTP anons adresi günlükte | `kamera_detay.html:320`; `anons.py:217` | Maskeli form ve günlük | F5 (günlük kısmı F2) |
-| R30 | SSRF | `web/hoparlorler.py:32-45` | Loopback / link-local reddi; F4'ün sunucu tarafı TCP sağlık yoklaması (10 sn'de bir) ve (varsa) webhook da aynı doğrulamadan geçer. Yüzey düzeltmeden önce büyümesin diye **dağıtıcıdan önce** | **F4a** (önceden F5) |
+| R30 | SSRF | `web/hoparlorler.py:32-45` | Loopback / link-local reddi; F4'ün sunucu tarafı TCP sağlık yoklaması (10 sn'de bir) ve (varsa) webhook da aynı doğrulamadan geçer. Yüzey düzeltmeden önce büyümesin diye **dağıtıcıdan önce** | **F4a** (önceden F5). **Uygulandı (F4a-1):** `anons.hoparlor_adresini_dogrula`; form ve her `http_gonder` çağrısı; ad yazılmışsa çözülen her adres denetlenir |
 | R31 | CSV formül enjeksiyonu | `web/olaylar_web.py:145`; `web/rapor.py` | Hücre ön eki | F5 |
 | R32 | Root kullanıcı; gereksiz `ffmpeg` apt paketi | `Dockerfile:10-14` | `USER`; `ffmpeg` RTSP provasından sonra kaldırılır | F5 |
 

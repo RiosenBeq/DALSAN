@@ -643,9 +643,17 @@ def test_hoparlor_siliniyor_kurallar_etkilenmiyor(istemci, test_ayarlari):
     assert _satir(test_ayarlari, "SELECT COUNT(*) FROM rules WHERE id = ?", (kural,))[0] == 1
 
 
-def test_ulasilamayan_hoparlor_turkce_hata_veriyor(istemci):
-    # 127.0.0.1:9 (discard portu) — kimse dinlemiyor, bağlantı hemen reddedilir
-    _hoparlor_ekle(istemci, "Deneme", adres="http://kullanici:parola@127.0.0.1:9/anons")
+def test_ulasilamayan_hoparlor_turkce_hata_veriyor(istemci, monkeypatch):
+    import urllib.error
+    import urllib.request
+
+    # Fabrika ağındaki kapalı hoparlör: bağlantı reddedilir (ağa çıkılmaz).
+    # 127.0.0.1 artık kullanılamaz: R30 onu kayıtta reddeder.
+    def _reddet(*_a, **_k):
+        raise urllib.error.URLError(ConnectionRefusedError(111, "Connection refused"))
+
+    monkeypatch.setattr(urllib.request, "urlopen", _reddet)
+    _hoparlor_ekle(istemci, "Deneme", adres="http://kullanici:parola@10.0.0.9:9/anons")
     yanit = istemci.post("/hoparlorler/1/dene")
     assert yanit.status_code == 400
     hata = yanit.json()["hata"]
@@ -653,7 +661,7 @@ def test_ulasilamayan_hoparlor_turkce_hata_veriyor(istemci):
     assert "ulaşılamadı" in hata
     # Hata ekranı da bir ekrandır: şifre oraya da basılmaz
     assert "parola" not in hata
-    assert "••••@127.0.0.1:9" in hata
+    assert "••••@10.0.0.9:9" in hata
 
 
 def test_olmayan_hoparlor_denenemez(istemci):

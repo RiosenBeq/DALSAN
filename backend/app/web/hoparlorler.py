@@ -18,7 +18,7 @@ from fastapi.responses import RedirectResponse
 
 from app import zaman
 from app.hatalar import DogrulamaHatasi
-from app.olaylar.anons import AnonsHatasi, http_gonder
+from app.olaylar.anons import AnonsHatasi, hoparlor_adresini_dogrula, http_gonder
 from app.web.ortak import baglanti_al, maskeyi_coz, rtsp_maskele
 
 router = APIRouter()
@@ -41,8 +41,13 @@ def _adres_dogrula(adres: str) -> str:
     if not adres.startswith(("http://", "https://")):
         raise DogrulamaHatasi(
             "Hoparlör adresi http:// veya https:// ile başlamalı; şu an "
-            f"'{adres}' yazıyor. Örnek: http://10.0.0.9:8080/anons"
+            f"'{rtsp_maskele(adres)}' yazıyor. Örnek: http://10.0.0.9:8080/anons"
         )
+    # R30: bu bilgisayar ve bağlantı-yerel ağ kabul edilmez (gönderimde de denetlenir)
+    try:
+        hoparlor_adresini_dogrula(adres)
+    except AnonsHatasi as hata:
+        raise DogrulamaHatasi(str(hata)) from None
     return adres
 
 

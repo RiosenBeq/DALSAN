@@ -21,8 +21,10 @@ eskisiyle birebir aynıdır.
 
 from __future__ import annotations
 
+import ipaddress
 import json
 import shutil
+import socket
 import sqlite3
 import subprocess
 import sys
@@ -182,6 +184,62 @@ def adresi_doldur(adres: str, anahtar: str, metin: str) -> str:
     )
 
 
+def _yasak_mi(ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
+    """Bu bilgisayar (loopback, 0.0.0.0) ya da bağlantı-yerel ağ (169.254/16,
+    fe80::/10; bulut üst veri servisi 169.254.169.254 dahil)."""
+    eslenik = getattr(ip, "ipv4_mapped", None)  # ::ffff:127.0.0.1 gibi
+    return any(
+        adres.is_loopback or adres.is_link_local or adres.is_unspecified
+        for adres in (ip, eslenik)
+        if adres is not None
+    )
+
+
+def hoparlor_adresini_dogrula(adres: str) -> None:
+    """R30 (SSRF): IP hoparlör adresi bu bilgisayarı ya da bağlantı-yerel ağı
+    gösteremez; gösteriyorsa AnonsHatasi.
+
+    Hoparlör fabrika ağındadır. Formdan girilen bir adres sunucunun kendi
+    servislerine (127.0.0.1) ya da bulut üst veri servisine (169.254.169.254)
+    işaret ederse "Bu hoparlörü dene" ve kanal sağlık yoklaması bir iç ağ
+    tarayıcısına dönüşürdü. Özel ağ adresleri (10/8, 192.168/16…) serbesttir:
+    hoparlörler oradadır.
+
+    Ad yazılmışsa ÇÖZÜLÜR ve her sonuç denetlenir: '2130706433' ya da
+    '0177.0.0.1' gibi yazımlar da 127.0.0.1'e çıkar. Çözülemeyen ad burada
+    reddedilmez; gönderimde urllib "ulaşılamadı" der. Gönderim bu işlevi her
+    seferinde yeniden çağırır (kayıttan sonra değişen DNS için). Denetim ile
+    bağlantı arasında DNS'in değişmesi (rebinding) bu düzeyde kapatılmaz.
+    """
+    maskeli = adres_maskele(adres)
+    try:
+        parca = urllib.parse.urlsplit(adres)
+        sunucu = parca.hostname or ""
+        port = parca.port or (443 if parca.scheme == "https" else 80)
+    except ValueError:
+        raise AnonsHatasi(f"Hoparlör adresi okunamadı ({maskeli}).") from None
+    if not sunucu:
+        raise AnonsHatasi(f"Hoparlör adresinde sunucu adı yok ({maskeli}).")
+    if sunucu == "localhost" or sunucu.endswith(".localhost"):
+        adresler = [ipaddress.ip_address("127.0.0.1")]
+    else:
+        try:
+            adresler = [ipaddress.ip_address(sunucu)]
+        except ValueError:
+            try:
+                bilgiler = socket.getaddrinfo(sunucu, port, proto=socket.IPPROTO_TCP)
+            except (socket.gaierror, UnicodeError):
+                return
+            adresler = [ipaddress.ip_address(b[4][0].split("%", 1)[0]) for b in bilgiler]
+    if any(_yasak_mi(ip) for ip in adresler):
+        _log.error(f"Hoparlör adresi reddedildi, bu bilgisayarı gösteriyor: {maskeli}")
+        raise AnonsHatasi(
+            f"Hoparlör adresi ({maskeli}) bu bilgisayarı ya da bağlantı-yerel bir adresi "
+            "gösteriyor; güvenlik nedeniyle kabul edilmez. IP hoparlörün fabrika ağındaki "
+            "adresini yazın (örnek: http://10.0.0.9:8080/anons)."
+        )
+
+
 def _istek_hazirla(adres: str, anahtar: str, metin: str, bicim: str):
     """Biçime göre urllib isteği kurar (json | form | get).
 
@@ -218,6 +276,8 @@ def http_gonder(adres: str, anahtar: str, metin: str, bicim: str = "json") -> No
     "Bu hoparlörü dene" düğmesi AYNI yoldan gider. İkisi ayrı kod olsaydı
     deneme başarılı olup gerçek anons sessizce başarısız olabilirdi.
     """
+    # R30: her gönderimde (adres kayıttan sonra başka yeri gösterir olabilir)
+    hoparlor_adresini_dogrula(adres)
     try:
         # İstek kurulumu da içeride: bozuk adresin ValueError'ı burada doğar
         istek = _istek_hazirla(adres, anahtar, metin, bicim)
