@@ -5,12 +5,12 @@ saatlerce çalışır ve yalnız gönderimle başlar: bir yapı hatası ancak bi
 sonraki gönderimde, çoğu zaman saatler sonra görülür. Bu dosya bilinen
 hataları gönderimden ÖNCE yakalar:
 
-* tetikleyiciler ve sıra (çalıştırmalar birbirini iptal etmez),
+* tetikleyiciler; sıra yok (çalıştırmalar birbirini ne iptal eder ne bekletir),
 * yetkiler: yalnız "yayinla" yazar ve o iş depo kodu çalıştırmaz,
 * yalnız GitHub'ın kendi eylemleri, güncel ana sürümleriyle,
 * bacak zinciri: eğitim asla sessizce sıfırdan başlamaz, bir varyantın
   düşmesi ötekileri durdurmaz, eğitimle yükleme arasında ağ işi yoktur,
-* kip kararı çalıştırmanın beklediği sırayla (concurrency) ayrışmaz,
+* kip kararı yalnız gönderimin net git farkından verilir,
 * egitim/forklift/istek.json ve gereksinimler.txt biçimi.
 
 İş akışındaki önemli kabuk betikleri GERÇEKTEN çalıştırılır (bash 4+, git, jq
@@ -234,18 +234,22 @@ def test_bacak_yalniz_cagrilarak_calisir(bacak):
     assert all(g["required"] is True for g in girdiler.values())
 
 
-def test_calistirmalar_birbirini_iptal_etmez(ana):
-    """Uzun bir tam eğitim, arkadan gelen gönderimle iptal edilmez; tam ve duman ayrı
-    sıradadır, bekleyen bir tam isteğin yerini bir duman çalıştırması alamaz."""
-    sira = ana["concurrency"]
-    assert sira["cancel-in-progress"] is False
-    assert sira["group"].startswith("forklift-egit-")
-    assert "egitim/forklift/istek.json" in sira["group"]
-    assert "'tam'" in sira["group"] and "'duman'" in sira["group"]
-    # Plan, sıranın kipini AYNI ifadeyle görür: ayrışırsa sıranınkini uygular
-    ifade = sira["group"].removeprefix("forklift-egit-")
-    plan_ortami = _adim(ana, "plan", "plan")["env"]
-    assert _ifade(plan_ortami["SIRA_KIPI"]) == _ifade(ifade)
+def test_calistirmalar_birbirini_ne_iptal_eder_ne_bekletir(ana, bacak):
+    """Sıra (concurrency) yok. GitHub bir sırada yalnız en son bekleyen çalıştırmayı
+    tutar: sıra olsaydı bekleyen bir tam isteğin yerini arkadan gelen bir gönderim
+    alırdı. Kipe göre ayrı sıra da kurulamaz: Actions'taki push olayının commit
+    listesinde değişen dosyalar yoktur (23.09.2026, çalıştırma 4: istek değiştiği
+    halde commits.*.modified ifadesi "duman" verdi, tam istek dumana düştü)."""
+    for belge in (ana, bacak):
+        assert "concurrency" not in belge
+        for is_ in belge["jobs"].values():
+            assert "concurrency" not in is_
+    kod = [
+        satir
+        for satir in ANA_YOL.read_text(encoding="utf-8").splitlines()
+        if not satir.lstrip().startswith("#")
+    ]
+    assert not [satir for satir in kod if "github.event.commits" in satir]
 
 
 def test_betikler_bash_pipefail_ile_calisir(ana, bacak):
@@ -598,31 +602,11 @@ def _plan_deposu(tmp_path: Path, ortam: dict[str, str], istek_ile: bool = True) 
     return depo, _commit(depo, ortam, dosyalar, "ilk")
 
 
-def _sira_kipi(depo: Path, ortam: dict[str, str]) -> str:
-    """concurrency.group ifadesinin GitHub'daki değeri: elle "tam" ya da gönderilen
-    commit'lerden birinin "modified" listesinde istek.json (net fark değil)."""
-    if ortam["OLAY"] == "workflow_dispatch":
-        return "tam" if ortam["ELLE_KIP"] == "tam" else "duman"
-    onceki = ortam["ONCEKI"]
-    aralik = f"{onceki}..{ortam['GITHUB_SHA']}"
-    gecerli = subprocess.run(
-        ["git", "cat-file", "-e", f"{onceki}^{{commit}}"], cwd=depo, env=ortam, capture_output=True
-    )
-    if gecerli.returncode != 0:
-        aralik = f"{ortam['GITHUB_SHA']}^..{ortam['GITHUB_SHA']}"
-    degisen = _git(
-        depo, ortam, "log", "--format=", "--name-only", "--diff-filter=M", aralik, "--",
-        "egitim/forklift/istek.json",
-    )  # fmt: skip
-    return "tam" if degisen else "duman"
-
-
-def _plani_calistir(ana: dict, depo: Path, ortam: dict[str, str], sira: str | None = None, **olay):
+def _plani_calistir(ana: dict, depo: Path, ortam: dict[str, str], **olay):
     adim = _adim(ana, "plan", "plan")
-    assert set(adim["env"]) == {"OLAY", "ELLE_KIP", "ONCEKI", "DAL", "SIRA_KIPI"}
+    assert set(adim["env"]) == {"OLAY", "ELLE_KIP", "ONCEKI", "DAL"}
     ortam = dict(ortam, OLAY="push", ELLE_KIP="", ONCEKI="", DAL="refs/heads/main")
     ortam.update(olay)
-    ortam["SIRA_KIPI"] = sira if sira is not None else _sira_kipi(depo, ortam)
     Path(ortam["GITHUB_OUTPUT"]).unlink(missing_ok=True)
     sonuc = _calistir(adim["run"], depo, ortam)
     return sonuc, _ciktilar(ortam)
@@ -734,25 +718,23 @@ def test_plan_elle_tam_yalniz_mainden(ana, tmp_path, kip, basarili):
 
 
 @arac_gerekli
-def test_plan_istek_degistirilip_geri_alininca_siranin_kipi(ana, tmp_path):
-    """Net fark yok (duman) ama commit listesinde istek değişikliği var: çalıştırma
-    tam sırasında bekledi. Duman koşsaydı orada bekleyen bir tam isteğin yerini
-    alırdı; sıranın kipi (tam) uygulanır, uyarı düşer."""
+def test_plan_istek_degistirilip_geri_alininca_duman(ana, tmp_path):
+    """Kip net farktan verilir: aynı gönderimde değiştirilip geri alınan istek,
+    istek değildir."""
     ortam = _ortam(tmp_path)
     depo, ilk = _plan_deposu(tmp_path, ortam)
     _commit(depo, ortam, {"egitim/forklift/istek.json": _istek_metni({"not": "g"})}, "istek")
     son = _commit(depo, ortam, {"egitim/forklift/istek.json": _istek_metni()}, "geri al")
     sonuc, cikti = _plani_calistir(ana, depo, dict(ortam, GITHUB_SHA=son), ONCEKI=ilk)
     assert sonuc.returncode == 0, sonuc.stdout + sonuc.stderr
-    assert cikti["mod"] == "tam"
-    assert "::warning title=Kip sırayla ayrıştı::Net fark 'duman'" in sonuc.stdout
+    assert cikti["mod"] == "duman"
+    assert "::warning" not in sonuc.stdout
 
 
 @arac_gerekli
-def test_plan_istek_silinip_yeniden_eklenince_siranin_kipi(ana, tmp_path):
-    """Net fark "değişti" (tam) ama hiçbir commit onu DEĞİŞTİRMEDİ (sil, ekle):
-    çalıştırma duman sırasında bekledi; tam koşsaydı arkadan gelen bir kod
-    gönderimi onu düşürebilirdi. Sıranın kipi (duman) uygulanır."""
+def test_plan_istek_silinip_yeniden_eklenince_tam(ana, tmp_path):
+    """Aynı gönderimde silinip başka içerikle yeniden eklenen istek, net farkta
+    DEĞİŞMİŞ görünür: yeni bir istektir."""
     ortam = _ortam(tmp_path)
     depo, ilk = _plan_deposu(tmp_path, ortam)
     (depo / "egitim" / "forklift" / "istek.json").unlink()
@@ -762,8 +744,8 @@ def test_plan_istek_silinip_yeniden_eklenince_siranin_kipi(ana, tmp_path):
     son = _commit(depo, ortam, yeni, "yeniden ekle")
     sonuc, cikti = _plani_calistir(ana, depo, dict(ortam, GITHUB_SHA=son), ONCEKI=ilk)
     assert sonuc.returncode == 0, sonuc.stdout + sonuc.stderr
-    assert cikti["mod"] == "duman"
-    assert "::warning title=Kip sırayla ayrıştı::Net fark 'tam'" in sonuc.stdout
+    assert cikti["mod"] == "tam"
+    assert "::warning" not in sonuc.stdout
 
 
 @arac_gerekli

@@ -58,22 +58,16 @@ on:
 permissions:
   contents: read
 
-# Çalıştırmalar birbirini İPTAL ETMEZ, sıraya girer. Tam ve duman AYRI
-# sıradadır. Neden: GitHub bir sırada yalnız EN SON bekleyen çalıştırmayı tutar;
-# tek sıra olsaydı, bekleyen bir tam isteğin yerini arkadan gelen bir kod
-# düzeltmesinin duman çalıştırması alır ve istek sessizce düşerdi. Ayrı sırada
-# bekleyen tam isteğin yerini ancak daha yeni bir tam istek alır (aynı dosyanın
-# son hali). Kip burada gönderimin commit listesinden kestirilir (iş başlamadan
-# git çalışmaz). Plan işi net farka da bakar; ikisi ayrışırsa (değiştirilip
-# geri alınan, silinip yeniden eklenen istek, önceki commit'i olmayan zorla
-# gönderim) SIRANIN kipi uygulanır ve uyarı düşer. Ayrışan kip yanlış sırada
-# beklerdi: tam sıraya düşen bir duman çalıştırması orada bekleyen isteğin
-# yerini alır, duman sırasında bekleyen bir tam isteğin yerini de arkadan
-# gelen bir kod gönderimi alırdı; iki durumda da istek sessizce düşerdi.
-# Aynı ifade plan işinde SIRA_KIPI olarak durur (testi ikisini karşılaştırır).
-concurrency:
-  group: "forklift-egit-${{ (inputs.kip == 'tam' || contains(toJSON(github.event.commits.*.modified), 'egitim/forklift/istek.json')) && 'tam' || 'duman' }}"
-  cancel-in-progress: false
+# Sıra (concurrency) YOK, bilerek: çalıştırmalar birbirini ne iptal eder ne
+# de bekletir. GitHub bir sırada yalnız EN SON bekleyen çalıştırmayı tutar;
+# sıra olsaydı bekleyen bir tam isteğin yerini arkadan gelen bir kod
+# gönderiminin çalıştırması alır ve istek sessizce düşerdi. Tam ile dumanı
+# ayrı sıralara koymak da olmaz: kip ancak plan işinde git farkından bilinir;
+# Actions'taki push olayının commit listesinde değişen dosyalar YOKTUR
+# (github.event.commits[*].modified boş gelir, 23.09.2026 çalıştırma 4'te
+# görüldü: istek değiştiği halde sıra ifadesi "duman" çıktı). Aynı anda koşan
+# iki çalıştırma birbirine dokunmaz: yapıtlar çalıştırmaya özeldir, sürüm
+# etiketi çalıştırma numarasını taşır, veri önbelleğini ilk kaydeden yazar.
 
 # Açıkça bash: GitHub ancak o zaman "-eo pipefail" ile çalıştırır; "tee" ile
 # günlüğe yazılan bir komutun hatası da adımı düşürür.
@@ -107,8 +101,6 @@ jobs:
           ELLE_KIP: ${{ inputs.kip }}
           ONCEKI: ${{ github.event.before }}
           DAL: ${{ github.ref }}
-          # concurrency.group'taki ifadenin AYNISI: çalıştırmanın beklediği sıra
-          SIRA_KIPI: ${{ (inputs.kip == 'tam' || contains(toJSON(github.event.commits.*.modified), 'egitim/forklift/istek.json')) && 'tam' || 'duman' }}
         run: |
           istek=egitim/forklift/istek.json
           if [ "$OLAY" = workflow_dispatch ]; then
@@ -141,14 +133,6 @@ jobs:
             else
               mod=duman
               neden="$istek değişmedi"
-            fi
-            # Çalıştırma, commit listesinden kestirilen kipin sırasında bekledi
-            # (concurrency). Ayrışırsa sıranın kipi uygulanır: bekleyen bir tam
-            # istek yanlış sıradaki bir çalıştırmayla sessizce düşmesin.
-            if [ "$mod" != "$SIRA_KIPI" ]; then
-              echo "::warning title=Kip sırayla ayrıştı::Net fark '$mod' diyor ($neden), commit listesi '$SIRA_KIPI' (çalıştırma bu kipin sırasında bekledi). Sıranın kipi uygulanıyor: $SIRA_KIPI."
-              mod="$SIRA_KIPI"
-              neden="sıranın kipi: commit listesi"
             fi
           fi
           case "$mod" in
