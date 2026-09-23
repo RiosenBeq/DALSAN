@@ -37,8 +37,17 @@ RUN cd models && sha256sum -c --ignore-missing SHA256SUMS || ( \
       echo "" && exit 1 )
 
 
-# veri/ ve .env container DIŞINDAN bağlanır (docker-compose.yml'e bakın):
+# veri/ ve ayar/ container DIŞINDAN bağlanır (docker-compose.yml'e bakın):
 # böylece container silinse de veritabanı, olay fotoğrafları ve ayarlar kalır.
+#
+# Ayar dosyası bir DİZİNLE bağlanır (./ayar → /uygulama/ayar). Tek dosya
+# bağlandığında Ayarlar sayfasının kaydı (geçici dosya + tek adımda yerine
+# koyma) orada çalışmıyordu (docs/17 §10.5 R27). Uygulama .env'i kökte arar;
+# kökteki .env o dizindeki dosyaya işaret eden bir bağdır.
+RUN ln -s ayar/.env /uygulama/.env
+# Kapsayıcı işareti (app/kaynaklar.py → kapsayicida_mi): şifresiz açılış
+# reddedilir (R13) ve eksik ayar dosyası için Docker'a özgü tarif verilir.
+ENV DALSAN_KAPSAYICI=1
 WORKDIR /uygulama/backend
 
 ENV PYTHONUNBUFFERED=1

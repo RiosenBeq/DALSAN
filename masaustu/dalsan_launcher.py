@@ -203,10 +203,32 @@ def venv_python() -> Path:
     return VENV / ("Scripts/python.exe" if IS_WINDOWS else "bin/python")
 
 
+# Desteklenen Python: YALNIZ 3.12 (CLAUDE.md §4; docs/17 §10.5 R10). Alt
+# sinir: onnxruntime 3.11+ ister, 3.10'a izin vermek pip'i cok eski bir
+# surume dusuruyor ve tespit sessizce bozuluyordu. Ust sinir: 3.13+ icin
+# tam paket henuz yesil kosmadi; pip orada ya hic kurulmayan ya da
+# denenmemis surumler secerdi. Sinir, tam test paketi yeni surumde
+# gectiginde genisler — tek yer burasi ve baslatma betikleri.
+PYTHON_ALT = (3, 12)
+PYTHON_UST = (3, 13)  # dahil degil
+_SURUM_DENETIMI = (
+    f"import sys; sys.exit(0 if {PYTHON_ALT} <= sys.version_info[:2] < {PYTHON_UST} else 3)"
+)
+
+
 def python_ok() -> bool:
-    # onnxruntime 3.11+ ister; 3.10'a izin vermek pip'i cok eski bir surume
-    # dusuruyor ve tespit sessizce bozuluyordu.
-    return sys.version_info >= (3, 11)
+    return PYTHON_ALT <= sys.version_info[:2] < PYTHON_UST
+
+
+def python_surum_notu() -> str:
+    """Surum uygun degilse kullaniciya NE yapacagini soyleyen tek cumle."""
+    bu = f"{sys.version_info.major}.{sys.version_info.minor}"
+    if sys.version_info[:2] < PYTHON_ALT:
+        return f"Python {bu} çok eski; Python 3.12 gerekiyor."
+    return (
+        f"Python {bu} henüz desteklenmiyor; Python 3.12 gerekiyor "
+        "(3.12, yeni sürümle yan yana kurulabilir)."
+    )
 
 
 def venv_hazir() -> bool:
@@ -217,8 +239,11 @@ def venv_hazir() -> bool:
     if not yol.exists():
         return False
     try:
+        # Calismasi YETMEZ, surumu de uymali: eski bir kurulumun .venv'i 3.11
+        # ile yapilmis olabilir; o zaman "Ilk Kurulumu Yap" ortami 3.12 ile
+        # bastan kurar (kurulumu_yap → --clear).
         return subprocess.run(
-            [str(yol), "-c", "pass"], capture_output=True, timeout=30
+            [str(yol), "-c", _SURUM_DENETIMI], capture_output=True, timeout=30
         ).returncode == 0
     except (OSError, subprocess.SubprocessError):
         return False
@@ -809,7 +834,7 @@ def arayuzu_baslat():
         if python_ok():
             ayarla("python", f"Hazır (sürüm {sys.version_info.major}.{sys.version_info.minor})", OK)
         else:
-            ayarla("python", "Python 3.11 veya üstü gerekiyor", ERR)
+            ayarla("python", python_surum_notu(), ERR)
 
         paket_hazir = paket_durumu["hazir"]
         if paket_hazir is None:
@@ -901,7 +926,7 @@ def arayuzu_baslat():
     # ---- ilk kurulum ----
     def kurulumu_yap():
         if not python_ok():
-            log("[HATA] Bu bilgisayardaki Python sürümü çok eski (3.11 veya üstü gerekiyor).")
+            log(f"[HATA] {python_surum_notu()}")
             log("       https://www.python.org/downloads/ adresinden Python 3.12 kurun,")
             log("       sonra bu paneli kapatıp yeniden açın.")
             return
@@ -913,7 +938,9 @@ def arayuzu_baslat():
         log("✓ Klasörler hazırlandı")
 
         if not venv_hazir():
-            komut_calistir([sys.executable, "-m", "venv", str(VENV)],
+            # --clear: eski surumle (3.11) kurulmus ya da bozulmus bir ortamin
+            # kalintilari yeni ortama karismasin; klasor bastan kurulur.
+            komut_calistir([sys.executable, "-m", "venv", "--clear", str(VENV)],
                            "Yalıtılmış Python ortamı oluşturuluyor")
         else:
             log("✓ Python ortamı zaten var")
@@ -978,6 +1005,11 @@ def arayuzu_baslat():
             if durum["sunucu"] is None:
                 return
         else:
+            if venv_python().exists() and not venv_hazir():
+                # Engellenmez: guncelleme sonrasi sistemin DURMASI, eski
+                # surumle calismasindan kotudur. Ne yapilacagi yazilir.
+                log("[!] Python ortamı desteklenen sürümle (3.12) kurulmamış. Sistem yine")
+                log("    başlatılıyor; 'İlk Kurulumu Yap' ortamı 3.12 ile yeniden kurar.")
             alt_surecte_baslat()
 
         # ILK acilis uzun surer: tanima modeli bir kez indirilir (~20-35 MB) ve

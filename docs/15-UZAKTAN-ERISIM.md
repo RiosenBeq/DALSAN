@@ -65,8 +65,9 @@ ipconfig             # Windows
 ipconfig getifaddr en0   # Mac
 ```
 
-**Docker kullanıyorsanız** ayrıca `docker-compose.yml` içindeki port satırını
-`"8080:8080"` yapın (bugün `127.0.0.1:8080:8080` yazıyor).
+**Docker kullanıyorsanız** ayarlar `ayar/.env` dosyasındadır (şifre orada zaten
+zorunludur); ayrıca `docker-compose.yml` içindeki port satırını `"8080:8080"`
+yapın (bugün `127.0.0.1:8080:8080` yazıyor).
 
 ---
 

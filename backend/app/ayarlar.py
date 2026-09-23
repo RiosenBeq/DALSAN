@@ -200,6 +200,19 @@ def ayarlari_yukle(kok_dizin: Path | None = None) -> Ayarlar:
         # YOKTUR (dosyalar paketin içindedir) ve klasör de ilk açılışta boştur.
         # Bu yüzden ayar dosyası bir kez, örnekten üretilir.
         _ornek_envden_olustur(env_yolu)
+    if not env_yolu.exists() and kaynaklar.kapsayicida_mi():
+        # Docker'da .env, sunucudaki ayar/ dizininden bağlanır (docker-compose.yml);
+        # kökteki .env oraya işaret eden bir bağdır. Dosya yoksa kapsayıcının
+        # içinde üretmek yanlış olurdu: sunucudaki yöneticinin elinde kalmalı.
+        raise AyarHatasi(
+            "Ayar dosyası bulunamadı: Docker kurulumunda ayarlar sunucudaki "
+            "ayar/.env dosyasındadır.\n"
+            "İlk kurulum:  mkdir -p ayar && cp .env.example ayar/.env\n"
+            "Eski kurulumdan geliyorsanız:  mkdir -p ayar && mv .env ayar/.env\n"
+            "ayar klasörünü Docker kendisi oluşturduysa (sahibi root) komutların "
+            "başına sudo ekleyin. Sonra ayar/.env içinde YONETICI_SIFRESI satırını "
+            "doldurup docker compose up -d ile yeniden başlatın (docs/06-OPERASYON.md)."
+        )
     if not env_yolu.exists():
         raise AyarHatasi(
             f"Ayar dosyası bulunamadı: {env_yolu}\n"
@@ -279,6 +292,20 @@ def ayarlari_coz(
         raise AyarHatasi(
             ".env dosyasındaki YONETICI_SIFRESI en az 6 karakter olmalı. "
             "Şifre istemiyorsanız satırı boş bırakın (giriş sorulmaz)."
+        )
+
+    # KAPSAYICI KİLİDİ (docs/17 §10.4, R13): Docker'da sunucu her zaman bütün
+    # ağ arayüzlerini dinler (Dockerfile: --host 0.0.0.0); aşağıdaki
+    # SUNUCU_ADRESI kilidi orada işlemez. docker-compose.yml'deki port satırı
+    # "8080:8080" yapıldığı anda şifresiz sistem ağa açılırdı — bu yüzden
+    # kapsayıcıda şifre, port satırından bağımsız olarak ZORUNLUDUR.
+    if kaynaklar.kapsayicida_mi() and not yonetici_sifresi:
+        raise AyarHatasi(
+            "Sistem Docker kapsayıcısında çalışıyor ve YONETICI_SIFRESI boş. Kapsayıcı "
+            "ağ arayüzlerinin hepsini dinler: port satırı değiştirildiği anda şifresiz "
+            "sistem ağdaki herkese açılır (kamera silme, kural değiştirme, anons).\n\n"
+            "Sunucuda ayar/.env dosyasındaki YONETICI_SIFRESI satırına en az 6 karakterli "
+            "bir şifre yazın ve docker compose up -d ile yeniden başlatın."
         )
 
     sunucu_adresi = degerler.get("SUNUCU_ADRESI", "127.0.0.1").strip() or "127.0.0.1"
@@ -512,23 +539,30 @@ def env_dosyasina_yaz(env_yolu: Path, degisiklikler: dict[str, str]) -> None:
     geçici dosya bilerek silinmez — bir sonraki kayıtta üzerine yazılır ve
     varlığı destek için ipucudur.
     """
+    # .env bir sembolik bağ olabilir (Docker: /uygulama/.env → ayar/.env, bağlı
+    # dizin; docs/17 §10.5 R27). Geçici dosya HEDEFİN yanında açılır: bağın
+    # yanında açılsaydı replace() bağın KENDİSİNİ düz dosyayla değiştirirdi —
+    # ayar kapsayıcının içinde kalır, sunucudaki dosya değişmez ve kapsayıcı
+    # yenilenince kaybolurdu. Hedefle aynı dizinde olmak, yerine koymanın tek
+    # adımda (atomik) kalmasının da şartıdır.
+    hedef = env_yolu.resolve()
     try:
-        eski_metin = env_yolu.read_text(encoding="utf-8") if env_yolu.is_file() else ""
+        eski_metin = hedef.read_text(encoding="utf-8") if hedef.is_file() else ""
     except OSError as hata:
         raise AyarHatasi(
             "Ayar dosyası okunamadı; kaydedilemedi.",
-            f"{env_yolu} okunamadı: {hata!r}",
+            f"{hedef} okunamadı: {hata!r}",
         ) from hata
 
-    gecici = env_yolu.with_name(env_yolu.name + ".yeni")
+    gecici = hedef.with_name(hedef.name + ".yeni")
     try:
         gecici.write_text(env_guncelle(eski_metin, degisiklikler), encoding="utf-8")
-        gecici.replace(env_yolu)
+        gecici.replace(hedef)
     except OSError as hata:
         raise AyarHatasi(
             "Ayarlar kaydedilemedi: klasöre yazılamıyor. Diskte yer olduğundan "
             "ve programın kapalı olmadığından emin olun.",
-            f"{gecici} → {env_yolu} yazılamadı: {hata!r}",
+            f"{gecici} → {hedef} yazılamadı: {hata!r}",
         ) from hata
 
 

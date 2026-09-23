@@ -26,21 +26,27 @@ Ayrıntı: `NASIL-CALISIR.md`.
 
 ```bash
 git clone <depo-adresi> && cd DALSAN
-cp .env.example .env       # saklama süreleri, ANONS, tespit eşikleri
-                           # anons bağlama tarifi: docs/14-ANONS-SISTEMI-BAGLAMA.md
-bash models/indir.sh       # model ağırlıkları repoda yoktur
+mkdir -p ayar && cp .env.example ayar/.env
+                           # ayar/.env: YONETICI_SIFRESI (ZORUNLU), saklama süreleri,
+                           # ANONS, tespit eşikleri — anons tarifi: docs/14
+bash models/indir.sh       # model ağırlıkları repoda yoktur; indirilen dosya doğrulanır
 docker compose up -d
 docker compose ps          # tek servis: dalsan — durum "healthy" olmalı
 ```
 
 Erişim: `http://127.0.0.1:8080` (compose varsayılanı sunucunun kendisine açar).
 
-> **Ağa açmadan önce şifre koyun.** `.env` dosyasındaki `YONETICI_SIFRESI`
-> satırı boşken giriş sorulmaz — bu, yalnızca `127.0.0.1`'den açılan tek
-> makinelik kurulum içindir. `docker-compose.yml` içindeki port satırını
-> `"8080:8080"` yapmadan ÖNCE şifreyi doldurun; aksi halde ağdaki herkes
-> kamera silebilir, kural değiştirebilir ve hoparlörden anons yaptırabilir.
-> Şifre en az 6 karakter olmalıdır; sistem daha kısasını açılışta reddeder.
+> **Docker'da ayarlar `ayar/.env` dosyasındadır** ve klasör olarak bağlanır
+> (tek dosya bağlandığında ekrandaki Ayarlar sayfası kaydedemiyordu). Eski bir
+> Docker kurulumundan geliyorsanız bir kez: `mkdir -p ayar && mv .env ayar/.env`.
+> Dosya yoksa sistem açılmaz ve `docker compose logs` bu tarifi yazar.
+>
+> **Şifre Docker'da zorunludur.** `YONETICI_SIFRESI` boşsa sistem açılmayı
+> reddeder: kapsayıcı ağ arayüzlerinin hepsini dinler ve `docker-compose.yml`
+> içindeki port satırı `"8080:8080"` yapıldığı anda şifresiz sistem ağa açılır,
+> ağdaki herkes kamera silebilir, kural değiştirebilir ve hoparlörden anons
+> yaptırabilirdi. Şifre en az 6 karakter olmalıdır. Port satırını açarken
+> tarayıcıya yazılacak adresi `IZINLI_SUNUCU_ADLARI` satırına ekleyin (docs/15).
 > Ekrandan da ayarlanabilir: **Komuta → Ayarlar → Güvenlik**.
 
 Şema **otomatik** uygulanır: açılışta `backend/sema/*.sql` sırayla çalışır ve
@@ -179,7 +185,14 @@ docker compose up -d
 docker compose logs -f --tail=100
 ```
 
-Şema değişikliği varsa açılışta kendiliğinden uygulanır. Geri alma:
+Şema değişikliği varsa açılışta kendiliğinden uygulanır.
+
+> **23.09.2026 sürümüne geçerken bir kez:** ayar dosyası artık `ayar/.env`
+> olarak bağlanıyor ve Docker'da şifre zorunlu. `docker compose up -d`'den önce
+> `mkdir -p ayar && mv .env ayar/.env` yapın ve `YONETICI_SIFRESI`'nin dolu
+> olduğunu kontrol edin; yoksa sistem açılmaz ve sebebini günlüğe yazar.
+
+Geri alma:
 `git checkout <önceki-sürüm>` → `docker compose build` → `up -d`.
 
 > Şema betikleri **geri alınamaz** (Alembic yoktur — `docs/09` kararı). Geri
@@ -189,11 +202,13 @@ docker compose logs -f --tail=100
 
 ## 4. Yedekleme
 
-**Tam yedek = `veri/` klasörünü ve `.env` dosyasını kopyalamak.** Hepsi bu.
+**Tam yedek = `veri/` klasörünü ve ayar dosyasını kopyalamak.** Hepsi bu.
+Ayar dosyası Docker kurulumunda `ayar/.env`, Kontrol Paneli kurulumunda
+proje kökündeki `.env`'dir.
 
 ```bash
-cp -R veri/ /yedek/dalsan-$(date +%Y-%m-%d)/
-cp .env    /yedek/dalsan-$(date +%Y-%m-%d)/
+cp -R veri/    /yedek/dalsan-$(date +%Y-%m-%d)/
+cp ayar/.env   /yedek/dalsan-$(date +%Y-%m-%d)/     # Docker; panelde: cp .env
 ```
 
 Sistem çalışırken güvenli veritabanı kopyası için: ana sayfadaki

@@ -50,6 +50,18 @@ def paketlenmis_mi() -> bool:
     return bool(getattr(sys, "_MEIPASS", ""))
 
 
+def kapsayicida_mi() -> bool:
+    """Program Docker kapsayıcısında mı çalışıyor?
+
+    Sezgiye (/.dockerenv, cgroup) değil, Dockerfile'ın koyduğu AÇIK işarete
+    bakılır: sezgiler geliştirici makinesinde yanlış "evet" diyebilir ve
+    şifresiz kurulumu durdururdu. Karar iki yerde kullanılır: kapsayıcıda
+    şifresiz açılış reddedilir (ayarlar.py, R13) ve eksik ayar dosyası için
+    Docker'a özgü tarif verilir.
+    """
+    return os.environ.get("DALSAN_KAPSAYICI") == "1"
+
+
 def kaynak_yolu(*parcalar: str) -> Path:
     """Programla gelen (salt okunur) bir dosyanın tam yolu.
 

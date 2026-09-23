@@ -53,7 +53,7 @@ pencerede yine "Aç"ı seçmek. Bir kez yapılır, sonraki açılışlarda sorul
 
 ## 3. Windows'ta nasıl üretilir
 
-**Gereken tek şey:** Windows bilgisayarda Python 3.11 veya üstü kurulu olmalı.
+**Gereken tek şey:** Windows bilgisayarda Python 3.12 kurulu olmalı (daha yeni bir sürüm varsa 3.12 onunla yan yana kurulabilir; üretim betiği önce 3.12’yi arar).
 Yoksa <https://www.python.org/downloads/> adresinden Python 3.12 kurun ve
 kurulum ekranındaki **"Add Python to PATH"** kutusunu mutlaka işaretleyin.
 

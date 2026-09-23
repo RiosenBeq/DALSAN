@@ -123,10 +123,17 @@ kendiliğinden kalkar, çökerse kendini yeniden başlatır.
 ### Hazırlık (bir kez)
 
 ```bash
-cd DALSAN-ISG          # ya da OTOPARK-DEMO / LAFFOGATO
-cp .env.example .env   # ayarları düzenleyin (kamera adresi, saklama süreleri)
-bash models/indir.sh   # yapay zeka modelini indirir
+cd DALSAN-ISG                          # ya da OTOPARK-DEMO / LAFFOGATO
+mkdir -p ayar && cp .env.example ayar/.env
+                                       # ayar/.env: YONETICI_SIFRESI'ni doldurun
+                                       # (Docker'da ZORUNLU), saklama süreleri vb.
+bash models/indir.sh                   # yapay zeka modelini indirir ve doğrular
 ```
+
+> Docker'da ayarlar `ayar/.env` dosyasındadır (proje kökündeki `.env` değil):
+> klasör olarak bağlanır ki ekrandaki **Ayarlar** sayfası da kaydedebilsin.
+> Eski bir Docker kurulumundan geliyorsanız bir kez `mkdir -p ayar && mv .env ayar/.env`
+> yapın. Şifre boşsa sistem açılmaz ve sebebini `docker compose logs` yazar.
 
 > Model indirilmeden imaj derlenmez: derleme **"models/yolox_tiny.onnx
 > bulunamadi"** diyerek durur. Bu bilinçlidir — modelsiz container hiçbir şey
@@ -146,7 +153,7 @@ Adres: `http://localhost:8080` (demolarda 8090 / 8100).
 
 ### Bilinmesi gerekenler
 
-- **Veriler container dışında durur.** `veri/` klasörü ve `.env` dosyası
+- **Veriler container dışında durur.** `veri/` ve `ayar/` klasörleri
   dışarıdan bağlanır; container silinse bile veritabanı, fotoğraflar ve
   ayarlar kaybolmaz.
 - **Bilgisayarın kendi kamerası Docker'da görünmez** (Mac/Windows). Container
@@ -160,15 +167,15 @@ Adres: `http://localhost:8080` (demolarda 8090 / 8100).
 
 ```bash
 git clone <depo-adresi> && cd DALSAN-ISG
-cp .env.example .env
+mkdir -p ayar && cp .env.example ayar/.env   # YONETICI_SIFRESI'ni doldurun
 bash models/indir.sh
 docker compose up -d
 docker compose ps          # durum "healthy" görünmeli
 ```
 
-> **Dikkat:** Giriş şifresi şu an bilerek kapalıdır (geliştirme aşaması).
-> Fabrika sunucusunda sistem ağdaki her bilgisayardan açılabilir; sunucuya
-> kurmadan ÖNCE şifre geri eklenmelidir (`docs/07-YOL-HARITASI.md` #0).
+> **Şifre Docker'da zorunludur.** Kapsayıcı ağ arayüzlerinin hepsini dinler;
+> port satırı değiştirildiği anda şifresiz sistem ağa açılırdı. Bu yüzden
+> `ayar/.env` içinde `YONETICI_SIFRESI` boşsa sistem açılmayı reddeder.
 
 Sunucu yeniden başladığında sistem kendiliğinden kalkar (`restart:
 unless-stopped`). Günlük yedek için `veri/` klasörünü zamanlanmış görevle

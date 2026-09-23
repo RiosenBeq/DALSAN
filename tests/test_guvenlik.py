@@ -488,3 +488,83 @@ def test_env_yazicisi_her_yoldan_korur():
         env_guncelle("A=1\n", {"A\nB": "2"})
     # Türkçe harf, boşluk ve '#' meşrudur: tırnakla yazılır.
     assert env_guncelle("A=1\n", {"A": "Hoparlör şık # 2"}) == 'A="Hoparlör şık # 2"\n'
+
+
+# ------------------------------------------------ R13: kapsayıcıda şifre zorunlu
+
+
+def test_kapsayicida_sifresiz_acilis_reddedilir(tmp_path, monkeypatch):
+    """Docker her zaman 0.0.0.0'ı dinler; SUNUCU_ADRESI kilidi orada işlemez.
+    compose'daki port satırı değiştiği anda şifresiz sistem ağa açılırdı."""
+    from app.ayarlar import ayarlari_coz
+    from app.hatalar import AyarHatasi
+
+    monkeypatch.setenv("DALSAN_KAPSAYICI", "1")
+    with pytest.raises(AyarHatasi) as hata:
+        ayarlari_coz(tmp_path, {"SUNUCU_ADRESI": "127.0.0.1"})
+    assert "Docker" in hata.value.kullanici_mesaji
+    assert "ayar/.env" in hata.value.kullanici_mesaji
+    assert ayarlari_coz(tmp_path, {"YONETICI_SIFRESI": SIFRE}).yonetici_sifresi == SIFRE
+
+
+def test_kapsayici_disinda_sifresiz_yerel_kurulum_acilir(tmp_path, monkeypatch):
+    """Tek makinelik kurulum (127.0.0.1) şifresiz açılmaya devam eder."""
+    from app.ayarlar import ayarlari_coz
+
+    monkeypatch.delenv("DALSAN_KAPSAYICI", raising=False)
+    assert ayarlari_coz(tmp_path, {}).yonetici_sifresi == ""
+
+
+def test_kapsayicida_ayar_dosyasi_yoksa_docker_tarifi_verilir(tmp_path, monkeypatch):
+    from app.ayarlar import ayarlari_yukle
+    from app.hatalar import AyarHatasi
+
+    monkeypatch.setenv("DALSAN_KAPSAYICI", "1")
+    with pytest.raises(AyarHatasi) as hata:
+        ayarlari_yukle(tmp_path)
+    assert "mkdir -p ayar && cp .env.example ayar/.env" in hata.value.kullanici_mesaji
+    assert "mv .env ayar/.env" in hata.value.kullanici_mesaji
+
+
+def test_docker_dosyalari_isareti_ve_ayar_dizinini_kurar():
+    from pathlib import Path
+
+    kok = Path(__file__).resolve().parents[1]
+    dockerfile = (kok / "Dockerfile").read_text(encoding="utf-8")
+    assert "ENV DALSAN_KAPSAYICI=1" in dockerfile
+    assert "ln -s ayar/.env /uygulama/.env" in dockerfile
+    compose = (kok / "docker-compose.yml").read_text(encoding="utf-8")
+    assert "./ayar:/uygulama/ayar" in compose
+    assert ".env:ro" not in compose
+    # ayar/.env şifre taşır: ne depoya ne imaja girer
+    assert "/ayar/" in (kok / ".gitignore").read_text(encoding="utf-8")
+    assert "ayar/" in (kok / ".dockerignore").read_text(encoding="utf-8")
+
+
+# ------------------------------------------------ R27: .env bağlı bir dizindeyken
+
+
+def test_env_bag_ise_ayarlar_kaydi_hedef_dosyayi_degistirir(test_ayarlari):
+    """Docker'da kökteki .env, bağlı ayar/ dizinindeki dosyaya bir bağdır.
+    Geçici dosya bağın yanında açılsaydı replace() BAĞI düz dosyayla
+    değiştirirdi: ayar kapsayıcıda kalır, sunucudaki dosya değişmezdi."""
+    ayar = test_ayarlari.kok_dizin / "ayar"
+    ayar.mkdir()
+    hedef = ayar / ".env"
+    hedef.write_text(_env(SIFRE), encoding="utf-8")
+    try:
+        test_ayarlari.env_yolu.symlink_to(hedef.relative_to(test_ayarlari.kok_dizin))
+    except OSError:
+        pytest.skip("Bu sistemde sembolik bağ kurulamıyor (Windows'ta yetki gerekir).")
+    with _istemci(test_ayarlari, SIFRE) as istemci:
+        _girisli(istemci, SIFRE)
+        yanit = istemci.post(
+            "/ayarlar/kaydet",
+            data={**TAM_FORM, "DISK_UYARI_GB": "9"},
+            follow_redirects=False,
+        )
+        assert yanit.status_code == 303
+    assert test_ayarlari.env_yolu.is_symlink()
+    assert "DISK_UYARI_GB=9" in hedef.read_text(encoding="utf-8")
+    assert f"YONETICI_SIFRESI={SIFRE}" in hedef.read_text(encoding="utf-8")
+    assert not (test_ayarlari.kok_dizin / ".env.yeni").exists()

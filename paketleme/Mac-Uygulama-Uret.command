@@ -30,6 +30,19 @@ if [ ! -x "$PY" ]; then
   exit 1
 fi
 
+# Uretilen uygulama .venv'in Python'unu icine alir; o surum 3.12 olmali
+# (docs/17 R10). Eski bir kurulumun .venv'i 3.11 ile yapilmis olabilir.
+if ! "$PY" -c 'import sys; sys.exit(0 if (3, 12) <= sys.version_info[:2] < (3, 13) else 1)'; then
+  echo "  [HATA] Yalitilmis Python ortami desteklenmeyen bir surumle kurulmus"
+  echo "         (Python 3.12 gerekli)."
+  echo ""
+  echo "  Cozum: Baslat-Mac.command dosyasina cift tiklayip 'Ilk Kurulumu Yap'"
+  echo "         dugmesine basin; ortam 3.12 ile yeniden kurulur. Sonra buraya donun."
+  echo ""
+  read -r -p "  Kapatmak icin Enter..."
+  exit 1
+fi
+
 # TUZAK: Homebrew'in Python'u tkinter'i AYRI bir paketle getirir
 # (python-tk@3.12). Eksikse uretim SORUNSUZ tamamlanir ama olusan .app
 # Finder'dan cift tiklandiginda HICBIR SEY YAPMAZ: pencere acilmaz, hata

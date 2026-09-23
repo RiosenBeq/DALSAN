@@ -14,14 +14,22 @@ services:
     restart: unless-stopped          # sunucu yeniden başlarsa sistem kendiliğinden kalkar (K8)
     ports:
       # Yalnızca sunucunun kendisine açık. Ağdaki diğer bilgisayarlardan
-      # erişilmesi gerekiyorsa "8080:8080" yapın — ama ÖNCE .env dosyasındaki
-      # YONETICI_SIFRESI satırını doldurun. Fabrika dışından (evden, telefondan)
-      # erişim için doğrudan internete açmayın: docs/15-UZAKTAN-ERISIM.md
+      # erişilmesi gerekiyorsa "8080:8080" yapın ve tarayıcıya yazılacak adresi
+      # ayar/.env içindeki IZINLI_SUNUCU_ADLARI satırına ekleyin. Fabrika dışından
+      # (evden, telefondan) erişim için doğrudan internete açmayın:
+      # docs/15-UZAKTAN-ERISIM.md
       - "127.0.0.1:8080:8080"
     volumes:
       # TÜM veri container dışında durur: container silinse de kaybolmaz
       - ./veri:/uygulama/veri
-      - ./.env:/uygulama/.env:ro
+      # Ayarlar ./ayar/.env dosyasındadır ve DİZİNLE bağlanır: Ayarlar sayfası
+      # kaydedebilsin diye salt okunur değildir (tek dosya bağlamada kayıt
+      # çalışmıyordu — docs/17 §10.5 R27).
+      #   İlk kurulum:          mkdir -p ayar && cp .env.example ayar/.env
+      #   Eski kurulumdan:      mkdir -p ayar && mv .env ayar/.env
+      # Docker'da YONETICI_SIFRESI ZORUNLUDUR: boşsa sistem açılmaz ve sebebini
+      # `docker compose logs` içinde yazar (R13).
+      - ./ayar:/uygulama/ayar
       # Model dosyaları imaja gömülüdür; dışarıdan güncellemek isterseniz açın:
       # - ./models:/uygulama/models:ro
     healthcheck:

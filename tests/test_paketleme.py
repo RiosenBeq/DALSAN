@@ -504,9 +504,10 @@ def test_betik_magaza_takma_adina_kanmiyor(bat_metni):
 
 
 def test_betik_python_surumunu_dogruluyor(bat_metni):
-    """onnxruntime 3.11+ ister; eski sürümde üretim, sebebi hiç anlaşılmayan
-    bir pip hatasıyla kırılır."""
-    assert "sys.version_info >= (3, 11)" in bat_metni
+    """Uygulama, üreten Python'u içine alır: YALNIZ 3.12 (docs/17 R10).
+    onnxruntime 3.11+ ister; 3.13+ üzerinde tam paket henüz koşmadı."""
+    assert "(3, 12) <= sys.version_info[:2] < (3, 13)" in bat_metni
+    assert bat_metni.index("py -3.12 -c") < bat_metni.index("py -3 -c")
 
 
 def test_betik_derin_klasoru_uyariyor(bat_metni):

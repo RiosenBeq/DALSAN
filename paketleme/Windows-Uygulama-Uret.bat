@@ -65,6 +65,12 @@ REM  isaretlenmese de kurulur) ve adayin gercekten Python oldugu
 REM  "import sys" ile DOGRULANIR. Ayni cozum Baslat-Windows.bat'ta da var.
 REM --------------------------------------------------------------------------
 set "PY="
+REM Once 3.12 (desteklenen tek surum); daha yeni bir surum de kurulu olabilir.
+py -3.12 -c "import sys" >nul 2>nul
+if %errorlevel%==0 (
+    set "PY=py -3.12"
+    goto :python_bulundu
+)
 py -3 -c "import sys" >nul 2>nul
 if %errorlevel%==0 (
     set "PY=py -3"
@@ -79,11 +85,11 @@ goto :python_yok
 :python_bulundu
 
 REM --------------------------------------------------------------------------
-REM  ADIM 2 (devam) - Python surumu yeterli mi? (3.11 ve ustu)
-REM  Tirnak icindeki ">" isareti yonlendirme sayilmaz, oldugu gibi gecer.
+REM  ADIM 2 (devam) - Python surumu uygun mu? (YALNIZ 3.12, docs/17 R10)
+REM  Tirnak icindeki "<" isareti yonlendirme sayilmaz, oldugu gibi gecer.
 REM --------------------------------------------------------------------------
 echo   [2/6] Python surumu denetleniyor...
-%PY% -c "import sys; sys.exit(0 if sys.version_info >= (3, 11) else 1)"
+%PY% -c "import sys; sys.exit(0 if (3, 12) <= sys.version_info[:2] < (3, 13) else 1)"
 if errorlevel 1 goto :surum_eski
 
 REM --------------------------------------------------------------------------
@@ -183,7 +189,8 @@ goto :son_hata
 
 :surum_eski
 echo.
-echo   [HATA] Bu bilgisayardaki Python surumu cok eski (3.11 veya ustu gerekli).
+echo   [HATA] Bu bilgisayardaki Python surumu desteklenmiyor (Python 3.12 gerekli).
+echo   Daha yeni surumler (3.13, 3.14) henuz sinanmadi; 3.12 onlarla yan yana kurulabilir.
 echo.
 echo   https://www.python.org/downloads/ adresinden Python 3.12 kurun,
 echo   sonra bu dosyaya yeniden cift tiklayin.

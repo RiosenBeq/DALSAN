@@ -114,11 +114,73 @@ def test_panel_sahipsiz_sunucuyu_sahiplenir():
     assert "sunucu.pid" in metin
 
 
-def test_panel_python_surumu_bagimlilikla_uyumlu():
-    """onnxruntime 3.11+ ister; 3.10'a izin vermek pip'i çok eski bir sürüme
-    düşürüyor ve tespit sessizce bozuluyordu."""
-    metin = (KOK / "masaustu" / "dalsan_launcher.py").read_text(encoding="utf-8")
-    assert "sys.version_info >= (3, 11)" in metin
+def _panel():
+    import importlib.util
+
+    tanim = importlib.util.spec_from_file_location(
+        "panel_surum", KOK / "masaustu" / "dalsan_launcher.py"
+    )
+    modul = importlib.util.module_from_spec(tanim)
+    tanim.loader.exec_module(modul)
+    return modul
+
+
+class _Surum(tuple):
+    """sys.version_info gibi: dilimlenir, .major/.minor taşır."""
+
+    major = property(lambda self: self[0])
+    minor = property(lambda self: self[1])
+
+
+@pytest.mark.parametrize(
+    ("surum", "uygun", "not_parcasi"),
+    [
+        ((3, 10, 12), False, "çok eski"),
+        ((3, 11, 9), False, "çok eski"),
+        ((3, 12, 0), True, ""),
+        ((3, 12, 11), True, ""),
+        ((3, 13, 0), False, "henüz desteklenmiyor"),
+        ((3, 14, 2), False, "henüz desteklenmiyor"),
+    ],
+)
+def test_panel_yalniz_python_312_kabul_eder(monkeypatch, surum, uygun, not_parcasi):
+    """Alt sınır: onnxruntime 3.11+ ister, 3.10 pip'i çok eski bir sürüme
+    düşürüyordu. Üst sınır (docs/17 R10): tam paket 3.13+ üzerinde henüz
+    koşmadı. 2026'da python.org'un önerdiği sürüm 3.14'tür; kullanıcıya
+    "çok eski" demek yanlış olurdu — ne yapacağı söylenir."""
+    import sys
+
+    panel = _panel()
+    monkeypatch.setattr(sys, "version_info", _Surum(surum))
+    assert panel.python_ok() is uygun
+    if not uygun:
+        not_metni = panel.python_surum_notu()
+        assert not_parcasi in not_metni and "3.12" in not_metni
+
+
+def test_ortam_denetimi_panelle_ayni_karari_verir():
+    """.venv'in Python'u ayrı bir süreçte aynı sınırla denetlenir: eski bir
+    kurulumun 3.11 ortamı "hazır" sayılmamalı (İlk Kurulum onu --clear ile
+    yeniden kurar)."""
+    import sys
+
+    panel = _panel()
+    sonuc = subprocess.run([sys.executable, "-c", panel._SURUM_DENETIMI], timeout=60)
+    assert (sonuc.returncode == 0) is panel.python_ok()
+    kaynak = (KOK / "masaustu" / "dalsan_launcher.py").read_text(encoding="utf-8")
+    assert '"venv", "--clear"' in kaynak
+
+
+def test_baslatma_betikleri_once_312_arar():
+    """3.12 ile daha yeni bir sürüm yan yana kuruluysa betik varsayılanı
+    (en yenisini) değil 3.12'yi seçmeli."""
+    bat = (KOK / "Baslat-Windows.bat").read_text(encoding="ascii")
+    assert bat.index("py -3.12 -c") < bat.index("py -3 -c")
+    mac = (KOK / "Baslat-Mac.command").read_text(encoding="ascii")
+    assert "python3.11" not in mac and "3.1[123]" not in mac
+    assert "(3, 12) <= sys.version_info[:2] < (3, 13)" in mac
+    uret = (KOK / "paketleme" / "Mac-Uygulama-Uret.command").read_text(encoding="utf-8")
+    assert "(3, 12) <= sys.version_info[:2] < (3, 13)" in uret
 
 
 # ---- bağımlılıklar ----
