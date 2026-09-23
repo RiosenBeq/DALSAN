@@ -783,19 +783,28 @@ kapsar). Üstüne iki şey eklenir:
 ```python
 # rules/ içinde, saf — imza taslağı
 class Degerlendirici(Protocol):
-    def degerlendir(self, baglam) -> list[Ihlal]: ...           # değişmez
-    def aktif_anahtarlar(self, baglam) -> set[tuple]: ...          # yeni: ÇIKIŞ eşiğiyle hâlâ süren koşullar
+    def degerlendir(self, baglam) -> list[Ihlal]: ...  # değişmez
+    def aktif_anahtarlar(
+        self, baglam
+    ) -> set[tuple]: ...  # yeni: ÇIKIŞ eşiğiyle hâlâ süren koşullar
 
-class OlayDurumMakinesi:                                          # rules/olay_durumu.py
-    def guncelle(self, zaman_s: float, ihlaller: list[Ihlal],
-                 aktifler: set[tuple], kurallar: dict[int, Kural]) -> list[OlayGecisi]: ...
+
+class OlayDurumMakinesi:  # rules/olay_durumu.py
+    def guncelle(
+        self,
+        zaman_s: float,
+        ihlaller: list[Ihlal],
+        aktifler: set[tuple],
+        kurallar: dict[int, Kural],
+    ) -> list[OlayGecisi]: ...
+
 
 @dataclass
 class OlayGecisi:
-    asama: str          # "acildi" | "hatirlatma" | "kapandi"
-    anahtar: tuple      # Cooldown anahtarıyla aynı biçim: (kural, kamera, iz[, iz2][, kalem])
+    asama: str  # "acildi" | "hatirlatma" | "kapandi"
+    anahtar: tuple  # Cooldown anahtarıyla aynı biçim: (kural, kamera, iz[, iz2][, kalem])
     ihlal: Ihlal | None
-    sebep: str = ""     # kapandi: kosul_bitti | belirsiz | iz_kayboldu | kural_degisti | kapanis | yeniden_baslama
+    sebep: str = ""  # kapandi: kosul_bitti | belirsiz | iz_kayboldu | kural_degisti | kapanis | yeniden_baslama
 ```
 
 - **Açılış:** değerlendiricinin ürettiği `Ihlal` için anahtar açık değilse `acildi` → yeni olay

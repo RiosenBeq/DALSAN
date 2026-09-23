@@ -44,6 +44,13 @@
           <option value="{{ deger }}" {% if degerler[alan.anahtar] == deger %}selected{% endif %}>{{ ad }}</option>
           {% endfor %}
         </select>
+        {% elif alan.tur == 'sifre' %}
+        {# Kurulu şifre sayfaya HİÇ basılmaz (docs/AUDIT.md R9). Boş kutu
+           "değiştirme" demektir; kaldırmak için aşağıdaki onay kutusu. #}
+        <input type="password" name="{{ alan.anahtar }}" value="" autocomplete="new-password"
+               placeholder="{% if yonetici_sifresi_kurulu %}yeni şifre (boş = değişmez){% else %}boş = giriş sorulmaz{% endif %}"
+               maxlength="200">
+        <span class="panel-notu"><b>{% if yonetici_sifresi_kurulu %}Şifre kurulu.{% else %}Şifre yok: giriş sorulmuyor.{% endif %}</b></span>
         {% elif alan.tur == 'metin' %}
         <input type="text" name="{{ alan.anahtar }}" value="{{ degerler[alan.anahtar] }}"
                placeholder="{{ alan.ipucu }}" maxlength="200">
@@ -53,6 +60,13 @@
         {% endif %}
         <span class="panel-notu">{{ alan.aciklama }}</span>
       </label>
+      {% if alan.tur == 'sifre' and yonetici_sifresi_kurulu %}
+      <label class="onay-satiri">
+        <input type="checkbox" name="{{ alan.anahtar }}_KALDIR" value="1">Şifreyi kaldır
+        <span class="not panel-notu">İşaretleyip kaydederseniz giriş artık sorulmaz. Sistem
+          ağa açıksa (sunucu adresi 0.0.0.0) bu kabul edilmez.</span>
+      </label>
+      {% endif %}
       {% endfor %}
     </div>
 
