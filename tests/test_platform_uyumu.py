@@ -1,4 +1,4 @@
-"""Mac / Windows uyumu — platformdan bağımsız olarak sınanabilen kısımlar.
+"""Mac / Windows uyumu - platformdan bağımsız olarak sınanabilen kısımlar.
 
 Bu testlerin tamamı Linux'ta da anlamlıdır: kod yolunu, dosya içeriğini ve
 kodlama davranışını sınarlar. Amaç, "Mac'te çalışıyordu" diye Windows'ta
@@ -35,7 +35,7 @@ def test_windows_baslaticisi_magaza_takma_adina_dusmez():
 
 
 def test_windows_baslaticisi_hatada_pencereyi_kapatmaz():
-    """Çökme anında pencere kapanırsa kullanıcının kopyalayacak satırı kalmaz —
+    """Çökme anında pencere kapanırsa kullanıcının kopyalayacak satırı kalmaz -
     destek akışının tamamı buna dayanır (CLAUDE.md §8)."""
     metin = (KOK / "Baslat-Windows.bat").read_text(encoding="utf-8")
     assert metin.count("pause") >= 2, "hem hata dalında hem Python yokken beklemeli"
@@ -97,7 +97,7 @@ def test_panel_alt_surec_ciktisini_utf8_okur():
 
 
 def test_turkce_buyuk_harfler_cp1254te_cozulemez():
-    """Yukarıdaki testin dayandığı olgu — kodlama davranışı gerçekten böyle."""
+    """Yukarıdaki testin dayandığı olgu - kodlama davranışı gerçekten böyle."""
     ham = "SİSTEM BAŞLATILIYOR".encode()
     try:
         ham.decode("cp1254")
@@ -147,7 +147,7 @@ def test_panel_yalniz_python_312_kabul_eder(monkeypatch, surum, uygun, not_parca
     """Alt sınır: onnxruntime 3.11+ ister, 3.10 pip'i çok eski bir sürüme
     düşürüyordu. Üst sınır (docs/17 R10): tam paket 3.13+ üzerinde henüz
     koşmadı. 2026'da python.org'un önerdiği sürüm 3.14'tür; kullanıcıya
-    "çok eski" demek yanlış olurdu — ne yapacağı söylenir."""
+    "çok eski" demek yanlış olurdu - ne yapacağı söylenir."""
     import sys
 
     panel = _panel()
@@ -232,7 +232,7 @@ def test_overlay_etiketleri_ascii():
 
     for ad in SINIF_OVERLAY.values():
         assert ad.isascii(), f"overlay etiketi ASCII olmalı: {ad}"
-    # Arayüzdeki adlar TÜRKÇE kalmalı — sadeleştirme oraya sıçramasın
+    # Arayüzdeki adlar TÜRKÇE kalmalı - sadeleştirme oraya sıçramasın
     assert not SINIF_TR["truck"].isascii()
 
 
@@ -279,7 +279,7 @@ def test_wav_disi_ses_dosyasi_reddedilir(istemci, test_ayarlari):
 
 
 def test_kanalsiz_anons_denemesi_dogru_soyler(test_ayarlari):
-    """Sesli kanal yokken 'Anonsu Dene' başarılı demez — hoparlörden ses çıkmaz.
+    """Sesli kanal yokken 'Anonsu Dene' başarılı demez - hoparlörden ses çıkmaz.
 
     Eskiden bu durum .env'deki ANONS=null'du; kanal yapılandırması hoparlör
     satırlarına taşındı (docs/17 K22), beklenen metin de onu söyler (§4.6).
@@ -307,7 +307,7 @@ def test_windows_ses_yolu_komut_metnine_girmez(monkeypatch):
         SND_NODEFAULT = 0x2
 
         @staticmethod
-        def PlaySound(ses, bayraklar):  # noqa: N802 — stdlib adı
+        def PlaySound(ses, bayraklar):  # noqa: N802 - stdlib adı
             cagrilar.append(ses)
 
     monkeypatch.setattr(sys, "platform", "win32")
@@ -376,7 +376,7 @@ def test_baslatma_komutlarindaki_uygulama_sembolu_var():
     for yol in dosyalar:
         for sembol in re.findall(r"app\.main:(\w+)", (KOK / yol).read_text(encoding="utf-8")):
             bulunan += 1
-            assert sembol in tanimli, f"{yol}: app.main:{sembol} — main.py'de böyle bir ad yok"
+            assert sembol in tanimli, f"{yol}: app.main:{sembol} - main.py'de böyle bir ad yok"
     assert bulunan >= 3
 
 

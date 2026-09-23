@@ -1,4 +1,4 @@
-{# Dönem raporu — YAZDIRILMAK için tasarlandı.
+{# Dönem raporu - YAZDIRILMAK için tasarlandı.
 
    PDF üretmek için ayrı bir kütüphane KURULMADI (CLAUDE.md §3): tarayıcının
    "Yazdır → PDF olarak kaydet" adımı Windows'ta da Mac'te de vardır, kurulum
@@ -44,7 +44,7 @@
 
 {# --- rapor gövdesi (kâğıda basılan kısım) --------------------------- #}
 <header class="rapor-kapak">
-  <h1>DALSAN İSG — Dönem Raporu</h1>
+  <h1>DALSAN İSG - Dönem Raporu</h1>
   <p class="rapor-kunye">
     <b>Dönem:</b> {{ donem_metni }} ·
     <b>Bölüm:</b> {{ alan or "tüm fabrika" }} ·
@@ -90,7 +90,7 @@
         <span class="komuta-bar"><span style="width: {{ satir.genislik }}"></span></span>
         <span class="sayisal">{{ satir.adet }}</span>
         <span class="sayisal">{{ satir.pay }}</span>
-        {# İşaretlenmemiş olay "doğru uyarı" DEĞİLDİR: oran yoksa "—" yazar.
+        {# İşaretlenmemiş olay "doğru uyarı" DEĞİLDİR: oran yoksa "-" yazar.
            Yanında inceleme kapsamı: satırdaki olayların yüzde kaçı işaretli. #}
         <span class="sayisal" title="{{ satir.isaretli }} / {{ satir.adet }} olay işaretli">{{ satir.yanlis_alarm }}<span class="panel-notu"> (kapsama {{ satir.kapsama }})</span></span>
       </div>
@@ -114,7 +114,7 @@
       </div>
       {% endfor %}
     </div>
-    <p class="panel-notu">Sütunlar 00:00–23:00 arası tam gündür; boş saat
+    <p class="panel-notu">Sütunlar 00:00-23:00 arası tam gündür; boş saat
       “o saatte ihlal olmadı” demektir.</p>
   </section>
 

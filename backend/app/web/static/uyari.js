@@ -8,7 +8,7 @@
 // kullanıcı hareketinde uyandırılır ve durumu ekranda yazılır.
 //
 // Sesin çalışmadığı hiçbir durum sessiz kalmaz (docs/17 R41): canlı akışlı
-// sayfalarda köşede bir ses çipi durur — ses kapalıysa "açmak için tıklayın",
+// sayfalarda köşede bir ses çipi durur - ses kapalıysa "açmak için tıklayın",
 // tarayıcı sesi bekletiyorsa "etkinleştirmek için tıklayın", çalınamadıysa
 // "sesli uyarı çalışmıyor". Her şey yolundayken çip görünmez.
 window.Uyari = (function () {
@@ -156,19 +156,19 @@ window.Uyari = (function () {
     var metin = "";
     var sinif = "";
     if (!ayarOku(SES_ANAHTARI)) {
-      metin = "Bu ekranda sesli uyarı KAPALI — açmak için tıklayın";
+      metin = "Bu ekranda sesli uyarı KAPALI - açmak için tıklayın";
       sinif = "kapali";
     } else if (!sesDestekleniyor() || sesHatasi) {
       metin =
-        "⚠ Sesli uyarı çalışmıyor — " +
+        "⚠ Sesli uyarı çalışmıyor - " +
         (sesHatasi || "tarayıcı ses çalamıyor") +
         ". Denemek için tıklayın";
       sinif = "hata";
     } else if (!baglam || baglam.state === "suspended") {
-      metin = "Sesli uyarı beklemede — etkinleştirmek için tıklayın";
+      metin = "Sesli uyarı beklemede - etkinleştirmek için tıklayın";
       sinif = "bekliyor";
     } else if (ayarOku(KONUSMA_ANAHTARI) && okumaHatasi) {
-      metin = "⚠ Sesli okuma çalışmıyor — " + okumaHatasi;
+      metin = "⚠ Sesli okuma çalışmıyor - " + okumaHatasi;
       sinif = "hata";
     }
     c.textContent = metin;
@@ -209,7 +209,7 @@ window.Uyari = (function () {
   function goster(veri) {
     var k = kutuAl();
     if (gosterilen && gosterilen.onem === "critical" && veri.onem !== "critical") return;
-    k.textContent = "⚠ " + (veri.kamera || "Kamera") + " — " + (veri.ozet || "İhlal");
+    k.textContent = "⚠ " + (veri.kamera || "Kamera") + " - " + (veri.ozet || "İhlal");
     k.className = "uyari-bandi" + (ONEMLER.indexOf(veri.onem) !== -1 ? " onem-" + veri.onem : "");
     k.hidden = false;
     gosterilen = { id: veri.id, onem: veri.onem };
@@ -237,7 +237,7 @@ window.Uyari = (function () {
 
   function sistemGoster(veri) {
     var k = sistemKutusuAl();
-    var kamera = veri.kamera && veri.kamera !== "—" ? veri.kamera + " — " : "";
+    var kamera = veri.kamera && veri.kamera !== "-" ? veri.kamera + " - " : "";
     k.textContent = "Sistem: " + kamera + (veri.ozet || "sistem olayı");
     k.hidden = false;
     clearTimeout(k._zamanlayici);

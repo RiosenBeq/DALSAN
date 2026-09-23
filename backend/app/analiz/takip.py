@@ -89,7 +89,7 @@ class Takipci:
         for i in range(len(sonuc)):
             takip_id = sonuc.tracker_id[i] if sonuc.tracker_id is not None else None
             if takip_id is None:
-                continue  # henüz doğrulanmamış iz — kurallara girmez
+                continue  # henüz doğrulanmamış iz - kurallara girmez
             x1, y1, x2, y2 = sonuc.xyxy[i]
             tespitler.append(
                 Tespit(

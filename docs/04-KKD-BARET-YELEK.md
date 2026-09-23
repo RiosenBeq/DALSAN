@@ -1,4 +1,4 @@
-# 04 — KKD (Baret / Yelek) Tespiti: Modelin Öğretilmesi
+# 04 - KKD (Baret / Yelek) Tespiti: Modelin Öğretilmesi
 
 Bu dosya, KKD senaryosunun **nasıl kurulacağını** anlatır: veri nasıl toplanır, nasıl
 etiketlenir, model nasıl eğitilir, eşikler nasıl ayarlanır, sonuç DALSAN'a nasıl sunulur.
@@ -15,14 +15,14 @@ sistem yalnızca **yeterince büyük ve engellenmemiş** kişiler için karar ve
 |---|---|---|
 | Nesne boyutu | Büyük, görüntünün önemli kısmı | Kişi boyunun ~1/8'i |
 | Karar tipi | "Var mı?" (pozitif tespit) | **"Yok mu?" (negatif tespit)** |
-| Yanlış negatifin bedeli | Kaçırılan forklift | Kaçırılan ihlal — kabul edilebilir |
-| Yanlış pozitifin bedeli | Nadir | **Yüksek** — çalışan haksız yere uyarılır, sisteme güven biter |
-| Veri toplama | Normal operasyonda bol | **Negatif örnek yok** — herkes baret takıyor |
+| Yanlış negatifin bedeli | Kaçırılan forklift | Kaçırılan ihlal - kabul edilebilir |
+| Yanlış pozitifin bedeli | Nadir | **Yüksek** - çalışan haksız yere uyarılır, sisteme güven biter |
+| Veri toplama | Normal operasyonda bol | **Negatif örnek yok** - herkes baret takıyor |
 
 Son satır kritik: uyumlu bir fabrikada "baretsiz kişi" görüntüsü neredeyse yoktur.
 Model negatif örnek görmeden "baretsiz"i öğrenemez. Çözüm Bölüm 4'te.
 
-### Negatif tespit ilkesi — sisteme yazılan kural
+### Negatif tespit ilkesi - sisteme yazılan kural
 
 > **Kanıtın yokluğu, ihlalin varlığı değildir.**
 
@@ -54,19 +54,19 @@ geometrik olarak kişiye eşlemek.
 
 | | İki aşamalı (seçilen) | Tek aşamalı |
 |---|---|---|
-| Veri maliyeti | Kırpılmış görüntüyü klasöre atmak — **dakikada 100+ örnek** | Küçük nesne bbox'ı çizmek — dakikada ~10 |
-| Yeniden etiketleme | Ucuz — eşik değişince crop'lar yeniden bakılır | Pahalı |
+| Veri maliyeti | Kırpılmış görüntüyü klasöre atmak - **dakikada 100+ örnek** | Küçük nesne bbox'ı çizmek - dakikada ~10 |
+| Yeniden etiketleme | Ucuz - eşik değişince crop'lar yeniden bakılır | Pahalı |
 | "Belirsiz" durumu | Doğal (visibility çıkışı + düşük güven) | Zorlama |
 | Yeni KKD sınıfı ekleme | Yeni çıkış nöronu + veri | Yeni sınıf + yeniden eğitim |
 | Küçük nesnede başarı | Kırpma sayesinde çözünürlük korunur | Zayıf |
-| Görsel açıklanabilirlik | Kişi kutusu renkle işaretlenir | Baretin etrafında kutu — daha güzel |
+| Görsel açıklanabilirlik | Kişi kutusu renkle işaretlenir | Baretin etrafında kutu - daha güzel |
 
 Tek dezavantajı görsel açıklanabilirlik; MVP'de kişi kutusunun renklendirilmesi
 (yeşil = uyumlu, kırmızı = ihlal, gri = belirsiz) yeterlidir.
 
 **Ayrıca:** iki aşamalı yöntem, insan dedektörünü zaten çalıştırdığımız için
 ek GPU maliyeti neredeyse sıfırdır. 4 kamerada, 5 karede bir, kişi başına 128×256
-bir sınıflandırma — ölçülemeyecek kadar ucuz.
+bir sınıflandırma - ölçülemeyecek kadar ucuz.
 
 ---
 
@@ -77,8 +77,8 @@ Baret, kişi boyunun yaklaşık **1/8'i** kadardır. Yelek ise gövdenin ~1/3'ü
 | Kişi bbox yüksekliği | Baş bölgesi | Baret kararı | Yelek kararı |
 |---|---|---|---|
 | ≥ 200 px | ~25 px | Güvenilir | Güvenilir |
-| 120–200 px | 15–25 px | **Sınırda — çalışır ama eşik yüksek tutulmalı** | Güvenilir |
-| 80–120 px | 10–15 px | Güvenilmez → `unknown` | Sınırda |
+| 120-200 px | 15-25 px | **Sınırda - çalışır ama eşik yüksek tutulmalı** | Güvenilir |
+| 80-120 px | 10-15 px | Güvenilmez → `unknown` | Sınırda |
 | < 80 px | < 10 px | İmkânsız | Güvenilmez |
 
 **Varsayılan eşikler:** `min_person_height_px`: baret için **120**, yelek için **80**.
@@ -89,12 +89,12 @@ Baret, kişi boyunun yaklaşık **1/8'i** kadardır. Yelek ise gövdenin ~1/3'ü
 
 | Kişinin kameraya mesafesi | Yaklaşık bbox yüksekliği |
 |---|---|
-| ~8 m | 250–350 px |
-| ~15 m | 130–200 px |
-| ~25 m | 80–120 px |
-| ~40 m | 50–70 px |
+| ~8 m | 250-350 px |
+| ~15 m | 130-200 px |
+| ~25 m | 80-120 px |
+| ~40 m | 50-70 px |
 
-**Sonuç:** KKD bölgeleri **yakın alan** olmalıdır — kapı/giriş noktaları, yükleme rampası
+**Sonuç:** KKD bölgeleri **yakın alan** olmalıdır - kapı/giriş noktaları, yükleme rampası
 önü, yaya geçiş noktaları. Tüm sahaya KKD kuralı yazmak işe yaramaz; yalnızca yanlış
 "belirsiz" yığını üretir.
 
@@ -112,14 +112,14 @@ Bu ölçümün sonucu Rev.02 kapsam ek protokolüne **kamera-bölge tablosu** ol
 
 ---
 
-## 4. Veri toplama — "nasıl tanıtacaksın"
+## 4. Veri toplama - "nasıl tanıtacaksın"
 
 ### 4.1 İki tür veriye ihtiyaç var
 
 | Tür | Kaynak | Zorluk |
 |---|---|---|
-| **Pozitif** (baret var, yelek var) | Normal operasyon — bol | Kolay |
-| **Negatif** (baret yok, yelek yok) | **Normal operasyonda yok** | Zor — planlı çekim şart |
+| **Pozitif** (baret var, yelek var) | Normal operasyon - bol | Kolay |
+| **Negatif** (baret yok, yelek yok) | **Normal operasyonda yok** | Zor - planlı çekim şart |
 
 ### 4.2 Planlı çekim seansı (2. hafta)
 
@@ -128,18 +128,18 @@ Bu, DALSAN'ın sağlaması gereken en kritik destektir. Ek protokolde yazılmal�
 **Nasıl kurgulanır:**
 
 - İSG sorumlusu refakatinde, **üretim durmuşken veya düşük yoğunlukta**, kontrollü
-  bir zaman aralığı (1–2 saat)
-- 4–6 gönüllü çalışan (farklı boy, kilo, cilt tonu, iş kıyafeti)
+  bir zaman aralığı (1-2 saat)
+- 4-6 gönüllü çalışan (farklı boy, kilo, cilt tonu, iş kıyafeti)
 - Her gönüllü, **KKD bölgesinin dışında güvenli bir alanda değil**, tam olarak kuralın
   uygulanacağı bölgede ve o kameranın açısında yürüsün
-- Senaryo listesi (her biri 2–3 dk):
-  1. Baret + yelek (uyumlu) — yürüyerek, durarak, kameraya sırtı dönük
+- Senaryo listesi (her biri 2-3 dk):
+  1. Baret + yelek (uyumlu) - yürüyerek, durarak, kameraya sırtı dönük
   2. Baret yok, yelek var
   3. Baret var, yelek yok
   4. İkisi de yok
-  5. Baret elde taşınıyor (kolda/elinde) — **politika kararı gerektirir, bkz. 5.3**
+  5. Baret elde taşınıyor (kolda/elinde) - **politika kararı gerektirir, bkz. 5.3**
   6. Kep/bere takılı, baret yok
-  7. Hi-vis mont (yelek değil) — **politika kararı**
+  7. Hi-vis mont (yelek değil) - **politika kararı**
   8. İki kişi yan yana / üst üste binen kutular
   9. Forklift kabininde oturan kişi
   10. Kısmen engellenmiş (direk, palet, araç arkası)
@@ -151,12 +151,12 @@ faaliyeti gibi planlanmalıdır, "hızlıca birkaç video çekelim" gibi değil.
 **KVKK notu:** Gönüllülerden görüntülerinin model eğitiminde kullanılacağına dair
 bilgilendirilmiş onay alınmalıdır. Bu, DALSAN'ın aydınlatma metninden ayrı bir adımdır.
 
-### 4.3 Normal operasyondan toplama (1.–4. hafta boyunca sürekli)
+### 4.3 Normal operasyondan toplama (1.-4. hafta boyunca sürekli)
 
 Sistem 2. haftadan itibaren kişi tespiti yapabilir hale gelir. O andan itibaren:
 
 - Her KKD bölgesindeki kişi crop'ları, **saatte sınırlı sayıda örneklenerek** diske yazılır
-  (ör. kamera başına saatte 60 crop, rastgele zamanlarda — aynı kişinin ardışık 200 karesi
+  (ör. kamera başına saatte 60 crop, rastgele zamanlarda - aynı kişinin ardışık 200 karesi
   değil)
 - Bu, pozitif örnekleri ve **gerçek çeşitliliği** (ışık, toz, hava, vardiya, kıyafet)
   ücretsiz toplar
@@ -176,7 +176,7 @@ yeniden başlatma gerekmez. Kapı okunamazsa kapalı sayılır. Ayrıca:
 Yüz, isim, sicil ve iz → personel eşlemesi hiçbir yerde saklanmaz; bunu taşıyacak
 bir sütun olmadığını `tests/test_kkd_toplama_kapisi.py` denetler.
 
-### 4.4 Kamu veri setleri — başlangıç için, tek başına asla yeterli değil
+### 4.4 Kamu veri setleri - başlangıç için, tek başına asla yeterli değil
 
 Açık baret veri setleri (hard hat / safety helmet tipi setler, Roboflow Universe ve
 benzeri kaynaklarda bulunur) modelin **ön eğitimi** için değerlidir: negatif örnek
@@ -188,7 +188,7 @@ Ama alan farkı (domain gap) büyüktür ve DALSAN'a özgü iki sebeple daha da 
    setlerinde bu koşul yoktur.
 2. **Kamera açısı.** Kamu setleri çoğunlukla göz hizası fotoğraflardır; güvenlik
    kameraları yukarıdan bakar. Yukarıdan bakışta baret **daha görünür** (avantaj),
-   yüz ise görünmez (dezavantaj — "baş var ama baret yok" kararı zorlaşır).
+   yüz ise görünmez (dezavantaj - "baş var ama baret yok" kararı zorlaşır).
 
 **Kural:** Kamu verisiyle ön eğit, **DALSAN crop'larıyla ince ayar yap**, değerlendirmeyi
 **yalnızca DALSAN verisiyle** yap. Kamu verisindeki başarı oranı müşteriye asla
@@ -198,9 +198,9 @@ rapor edilmez.
 
 | Veri | Hedef | Minimum |
 |---|---|---|
-| Toplam kişi crop'u (DALSAN) | 4.000–6.000 | 2.500 |
-| Bunun içinde `helmet: no` | 800–1.500 | 500 |
-| Bunun içinde `vest: no` | 800–1.500 | 500 |
+| Toplam kişi crop'u (DALSAN) | 4.000-6.000 | 2.500 |
+| Bunun içinde `helmet: no` | 800-1.500 | 500 |
+| Bunun içinde `vest: no` | 800-1.500 | 500 |
 | Bunun içinde `unknown` (engellenmiş/küçük) | 500+ | 300 |
 | Farklı kişi sayısı | ≥ 15 | 8 |
 | Farklı gün sayısı | ≥ 8 | 4 |
@@ -215,7 +215,7 @@ yanlış alarmı azaltan en güçlü tek unsurdur.
 
 ### 5.1 Araç
 
-- **CVAT** (kendi sunucunda, ücretsiz) veya **Label Studio** — sınıflandırma projesi
+- **CVAT** (kendi sunucunda, ücretsiz) veya **Label Studio** - sınıflandırma projesi
 - Ya da en basiti: crop'ları klasörlere ayır → `helmet_yes/`, `helmet_no/`, `helmet_unknown/`
   ve aynısı yelek için. 4.000 crop için klasör yöntemi CVAT kurmaktan hızlıdır.
 - **Öneri:** 5. haftadan sonra sistemin kendi olay ekranına küçük bir "etiketle" butonu
@@ -262,14 +262,14 @@ bozuktur ve yeniden etiketleme gerektirir.
 
 Cevaplar `docs/kkd-politika.md` olarak yazılır ve etiketleme kılavuzunun ekidir.
 
-### 5.4 Veri bölme — rastgele bölme YASAK
+### 5.4 Veri bölme - rastgele bölme YASAK
 
 Crop'lar **zaman ve kamera** bazında bölünür:
 
 ```
-train: 1.–5. günlerin verisi
+train: 1.-5. günlerin verisi
 val:   6. gün
-test:  7.–8. gün + planlı çekim seansının bir bölümü
+test:  7.-8. gün + planlı çekim seansının bir bölümü
 ```
 
 **Neden:** Rastgele bölmede aynı kişinin aynı saniyedeki 5 karesi hem train hem test'e
@@ -299,7 +299,7 @@ Zor örnekler (`zor_ornek` sütunu) KKD sayfasında kart başına işaretlenir; 
 
 ### 6.1 Mimari
 
-- **Omurga:** ImageNet ön eğitimli hafif sınıflandırıcı — MobileNetV3-Large,
+- **Omurga:** ImageNet ön eğitimli hafif sınıflandırıcı - MobileNetV3-Large,
   EfficientNet-B0 veya ResNet-18 sınıfı. 4 kameralı bir sistemde bunların hepsi
   fazlasıyla hızlıdır; seçim bakım kolaylığına göre yapılır.
 - **Giriş:** kişi crop'u, üstten %10 padding ile, **128×256** (portre en-boy korunur)
@@ -307,20 +307,20 @@ Zor örnekler (`zor_ornek` sütunu) KKD sayfasında kart başına işaretlenir; 
   (her çift kendi içinde softmax; `unknown` **ayrı sınıf değil**, düşük güvenden türer)
 
 Alternatif ve daha temiz olan: her KKD için 3 sınıflı softmax (`yes`/`no`/`unknown`).
-`unknown`'ı etiketlediğimiz için bu mümkündür ve **tercih edilendir** — model
+`unknown`'ı etiketlediğimiz için bu mümkündür ve **tercih edilendir** - model
 "göremiyorum"u açıkça öğrenir.
 
 ### 6.2 Augmentasyon
 
 | Uygula | Uygulama |
 |---|---|
-| Renk/parlaklık/kontrast jitter | **Şart** — toz, gün ışığı, sodyum lamba |
-| Rastgele oklüzyon (cutout) | **Şart** — palet/direk arkası |
+| Renk/parlaklık/kontrast jitter | **Şart** - toz, gün ışığı, sodyum lamba |
+| Rastgele oklüzyon (cutout) | **Şart** - palet/direk arkası |
 | Yatay çevirme | Evet |
 | Hafif döndürme (±10°) | Evet |
-| Gauss bulanıklık + JPEG bozulması | Evet — RTSP sıkıştırma artefaktlarını taklit eder |
-| Rastgele ölçekleme + yeniden büyütme | **Şart** — uzak/küçük kişileri simüle eder |
-| **Dikey çevirme** | **Asla** — insan ters durmaz, model bozulur |
+| Gauss bulanıklık + JPEG bozulması | Evet - RTSP sıkıştırma artefaktlarını taklit eder |
+| Rastgele ölçekleme + yeniden büyütme | **Şart** - uzak/küçük kişileri simüle eder |
+| **Dikey çevirme** | **Asla** - insan ters durmaz, model bozulur |
 
 ### 6.3 Sınıf dengesizliği
 
@@ -332,7 +332,7 @@ gerçek dünyadaki oranı bozar; bu yüzden eşik ayarı **doğal dağılımlı 
 ### 6.4 Güven kalibrasyonu
 
 Ham softmax çıktısı aşırı güvenlidir. Val seti üzerinde **sıcaklık ölçeklemesi
-(temperature scaling)** uygulanır — 20 satır kod. Bunsuz `min_confidence: 0.7`
+(temperature scaling)** uygulanır - 20 satır kod. Bunsuz `min_confidence: 0.7`
 gibi bir eşik anlamsız bir sayıdır.
 
 ### 6.5 Eğitim maliyeti
@@ -350,7 +350,7 @@ yüklenmez; Olaylar'a "Model yüklenemedi" düşer ve KKD sayfası sebebini yaza
 
 | | Sözleşme |
 |---|---|
-| Girdi | Tek girdi, `float32 [N, 3, 256, 128]`: **RGB**, 0–1 aralığı (255'e bölünmüş). N değişken olursa karedeki kişiler tek çağrıda verilir; 1 sabitse tek tek |
+| Girdi | Tek girdi, `float32 [N, 3, 256, 128]`: **RGB**, 0-1 aralığı (255'e bölünmüş). N değişken olursa karedeki kişiler tek çağrıda verilir; 1 sabitse tek tek |
 | Normalizasyon | Ortalama/sapma **modelin içindedir** (dışa aktarırken grafa eklenir). Ürün ikinci bir ön işleme bilmez: iki taraf ayrı normalizasyon yapıp sessizce ayrışamaz |
 | Çıktı | `baret` ve `yelek` adlı iki çıktı; her biri `[N, 3]` **olasılık** (softmax ve §6.4'teki sıcaklık ölçeklemesi modelin içinde), sıra **[var, yok, görünmüyor]** |
 | Kart | ONNX `custom_metadata_map`: sürüm, veri penceresi (tarih aralığı, kamera listesi), bölme özeti, test metrikleri, eğitim tarihi, kaynak veri setleri ve lisansları. KKD sayfası olduğu gibi gösterir |
@@ -414,11 +414,11 @@ Sınıflandırıcı **kare bazında** çıktı verir. Kural motoru **track bazı
 
 ### 7.1 Zamansal oylama
 
-Her `person` track'i için son N değerlendirmenin (kare değil — 5 karede bir
+Her `person` track'i için son N değerlendirmenin (kare değil - 5 karede bir
 değerlendiriliyor) kayan penceresi tutulur:
 
 ```python
-# rules/ppe.py — saf mantık, CV bağımlılığı yok
+# rules/ppe.py - saf mantık, CV bağımlılığı yok
 def evaluate_ppe(track_history, params) -> PpeDecision:
     # 1. Bölge içinde mi ve yeterince uzun süredir mi
     # 2. Yeterli sayıda geçerli (unknown olmayan) gözlem var mı
@@ -449,18 +449,18 @@ Kişi 3 saniye bölgede kalacak, 15 gözlemin en az 8'i geçerli olacak, bunlar�
 yakın hale getirir.
 
 Bedeli: bölgeden 2 saniyede geçen baretsiz kişi **kaçırılır.** Bu kabul edilmiş
-bir takastır — `00-PROJE-BAGLAMI.md`'deki "yanlış alarm, kaçırılan ihlalden
+bir takastır - `00-PROJE-BAGLAMI.md`'deki "yanlış alarm, kaçırılan ihlalden
 daha maliyetlidir" ilkesinin doğrudan sonucudur.
 
 ---
 
-## 8. Ölçme ve eşik ayarı (7. hafta — K11)
+## 8. Ölçme ve eşik ayarı (7. hafta - K11)
 
 ### 8.1 Doğru metrik
 
 **Kare bazlı doğruluk (accuracy) raporlanmaz.** Anlamsızdır ve yanıltıcıdır.
 
-Raporlanacak metrik: **track bazlı hassasiyet (precision)** —
+Raporlanacak metrik: **track bazlı hassasiyet (precision)** -
 "sistem ihlal dedi, gerçekten ihlal miydi?"
 
 ```
@@ -470,7 +470,7 @@ precision = doğru ihlal olayları / toplam ihlal olayları
 Hedef: **≥ 0.90**. Yani üretilen her 10 uyarıdan en az 9'u gerçek olmalı.
 
 Duyarlılık (recall) da ölçülür ve **dürüstçe raporlanır**, ama sözleşmeye
-taahhüt olarak yazılmaz — çünkü "kaç ihlali kaçırdık" sorusunun gerçek cevabı
+taahhüt olarak yazılmaz - çünkü "kaç ihlali kaçırdık" sorusunun gerçek cevabı
 ancak tam manuel sayımla bilinir.
 
 ### 8.2 Ölçüm prosedürü
@@ -522,7 +522,7 @@ yazılır. Bu olmadan "model iyileşti mi" sorusu cevaplanamaz.
 
 ---
 
-## 10. DALSAN'a sunum — özet mesaj
+## 10. DALSAN'a sunum - özet mesaj
 
 Toplantıda söylenecek üç cümle:
 

@@ -115,7 +115,7 @@ def test_olcum_kodun_adina_eklenir(baglanti):
             detay={"mesafe_m": 1.42},
         ),
     )
-    assert olay["ozet"] == "Araç–yaya yakınlığı — 1,42 m"
+    assert olay["ozet"] == "Araç-yaya yakınlığı - 1,42 m"
 
 
 def test_yedek_kodda_bolge_tipi_yazilir(baglanti):
@@ -125,7 +125,7 @@ def test_yedek_kodda_bolge_tipi_yazilir(baglanti):
             baglanti, kod="ZONE_INTRUSION", onem="medium", detay={"bolge_tipi": "ppe_required"}
         ),
     )
-    assert olay["ozet"] == "Bölge ihlali — KKD zorunlu alan"
+    assert olay["ozet"] == "Bölge ihlali - KKD zorunlu alan"
 
 
 def test_eski_olayin_yazisi_degismez(baglanti):
@@ -134,7 +134,7 @@ def test_eski_olayin_yazisi_degismez(baglanti):
         baglanti,
         _olay_ekle(baglanti, kural_tipi="ppe_violation", detay={"eksik_kkd": ["helmet"]}),
     )
-    assert olay["ozet"] == "KKD (baret/yelek) — baret yok"
+    assert olay["ozet"] == "KKD (baret/yelek) - baret yok"
     assert olay["onem"] == "" and not olay["suruyor"] and olay["sure_metni"] == ""
 
 

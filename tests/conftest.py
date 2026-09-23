@@ -5,7 +5,7 @@ uygulamayı çalıştığı gibi `app.` paketi olarak import eder.
 
 Testler app.main'i BİLEREK import etmez: main.py import anında gerçek .env'i
 okur ve gerçek log dosyasına yazar. Testler yan etkisiz app.uygulama
-fabrikasını geçici klasörler ve analiz=False ile kullanır — gerçek veri/
+fabrikasını geçici klasörler ve analiz=False ile kullanır - gerçek veri/
 klasörüne dokunulmaz, kamera/tespit iş parçacığı başlamaz.
 """
 
@@ -23,7 +23,7 @@ KOK = Path(__file__).resolve().parents[1]
 # ---------------------------------------------------------------------------
 # Ortamı olmayan testler ATLANIR, KIRILMAZ
 #
-# NEDEN — bu testlerin bir kısmı kodu değil, DEPONUN ve GELİŞTİRME
+# NEDEN - bu testlerin bir kısmı kodu değil, DEPONUN ve GELİŞTİRME
 # ORTAMININ özelliklerini korur: .bat dosyalarının CRLF kalması, Mac
 # başlatıcısının çalıştırma izni, üretim tarifinin çalışması. Program ZIP
 # olarak indirildiyse `.git` klasörü yoktur; PyInstaller da bilerek
@@ -77,7 +77,7 @@ pyinstaller_gerekli = pytest.mark.skipif(
 
 @pytest.fixture
 def test_ayarlari(tmp_path: Path):
-    """Geçici klasöre işaret eden ayarlar — gerçek veri/ klasörüne dokunulmaz."""
+    """Geçici klasöre işaret eden ayarlar - gerçek veri/ klasörüne dokunulmaz."""
     from app.ayarlar import Ayarlar
 
     veri = tmp_path / "veri"

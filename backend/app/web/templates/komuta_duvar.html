@@ -1,4 +1,4 @@
-{# Canlı duvar — tüm kameralar tek ekranda.
+{# Canlı duvar - tüm kameralar tek ekranda.
 
    Tasarım 24 kamerayı 6 sütuna diziyor; buradaki ızgara GERÇEK kamera
    sayısına uyar (backend/app/web/komuta.py → duvar_sutun_sayisi) ve boş kutu
@@ -30,7 +30,7 @@
       {% for kam in kameralar %}
       <a class="duvar-kutu onizleme-kutu {% if kam.acik_ihlal %}ihlalli{% endif %}"
          href="/kameralar/{{ kam.id }}"
-         title="{{ kam.ad }}{% if kam.alan %} · {{ kam.alan }}{% endif %} — {{ kam.durum }}">
+         title="{{ kam.ad }}{% if kam.alan %} · {{ kam.alan }}{% endif %} - {{ kam.durum }}">
         {% if kam.canli %}
         <img class="canli-onizleme" data-kamera="{{ kam.id }}"
              data-aralik="{{ tazeleme_ms }}" alt="">
@@ -61,5 +61,5 @@
 
 {% endblock %}
 {% block betikler %}
-<script src="/static/onizleme.js?v=38"></script>
+<script src="/static/onizleme.js?v=39"></script>
 {% endblock %}

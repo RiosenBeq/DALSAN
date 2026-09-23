@@ -1,9 +1,9 @@
 {% extends "temel.html" %}
 {% from "bilesen.html" import oge_rozeti, durum_hapi, onem_hapi, surec_hapi %}
-{% block baslik %}Olay {{ olay.id }} — DALSAN İSG{% endblock %}
+{% block baslik %}Olay {{ olay.id }} - DALSAN İSG{% endblock %}
 {% block icerik %}
   <div class="baslik-satiri">
-    <h2 class="simgeli">{{ oge_rozeti(olay.oge) }} Olay #{{ olay.id }} — {{ olay.ozet }}</h2>
+    <h2 class="simgeli">{{ oge_rozeti(olay.oge) }} Olay #{{ olay.id }} - {{ olay.ozet }}</h2>
     <a href="/olaylar">← Olaylar</a>
   </div>
 
@@ -21,8 +21,8 @@
       <tr><th>Neden bitti</th><td>{{ olay.kapanis_sebebi_adi }}</td></tr>
       {% endif %}
       <tr><th>Önem</th><td>{{ onem_hapi(olay) }}{% if olay.kod_adi %} <span class="soluk-metin">{{ olay.kod_adi }} · <code>{{ olay.event_code }}</code></span>{% endif %}</td></tr>
-      <tr><th>Kamera</th><td>{{ olay.kamera_adi or "—" }} {{ "(" + olay.kamera_alani + ")" if olay.kamera_alani }}</td></tr>
-      <tr><th>Durum</th><td>{% if olay.event_type == "violation" %}{{ durum_hapi(olay.status, olay.durum_adi) }}{% else %}{{ olay.durum_adi }}{% endif %}{% if olay.note %} — Not: {{ olay.note }}{% endif %}</td></tr>
+      <tr><th>Kamera</th><td>{{ olay.kamera_adi or "-" }} {{ "(" + olay.kamera_alani + ")" if olay.kamera_alani }}</td></tr>
+      <tr><th>Durum</th><td>{% if olay.event_type == "violation" %}{{ durum_hapi(olay.status, olay.durum_adi) }}{% else %}{{ olay.durum_adi }}{% endif %}{% if olay.note %} - Not: {{ olay.note }}{% endif %}</td></tr>
     </table>
   </section>
 
@@ -36,7 +36,7 @@
   {% if olay.event_type == 'violation' %}
   <section class="kart">
     <h3>Olay durumu</h3>
-    <p class="not">Her uyarıyı inceleyip işaretleyin — "Yanlış alarm" işaretleri, sistemin
+    <p class="not">Her uyarıyı inceleyip işaretleyin - "Yanlış alarm" işaretleri, sistemin
       isabetinin ölçülmesini ve KKD modelinin iyileşmesini sağlar (7. hafta ölçümü).</p>
     <form method="post" action="/olaylar/{{ olay.id }}/durum" class="satir-form">
       <select name="durum">

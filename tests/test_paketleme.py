@@ -1,6 +1,6 @@
 """Windows uygulaması (.exe) üretimi ve iki tarifin ORTAK bölümü.
 
-NEDEN BU TESTLER VAR — .exe bu bilgisayarda üretilemez. PyInstaller çapraz
+NEDEN BU TESTLER VAR - .exe bu bilgisayarda üretilemez. PyInstaller çapraz
 derleme yapmaz: Windows uygulaması ancak bir Windows bilgisayarda üretilir.
 Yani üretim tarifi, kullanıcının bilgisayarına gidene kadar HİÇ denenmemiş
 olacak; oradaki ilk deneme de yazılım bilmeyen bir kişi tarafından, bir kez
@@ -8,7 +8,7 @@ yapılacak. Tarifte bir yazım hatası varsa bunu orada keşfetmek pahalıdır.
 
 Bu yüzden burada üretimin denenebilen HER parçası deneniyor:
 
-* `.spec` dosyaları sahte bir PyInstaller ile GERÇEKTEN çalıştırılıyor —
+* `.spec` dosyaları sahte bir PyInstaller ile GERÇEKTEN çalıştırılıyor -
   yazım hatası, eksik değişken, yanlış yol anında görülüyor.
 * Açılış hatası kancasının davranışı (kayıp çıkış akışı, hata dosyası, uyarı
   penceresi metni) doğrudan çağrılarak sınanıyor.
@@ -102,7 +102,7 @@ def windows_tarifi() -> _SahtePyInstaller:
 @pytest.fixture(scope="module")
 def mac_tarifi() -> _SahtePyInstaller:
     """Mac tarifi de burada çalıştırılır: ORTAK bölümü sınayan testler
-    (simge, gizli modül) iki tarifte de aynı sonucu vermeli — birine eklenip
+    (simge, gizli modül) iki tarifte de aynı sonucu vermeli - birine eklenip
     diğerine unutulan bir satır tam olarak bu dosyanın önlemeye çalıştığı şey."""
     if not _pyinstaller_var_mi():
         pytest.skip(pyinstaller_gerekli.kwargs["reason"])
@@ -140,7 +140,7 @@ def _git(*komut: str) -> subprocess.CompletedProcess:
 def test_windows_tarifi_calistirilabiliyor(windows_tarifi):
     """En temel kontrol: tarif hatasız çalışıyor mu?
 
-    Yazım hatası, tanımsız değişken ya da yanlış yol burada görülür — üretim
+    Yazım hatası, tanımsız değişken ya da yanlış yol burada görülür - üretim
     komutunu Windows'ta ilk kez çalıştıran kişide değil.
     """
     assert "Analysis" in windows_tarifi.cagrilar
@@ -170,7 +170,7 @@ def test_iki_tarifte_de_pencere_simgesi_pakete_giriyor(windows_tarifi, mac_tarif
 
     `.exe`'ye gömülü simge onun yerini tutmaz: gömülü simge Dosya Gezgini'nde
     görünür, görev çubuğundaki pencere simgesi ise ayrı okunur. Dosya pakete
-    konmazsa Windows'ta görev çubuğunda Python'un jenerik simgesi çıkar —
+    konmazsa Windows'ta görev çubuğunda Python'un jenerik simgesi çıkar -
     yani uygulama, uygulama gibi görünmez.
     """
     for tarif in (windows_tarifi, mac_tarifi):
@@ -182,7 +182,7 @@ def test_uygulama_penceresi_modulu_pakete_giriyor(windows_tarifi, mac_tarifi):
     """Dışarıda kalırsa izleme ekranı sessizce TARAYICI SEKMESİNDE açılır.
 
     Hata vermez, günlüğe tek satır düşer ve kullanıcı yine adres çubuklu bir
-    sayfa görür — düzeltilen şeyin tam olarak geri gelmesi.
+    sayfa görür - düzeltilen şeyin tam olarak geri gelmesi.
     """
     for tarif in (windows_tarifi, mac_tarifi):
         assert "uygulama_penceresi" in tarif.kwargs("Analysis")["hiddenimports"]
@@ -190,7 +190,7 @@ def test_uygulama_penceresi_modulu_pakete_giriyor(windows_tarifi, mac_tarifi):
 
 def test_windows_paketinde_uvicorunun_gizli_modulleri_var(windows_tarifi):
     """`http="auto"` gibi ayarlar modül adını METİN olarak taşır; PyInstaller
-    tarayarak bulamaz ve pakete koymaz — sunucu o zaman hiç açılmaz."""
+    tarayarak bulamaz ve pakete koymaz - sunucu o zaman hiç açılmaz."""
     gizli = windows_tarifi.kwargs("Analysis")["hiddenimports"]
     for modul in (
         "uvicorn.lifespan.on",
@@ -207,7 +207,7 @@ def test_windows_paketinden_goruntu_isleme_cikarilmiyor(windows_tarifi):
     ANINDA yükler; çıkarılırlarsa tespit ilk karede çöker."""
     disarida = windows_tarifi.kwargs("Analysis")["excludes"]
     for zorunlu in ("matplotlib", "scipy", "numpy", "cv2", "onnxruntime", "supervision"):
-        assert zorunlu not in disarida, f"{zorunlu} çıkarılamaz — çalışma anında gerekiyor"
+        assert zorunlu not in disarida, f"{zorunlu} çıkarılamaz - çalışma anında gerekiyor"
 
 
 # ------------------------------------------------------- ortak bölüm tek yerde
@@ -223,7 +223,7 @@ def test_iki_tarif_de_ortak_bolumu_kullaniyor():
 
 
 def test_pakete_ne_konacagi_iki_tarifte_TEKRARLANMIYOR():
-    """Ortak listelerin tek bir kopyası olmalı — ikinci kopya sessizce eskir."""
+    """Ortak listelerin tek bir kopyası olmalı - ikinci kopya sessizce eskir."""
     ortak_metin = ORTAK.read_text(encoding="utf-8")
     tarifler = {s.name: s.read_text(encoding="utf-8") for s in (MAC_SPEC, WIN_SPEC)}
     for parca in (
@@ -256,7 +256,7 @@ def test_iki_tarif_ayni_uygulama_adini_kullaniyor(windows_tarifi):
 
 
 def _kod_govdesi(dosya: Path) -> str:
-    """Dosyanın YAPTIĞI iş — açıklama satırları ve başlık metni dışarıda.
+    """Dosyanın YAPTIĞI iş - açıklama satırları ve başlık metni dışarıda.
 
     Tarifler, birbirlerinden neden ayrıldıklarını uzun uzun anlatır; o
     açıklamalarda "`.icns` Windows'ta okunmaz" gibi cümleler geçer. Aranan
@@ -307,7 +307,7 @@ def test_konsol_gizli_ama_hata_gorunur_kaliyor(windows_tarifi):
     açılırken çökerse kullanıcı sebebini görebilir.
 
     Konsol gizlenip kanca takılmazsa uygulama "hiç açılmıyor" olur ve ekranda
-    tek satır bile bulunmaz — bu, teşhis edilemeyen tek durumdur.
+    tek satır bile bulunmaz - bu, teşhis edilemeyen tek durumdur.
     """
     exe = windows_tarifi.kwargs("EXE")
     assert exe["console"] is False, "siyah komut penceresi açılmamalı"
@@ -447,7 +447,7 @@ def test_betik_windows_satir_sonlariyla_yazilmis():
 def test_mac_tarifi_de_acilis_kancasini_takiyor():
     """`.app` Finder'dan açıldığında stdout/stderr hiçbir yere gitmez.
     Kanca takılı değilse, açılışta çöken uygulama SESSİZCE hiç açılmamış
-    gibi görünür — bu gerçekten yaşandı (tkinter'sız üretilen .app)."""
+    gibi görünür - bu gerçekten yaşandı (tkinter'sız üretilen .app)."""
     metin = MAC_SPEC.read_text(encoding="utf-8")
     assert "acilis_kancasi.py" in metin, "Mac tarifine açılış kancası takılmalı"
     assert "runtime_hooks=[]" not in metin, "kanca listesi boş bırakılmış"
@@ -480,7 +480,7 @@ def test_kanca_paketlenmemisken_pencere_acmiyor(kanca, monkeypatch):
 
 @git_gerekli
 def test_gitattributes_bat_dosyalarini_crlf_tutuyor():
-    """Depodan klonlayan kişi de CRLF almalı — yoksa yukarıdaki hata geri gelir."""
+    """Depodan klonlayan kişi de CRLF almalı - yoksa yukarıdaki hata geri gelir."""
     cikti = _git("git", "check-attr", "eol", "--", "paketleme/Windows-Uygulama-Uret.bat").stdout
     assert cikti.strip().endswith("eol: crlf"), cikti
 

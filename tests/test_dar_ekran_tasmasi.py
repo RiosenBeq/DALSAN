@@ -5,7 +5,7 @@ sayfaları 139 px yana kayıyordu. Kullanıcı sağa kaydırmadan "Kaydet"
 düğmesini bile göremiyordu.
 
 SEBEP: Izgara (grid) ve esnek kutu (flex) gözlerinin varsayılan en az
-genişliği `min-width: auto`dur — yani göz, İÇİNDEKİ EN GENİŞ SATIR kadar yer
+genişliği `min-width: auto`dur - yani göz, İÇİNDEKİ EN GENİŞ SATIR kadar yer
 ister. Kural formundaki açılır listelerde uzun seçenekler var:
 
     "Bölge DIŞINDA olmak ihlal (örn. yaya yolunu kullanmamak)"
@@ -38,7 +38,7 @@ FORM_SABLONLARI = ("kural_form.html", "kamera_form.html", "kamera_detay.html")
 def _kurallar(css: str) -> list[tuple[list[str], dict[str, str]]]:
     """Basit CSS ayrıştırıcı: (seçici listesi, bildirimler) çiftleri.
 
-    @media gibi iç içe blokları düzleştirir — bu testler için yeterli;
+    @media gibi iç içe blokları düzleştirir - bu testler için yeterli;
     aranan kurallar iç içe bloklarda değil.
     """
     css = re.sub(r"/\*.*?\*/", "", css, flags=re.DOTALL)
@@ -99,7 +99,7 @@ def test_kanal_formu_da_daralir():
 def test_form_genisligi_sabit_piksel_degil():
     """`.dikey-form.dar` 460 px'i SABİT genişlik olursa 375 px'lik ekran taşar.
 
-    `max-width` daralabilir, `width` daralamaz — aradaki fark telefonda
+    `max-width` daralabilir, `width` daralamaz - aradaki fark telefonda
     doğrudan yatay kaymaya dönüşür.
     """
     kurallar = _kurallar(STIL.read_text(encoding="utf-8"))

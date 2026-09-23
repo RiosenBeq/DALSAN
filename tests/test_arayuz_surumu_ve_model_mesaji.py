@@ -4,7 +4,7 @@
    hata "hâlâ duruyor" görünür ve sorun yanlış yerde aranır. Kullanıcı
    yazılımcı değil; "sert yenile" bilinen bir hamle değildir (CLAUDE.md §8).
 2. Model indirme hatası: ekranda ham GitHub adresi ne yapılacağını söylemez.
-   Adres günlüğe yazılmaya devam etmeli — destek akışı oradan kopyalanıyor.
+   Adres günlüğe yazılmaya devam etmeli - destek akışı oradan kopyalanıyor.
 """
 
 from __future__ import annotations
@@ -19,7 +19,7 @@ SABLON_DIZINI = KOK / "backend" / "app" / "web" / "templates"
 STATIK_DIZINI = KOK / "backend" / "app" / "web" / "static"
 
 # href="/static/stil.css?v=7" ve src="/static/canli.js?v=7" satırlarını yakalar.
-# .svg de kapsanır: simge sprite'ı ve logo da sürümlenmeli — sprite damgasız
+# .svg de kapsanır: simge sprite'ı ve logo da sürümlenmeli - sprite damgasız
 # kalırsa yeni eklenen bir simge, tarayıcı eski dosyayı önbellekten verdiği
 # için sessizce BOŞLUK olarak çizilir (eksik <use> hedefi hata üretmez).
 _STATIK_CAGRI = re.compile(r'(?:src|href)="(/static/[^"?#]+\.(?:js|css|svg))(\?v=(\d+))?"')
@@ -48,7 +48,7 @@ def test_her_js_ve_css_cagrisinda_surum_var():
 
 def test_tum_statik_cagrilari_ayni_surumde():
     """Tek sürüm numarası: biri güncellenip diğeri unutulursa sayfa yarı eski,
-    yarı yeni JS ile çalışır — teşhisi en zor durum budur."""
+    yarı yeni JS ile çalışır - teşhisi en zor durum budur."""
     surumler = {surum for _, _, surum in _statik_cagrilar() if surum}
     assert len(surumler) == 1, f"Tek bir sürüm numarası kullanılmalı, bulunan: {sorted(surumler)}"
 
@@ -101,7 +101,7 @@ def test_indirme_hatasi_gunlugunde_tam_adres_duruyor():
 
 
 def test_sertifika_hatasi_dogru_teshisi_koruyor():
-    """Sertifika sorununda 'internetinizi kontrol edin' YANLIŞ teşhistir —
+    """Sertifika sorununda 'internetinizi kontrol edin' YANLIŞ teşhistir -
     kullanıcı saatlerce modemle uğraşır. Doğru çözüm korunmalı."""
     kullanici, _, _ = _metinler(
         urllib.error.URLError(ssl.SSLCertVerificationError("CERTIFICATE_VERIFY_FAILED"))

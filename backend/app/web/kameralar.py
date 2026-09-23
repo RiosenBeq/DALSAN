@@ -73,7 +73,7 @@ def kamera_listesi(istek: Request, baglanti=Depends(baglanti_al)):
         kamera = dict(satir)
         kamera["maskeli_url"] = rtsp_maskele(kamera["source_url"])
         kamera["son_kare"] = (
-            zaman.ekranda_goster(kamera["last_frame_at"]) if kamera["last_frame_at"] else "—"
+            zaman.ekranda_goster(kamera["last_frame_at"]) if kamera["last_frame_at"] else "-"
         )
         kamera["rozet"], kamera["rozet_rengi"] = _rozet(kamera)
         kameralar.append(kamera)
@@ -270,7 +270,7 @@ def kamera_durumu(istek: Request, kamera_id: int, baglanti=Depends(baglanti_al))
     if not kamera["enabled"]:
         return {
             "durum": "pasif",
-            "mesaj": "Kamera pasif — izlenmiyor. Aşağıdaki 'Kamera aktif' kutusunu "
+            "mesaj": "Kamera pasif - izlenmiyor. Aşağıdaki 'Kamera aktif' kutusunu "
             "işaretleyip Kaydet'e basın.",
         }
     supervizor = getattr(istek.app.state, "supervizor", None)
@@ -293,7 +293,7 @@ def _sayimlari_adlandir(baglanti, kamera_id: int, sayimlar: list[dict]) -> list[
     """Sayım tablosuna bölge ADINI ve Türkçe sınıf adlarını ekler.
 
     Analiz katmanı bölgeyi yalnızca id ile bilir; ekranda id gösterilemez.
-    Adlar burada, ekrana en yakın yerde eklenir — böylece bir bölgenin adı
+    Adlar burada, ekrana en yakın yerde eklenir - böylece bir bölgenin adı
     değişince analiz iş parçacığının yeniden yüklenmesi gerekmez.
     """
     if not sayimlar:
@@ -325,7 +325,7 @@ def _sayimlari_adlandir(baglanti, kamera_id: int, sayimlar: list[dict]) -> list[
 def sayaci_sifirla(istek: Request, kamera_id: int, baglanti=Depends(baglanti_al)):
     """Vardiya başı: 'kaç tane girdi' sayaçlarını sıfırlar.
 
-    ANLIK sayı sıfırlanmaz — o, o anda görülen gerçektir (rules/sayim.py).
+    ANLIK sayı sıfırlanmaz - o, o anda görülen gerçektir (rules/sayim.py).
     """
     _kamera_getir(baglanti, kamera_id)
     supervizor = getattr(istek.app.state, "supervizor", None)
@@ -389,7 +389,7 @@ def bolge_guncelle(
     polygon: str = Form(""),  # boş → mevcut çizim korunur (yalnız ad/tip değişir)
     baglanti=Depends(baglanti_al),
 ):
-    """Bölgenin adını, tipini ve çizimini DEĞİŞTİRİR — silmeden.
+    """Bölgenin adını, tipini ve çizimini DEĞİŞTİRİR - silmeden.
 
     Bu uç nokta olmadan, adını düzeltmek isteyen kullanıcının tek yolu bölgeyi
     silmekti; silme ise (şemadaki ON DELETE CASCADE yüzünden) o bölgeye bağlı
@@ -403,7 +403,7 @@ def bolge_guncelle(
     noktalar = _poligon_dogrula(polygon if polygon.strip() else bolge["polygon"])
 
     # KKD kuralı YALNIZCA 'KKD zorunlu alan' bölgesinde çalışır. Tip değişirse
-    # kural kayıtta kalır ama hiçbir zaman uyarı üretmezdi — sessiz başarısızlık.
+    # kural kayıtta kalır ama hiçbir zaman uyarı üretmezdi - sessiz başarısızlık.
     if zone_type != "ppe_required" and bolge["zone_type"] == "ppe_required":
         kkd_kurali = baglanti.execute(
             "SELECT 1 FROM rules WHERE zone_id = ? AND rule_type = 'ppe_violation'",
@@ -534,13 +534,13 @@ def _kamera_dogrula(name: str, source_type: str, source_url: str, sample_fps: fl
     if not adres:
         raise DogrulamaHatasi(
             "Kaynak adresi boş olamaz. RTSP örneği: rtsp://kullanici:sifre@192.168.1.64:554/... "
-            "— Video dosyası örneği: /Users/adiniz/Desktop/test.mp4"
+            "- Video dosyası örneği: /Users/adiniz/Desktop/test.mp4"
         )
     if source_type == "rtsp":
         if not adres.lower().startswith("rtsp://"):
             raise DogrulamaHatasi(
                 "RTSP adresi rtsp:// ile başlamalı. Örnek: "
-                "rtsp://kullanici:sifre@192.168.1.64:554/Streaming/Channels/102 — "
+                "rtsp://kullanici:sifre@192.168.1.64:554/Streaming/Channels/102 - "
                 "Bilgisayardaki bir video dosyasını izlemek için kaynak tipini "
                 "'Video dosyası' yapın."
             )
@@ -552,7 +552,7 @@ def _kamera_dogrula(name: str, source_type: str, source_url: str, sample_fps: fl
     yol = dosya_yolu_duzelt(adres)
     if not Path(yol).is_file():
         raise DogrulamaHatasi(
-            f"Video dosyası bulunamadı: {yol} — Dosyanın TAM yolunu yazın. "
+            f"Video dosyası bulunamadı: {yol} - Dosyanın TAM yolunu yazın. "
             "Mac'te: dosyayı Finder'da seçip Option+Command+C ile yolu kopyalayın. "
             "Windows'ta: dosyaya Shift + sağ tık → 'Yol olarak kopyala'."
         )

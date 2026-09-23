@@ -66,7 +66,7 @@ def test_gecerli_env_yukleniyor_ve_klasorler_olusuyor(tmp_path):
 
 
 def test_bos_birakilan_yol_varsayilana_dusuyor(tmp_path):
-    # "VERITABANI_YOLU=" (değeri boş) yazılırsa yol depo kökü OLMAMALI —
+    # "VERITABANI_YOLU=" (değeri boş) yazılırsa yol depo kökü OLMAMALI -
     # boş değer, hiç yazılmamış gibi varsayılana düşer.
     _env_yaz(tmp_path, "VERITABANI_YOLU=\nGORUNTU_KLASORU=\n")
     ayarlar = ayarlari_yukle(tmp_path)
@@ -77,7 +77,7 @@ def test_bos_birakilan_yol_varsayilana_dusuyor(tmp_path):
 # ------------------------------------------------- .env.example eksiksizliği
 #
 # NEDEN ÖNEMLİ: paketlenmiş programda kullanıcının kopyalayabileceği bir
-# .env.example YOKTUR — dosya paketin içindedir ve sistem ilk açılışta ondan
+# .env.example YOKTUR - dosya paketin içindedir ve sistem ilk açılışta ondan
 # BİR KEZ .env üretir (app/ayarlar.py → _ornek_envden_olustur). Örnekte
 # yazmayan bir ayarı o kullanıcı hiçbir zaman göremez ve değiştiremez;
 # .env dosyası da kullanıcı profilindedir, elle bulunması kolay değildir.

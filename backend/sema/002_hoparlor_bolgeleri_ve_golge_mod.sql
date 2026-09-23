@@ -26,7 +26,7 @@
 -- Boş `area` = "tüm fabrika": eşleşen bölüm bulunamazsa bu bölge kullanılır.
 --
 -- `address` arayüzde MASKELİ gösterilir (kullanıcı adı/şifre içeren adres
--- ekrana ham basılmaz) — kamera RTSP adresiyle aynı desen.
+-- ekrana ham basılmaz) - kamera RTSP adresiyle aynı desen.
 CREATE TABLE speaker_zones (
     id                INTEGER PRIMARY KEY,
     name              TEXT    NOT NULL,

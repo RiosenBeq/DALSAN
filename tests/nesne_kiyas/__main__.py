@@ -55,7 +55,7 @@ def main() -> int:
 
     baslangic = time.time()
     print(_CIZGI)
-    print("NESNE KÜTÜPHANESİ — KIYAS ÖLÇÜMÜ (motor değiştirilmedi, yalnız ölçüldü)")
+    print("NESNE KÜTÜPHANESİ - KIYAS ÖLÇÜMÜ (motor değiştirilmedi, yalnız ölçüldü)")
     print(_CIZGI)
 
     kiyas = takim.takim_olustur(kucuk=secenekler.kucuk)
@@ -101,16 +101,16 @@ def _bugunku_sayilar(kayitlar: list[olcum.SorguKaydi], esik: float) -> None:
     print(f"  İsabet          : %{ozet.isabet_yuzde:.1f}  ({ozet.isabet}/{ozet.pozitif} sorgu)")
     print(
         f"  ...işaret nesnenin üstünde: %{ozet.yerinde_yuzde:.1f} "
-        f"({ozet.yerinde}/{ozet.pozitif}) — gerisinde ad doğru, yer yanlış"
+        f"({ozet.yerinde}/{ozet.pozitif}) - gerisinde ad doğru, yer yanlış"
     )
     print(f"  YANLIŞ İSİM     : {ozet.yanlis_isimli_bulgu} adet   (sıfır olmalı)")
     print(
         f"    ...kütüphane DIŞI: {ozet.kutuphane_disi_yanlis} adet  "
-        f"(olmayan bir şeye ad yazıldı — {ozet.negatif} negatif sorgu içinde)"
+        f"(olmayan bir şeye ad yazıldı - {ozet.negatif} negatif sorgu içinde)"
     )
     print(
         f"    ...kütüphane İÇİ : {ozet.kutuphane_ici_yanlis} adet  "
-        f"(A nesnesine B'nin adı yazıldı — {ozet.pozitif} pozitif sorgu içinde)"
+        f"(A nesnesine B'nin adı yazıldı - {ozet.pozitif} pozitif sorgu içinde)"
     )
     print(f"  'Eşleşme yok'   : {ozet.eslesme_yok} sorgu  ({len(kayitlar)} sorgunun içinde)")
 
@@ -118,7 +118,7 @@ def _bugunku_sayilar(kayitlar: list[olcum.SorguKaydi], esik: float) -> None:
 def _esik_egrisi(ozetler: list[olcum.EsikOzeti]) -> None:
     print()
     print(_CIZGI)
-    print("2) EŞİK EĞRİSİ — çıtayı indirince ne kazanılır, ne kaybedilir?")
+    print("2) EŞİK EĞRİSİ - çıtayı indirince ne kazanılır, ne kaybedilir?")
     print(_CIZGI)
     print("   eşik | isabet |  isabet  | yerinde | YANLIŞ | kütüph. | kütüph. | eşleşme")
     print("        |        |  sayısı  |         |  İSİM  |  DIŞI   |   İÇİ   |   yok")
@@ -137,7 +137,7 @@ def _esik_egrisi(ozetler: list[olcum.EsikOzeti]) -> None:
 def _zorluk_tablosu(kayitlar: list[olcum.SorguKaydi], esik: float, baslik: str) -> None:
     print()
     print(_CIZGI)
-    print(f"3) ZORLUK KIRILIMI — {baslik} (eşik = {esik:.2f})")
+    print(f"3) ZORLUK KIRILIMI - {baslik} (eşik = {esik:.2f})")
     print(_CIZGI)
     print(
         "  nesne türü                           | sorgu | isabet | yerinde | yanlış"
@@ -154,8 +154,8 @@ def _zorluk_tablosu(kayitlar: list[olcum.SorguKaydi], esik: float, baslik: str) 
     for ozet in olcum.zorluk_kirilimi(kayitlar, esik):
         ad = takim.ZORLUK_ADLARI[ozet.zorluk]
         bos = ozet.negatif
-        isabet = "     —" if bos else f"%{ozet.isabet_yuzde:5.1f}"
-        yerinde = "      —" if bos else f" %{ozet.yerinde_yuzde:5.1f}"
+        isabet = "     -" if bos else f"%{ozet.isabet_yuzde:5.1f}"
+        yerinde = "      -" if bos else f" %{ozet.yerinde_yuzde:5.1f}"
         print(
             f"  {ad:36s} | {ozet.toplam:5d} | {isabet} | {yerinde} | {ozet.yanlis_isim:6d} |"
             f"  {ozet.ortalama_dogru_skor:.2f} / {ozet.en_dusuk_dogru_skor:.2f} |"
@@ -171,7 +171,7 @@ def _kacanlar(kayitlar: list[olcum.SorguKaydi], esik: float) -> None:
     kacan = olcum.kacirilanlar(kayitlar, esik)
     print()
     print(_CIZGI)
-    print(f"4) KAÇIRILANLAR (eşik = {esik:.2f}) — en çok yaklaşan 12 tanesi")
+    print(f"4) KAÇIRILANLAR (eşik = {esik:.2f}) - en çok yaklaşan 12 tanesi")
     print(_CIZGI)
     if not kacan:
         print("  Yok: bütün pozitif sorgular bulundu.")
@@ -186,14 +186,14 @@ def _yanlis_isimler(kayitlar: list[olcum.SorguKaydi], esik: float) -> None:
     hatalar = olcum.yanlis_isimler(kayitlar, esik)
     print()
     print(_CIZGI)
-    print(f"5) YANLIŞ İSİMLER (eşik = {esik:.2f}) — kırmızı çizgi")
+    print(f"5) YANLIŞ İSİMLER (eşik = {esik:.2f}) - kırmızı çizgi")
     print(_CIZGI)
     if not hatalar:
         print("  YOK. Sistem bu eşikte hiçbir fotoğrafa yanlış isim yazmadı.")
         return
     for baslik, kutuphane_ici in (
-        ("KÜTÜPHANE DIŞI — kütüphanede olmayan bir şeye isim yazıldı", False),
-        ("KÜTÜPHANE İÇİ  — A nesnesine B nesnesinin adı yazıldı", True),
+        ("KÜTÜPHANE DIŞI - kütüphanede olmayan bir şeye isim yazıldı", False),
+        ("KÜTÜPHANE İÇİ  - A nesnesine B nesnesinin adı yazıldı", True),
     ):
         grup = [hata for hata in hatalar if hata.kutuphane_ici == kutuphane_ici]
         print(f"\n  {baslik}: {len(grup)} adet")
@@ -227,7 +227,7 @@ def _desensiz_kaniti(kayitlar: list[olcum.SorguKaydi]) -> None:
     """
     print()
     print(_CIZGI)
-    print("6) DESEN KANITI — sorgular motorun en zayıf dalına gerçekten giriyor mu?")
+    print("6) DESEN KANITI - sorgular motorun en zayıf dalına gerçekten giriyor mu?")
     print(_CIZGI)
     print(f"  Motor bir pencereyi 'desensiz' saymak için {EN_AZ_ANAHTAR_NOKTA} anahtar noktadan")
     print("  AZ nokta ister; ancak o zaman kararı yalnız renge bırakan dal çalışır.")
@@ -241,7 +241,7 @@ def _desensiz_kaniti(kayitlar: list[olcum.SorguKaydi]) -> None:
                 continue  # eski yabancı NESNELER değil, yalnız eski boş zeminler
             print(f"  {bozulma:36s} | {tam:8d} | {desensiz:7d} / {pencere:<6d} | {ortanca:6.1f}")
     print("  (üstteki altı satır sertleştirmeyle EKLENDİ; alttakiler eski boş zeminlerdir.")
-    print("   Eski zeminlerin tam karesinde onlarca ORB noktası var — yani düz-düz dalına")
+    print("   Eski zeminlerin tam karesinde onlarca ORB noktası var - yani düz-düz dalına")
     print("   hiç girmiyorlar ve motorun en zayıf yanını hiç sınamıyorlardı.)")
 
 
@@ -249,7 +249,7 @@ def _sert_vakalar(kayitlar: list[olcum.SorguKaydi]) -> None:
     """Sertleştirilmiş vakaların iki çıtadaki tablosu."""
     print()
     print(_CIZGI)
-    print("7) SERTLEŞTİRİLMİŞ VAKALAR — bugünkü motor, iki çıtada")
+    print("7) SERTLEŞTİRİLMİŞ VAKALAR - bugünkü motor, iki çıtada")
     print(_CIZGI)
     print("   çıta | yanlış isim | kütüph. | kütüph. | isabet  | yerinde | ad yazılan düz")
     print("        |   işaret    |  DIŞI   |   İÇİ   |         |         | yabancı sorgu")
@@ -288,7 +288,7 @@ def _sonuc_cumlesi(
             f"yanlış isim {bugun.yanlis_isimli_bulgu}."
         )
     if en_iyi is None:
-        print("  Taranan hiçbir eşikte yanlış isim sıfıra inmedi — önce bu düzeltilmeli.")
+        print("  Taranan hiçbir eşikte yanlış isim sıfıra inmedi - önce bu düzeltilmeli.")
         return
     print(
         f"  Yanlış isim SIFIR kalırken en yüksek isabeti veren eşik: {en_iyi.esik:.2f} "

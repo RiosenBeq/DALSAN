@@ -1,6 +1,6 @@
 """Bilgisayara bağlı ses ÇIKIŞLARINI listeler (Bluetooth hoparlör dahil).
 
-NEDEN VAR — anons "ses kartı" kipinde çalınca ses, işletim sisteminin
+NEDEN VAR - anons "ses kartı" kipinde çalınca ses, işletim sisteminin
 VARSAYILAN çıkışına gider. Bunun iki sonucu vardı ve ikisi de sessizdi:
 
 1. Kullanıcı fabrikaya Bluetooth bir hoparlör koyuyor, ama ses dizüstünün
@@ -11,7 +11,7 @@ VARSAYILAN çıkışına gider. Bunun iki sonucu vardı ve ikisi de sessizdi:
 Bu modül iki soruyu cevaplar: "bu bilgisayarda hangi ses çıkışları var" ve
 "seçtiğim çıkış hâlâ bağlı mı".
 
-CİHAZ SEÇİMİ HER YERDE YAPILAMAZ — dürüst olmak gerekiyor:
+CİHAZ SEÇİMİ HER YERDE YAPILAMAZ - dürüst olmak gerekiyor:
 
   Linux (fabrika sunucusu)  paplay/aplay çıkışı ADIYLA alır. Seçim GERÇEKTEN
                             çalışır; Bluetooth hoparlör de bir "sink"tir.
@@ -27,7 +27,7 @@ kullanıcı listeden hoparlörü seçer, ses başka yerden çıkar ve sebebini
 hiçbir zaman öğrenemezdi. Bunun yerine ekran ne yapılacağını söylüyor.
 
 EK KURULUM YOK (CLAUDE.md §3): her platformda İŞLETİM SİSTEMİYLE HAZIR GELEN
-araçlar kullanılıyor — pactl/aplay (Linux), system_profiler (macOS),
+araçlar kullanılıyor - pactl/aplay (Linux), system_profiler (macOS),
 PowerShell (Windows). sounddevice/pyaudio gibi paketler PortAudio'nun yerel
 ikili dosyalarını ister; paketlemede en kolay kırılan parça odur.
 """

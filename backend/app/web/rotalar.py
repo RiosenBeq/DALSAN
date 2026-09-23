@@ -52,7 +52,7 @@ def _sifre_kurulu(istek) -> bool:
 
     Jinja globali olarak verilir; böylece çıkış düğmesini ve "şifre yok"
     uyarısını göstermek için yirmi rotanın bağlamına alan eklemek gerekmez.
-    Şifrenin KENDİSİ şablona hiç geçmez — yalnızca doğru/yanlış.
+    Şifrenin KENDİSİ şablona hiç geçmez - yalnızca doğru/yanlış.
     """
     return bool(getattr(istek.app.state.ayarlar, "yonetici_sifresi", ""))
 
@@ -80,7 +80,7 @@ sablonlar.env.globals["SAGLIK_SORUN_METINLERI"] = SAGLIK_SORUN_METINLERI
 # GİRİŞ İSTEMEYEN rotalar. Yalnız iki tane vardır ve ikisi de sistem bilgisi
 # taşımaz: tarayıcı simgesi ve canlılık yoklaması. Ayrı bir router olmalarının
 # nedeni, uygulama fabrikasının (uygulama.py) diğer her şeyi tek satırda yetki
-# kapısının arkasına koyabilmesidir — "hangi rota korumasızdı" sorusunun
+# kapısının arkasına koyabilmesidir - "hangi rota korumasızdı" sorusunun
 # cevabı tek yerde durur.
 acik_router = APIRouter()
 
@@ -94,7 +94,7 @@ def ana_sayfa(istek: Request, yedek: str = "", baglanti=Depends(baglanti_al)):
 
     disk = shutil.disk_usage(ayarlar.veri_dizini)
 
-    # Son 24 saatin olay sayıları — "sistem gerçekten çalışıyor mu" sorusunun
+    # Son 24 saatin olay sayıları - "sistem gerçekten çalışıyor mu" sorusunun
     # ekrandaki tek cevabı (docs/01 §3.5)
     gun_siniri = zaman.gun_once_utc(1)
     ihlal_24s = baglanti.execute(
@@ -160,7 +160,7 @@ def favicon():
     Sayfa şablonları simgeyi zaten <link rel="icon"> ile bildiriyor, ama
     tarayıcı HTML OLMAYAN yanıtlarda (ör. /saglik'in JSON'u) o etiketi
     göremez ve /favicon.ico'yu dener. Bu rota olmadan her böyle istekte
-    tarayıcı konsoluna 404 düşüyordu — sistemde bir arıza olduğu izlenimi
+    tarayıcı konsoluna 404 düşüyordu - sistemde bir arıza olduğu izlenimi
     veren, aslında olmayan bir hata.
     """
     simge = kaynaklar.kaynak_yolu("backend", "app", "web", "static", "logo.svg")
@@ -171,7 +171,7 @@ def favicon():
 
 # "hazir" değerini bozan sorunlar (docs/17 §9.1). Öbürleri (ör.
 # kritik_kural_pasif, ort_paket_cakismasi) listede görünür ama hazırlığı
-# bozmaz: yapılandırma eksiğidir, hizmet arızası değil — Docker healthcheck'i
+# bozmaz: yapılandırma eksiğidir, hizmet arızası değil - Docker healthcheck'i
 # "unhealthy" yapmamalı. Ekran yine kırmızı gösterir.
 HAZIRLIGI_BOZAN_SORUNLAR = frozenset(
     {
@@ -254,14 +254,14 @@ def _saglik_ayrintisi(ayarlar, supervizor) -> dict:
         try:
             ayrinti["analiz_tur_yasi_sn"] = supervizor.analiz_tur_yasi()
             ayrinti["kameralar"] = supervizor.kamera_saglik_ozeti()
-        except Exception as hata:  # noqa: BLE001 — sağlık ucu 200 dönmeye devam etmeli
+        except Exception as hata:  # noqa: BLE001 - sağlık ucu 200 dönmeye devam etmeli
             log_al("sistem").error(f"Sağlık ayrıntısı toplanamadı: {hata}", exc_info=hata)
     return ayrinti
 
 
 @router.post("/yedekle")
 def yedekle(istek: Request):
-    """Veritabanının güvenli anlık kopyası (SQLite backup API — WAL uyumlu)."""
+    """Veritabanının güvenli anlık kopyası (SQLite backup API - WAL uyumlu)."""
     ayarlar = istek.app.state.ayarlar
     hedef_dizin = ayarlar.veri_dizini / "yedekler"
     hedef_dizin.mkdir(parents=True, exist_ok=True)
@@ -331,7 +331,7 @@ def _klasor_boyutu(klasor: Path) -> int:
             if dosya.is_file():
                 toplam += dosya.stat().st_size
         except FileNotFoundError:
-            # Tarama sırasında silinen dosya (SQLite -wal/-shm, log rotasyonu) — atla.
+            # Tarama sırasında silinen dosya (SQLite -wal/-shm, log rotasyonu) - atla.
             continue
     return toplam
 

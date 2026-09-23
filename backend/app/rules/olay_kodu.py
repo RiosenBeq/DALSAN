@@ -1,4 +1,4 @@
-"""Olay kodları ve önem (docs/17 §6.1–6.2) — saf, tek kaynak.
+"""Olay kodları ve önem (docs/17 §6.1-6.2) - saf, tek kaynak.
 
 Her olay satırı (`events.event_code`, şema 007) bu sözlükteki bir kodu taşır.
 Kodu İHLALDE kural motoru atar (rules/motor.py: kural tipi + bölge tipi +
@@ -72,7 +72,7 @@ OLAY_KODLARI: dict[str, OlayKodu] = _tablo(
     # Aynı bölgede bir aracın ayak noktası da varsa önem yükselir (olay_onemi).
     OlayKodu("PERSON_IN_VEHICLE_LANE", ONEM_ORTA, "Araç yolunda yaya"),
     OlayKodu("VEHICLE_ON_WALKWAY", ONEM_YUKSEK, "Yaya yolunda araç"),
-    OlayKodu("VEHICLE_PERSON_PROXIMITY", ONEM_KRITIK, "Araç–yaya yakınlığı"),
+    OlayKodu("VEHICLE_PERSON_PROXIMITY", ONEM_KRITIK, "Araç-yaya yakınlığı"),
     OlayKodu("RESTRICTED_ENTRY", ONEM_YUKSEK, "Yasak alana giriş"),
     OlayKodu("PERSON_OFF_WALKWAY", ONEM_ORTA, "Yaya yolu dışında"),
     OlayKodu("PERSON_IN_LOADING_AREA", ONEM_ORTA, "Yükleme alanında yaya"),
@@ -168,7 +168,7 @@ def ihlal_kodu(kural_tipi: str, detaylar: dict, bolge_tipi: str | None) -> str:
 def olay_onemi(
     kod: str, kural_siddet: str | None = None, *, arac_ayni_bolgede: bool = False
 ) -> str:
-    """Olayın önemi (docs/17 §6.2–6.3).
+    """Olayın önemi (docs/17 §6.2-6.3).
 
     Sistem olayı her zaman 'system'dır. İhlalde kural satırında açık bir önem
     yazılıysa o geçerlidir (operatörün seçimi bağlamdan önce gelir); yoksa

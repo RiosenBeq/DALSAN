@@ -1,4 +1,4 @@
-/* NextGen Detector — DALSAN İSG · KOMUTA KABUĞU
+/* NextGen Detector - DALSAN İSG · KOMUTA KABUĞU
    ------------------------------------------------------------------
    "DALSAN Komuta" tasarımının satır içi style'ları burada SINIF SİSTEMİNE
    çevrildi. Bu dosya stil.css'in ÜSTÜNE yüklenir; stil.css'i değiştirmez,
@@ -260,7 +260,7 @@
 .panel-notu { margin: 0; font-size: 11.5px; color: var(--metin-3); letter-spacing: -0.01em; }
 .panel-sag { margin-left: auto; font-size: 12px; font-weight: 620; }
 
-/* koyu panel (canlı duvar) — cam değil, mat koyu yüzey */
+/* koyu panel (canlı duvar) - cam değil, mat koyu yüzey */
 .komuta-panel.koyu {
   background: var(--koyu);
   -webkit-backdrop-filter: none;
@@ -338,7 +338,7 @@
    Satır "auto" bırakılsaydı yüzde, içeriği olmayan bir kutuya göre hesaplanır
    ve BÜTÜN ÇUBUKLAR GÖRÜNMEZ olurdu. */
 /* Histogram, 24 saat etiketi yüzünden dardan aşağı inemez. Sayfayı yana
-   kaydırmak yerine KENDİ İÇİNDE kaysın — geniş ekranda hiç görünmez. */
+   kaydırmak yerine KENDİ İÇİNDE kaysın - geniş ekranda hiç görünmez. */
 .komuta-histogram {
   display: flex;
   align-items: stretch;
@@ -470,7 +470,7 @@
 }
 .akis-ust { display: flex; align-items: center; gap: 8px; }
 .akis-baslik { font-size: 13px; font-weight: 640; letter-spacing: -0.015em; }
-/* Dar kuyrukta "Güvenli mesafe — 2,05 m" birimi tek başına alt satıra
+/* Dar kuyrukta "Güvenli mesafe - 2,05 m" birimi tek başına alt satıra
    düşürüyordu; dengeli kırılım satırları eşitler. Desteklemeyen tarayıcı
    yok sayar, eski kırılımla devam eder. */
 .akis-baslik { text-wrap: balance; }
@@ -559,7 +559,7 @@
   border: 1px solid var(--koyu-sinir);
 }
 .duvar-kutu:focus-visible { outline: 2px solid var(--vurgu); outline-offset: 2px; }
-/* İhlalli kamera: kalın kırmızı çerçeve — tasarımdaki rgba(220,0,0,0.85). */
+/* İhlalli kamera: kalın kırmızı çerçeve - tasarımdaki rgba(220,0,0,0.85). */
 .duvar-kutu.ihlalli {
   border-color: var(--tehlike);
   box-shadow: 0 0 0 1px var(--tehlike), 0 0 18px var(--tehlike-golge);
@@ -636,7 +636,7 @@
   flex-wrap: wrap;
 }
 
-/* kanıt fotoğrafı: koyu kutu, görüntü KIRPILMADAN sığar — kanıt kırpılamaz */
+/* kanıt fotoğrafı: koyu kutu, görüntü KIRPILMADAN sığar - kanıt kırpılamaz */
 .kanit-kutu {
   position: relative;
   aspect-ratio: 16 / 9;
@@ -784,7 +784,7 @@
 .dugme.kapi-kapali { background: transparent; color: var(--metin-3); box-shadow: none; border-style: dashed; }
 
 /* Tırmandırma: kurulu olan adım normal, kurulmayanlar soluk ve kesik çizgili
-   — "burada bir şey var ama çalışmıyor" ekranda görünsün. */
+   - "burada bir şey var ama çalışmıyor" ekranda görünsün. */
 .tirmandirma { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
 .tirmandirma .komuta-kutu { gap: 6px; }
 .komuta-kutu.bos-adim {
@@ -913,7 +913,7 @@
 /* ==================================================================
    KILAVUZ: açıklama şeridi, ilk kurulum listesi, kılavuz sayfası
    ==================================================================
-   Renk yok — hepsi stil.css :root'undaki anlamsal değişkenlerden gelir. */
+   Renk yok - hepsi stil.css :root'undaki anlamsal değişkenlerden gelir. */
 
 /* ------------------------------------------------ ekran açıklama şeridi */
 .kilavuz-serit {
@@ -953,7 +953,7 @@
 .serit-kapat:hover { background: var(--cam-parlak); color: var(--metin); }
 .serit-kapat:focus-visible { outline: 2px solid var(--vurgu); outline-offset: 2px; }
 
-/* Şerit gizliyken yerinde kalan küçük düğme — açıklamaya geri dönüş yolu. */
+/* Şerit gizliyken yerinde kalan küçük düğme - açıklamaya geri dönüş yolu. */
 .kilavuz-acici {
   justify-self: start;
   padding: 6px 13px;
@@ -1216,7 +1216,7 @@
 }
 .nesne-eylem p { margin: 0; }
 
-/* Kaç fotoğraf gerekli — katlanır rehber. Kapalı başlar: sayfayı ilk açan
+/* Kaç fotoğraf gerekli - katlanır rehber. Kapalı başlar: sayfayı ilk açan
    kişiyi metne boğmasın, ama arayan bulsun. */
 .nesne-rehber {
   border: 1px solid var(--cam-sinir);
@@ -1238,7 +1238,7 @@
 @media (max-width: 560px) {
 
   /* Komuta ekranı: dört sayı kartı tek sütuna dizilip ekranı dört kez
-     kaydırtmasın — iki sütun, daha küçük rakam. */
+     kaydırtmasın - iki sütun, daha küçük rakam. */
   .komuta-sayilar:not(.uclu) { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
   .komuta-sayilar:not(.uclu) .sayi-karti { padding: 16px 16px 14px; border-radius: var(--radius-orta); }
   .komuta-sayilar:not(.uclu) .sayi-degeri { font-size: 34px; }
@@ -1246,7 +1246,7 @@
   .komuta-sayilar:not(.uclu) .sayi-simge .simge { width: 14px; height: 14px; }
   .komuta-sayilar:not(.uclu) .sayi-simge + .sayi-etiketi { padding-right: 28px; }
   /* Öğeler dar ekranda liste olur: rozet · ad · sayı, altında çubuk.
-     İki sütunlu kartta "Forklift–insan yakınlığı" üç satıra bölünüyordu. */
+     İki sütunlu kartta "Forklift-insan yakınlığı" üç satıra bölünüyordu. */
   .oge-izgara { grid-template-columns: minmax(0, 1fr); gap: 8px; }
   .oge-karti {
     grid-template-columns: auto minmax(0, 1fr) auto;
@@ -1336,7 +1336,7 @@
    yazdırıldığında ikinci sayfaya taşar. */
 .rapor-kartlar { grid-template-columns: repeat(auto-fit, minmax(158px, 1fr)); gap: 12px; }
 .rapor-kartlar .sayi-karti { padding: 16px 18px; }
-/* "07.09.2026" ve "13:00 – 14:00" rakam DEĞİL metindir: 46 px'lik sayı
+/* "07.09.2026" ve "13:00 - 14:00" rakam DEĞİL metindir: 46 px'lik sayı
    ölçüsünde kutudan taşıyorlardı (ölçüldü). */
 .sayi-degeri.metin { font-size: 21px; letter-spacing: -0.02em; }
 
@@ -1412,7 +1412,7 @@
 }
 
 /* ======================================================================
-   ÖĞE DİLİ — komuta ekranındaki kullanımları (bileşenin kendisi stil.css'te)
+   ÖĞE DİLİ - komuta ekranındaki kullanımları (bileşenin kendisi stil.css'te)
    ====================================================================== */
 
 /* Sayı kartının sağ üst köşesindeki simge: kartın ne saydığını okumadan
@@ -1435,7 +1435,7 @@
 .akis-icerik { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; align-items: center; }
 .akis-govde { display: grid; gap: 5px; min-width: 0; }
 
-/* Öğe dağılımı: her öğe bir kart — büyük rozet, sayı, ad ve oransal çubuk. */
+/* Öğe dağılımı: her öğe bir kart - büyük rozet, sayı, ad ve oransal çubuk. */
 .oge-izgara {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));

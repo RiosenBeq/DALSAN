@@ -170,7 +170,7 @@ def test_iyi_kare_uyari_uretmez():
 
 
 def test_iyilestirme_dusuk_kontrasti_acar():
-    """Sisli/düşük kontrastlı doku — CLAHE sonrası yerel kontrast artmalı.
+    """Sisli/düşük kontrastlı doku - CLAHE sonrası yerel kontrast artmalı.
 
     Gerçek sahne dokusu kullanılır (düz bir rampa DEĞİL): CLAHE yerel çalışır,
     tek yönlü düz geçişte küresel std'yi düşürebilir ve test yanıltıcı olurdu.

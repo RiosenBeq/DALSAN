@@ -1,4 +1,4 @@
--- 007_olay_yasam_dongusu.sql  (Faz 2c — docs/17 §8.2)
+-- 007_olay_yasam_dongusu.sql  (Faz 2c - docs/17 §8.2)
 --
 -- İKİ İŞ:
 --  1) zones YENİDEN KURULUR: zone_type CHECK (001_ilk.sql) kalkar. Tipin tek

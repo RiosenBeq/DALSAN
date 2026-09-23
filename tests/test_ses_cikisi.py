@@ -75,7 +75,7 @@ def test_paplay_aplaydan_once_denenir(monkeypatch):
 def test_afplay_cihaz_bayragi_almaz(monkeypatch):
     """macOS'ta afplay'in cihaz seçeneği YOKTUR.
 
-    Tanımadığı bir bayrak verilseydi ses HİÇ çalmazdı — yani cihaz seçmek,
+    Tanımadığı bir bayrak verilseydi ses HİÇ çalmazdı - yani cihaz seçmek,
     anonsu tamamen susturmak anlamına gelirdi.
     """
     monkeypatch.setattr(sys, "platform", "darwin")
@@ -95,7 +95,7 @@ class _SahteWinsound:
         self.cagrilar: list[tuple[str, int]] = []
         self._hata = hata
 
-    def PlaySound(self, ses, bayraklar):  # noqa: N802 — stdlib adı
+    def PlaySound(self, ses, bayraklar):  # noqa: N802 - stdlib adı
         self.cagrilar.append((ses, bayraklar))
         if self._hata is not None:
             raise self._hata
@@ -223,7 +223,7 @@ def test_ses_tam_seviyede_degil():
 
 def test_test_sesi_gercek_anons_yolunu_kullanir():
     """Ayrı bir çalma kodu yazılsaydı test çalar, gerçek anons sessizce
-    çalmayabilirdi — düğme tam da güvenilmesi gereken yerde yalan söylerdi."""
+    çalmayabilirdi - düğme tam da güvenilmesi gereken yerde yalan söylerdi."""
     kaynak = Path(test_sesi.__file__).read_text(encoding="utf-8")
     assert "SesKartiAnonscu" in kaynak
 

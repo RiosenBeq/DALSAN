@@ -8,24 +8,24 @@ kullanıcıya hazır bir poligon ÖNERİR. Kullanıcı tek düğmeyle kabul eder
 beğenmezse köşeleri sürükleyip düzeltir ya da tümüyle yok sayar.
 
 ÖNERİ, KARAR DEĞİLDİR. Bu modül veritabanına hiçbir şey yazmaz ve hiçbir
-kuralı etkilemez. Yanlış bir öneri, kullanıcının kabul etmediği bir çizimdir —
+kuralı etkilemez. Yanlış bir öneri, kullanıcının kabul etmediği bir çizimdir -
 sistemin davranışı değişmez. Bu yüzden cömert davranır: şüpheli adayı da
 gösterir, seçmeyi kullanıcıya bırakır.
 
-NASIL ÇALIŞIR (üç adım, hepsi OpenCV — yeni kütüphane YOK)
+NASIL ÇALIŞIR (üç adım, hepsi OpenCV - yeni kütüphane YOK)
 1. Renk maskesi: HSV uzayında sarı ve beyaz boya ayrı ayrı maskelenir.
    HSV seçildi çünkü fabrika aydınlatması gün içinde değişir; parlaklıktan
    bağımsız olan TON (hue) kanalı sarıyı sabah da akşam da aynı bulur.
 2. Boşlukları kapatma: yol çizgileri çoğu zaman KESİKLİDİR ve yaya yolu İKİ
    paralel çizgiyle işaretlidir. Maskeye morfolojik kapama uygulanarak hem
-   kesikler birleştirilir hem iki paralel çizgi arasındaki şerit doldurulur —
+   kesikler birleştirilir hem iki paralel çizgi arasındaki şerit doldurulur -
    böylece "çizgi" değil "ALAN" bulunur; kullanıcının istediği de budur.
 3. Poligonlaştırma: kontur bulunur, `approxPolyDP` ile köşe sayısı azaltılır
    (12 köşeli bir bölgeyi kullanıcı elle düzeltemez), normalize (0-1)
    koordinata çevrilir.
 
 NEDEN `rules/` DEĞİL: OpenCV kullanır (CLAUDE.md §6). Kural mantığına da
-girmez — çıktısı yalnızca arayüzde gösterilen bir öneridir.
+girmez - çıktısı yalnızca arayüzde gösterilen bir öneridir.
 """
 
 from __future__ import annotations
@@ -72,7 +72,7 @@ _EN_COK_KOSE = 12
 # çizgiyle işaretlenir ve aradaki boşluk (yolun kendisi) kapama çekirdeğinden
 # kat kat geniştir. Birinci geçiş bu yüzden iki çizgiyi ayrı ayrı bulur ve
 # ikisini de "çok ince" diye eler. İkinci geçiş, birbirine bu mesafeden yakın
-# parça KÜMELERİNİ tek alan sayar ve kümenin dışbükey zarfını önerir —
+# parça KÜMELERİNİ tek alan sayar ve kümenin dışbükey zarfını önerir -
 # aradaki yol da alana dahil olur. Oran, karenin kısa kenarına göredir.
 _GRUP_MESAFE_ORANI = 0.28
 
@@ -89,7 +89,7 @@ _ISLEME_GENISLIGI = 960
 class AlanOnerisi:
     """Görüntüden bulunan tek bir bölge adayı.
 
-    `poligon` normalize (0-1) koordinattır — kaydedilen bölgelerle aynı
+    `poligon` normalize (0-1) koordinattır - kaydedilen bölgelerle aynı
     sözleşme (rules/tipler.py), böylece kullanıcı kabul edince dönüşüm gerekmez.
     """
 
@@ -108,7 +108,7 @@ class AlanOnerisi:
 def alanlari_bul(kare: np.ndarray, en_cok: int = 4) -> list[AlanOnerisi]:
     """Karedeki boyalı alanları bulur, güvene göre sıralı öneri listesi döner.
 
-    Hiçbir şey bulunamazsa BOŞ LİSTE döner — bu bir hata değildir: her fabrika
+    Hiçbir şey bulunamazsa BOŞ LİSTE döner - bu bir hata değildir: her fabrika
     zemininde boya yoktur. Çağıran taraf bunu kullanıcıya "bulunamadı, elle
     çizin" diye söyler.
     """
@@ -268,7 +268,7 @@ def _yakin_parca_zarflari(maske: np.ndarray, genislik: int, yukseklik: int) -> l
         noktalar = np.column_stack(np.where(np.isin(etiketler, list(kume))))
         if noktalar.size == 0:
             continue
-        # np.where satır/sütun verir; OpenCV x/y ister — eksenler çevrilir.
+        # np.where satır/sütun verir; OpenCV x/y ister - eksenler çevrilir.
         xy = noktalar[:, ::-1].astype(np.int32).reshape(-1, 1, 2)
         zarflar.append(cv2.convexHull(xy))
     return zarflar
@@ -329,9 +329,9 @@ def _guven(alan: float, kontur: np.ndarray, kare_alani: float) -> float:
     """0-1 arası kabaca "bu ne kadar alan gibi duruyor" ölçüsü.
 
     İki şeyin çarpımı:
-      · DOLULUK — kontur, kendi dışbükey zarfının ne kadarını dolduruyor.
+      · DOLULUK - kontur, kendi dışbükey zarfının ne kadarını dolduruyor.
         Boyalı bir alan dolgundur; rastgele bir yansıma tırtıklı ve seyrektir.
-      · BÜYÜKLÜK — çok küçük alanlar daha az güvenilir.
+      · BÜYÜKLÜK - çok küçük alanlar daha az güvenilir.
     """
     zarf_alani = cv2.contourArea(cv2.convexHull(kontur))
     doluluk = (alan / zarf_alani) if zarf_alani > 0 else 0.0
@@ -340,7 +340,7 @@ def _guven(alan: float, kontur: np.ndarray, kare_alani: float) -> float:
 
 
 def _poligon_alani(poligon: list[tuple[float, float]]) -> float:
-    """Ayakkabı bağı (shoelace) formülü — normalize alan, 0-1."""
+    """Ayakkabı bağı (shoelace) formülü - normalize alan, 0-1."""
     if len(poligon) < 3:
         return 0.0
     toplam = 0.0

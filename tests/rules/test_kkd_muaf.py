@@ -11,7 +11,7 @@ from yardimci import KARE, bolge, kural, tespit
 from app.rules.motor import KuralMotoru
 from app.rules.tipler import VAR, YOK, Bolge, KkdGozlem
 
-# Zorunlu alanın (0.25–0.75) ortasında küçük bir muaf kare
+# Zorunlu alanın (0.25-0.75) ortasında küçük bir muaf kare
 MUAF = [(0.4, 0.4), (0.6, 0.4), (0.6, 0.6), (0.4, 0.6)]
 
 

@@ -2,15 +2,15 @@
 
 İKİ KURAL, TEK ARA KATMAN (docs/17 §10.5 R8):
 
-1. **HOST İZİN LİSTESİ — her istekte.** Tarayıcı, başka bir sitenin sayfasında
+1. **HOST İZİN LİSTESİ - her istekte.** Tarayıcı, başka bir sitenin sayfasında
    çalışan betiğin bu sistemin yanıtlarını okumasını aynı-köken kuralıyla
    engeller. Ama saldırganın alan adı sonradan bu makinenin adresine
    çözülürse (DNS yeniden bağlama) tarayıcı için köken DEĞİŞMEMİŞTİR ve betik
    kamera görüntüsünü, olay listesini okuyabilir. O istekteki `Host` başlığı
    saldırganın adını taşır: izinli adlar dışında bir `Host` gelirse istek 421
-   ile reddedilir. `Origin`'i `Host`'la karşılaştırmak burada işe yaramaz —
+   ile reddedilir. `Origin`'i `Host`'la karşılaştırmak burada işe yaramaz -
    ikisi de aynı sahte adı taşır.
-2. **DURUM DEĞİŞTİREN İSTEKTE KÖKEN — GET/HEAD/OPTIONS dışında.** Başka bir
+2. **DURUM DEĞİŞTİREN İSTEKTE KÖKEN - GET/HEAD/OPTIONS dışında.** Başka bir
    sitenin sayfası, oturumu açık tarayıcı üzerinden buraya form gönderebilir
    (CSRF): kamera sil, anons çal. `Origin` (yoksa `Referer`) izinli bir ad
    taşımıyorsa, `Origin: null` ise ya da tarayıcı `Sec-Fetch-Site` ile
@@ -24,13 +24,13 @@
 yazılmalıdır (docs/15); yazılmamışsa sayfa ne yapılacağını söyler.
 
 Port karşılaştırılmaz: ters vekil arkasında tarayıcının gördüğü port (443)
-ile sistemin portu (8080) farklıdır. Bunun bıraktığı tek boşluk — aynı
-makinede BAŞKA bir porttaki sayfanın (127.0.0.1:8100) form göndermesi —
+ile sistemin portu (8080) farklıdır. Bunun bıraktığı tek boşluk - aynı
+makinede BAŞKA bir porttaki sayfanın (127.0.0.1:8100) form göndermesi -
 `Sec-Fetch-Site: same-site` ile kapanır: tarayıcı aynı adın başka portunu
 'same-site' sayar, sistemin kendi sayfası ise her zaman 'same-origin'dir
 (vekil arkasında da: sayfa ve form aynı vekil adresinden gelir).
 
-Yalnız HTTP isteklerine uygulanır. Sistemde WebSocket ucu yoktur — eklenirse
+Yalnız HTTP isteklerine uygulanır. Sistemde WebSocket ucu yoktur - eklenirse
 bu denetim ona da uygulanmalıdır.
 """
 
@@ -130,14 +130,14 @@ class KaynakDenetimi:
 # ------------------------------------------------------------------ yanıtlar
 #
 # Ret sayfası KENDİ İÇİNDE TAMDIR: stil dosyası bile istenmez. 421'de tarayıcı
-# /static/stil.css'i de aynı izinsiz adla isterdi ve o da reddedilirdi —
+# /static/stil.css'i de aynı izinsiz adla isterdi ve o da reddedilirdi -
 # kullanıcı biçimsiz bir sayfa görürdü. Şablon motoru da kullanılmaz: ara
 # katman, uygulamanın hata yakalayıcılarından ÖNCE çalışır.
 
 _SAYFA = """<!doctype html>
 <html lang="tr"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{baslik} — DALSAN İSG</title>
+<title>{baslik} - DALSAN İSG</title>
 <style>
 body {{ margin: 0; padding: 48px 16px; background: #f1f3f6; color: #16181d;
   font: 15px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }}
@@ -188,7 +188,7 @@ def _host_reddi(basliklar: Headers, ad: str, ham_host: str) -> Response:
         f"adları</b> kutusuna {ne_yazilir} kaydedin ve sistemi yeniden başlatın.</p>"
         # Bu sayfanın kendisi de bir tuzağın parçası olabilir: saldırgan
         # operatörü kendi adına yönlendirip "şunu listeye ekle" dedirtebilir.
-        "<p><b>Tanımadığınız bir adsa eklemeyin</b> — sizi bu adrese bir internet "
+        "<p><b>Tanımadığınız bir adsa eklemeyin</b> - sizi bu adrese bir internet "
         "sitesi ya da e-posta yönlendirmiş olabilir. Yalnız şirketinizin kendi "
         "adlarını ve sunucunun IP adresini ekleyin.</p>"
     )

@@ -166,7 +166,7 @@ class _Kaynak:
         return DURUM_ONLINE
 
     def son_kare(self):
-        return None, 1.0  # kare zamanı: yaş = monotonic − 1
+        return None, 1.0  # kare zamanı: yaş = monotonic - 1
 
 
 def test_supervizor_sorunlari_ve_kamera_ozeti(test_ayarlari):

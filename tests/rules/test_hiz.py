@@ -1,8 +1,8 @@
-"""vehicle_speed — araç hız sınırı kuralı (docs/03 §4).
+"""vehicle_speed - araç hız sınırı kuralı (docs/03 §4).
 
 Kamera YOK, model YOK: hız değerleri elle verilir. Sınanan sözler:
   · Kalibrasyonsuz kamerada kural PASİFTİR (uydurma sayı üretmez).
-  · Karar TEK KAREYE değil ölçüm penceresinin ORTANCASINA bakar —
+  · Karar TEK KAREYE değil ölçüm penceresinin ORTANCASINA bakar -
     tek karelik sıçrama ihlal üretmez (CLAUDE.md §7).
   · Olay kaydına yazılan sayı sıçrama değil ortancadır.
   · Bölge verilirse yalnız o bölgedeki araç değerlendirilir.
@@ -221,7 +221,7 @@ def test_uzun_kayiptan_sonra_pencere_bastan_dolar():
     """Araç kareden çıkıp dönerse eski ölçümlerle karar verilmez."""
     d = HizDegerlendirici(_hiz_kurali({"speed_limit_mps": 2.5, "window_size": 5}))
     cooldown = Cooldown()
-    # 4 hızlı ölçüm — pencere dolmadı
+    # 4 hızlı ölçüm - pencere dolmadı
     for sira in range(4):
         d.degerlendir(_baglam([_forklift(9.0)], sira * 0.2, cooldown=cooldown))
     # Araç 6 kare boyunca yok (tolerans 5)

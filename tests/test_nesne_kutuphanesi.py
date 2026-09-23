@@ -118,7 +118,7 @@ def test_desensiz_nesne_kendisiyle_bile_isim_yazdiramaz():
     Buradaki ikinci satır 2026-09'da BİLEREK tersine çevrildi. Eskiden "düz
     nesne kendisiyle eşleşebilmeli, yoksa hiç tanınamazdı" yazıyordu ve motor
     o vaadi tutuyordu: düz-düz dalının tavanı 0,62'ydi, çıta ise 0,24. Bedeli
-    ölçüldü — kütüphanede OLMAYAN düz mavi bir kasa "Düz mavi bidon" adını
+    ölçüldü - kütüphanede OLMAYAN düz mavi bir kasa "Düz mavi bidon" adını
     alıyordu (%43), düz gri bir sac levha "Gri boru" (%45). Renk, iki düz
     nesneyi birbirinden ayıramaz; "kendisiyle eşleşme" ile "aynı renkteki
     yabancıyla eşleşme" aynı hesaptır ve ikisi birlikte gelir.
@@ -138,7 +138,7 @@ def test_renk_hicbir_citada_tek_basina_isim_yazdiramaz(esik):
 
     Bugünkü hata tam olarak buydu: güvence SABİT bir tavana yazılmıştı (0,62),
     çıta 0,42'den 0,24'e indirildi, tavan yerinde kaldı ve kimse fark etmedi.
-    Bu test o sessiz çöküşü imkânsız kılar — güvence oransal olduğu için her
+    Bu test o sessiz çöküşü imkânsız kılar - güvence oransal olduğu için her
     çıtada yeniden sınanır. Kırılırsa sırayla bakılacak yer: `desen_payi`
     gerçekten skorun desenden gelen kısmı mı, `TEK_KANIT_TAVAN_ORANI` 1'in
     altında mı, `Skor.ham` 0-1 aralığında mı.
@@ -196,7 +196,7 @@ def test_renk_on_elemesi_gercek_eslesmeyi_atmaz(esik):
 
     `renk_alt_siniri(esik)` altındaki renk benzerliğine sahip hiçbir çift,
     desen ne kadar uyarsa uysun eşiği geçemez. Bu kırılırsa tarama, gerçek
-    eşleşmeleri sessizce elemeye başlar — en teşhis edilmez hata türü.
+    eşleşmeleri sessizce elemeye başlar - en teşhis edilmez hata türü.
     """
     taban = renk_alt_siniri(esik)
     izler = [
@@ -503,7 +503,7 @@ def test_nesne_ekleme_ve_fotograf_yukleme_akisi(istemci):
 
 
 def test_fotografsiz_nesne_eklenemez(istemci):
-    """Adı olan ama izi olmayan nesne, taramada hiçbir işe yaramaz — kurulmaz."""
+    """Adı olan ama izi olmayan nesne, taramada hiçbir işe yaramaz - kurulmaz."""
     yanit = istemci.post("/nesneler/ekle", data={"ad": "Boş nesne"})
     assert "Fotoğraf seçilmedi" in yanit.text
     assert "Henüz nesne tanıtılmadı" in yanit.text

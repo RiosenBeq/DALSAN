@@ -1,4 +1,4 @@
-"""ppe_violation testleri — motorun en kritik kuralı (docs/03 §3, docs/04).
+"""ppe_violation testleri - motorun en kritik kuralı (docs/03 §3, docs/04).
 
 KANITIN YOKLUĞU İHLALİN VARLIĞI DEĞİLDİR:
 `belirsiz` hiçbir zaman olay üretmez; bu dosyadaki ilk test bunun bekçisidir.
@@ -66,7 +66,7 @@ def _seri(motor, adet: int, baret: str | None, baslangic: float = 0.0, **kisi_ar
 
 
 def test_belirsiz_asla_olay_uretmez():
-    """docs/04 §1 — bu testin kırmızıya dönmesi tasarım ihlalidir."""
+    """docs/04 §1 - bu testin kırmızıya dönmesi tasarım ihlalidir."""
     # 1) Model hiç gözlem üretmiyor (None)
     assert _seri(_motor(), 30, None) == []
     # 2) Model açıkça 'belirsiz' diyor
@@ -91,7 +91,7 @@ def test_bareti_olan_ihlal_uretmez():
 
 
 def test_yetersiz_gecerli_gozlem_olay_uretmez():
-    # 15'lik pencerede yalnızca 5 geçerli gözlem (< 8) — kanıt yetersiz
+    # 15'lik pencerede yalnızca 5 geçerli gözlem (< 8) - kanıt yetersiz
     motor = _motor()
     ihlaller = []
     for i in range(30):
@@ -125,7 +125,7 @@ def test_kesik_kutu_degerlendirilmez():
         # kutu üst kenarı: 600 - 599 = 1 px ≤ kenar payı → kesik
         ihlaller.extend(_calistir(motor, i * 0.5, [kisi]))
     assert ihlaller == []
-    # Aynı kişi kesik OLMADAN aynı gözlemlerle ihlal üretir — testin kontrolü
+    # Aynı kişi kesik OLMADAN aynı gözlemlerle ihlal üretir - testin kontrolü
     motor2 = _motor()
     ihlaller2 = []
     for i in range(30):
@@ -143,7 +143,7 @@ def test_dwell_dolmadan_olay_uretilmez():
 def test_cooldown():
     motor = _motor(cooldown_s=180.0)
     assert len(_seri(motor, 12, YOK)) == 1
-    # kişi baretsiz kalmaya devam ediyor — 3 dk içinde yeni olay yok
+    # kişi baretsiz kalmaya devam ediyor - 3 dk içinde yeni olay yok
     assert _seri(motor, 20, YOK, baslangic=6.0) == []
     # cooldown dolunca tekrar
     assert len(_seri(motor, 4, YOK, baslangic=200.0)) == 1
@@ -153,7 +153,7 @@ def test_uretim_kadansinda_ihlal_uretilir():
     """Pencere 'son N DEĞERLENDİRME'dir, son N kare değil (docs/04 §7.1).
 
     Sınıflandırıcı 5 karede bir çalışır; ara karelerde gözlem yoktur. Bu
-    test, gözlemsiz karelerin pencereyi belirsizle boğmadığını korur —
+    test, gözlemsiz karelerin pencereyi belirsizle boğmadığını korur -
     boğsaydı KKD kuralı sahada HİÇBİR ZAMAN olay üretemezdi.
     """
     motor = _motor()
@@ -165,7 +165,7 @@ def test_uretim_kadansinda_ihlal_uretilir():
 
 
 def test_yelek_esigi_baretten_ayri():
-    # 100 px kişi: baret için küçük (120) ama yelek için yeterli (80) — docs/04 §3
+    # 100 px kişi: baret için küçük (120) ama yelek için yeterli (80) - docs/04 §3
     motor = _motor({"required_ppe": ["vest"]})
     ihlaller = []
     for i in range(20):

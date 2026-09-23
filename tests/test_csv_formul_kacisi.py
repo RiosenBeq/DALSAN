@@ -29,7 +29,9 @@ WEB = Path(__file__).resolve().parents[1] / "backend" / "app" / "web"
         ("\t=1", "'\t=1"),
         ("\r=1", "'\r=1"),
         ("Rampa", "Rampa"),
-        ("—", "—"),  # uzun tire tire değildir
+        ("-", "-"),  # tek başına tire boş değer işaretidir, formül taşımaz
+        ("--1", "'--1"),
+        ("- 1", "'- 1"),
         ("%50", "%50"),
         ("", ""),
         (-3, -3),  # sayı hücresi dokunulmaz

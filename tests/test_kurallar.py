@@ -161,7 +161,7 @@ def test_hiz_kurali_bolgesiz_kaydedilir(istemci, test_ayarlari):
 
 def test_hiz_kurali_kalibrasyonsuz_uyari_gosterir(istemci, test_ayarlari):
     """Hız zeminden ölçülür; kalibre edilmemiş kamerada kural PASİFTİR ve
-    ekran bunu söylemelidir — yoksa çalışmayan kural 'aktif' görünür."""
+    ekran bunu söylemelidir - yoksa çalışmayan kural 'aktif' görünür."""
     kamera_id, _ = _kamera_ve_bolge(istemci, test_ayarlari)
     istemci.post(
         "/kurallar/kaydet",

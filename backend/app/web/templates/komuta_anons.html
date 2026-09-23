@@ -211,7 +211,7 @@
   </div>
 
   <p class="panel-notu">"Bugün" sütunu, o mesaja bağlı kuralın bugün kaç ihlal ürettiğini
-    söyler — <b>hoparlörün kaç kez bağırdığını değil.</b> Aynı kamera ve mesaj için
+    söyler - <b>hoparlörün kaç kez bağırdığını değil.</b> Aynı kamera ve mesaj için
     {{ anons_bekleme_sn }} saniye dolmadan tekrar çalınmaz, bu yüzden gerçek anons
     sayısı bu sayıdan azdır. Gölge moddaki kuralın ihlalleri hiç sayılmaz.</p>
   {% if not analiz_calisiyor %}
@@ -233,7 +233,7 @@
   {% if anons_saat_toplami %}
   <div class="komuta-histogram">
     {% for s in anons_saatleri %}
-    <div class="histogram-sutun" title="{{ s.etiket }}:00 — {{ s.deger }}">
+    <div class="histogram-sutun" title="{{ s.etiket }}:00 - {{ s.deger }}">
       <span class="histogram-sayi {{ s.sinif }}">{% if s.deger %}{{ s.deger }}{% endif %}</span>
       <span class="histogram-cubuk {{ s.sinif }}" style="height: {{ s.yukseklik }}"></span>
       <span class="histogram-etiket">{{ s.etiket }}</span>

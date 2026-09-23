@@ -1,6 +1,6 @@
-# 16 — Dış Kaynak Doğrulama (Faz 1 girdisi)
+# 16 - Dış Kaynak Doğrulama (Faz 1 girdisi)
 
-**Tarih:** 2026-09-22 · **Depo durumu:** `4a36997` · **Girdi olduğu iş:** Faz 1 tasarımı (`docs/17-V2-TASARIM.md`) · **Dayandığı metin:** [`GOREV-TANIMI-V2.md`](GOREV-TANIMI-V2.md) §4.2–§4.11 ve EK A
+**Tarih:** 2026-09-22 · **Depo durumu:** `4a36997` · **Girdi olduğu iş:** Faz 1 tasarımı (`docs/17-V2-TASARIM.md`) · **Dayandığı metin:** [`GOREV-TANIMI-V2.md`](GOREV-TANIMI-V2.md) §4.2-§4.11 ve EK A
 
 ## Bu belge ne için yazıldı
 
@@ -172,7 +172,7 @@ Aşağıdaki Roboflow sayfalarının hiçbiri açılamadı; bilgiler yalnız ara
 - **Roboflow forumu:** CC BY-NC-SA ile yayımlanmış setlerin CC BY 4.0 olarak yeniden yüklendiğine dair şikâyet (arama özeti).
 - **Objects365 "Non-Commercial" etiketi:** İkincil sitelerde geçiyor, resmi lisans metninde yok.
 - **COCO görüntülerinin Flickr şartlarına ve görüntü başına lisansa tabi olduğu:** cocodataset.org engelli.
-- **LVIS `c` frekansının "11–100 eğitim görüntüsü" tanımı.**
+- **LVIS `c` frekansının "11-100 eğitim görüntüsü" tanımı.**
 
 ### Projeye öneri (en az parça)
 
@@ -189,7 +189,7 @@ Aşağıdaki Roboflow sayfalarının hiçbiri açılamadı; bilgiler yalnız ara
 5. **Eğitim ortamı çalışma zamanından ayrılır.** Eğitim YOLOX depo klonuyla, ayrı bir venv'de ve GPU'lu makinede yapılır. Ürüne yalnız `.onnx` dosyası girer. Export için PyTorch 2.4 ya da daha eski bir sürüm sabitlenir, ya da tek satırlık bir yama yapılır (§5).
 6. **Model boyutu donanıma göre seçilir.** CPU'da YOLOX-Tiny @416, GPU'da YOLOX-s @640. İkisi de resmi ağırlıktan başlar.
 7. **Export bayrakları mevcut kodla hizalanır.** `tespit.py` decode işini kendisi yaptığı için `--decode_in_inference` kullanılmaz. Opset 11 varsayılanı ve batch 1 kalır.
-8. **Unutmaya karşı önlem:** COCO train2017'den `person`, `truck` ve `car` içeren küçük bir alt küme (2–3 bin görüntü) stdlib ile süzülüp eğitime katılır.
+8. **Unutmaya karşı önlem:** COCO train2017'den `person`, `truck` ve `car` içeren küçük bir alt küme (2-3 bin görüntü) stdlib ile süzülüp eğitime katılır.
 
 ### Açık sorular
 
@@ -217,7 +217,7 @@ DALSAN zaten "önceden kaydedilmiş WAV çal" mimarisinde. Dinamik metin için d
 | Olgu | Durum | Kaynak |
 |---|---|---|
 | `rhasspy/piper` MIT lisanslı. 6 Ekim 2025'te arşivlendi; geliştirme `OHF-Voice/piper1-gpl` deposuna taşındı. | DOĞRULANDI | [rhasspy/piper](https://github.com/rhasspy/piper): "Development has moved: https://github.com/OHF-Voice/piper1-gpl" |
-| İddia: "piper 2024'ten beri bakımsız." **Doğrusu:** Halef paket aktif. 1.5.0'dan 1.8.0'a kadar dört sürüm Temmuz–Eylül 2026'da çıktı; 1.8.0'ın tarihi 4 Eyl 2026. Ancak sınıflandırıcı "Development Status :: 3 - Alpha" diyor ve README bakımcı arıyor. | ÇÜRÜTÜLDÜ | [PyPI piper-tts JSON](https://pypi.org/pypi/piper-tts/json): "version": "1.8.0", upload "2026-09-04" |
+| İddia: "piper 2024'ten beri bakımsız." **Doğrusu:** Halef paket aktif. 1.5.0'dan 1.8.0'a kadar dört sürüm Temmuz-Eylül 2026'da çıktı; 1.8.0'ın tarihi 4 Eyl 2026. Ancak sınıflandırıcı "Development Status :: 3 - Alpha" diyor ve README bakımcı arıyor. | ÇÜRÜTÜLDÜ | [PyPI piper-tts JSON](https://pypi.org/pypi/piper-tts/json): "version": "1.8.0", upload "2026-09-04" |
 | `piper-tts` paketinin lisansı **GPL-3.0-or-later**, MIT değil. | DOĞRULANDI | [PyPI piper-tts](https://pypi.org/project/piper-tts/): "License: GPL-3.0-or-later" |
 | `piper-tts` Python 3.12'yi destekliyor. Her platform için tek bir `cp39-abi3` wheel'i var: Linux x86_64/aarch64, Windows x64, macOS Intel ve ARM. | DOĞRULANDI | [PyPI 1.8.0 JSON](https://pypi.org/pypi/piper-tts/1.8.0/json): "Programming Language :: Python :: 3.12" |
 | Çekirdek bağımlılıklar `onnxruntime<2,>=1` ve `pathvalidate`. DALSAN'ın `onnxruntime==1.19.2` sabitiyle çakışma yok. | DOĞRULANDI | [PyPI JSON](https://pypi.org/pypi/piper-tts/json): "onnxruntime<2,>=1" |
@@ -240,7 +240,7 @@ DALSAN zaten "önceden kaydedilmiş WAV çal" mimarisinde. Dinamik metin için d
 | macOS'ta Türkçe `say` sesi "Yelda" (tr_TR). Kaynak 2014 tarihli; 2024'te kaldırılan sesler listesinde Yelda yok. | DOĞRULANDI | [gist](https://gist.github.com/mculp/4b95752e25c456d425c6): "Yelda tr_TR" |
 | Python stdlib'deki `winsound.PlaySound` Windows'ta WAV çalabiliyor. | DOĞRULANDI | [winsound.rst](https://raw.githubusercontent.com/python/cpython/main/Doc/library/winsound.rst): "SND_FILENAME: The sound parameter is the name of a WAV file." |
 | DALSAN zaten "WAV → subprocess" mimarisinde: `anons.py` WAV dosyasını afplay, paplay, aplay ya da PowerShell SoundPlayer ile çalıyor. | DOĞRULANDI (yerel) | [anons.py](../backend/app/olaylar/anons.py): `shutil.which("afplay") or shutil.which("paplay") or shutil.which("aplay")` |
-| DALSAN dinamik metni **zaten** iki yoldan seslendiriyor: tarayıcıda `speechSynthesis` ile `tr-TR` (`uyari.js:70–78`) ve HTTP anons cihazının kendi TTS'i (`docs/14` §3.3). `docs/14` §8'e göre sunucuda TTS bilerek yapılmadı; `01-MVP-KAPSAM:99`'da TTS "NICE" önceliğinde. | DOĞRULANDI (yerel) | [uyari.js](../backend/app/web/static/uyari.js) · [14-ANONS-SISTEMI-BAGLAMA.md](14-ANONS-SISTEMI-BAGLAMA.md) |
+| DALSAN dinamik metni **zaten** iki yoldan seslendiriyor: tarayıcıda `speechSynthesis` ile `tr-TR` (`uyari.js:70-78`) ve HTTP anons cihazının kendi TTS'i (`docs/14` §3.3). `docs/14` §8'e göre sunucuda TTS bilerek yapılmadı; `01-MVP-KAPSAM:99`'da TTS "NICE" önceliğinde. | DOĞRULANDI (yerel) | [uyari.js](../backend/app/web/static/uyari.js) · [14-ANONS-SISTEMI-BAGLAMA.md](14-ANONS-SISTEMI-BAGLAMA.md) |
 
 ### DOĞRULANMADI
 
@@ -328,7 +328,7 @@ Konteynerde host'un D-Bus soketi yeterli. `--privileged`, `NET_ADMIN` ve `NET_RA
 
 ### DOĞRULANMADI
 
-- **"A2DP gecikmesi tipik olarak 100–250 ms (SBC), aptX LL ~40 ms":** Yayımlanmış bir ölçüm kaynağı açılamadı. Yalnız tekil uygulayıcı verileri var: 48 kHz SBC için ["Delay: 150.6 ms"](https://github.com/arkq/bluez-alsa/issues/727) ve bir kullanıcının senkron için 250 ms `DelaySync` ayarı.
+- **"A2DP gecikmesi tipik olarak 100-250 ms (SBC), aptX LL ~40 ms":** Yayımlanmış bir ölçüm kaynağı açılamadı. Yalnız tekil uygulayıcı verileri var: 48 kHz SBC için ["Delay: 150.6 ms"](https://github.com/arkq/bluez-alsa/issues/727) ve bir kullanıcının senkron için 250 ms `DelaySync` ayarı.
 - **Debian bookworm paketindeki `bluetoothctl -t`:** Kaynak kodda var, paketin kendisi kontrol edilemedi.
 - **Paket adları `libasound2-plugins` ve `pulseaudio-utils`:** Paket deposundan doğrulanmadı.
 - **"linger açık ama aktif seat yok" senaryosu:** Koddan çıkarım; sahada denenmedi.
@@ -369,7 +369,7 @@ Konteynerde host'un D-Bus soketi yeterli. `--privileged`, `NET_ADMIN` ve `NET_RA
 Başlıca bulgular şunlar:
 
 - **Paketler:** `onnxruntime` (CPU) ve `onnxruntime-gpu` ayrı paketler ve **aynı ortama kurulmamalı.** Son kurulan kazanır. CPU paketi sonradan kurulursa CUDA sessizce kaybolur.
-- **CUDA sürümleri:** PyPI GPU paketi 1.27'den beri CUDA 13, 1.21–1.26 arası CUDA 12.8 ile derleniyor.
+- **CUDA sürümleri:** PyPI GPU paketi 1.27'den beri CUDA 13, 1.21-1.26 arası CUDA 12.8 ile derleniyor.
 - **Güvenlik:** 1.19.2'de kalmanın bilinen bir güvenlik bedeli var. ORT, model yükleme yolunda etkilenen `onnx` kodunu gömülü olarak taşıyor (CVE-2026-14647).
 - **Hız:** Bu makinede 1.30.0'a geçiş CPU çıkarımını yaklaşık %25 hızlandırdı. Bu kazanç OpenVINO'nunkinden büyük ve yeni parça gerektirmiyor.
 - **Jetson ve TensorRT:** Jetson'da PyPI wheel'i işe yaramıyor. TensorRT ek kurulum ve sıkı sürüm eşleşmesi istiyor.
@@ -384,9 +384,9 @@ Başlıca bulgular şunlar:
 | İki paket aynı ortama kurulunca ikisi de `site-packages/onnxruntime/` dizinine yazıyor. CPU paketi GPU paketinin üstüne kurulunca CUDA EP kayboldu; `.so` dosyaları diskte kalmaya devam etti. | DOĞRULANDI (yerel deney) | [fastembed #608](https://github.com/qdrant/fastembed/issues/608): "CUDA execution provider to silently disappear" |
 | İddia: "Kök neden: onnxruntime-gpu 1.20 ve sonrasında wheel'den `Provides-Dist` satırı kaldırıldı." **Doğrusu:** 1.12'den 1.30'a kadar hiçbir GPU wheel'inde `Provides-Dist` satırı yok. Sorun yeni değil, bütün sürümlerde var. | ÇÜRÜTÜLDÜ | PyPI PEP 658 metadata'sı (1.12.0 … 1.30.0) |
 | 1.19.x için PyPI paketi CUDA 12.x ve cuDNN 9.x istiyor. CUDA 11.8 derlemesi yalnız Azure DevOps feed'inde var. cuDNN 8 ve 9 derlemeleri birbirinin yerine kullanılamıyor. | DOĞRULANDI | [CUDA EP](https://github.com/microsoft/onnxruntime/blob/gh-pages/docs/execution-providers/CUDA-ExecutionProvider.md): "\| 1.19.x \| 12.x \| 9.x \| Avaiable in PyPI." |
-| 1.27 ve sonrası: PyPI GPU paketi **CUDA 13.0** ve cuDNN 9 ile derleniyor. 1.21–1.26 arası CUDA 12.8. Aynı ana sürüm içindeki alt sürümlerle uyumlu. `install.md`'deki "12.x since 1.19.0" satırı bayat. | DOĞRULANDI | [CUDA EP](https://github.com/microsoft/onnxruntime/blob/gh-pages/docs/execution-providers/CUDA-ExecutionProvider.md): "Starting with version 1.27, GPU packages … are built with CUDA 13.0" |
-| Güncel sürüm 1.30.0 (10 Eyl 2026): Python ≥3.11, cp311–cp314 wheel'leri var. Sürüm notları model yüklemede sertleştirme içeriyor. | DOĞRULANDI | [PyPI onnxruntime](https://pypi.org/project/onnxruntime/#history): "Limited nested model-graph depth and canonicalized external-data locations to harden model loading" |
-| 1.19.2 (4 Eyl 2024): yalnız cp38–cp312 wheel'leri var, sdist yok. Python 3.13 ve sonrasında **kurulamaz.** | DOĞRULANDI | [PyPI 1.19.2](https://pypi.org/project/onnxruntime/1.19.2/) |
+| 1.27 ve sonrası: PyPI GPU paketi **CUDA 13.0** ve cuDNN 9 ile derleniyor. 1.21-1.26 arası CUDA 12.8. Aynı ana sürüm içindeki alt sürümlerle uyumlu. `install.md`'deki "12.x since 1.19.0" satırı bayat. | DOĞRULANDI | [CUDA EP](https://github.com/microsoft/onnxruntime/blob/gh-pages/docs/execution-providers/CUDA-ExecutionProvider.md): "Starting with version 1.27, GPU packages … are built with CUDA 13.0" |
+| Güncel sürüm 1.30.0 (10 Eyl 2026): Python ≥3.11, cp311-cp314 wheel'leri var. Sürüm notları model yüklemede sertleştirme içeriyor. | DOĞRULANDI | [PyPI onnxruntime](https://pypi.org/project/onnxruntime/#history): "Limited nested model-graph depth and canonicalized external-data locations to harden model loading" |
+| 1.19.2 (4 Eyl 2024): yalnız cp38-cp312 wheel'leri var, sdist yok. Python 3.13 ve sonrasında **kurulamaz.** | DOĞRULANDI | [PyPI 1.19.2](https://pypi.org/project/onnxruntime/1.19.2/) |
 | İddia: "Python ≥3.11 şartı 1.25.1'de başladı." **Doğrusu:** Şart 1.24.4'te (17 Mar 2026) başladı. Python 3.10 wheel'i olan son sürüm 1.23.2. | ÇÜRÜTÜLDÜ (küçük) | [PyPI JSON](https://pypi.org/pypi/onnxruntime/json) |
 | macOS x86_64 wheel'i olan son sürüm 1.23.2; 1.24.1 ve sonrasında yalnız arm64 var. DALSAN'ın sürümü sabitleme gerekçesi doğru, ama sınır 1.19.2 değil 1.23.2. | DOĞRULANDI | [PyPI 1.23.2](https://pypi.org/project/onnxruntime/1.23.2/) |
 | ORT için yayımlanmış bir GHSA yok. CVE-2026-28500, ORT'yi değil `onnx` paketindeki `onnx.hub.load()` fonksiyonunu etkiliyor. | DOĞRULANDI | [ORT security advisories](https://github.com/microsoft/onnxruntime/security/advisories): "There aren't any published security advisories" |
@@ -401,22 +401,22 @@ Başlıca bulgular şunlar:
 | İddia: "1.22'den itibaren yalnız CUDA 12 GPU paketleri yayımlanıyor." **Doğrusu:** 1.27 ve sonrası CUDA 13. 1.30'un TensorRT EP'si `libnvinfer.so.10` ile CUDA 13 kütüphanelerine bağlı. Tablonun "main → 10.9" satırı bayat. | ÇÜRÜTÜLDÜ | wheel `readelf` çıktısı · [TensorRT EP](https://github.com/microsoft/onnxruntime/blob/gh-pages/docs/execution-providers/TensorRT-ExecutionProvider.md) |
 | Jetson için ORT'nin resmi yönlendirmesi NVIDIA'nın yönettiği Jetson Zoo. | DOĞRULANDI | [TensorRT EP](https://github.com/microsoft/onnxruntime/blob/gh-pages/docs/execution-providers/TensorRT-ExecutionProvider.md): "Pre-built packages and Docker images are available for Jetpack in the Jetson Zoo" |
 | PyPI'de aarch64 GPU wheel'i 1.29.0'dan beri var ama CUDA 13 ile derlenmiş; JetPack 6 için uygun değil. Ultralytics'in 1.24.0 cp312 wheel'inin Orin'de `cudaErrorNoKernelImageForDevice` hatası verdiği raporlanmış. | DOĞRULANDI (topluluk kısmı ikincil) | [Ultralytics Jetson kılavuzu](https://github.com/ultralytics/ultralytics/blob/main/docs/en/guides/nvidia-jetson.md): "they do not replace the device-specific packages for every JetPack release." |
-| `onnxruntime-openvino` 1.24.1 (26 Şub 2026): MIT, cp311–cp313, yalnız Linux x86_64 ve Windows x86_64. Linux wheel'i OpenVINO 2025.4.1'i gömülü taşıyor ve `setupvars` olmadan çalıştı. ORT ana sürümünün 6 alt sürüm gerisinde. `onnxruntime/` dizinine kurulduğu için CPU paketi üstüne kurulunca OpenVINO EP kayboldu. | DOĞRULANDI (yerel deney) | [PyPI onnxruntime-openvino](https://pypi.org/project/onnxruntime-openvino/1.24.1/): "comes with pre-built libraries of OpenVINO™ version 2025.4.1" |
+| `onnxruntime-openvino` 1.24.1 (26 Şub 2026): MIT, cp311-cp313, yalnız Linux x86_64 ve Windows x86_64. Linux wheel'i OpenVINO 2025.4.1'i gömülü taşıyor ve `setupvars` olmadan çalıştı. ORT ana sürümünün 6 alt sürüm gerisinde. `onnxruntime/` dizinine kurulduğu için CPU paketi üstüne kurulunca OpenVINO EP kayboldu. | DOĞRULANDI (yerel deney) | [PyPI onnxruntime-openvino](https://pypi.org/project/onnxruntime-openvino/1.24.1/): "comes with pre-built libraries of OpenVINO™ version 2025.4.1" |
 | YOLOX `tools/export_onnx.py` bayrakları: `--opset` varsayılanı 11, `--decode_in_inference` varsayılan kapalı, `--batch-size` 1, `--dynamic`, `--no-onnxsim`. README, OpenVINO'ya dönüştürülecek modeller için opset 10 öneriyor. | DOĞRULANDI | [export_onnx.py](https://github.com/Megvii-BaseDetection/YOLOX/blob/main/tools/export_onnx.py): `"-o", "--opset", default=11` |
 | Export betiği `torch.onnx._export` çağırıyor. Bu fonksiyon PyTorch 2.5.0'da kaldırıldı; 2.9 ve sonrasında export'un varsayılanı `dynamo=True`. | DOĞRULANDI | [PyTorch v2.4.0 torch/onnx/__init__.py](https://github.com/pytorch/pytorch/blob/v2.4.0/torch/onnx/__init__.py): `def _export(*args, **kwargs)` (v2.5.0'da yok) |
 | Resmi 0.1.1rc0 ONNX dosyaları: opset 11, IR 6, "pytorch 1.7". Çıktılar ham grid biçiminde (tiny için `[1,3549,85]`, s için `[1,8400,85]`). Decode ve NMS işi `tespit.py`'de yapılıyor. Dosyalar ORT 1.30 ile açılıyor. | DOĞRULANDI (yerel deney) | [onnx_inference.py](https://github.com/Megvii-BaseDetection/YOLOX/blob/main/demo/ONNXRuntime/onnx_inference.py): `demo_postprocess(output[0], input_shape)` |
 | INT8 kuantizasyonu: CNN'ler için statik QDQ S8S8 öneriliyor. Kazanç VNNI ya da dot-product komutlu donanımda görülüyor; VNNI'siz AVX2/AVX512'de U8S8 doygunluk sorunu yaşayabiliyor. `onnxruntime.quantization` modülü `onnx` paketi olmadan import edilemiyor. | DOĞRULANDI | [quantization.md](https://github.com/microsoft/onnxruntime/blob/gh-pages/docs/performance/model-optimizations/quantization.md): "static quantization for CNN models" |
 | İş parçacığı ayarı: `intra_op_num_threads = 0` fiziksel çekirdek sayısı kadar iş parçacığı açar ve çekirdek yakınlığını (affinity) etkinleştirir. N verilirse affinity kapanır. Spin varsayılanı derleme bayrağına bağlı. | DOĞRULANDI | [threading.md](https://github.com/microsoft/onnxruntime/blob/gh-pages/docs/performance/tune-performance/threading.md): "there will be no affinity set to any of the created thread" |
 | DALSAN'daki durum: `onnxruntime==1.19.2`. `tespit.py` sağlayıcıyı seçiyor ve `get_providers()` ile "CUDA seçili ama CPU'da çalışıyor" uyarısı veriyor. Oturum oluştururken çıkan **her** istisna "dosyası bozuk" mesajına çevriliyor (`tespit.py:102-114`). | DOĞRULANDI (yerel) | [tespit.py](../backend/app/analiz/tespit.py) |
-| Aynı test makinesinde ORT 1.19.2'den 1.30.0'a geçiş: yolox_tiny ~25,5 ms'den ~18,8 ms'ye, yolox_s ~82 ms'den ~60–69 ms'ye indi. Ölçüm yalnız `session.run` süresi; hedef donanım değil. | DOĞRULANDI (yerel ölçüm) | 4 çekirdek Xeon, 40 koşunun ortancası; bkz. [AUDIT-OLCUM.md](AUDIT-OLCUM.md) |
+| Aynı test makinesinde ORT 1.19.2'den 1.30.0'a geçiş: yolox_tiny ~25,5 ms'den ~18,8 ms'ye, yolox_s ~82 ms'den ~60-69 ms'ye indi. Ölçüm yalnız `session.run` süresi; hedef donanım değil. | DOĞRULANDI (yerel ölçüm) | 4 çekirdek Xeon, 40 koşunun ortancası; bkz. [AUDIT-OLCUM.md](AUDIT-OLCUM.md) |
 | `models/indir.sh` indirilen modeli SHA-256 ile doğrulamıyor. | DOĞRULANDI (yerel) | `curl -L --fail … -o "$ad.part"` (hash kontrolü yok) |
 
 ### DOĞRULANMADI
 
-- **OpenVINO EP'nin YOLOX'ta genel bir "anlamlı hız" kazancı sağladığı:** Bu makinedeki ölçüm ~%10–15 kazanç gösterdi. Buna karşılık YOLOv5n'de OpenVINO'nun [varsayılan CPU EP'den yavaş kaldığı](https://github.com/openvinotoolkit/openvino/issues/22401) raporlanmış. Hedef donanımda ölçülmeden genellenemez.
+- **OpenVINO EP'nin YOLOX'ta genel bir "anlamlı hız" kazancı sağladığı:** Bu makinedeki ölçüm ~%10-15 kazanç gösterdi. Buna karşılık YOLOv5n'de OpenVINO'nun [varsayılan CPU EP'den yavaş kaldığı](https://github.com/openvinotoolkit/openvino/issues/22401) raporlanmış. Hedef donanımda ölçülmeden genellenemez.
 - **Jetson Zoo'daki güncel wheel listesi:** elinux.org engelli.
 - **PyPI wheel'inin spin varsayılanı:** `ORT_CLIENT_PACKAGE_BUILD` bayrağıyla derlenip derlenmediği bilinmiyor.
-- **ORT 1.23–1.30 için kesin TensorRT alt sürümü:** Doğrulanmadı.
+- **ORT 1.23-1.30 için kesin TensorRT alt sürümü:** Doğrulanmadı.
 - **CVE-2026-14647'nin ORT 1.19.2'de fiilen tetiklenip tetiklenemediği:** Gömülü `onnx` 1.16.1'de aynı kod deseni var, ama deneyle sınanmadı.
 - **pip'le gelen CUDA kütüphaneleriyle GPU'da uçtan uca çalışma:** Bu ortamda GPU yok.
 - **JetPack 6.1'in CUDA 12.6 kullandığı:** NVIDIA sayfaları engelli.
@@ -475,7 +475,7 @@ Başlıca bulgular şunlar:
 | 0.30.5'te ByteTrack `@deprecated_class(remove_in="0.31.0")` ile işaretli. Yerine `trackers.ByteTrackTracker` ve `update()` metodu geliyor. 0.30.5'in bağımlılıkları arasında `av>=14.2` (PyAV) ve `pydeprecate` var. | DOĞRULANDI | [deprecated.md](https://github.com/roboflow/supervision/blob/develop/docs/deprecated.md): "its update method is update(), not update_with_detections()" |
 | `trackers` paketi 2.6.0 sürümünde; lisansı Apache-2.0, Python ≥3.10 istiyor. | DOĞRULANDI | [PyPI trackers](https://pypi.org/pypi/trackers/json): "license": "Apache License 2.0" |
 | opencv-python wheel'leri kendi FFmpeg'ini (LGPLv2.1) taşıyor. GUI'li Linux wheel'leri Qt5 (LGPLv3) içeriyor. Dört paketten yalnız biri kurulmalı. | DOĞRULANDI | [opencv-python README](https://github.com/opencv/opencv-python): "All wheels ship with FFmpeg licensed under the LGPLv2.1." |
-| Dockerfile'daki apt `ffmpeg` paketini cv2 kullanmıyor ve backend ffmpeg komut satırını çağırmıyor. Kaldırma adayı. | DOĞRULANDI (yerel) | `/Dockerfile` satır 8–11 · .venv'deki `opencv_python.libs/libavcodec-*.so.59.37.100` |
+| Dockerfile'daki apt `ffmpeg` paketini cv2 kullanmıyor ve backend ffmpeg komut satırını çağırmıyor. Kaldırma adayı. | DOĞRULANDI (yerel) | `/Dockerfile` satır 8-11 · .venv'deki `opencv_python.libs/libavcodec-*.so.59.37.100` |
 | `OPENCV_FFMPEG_CAPTURE_OPTIONS` değişkeni VideoCapture açılırken okunuyor ve `anahtar;değer\|anahtar;değer` biçiminde ayrıştırılıyor. `kamera.py:38`'deki ayar doğru. | DOĞRULANDI | [cap_ffmpeg_impl.hpp 4.10.0](https://github.com/opencv/opencv/blob/4.10.0/modules/videoio/src/cap_ffmpeg_impl.hpp): `av_dict_parse_string(&dict, options, ";", "\|", 0);` |
 | Değişken tanımlı değilse OpenCV 4.6 ve sonrası `rtsp_flags=prefer_tcp` kullanıyor. DALSAN'ın `rtsp_transport;tcp` ayarı TCP'yi **zorluyor.** | DOĞRULANDI | [PR #21561](https://github.com/opencv/opencv/pull/21561): "Default FFMPEG VideoCapture backend to rtsp_flags=prefer_tcp" |
 | FFmpeg'in `rtsp_transport` seçeneği udp, tcp, udp_multicast, http ve https değerlerini alıyor. Birden çok değer verilirse sırayla deneniyor. | DOĞRULANDI | [protocols.texi](https://github.com/FFmpeg/FFmpeg/blob/master/doc/protocols.texi): "Multiple lower transport protocols may be specified" |
@@ -555,16 +555,16 @@ Ses kaydı, görüntünün yettiği yerde ölçülülük ilkesine aykırı bulun
 | 6331 m.18/1-b: İşveren, yeni teknolojilerin çalışan sağlığı ve güvenliğine etkisi konusunda çalışanların ya da temsilcilerinin görüşünü alır. | DOĞRULANDI | [6331](https://www.mevzuat.gov.tr/mevzuat?MevzuatNo=6331&MevzuatTur=1&MevzuatTertip=5): "Yeni teknolojilerin uygulanması … görüşlerinin alınması" |
 | KVKK m.11/1-g: İlgili kişi, yalnız otomatik sistemlerle yapılan analiz sonucunda aleyhine bir sonuç çıkmasına itiraz edebilir. | DOĞRULANDI | [6698 m.11](https://www.mevzuat.gov.tr/mevzuat?MevzuatNo=6698&MevzuatTur=1&MevzuatTertip=5): "münhasıran otomatik sistemler vasıtasıyla analiz edilmesi" |
 | m.12: Veri sorumlusu teknik ve idari tedbirleri almakla yükümlü ve veri işleyenle birlikte **müştereken** sorumlu. İhlal durumunda bildirim yapılır. | DOĞRULANDI | [6698 m.12](https://www.mevzuat.gov.tr/mevzuat?MevzuatNo=6698&MevzuatTur=1&MevzuatTertip=5) |
-| m.18'deki taban ceza aralıkları: aydınlatma 5.000–100.000 TL, veri güvenliği 15.000–1.000.000 TL. Tutarlar her yıl yeniden değerleme oranında artıyor. Kurul cezalarına karşı idare mahkemesinde dava açılabiliyor. | DOĞRULANDI | [6698 m.18](https://www.mevzuat.gov.tr/mevzuat?MevzuatNo=6698&MevzuatTur=1&MevzuatTertip=5) |
+| m.18'deki taban ceza aralıkları: aydınlatma 5.000-100.000 TL, veri güvenliği 15.000-1.000.000 TL. Tutarlar her yıl yeniden değerleme oranında artıyor. Kurul cezalarına karşı idare mahkemesinde dava açılabiliyor. | DOĞRULANDI | [6698 m.18](https://www.mevzuat.gov.tr/mevzuat?MevzuatNo=6698&MevzuatTur=1&MevzuatTertip=5) |
 | İddia: "2026/347 sayılı İlke Kararı RG 31.03.2026/33210'da yayımlandı." **Doğrusu:** Karar **RG 24.03.2026/33203**'te yayımlandı. İçerik doğru: açık rıza metni ile aydınlatma metni ayrı ayrı düzenlenmeli (Tebliğ m.5/1-f ile uyumlu). | ÇÜRÜTÜLDÜ (künye) | [RG 24.03.2026](https://www.resmigazete.gov.tr/eskiler/2026/03/20260324-3.pdf) · [Duyuru (8710)](https://www.kvkk.gov.tr/Icerik/8710/veri-sorumlulari-tarafindan-acik-riza-ve-aydinlatma-metinlerinin-ayri-ayri-duzenlenmesi-gerektigi-hakkinda-kisisel-verileri-koruma-kurulunun-18-02-2026-tarihli-ve-2026-347-sayili-ilke-kararina-iliskin-kamuoyu-duyurusu) |
 | İlgili rehberler: Biyometrik Veri Rehberi (Eyl 2021), Kişisel Veri Güvenliği Rehberi, Aydınlatma Rehberi, Kurul'un yeterli önlemler kararı (2018/10) ve Özel Nitelikli Veri Rehberi (26.02.2025; 7499 sonrası m.6 yorumu için güncel kaynak). | DOĞRULANDI (varlıkları; içerikleri okunmadı) | [Biyometrik Rehber](https://www.kvkk.gov.tr/Icerik/7047/Biyometrik-Verilerin-Islenmesinde-Dikkat-Edilmesi-Gereken-Hususlara-Iliskin-Rehber) · [Özel Nitelikli Rehber (PDF)](https://www.kvkk.gov.tr/SharedFolderServer/CMSFiles/70f95c73-06a2-44dc-81e9-34201bdd7f5c.pdf) |
 | 2022/797'de aydınlatma metni yüz tanımadan hiç söz etmediği için, o veri bakımından aydınlatma yükümlülüğü yerine getirilmemiş sayıldı. Ek bir işleme varsa metinde ayrıca yazılmalı. | DOĞRULANDI (özet) | [2022/797](https://www.kvkk.gov.tr/Icerik/7434/2022-797) |
 
 ### DOĞRULANMADI
 
-- **Kamera görüntülerinin "genel uygulama olarak 15–30 gün" saklanması:** Yalnız bir yorum yazısında ([alomaliye](https://www.alomaliye.com/2026/06/08/is-yerlerinde-guvenlik-kamerasi-kullaniminda-dikkat-edilecek-hususlar/)) geçiyor. Kanunda, yönetmelikte ya da Kurum duyurusunda **sabit bir gün sayısı yok.** Kural gibi yazılmamalı.
+- **Kamera görüntülerinin "genel uygulama olarak 15-30 gün" saklanması:** Yalnız bir yorum yazısında ([alomaliye](https://www.alomaliye.com/2026/06/08/is-yerlerinde-guvenlik-kamerasi-kullaniminda-dikkat-edilecek-hususlar/)) geçiyor. Kanunda, yönetmelikte ya da Kurum duyurusunda **sabit bir gün sayısı yok.** Kural gibi yazılmamalı.
 - **2023/2007'deki 125.000 TL ceza tutarı:** Yalnız tek bir arama özetinde geçiyor; karar metninden teyit edilmeli.
-- **2026 yılı güncel ceza tutarları** (ör. aydınlatma 85.437–1.709.200 TL; veri güvenliği 256.357–17.092.242 TL): Yalnız ikincil kaynaklarda var. Resmi tablo ([Icerik/8145](https://www.kvkk.gov.tr/Icerik/8145/6698-sayili-kisisel-verilerin-korunmasi-kanunu-kapsaminda-idari-para-cezasi-tutarlari)) okunamadı.
+- **2026 yılı güncel ceza tutarları** (ör. aydınlatma 85.437-1.709.200 TL; veri güvenliği 256.357-17.092.242 TL): Yalnız ikincil kaynaklarda var. Resmi tablo ([Icerik/8145](https://www.kvkk.gov.tr/Icerik/8145/6698-sayili-kisisel-verilerin-korunmasi-kanunu-kapsaminda-idari-para-cezasi-tutarlari)) okunamadı.
 - **2022/797'deki "değerlendirmede dikkate alınacak unsurlar" listesi** (kamera sayısı, görüş açısı, saklama süresi vb.): Doğrulanmadı.
 - **2022/797'deki "rıza dışı bir dayanak varken rızaya dayanmak aldatıcıdır" ifadesi:** Doğrulanmadı.
 - **Biyometrik Rehber'in 2024'te güncellendiği:** Doğrulanmadı.
@@ -638,7 +638,7 @@ Ses kaydı, görüntünün yettiği yerde ölçülülük ilkesine aykırı bulun
 | opencv-python'ın PyPI'deki "en son" sürümü 5.0.0.93; sürüm sabitlenmezse OpenCV 5 gelir. supervision 0.25.1 `opencv-python>=4.5.5.64` istiyor. | DOĞRULANDI | [PyPI opencv-python-headless](https://pypi.org/pypi/opencv-python-headless/json) |
 | `VideoCapture` API'si bloklayıcı; her kamera için ayrı bir iş parçacığı gerekiyor. OpenCV nesneleri iş parçacığı güvenli değil. | DOĞRULANDI | [opencv #12077](https://github.com/opencv/opencv/issues/12077): "call to VideoCapture::read … will block calling thread" |
 | Belgeye göre `grab()` kareyi yakalar, `retrieve()` çözer. Ancak FFmpeg arka ucunda çözme işi `grab()`'de yapılıyor; `retrieve()` yalnız renk dönüşümü yapıyor. | DOĞRULANDI | [videoio.hpp](https://raw.githubusercontent.com/opencv/opencv/4.x/modules/videoio/include/opencv2/videoio.hpp) · [cap_ffmpeg_impl.hpp](https://raw.githubusercontent.com/opencv/opencv/4.x/modules/videoio/src/cap_ffmpeg_impl.hpp) |
-| `CAP_PROP_BUFFERSIZE` FFmpeg, GStreamer ve DShow arka uçlarında hiç ele alınmıyor. V4L2'de (1–10 arası, varsayılan 4) ve DC1394'te destekleniyor; MSMF false döndürüyor. | DOĞRULANDI | [cap_v4l.cpp](https://raw.githubusercontent.com/opencv/opencv/4.x/modules/videoio/src/cap_v4l.cpp): `#define DEFAULT_V4L_BUFFERS 4` |
+| `CAP_PROP_BUFFERSIZE` FFmpeg, GStreamer ve DShow arka uçlarında hiç ele alınmıyor. V4L2'de (1-10 arası, varsayılan 4) ve DC1394'te destekleniyor; MSMF false döndürüyor. | DOĞRULANDI | [cap_v4l.cpp](https://raw.githubusercontent.com/opencv/opencv/4.x/modules/videoio/src/cap_v4l.cpp): `#define DEFAULT_V4L_BUFFERS 4` |
 | FFmpeg arka ucunda açma ve okuma zaman aşımı varsayılan olarak 30.000 ms. `CAP_PROP_OPEN_TIMEOUT_MSEC` ve `CAP_PROP_READ_TIMEOUT_MSEC` yalnız açılışta parametre olarak verilebiliyor. `kamera.py:223` bunları vermiyor. | DOĞRULANDI | [cap_ffmpeg_impl.hpp 4.x](https://raw.githubusercontent.com/opencv/opencv/4.x/modules/videoio/src/cap_ffmpeg_impl.hpp): `#define LIBAVFORMAT_INTERRUPT_READ_DEFAULT_TIMEOUT_MS 30000` |
 | `/saglik` ucu her zaman 200 döndürüyor ve analiz döngüsünün gerçekten ilerleyip ilerlemediğini ölçmüyor. Compose sağlık kontrolü `curl` kullanıyor; Dockerfile'daki `curl` sırf bunun için kurulmuş. | DOĞRULANDI (yerel) | [rotalar.py](../backend/app/web/rotalar.py):129-142 |
 | `docs/06`'daki systemd biriminde `ExecStart=… app.main:uygulama` yazıyor, ama modüldeki sembolün adı `app`. **Birim bugün başlamıyor** (AUDIT R26). | DOĞRULANDI (yerel) | [06-OPERASYON.md](06-OPERASYON.md):83 · `backend/app/main.py:63` `app = uygulamayi_kur()` |
@@ -653,7 +653,7 @@ Ses kaydı, görüntünün yettiği yerde ölçülülük ilkesine aykırı bulun
 
 ### Projeye öneri (en az parça)
 
-1. **Metrik.** Müşteride Prometheus yoksa `/saglik` JSON'una fps, gecikme ve kuyruk alanları eklenmesi yeter. Prometheus varsa elle yazılmış bir `GET /metrics` ucu açılır: 5–8 gauge ve counter, `Content-Type` başlığı **zorunlu**, etiket olarak kamera adı değil kamera id'si. `prometheus_client` eklenmez. §4.9'daki `/healthz` adı ya aynı fonksiyona takma ad olarak bağlanır ya da E tablosuna sapma olarak yazılır.
+1. **Metrik.** Müşteride Prometheus yoksa `/saglik` JSON'una fps, gecikme ve kuyruk alanları eklenmesi yeter. Prometheus varsa elle yazılmış bir `GET /metrics` ucu açılır: 5-8 gauge ve counter, `Content-Type` başlığı **zorunlu**, etiket olarak kamera adı değil kamera id'si. `prometheus_client` eklenmez. §4.9'daki `/healthz` adı ya aynı fonksiyona takma ad olarak bağlanır ya da E tablosuna sapma olarak yazılır.
 2. **Bekçi.** Süpervizör döngüsü her turda bir `time.monotonic()` damgası yazar. Ayrı bir daemon iş parçacığı (stdlib) bu damgayı her 10 saniyede kontrol eder. Takılma şöyle tanımlanır: analiz açık, en az bir kamera kare üretiyor ve damga 90 saniyeden eski. Tepki dağıtım yoluna göre değişir:
    - **Docker ve systemd:** Günlüğe kayıt düşülür ve `os._exit(70)` çağrılır. Süreci yeniden başlatma politikası ya da `Restart=always` kaldırır. Docker'da tekrarlayan çıkışlarda bekleme 100 ms'den 1 dakikaya kadar uzar.
    - **Paketlenmiş masaüstü:** Süreçten **çıkılmaz.** `/saglik` 503 döndürür, panelde uyarı gösterilir ve günlüğe yazılır. Çıkış paneli de öldürür.
@@ -693,7 +693,7 @@ Karar, **lisansa ve ticari fabrika kurulumuna** göre verildi. "Koşullu" satır
 | Roboflow Construction Site Safety (`roboflow-universe-projects`) | CC BY 4.0 (DOĞRULANMADI, arama özeti) | **KOŞULLU** | Sürüm sabitlenmeli, lisans satırı kaydedilmeli; KKD için ilk aday |
 | Roboflow Safety Vests (`roboflow-universe-projects`) | Lisans DOĞRULANMADI | **KOŞULLU** | Özette CC BY görünmüyor |
 | Roboflow HardHat & SafetyVest (`ppe-kit-detection`) | CC BY 4.0 (arama özeti) | **KOŞULLU** | Kökeni bilinmiyor; NC setlerin birleşimi olabilir |
-| Hard Hat Universe (`ppe-pnqgr`) | Lisans hiçbir yerde görülmedi | **KOŞULLU / şüpheli** | — |
+| Hard Hat Universe (`ppe-pnqgr`) | Lisans hiçbir yerde görülmedi | **KOŞULLU / şüpheli** | - |
 | Hard Hat Workers (`joseph-nelson`) | Public Domain (arama özeti) | **KOŞULLU** | Yalnız baret; kökeni doğrulanmadı |
 | Kaggle `andrewmvd` Safety Helmet Detection | CC0 (arama özeti) | **KOŞULLU** | Yalnız baret |
 | SHEL5K | CC BY 4.0 (arama özeti); görüntüler andrewmvd'den | **KOŞULLU** | Lisansı SHD'nin lisansına bağlı |
@@ -707,11 +707,11 @@ Karar, **lisansa ve ticari fabrika kurulumuna** göre verildi. "Koşullu" satır
 | Roboflow forklift setleri (csv2tfrecord, CONTIL, HITSZ, Baxter) | CC BY 4.0 (arama özeti) | **KOŞULLU** | Lisans ve köken tarayıcıdan teyit edilmeli |
 | Roboflow `Phantom/forklift-1` | CC BY 4.0 (arama özeti) | **LOCO'yu kullan** | Büyük olasılıkla LOCO türevi |
 | Traore/forklift (421) ve kopyaları, HF `keremberke/forklift-object-detection` | CC BY 4.0 yazıyor, görüntüler images.cv'den | **KULLANILAMAZ** | Kaynak görüntülerin ticari lisansı yok |
-| SelimSavas forklift (3.000) | Lisans yok, ImageNet kaynaklı (DOĞRULANDI) | **KULLANILAMAZ** | — |
+| SelimSavas forklift (3.000) | Lisans yok, ImageNet kaynaklı (DOĞRULANDI) | **KULLANILAMAZ** | - |
 | YOLOX kodu ve resmi ağırlıkları | Apache-2.0 (DOĞRULANDI) | **KULLANILABİLİR** | Mevcut seçim |
 | YuNet `2023mar` | MIT, Shiqi Yu (DOĞRULANDI) | **KULLANILABİLİR** (Faz 2) | `2026may` OpenCV 5 ister |
 | Piper `tr_TR-dfki-medium` | Veri CC BY-NC-SA ve lessac tabanı (DOĞRULANDI) | **KULLANILAMAZ** | İki ayrı ticari engel |
-| Piper `tr_TR-fahrettin` / `tr_TR-fettah` | Kaldırılmış, model kartı yok | **KULLANILAMAZ** | — |
+| Piper `tr_TR-fahrettin` / `tr_TR-fettah` | Kaldırılmış, model kartı yok | **KULLANILAMAZ** | - |
 | Coqui XTTS-v2 | CPML (DOĞRULANDI) | **KULLANILAMAZ** | Ticari lisans satın alınamıyor |
 | Meta MMS-TTS (`mms-tts-tur`) | CC-BY-NC 4.0 (DOĞRULANDI) | **KULLANILAMAZ** | Ayrıca torch ve transformers getirir |
 | macOS "Yelda" (`say`) | SLA: yalnız kişisel ve ticari olmayan kullanım (DOĞRULANMADI, orta güven) | **Müşteriye giden varlık olarak KULLANMA** | Yalnız geliştirici denemesi için |
@@ -725,14 +725,14 @@ Karar, **lisansa ve ticari fabrika kurulumuna** göre verildi. "Koşullu" satır
 | `onnxruntime` (CPU) | MIT (PyPI, DOĞRULANDI) | **KULLANILABİLİR** | Sabitin 1.30.0'a yükseltilmesi öneriliyor (§5) |
 | `onnxruntime-gpu` | MIT (PyPI, DOĞRULANDI) | **KULLANILABİLİR** | Yalnız GPU sunucusunda ve CPU paketinin **yerine** |
 | `onnxruntime-openvino` | MIT (DOĞRULANDI) | Lisans uygun; **MVP'de eklenmez** | Aynı dizine kuruluyor, 6 alt sürüm geride |
-| TensorRT | NVIDIA lisansı (bu belgede incelenmedi) | **MVP dışında** | — |
+| TensorRT | NVIDIA lisansı (bu belgede incelenmedi) | **MVP dışında** | - |
 | `opencv-python` 4.10.0.84 | Apache 2.0; gömülü FFmpeg LGPLv2.1, Qt5 LGPLv3 (DOĞRULANDI) | **KULLANILABİLİR** | LGPL bildirimi `LICENSE-THIRD-PARTY`'de yer almalı |
 | `supervision` 0.25.1 | MIT (DOĞRULANDI) | **KULLANILABİLİR** | Sabit kalmalı |
 | `trackers` | Apache-2.0 (DOĞRULANDI) | Lisans uygun; **MVP'de eklenmez** | supervision 0.31 geçişinde gerekecek |
 | Ultralytics YOLOv8/YOLO11 | AGPL-3.0 (depo LICENSE, DOĞRULANDI) | **KULLANILAMAZ** | ADR-002 |
 | `prometheus_client` | Apache-2.0 AND BSD-2-Clause (DOĞRULANDI) | Lisans uygun; **eklenmez** | Metin elle üretilir |
 | `sdnotify` | MIT (DOĞRULANDI) | **Eklenmez** | stdlib `socket` yeterli; 2017'den beri güncellenmemiş |
-| `sse-starlette` | — | **Eklenmez** | Proje `StreamingResponse` kullanıyor |
+| `sse-starlette` | - | **Eklenmez** | Proje `StreamingResponse` kullanıyor |
 | `websockets` | BSD-3-Clause (PyPI) | Zaten kurulu (uvicorn[standard]); **WebSocket ucu açılmaz** | E7 |
 | `fastapi` / `uvicorn` | MIT / BSD-3-Clause (PyPI) | **KULLANILABİLİR** (mevcut) | `fastapi.sse` için ≥0.135 gerekir |
 | `dbus-fast` | MIT (DOĞRULANDI) | Yalnız subprocess yetmezse | Aktif bakımlı tek aday |
@@ -752,7 +752,7 @@ Karar, **lisansa ve ticari fabrika kurulumuna** göre verildi. "Koşullu" satır
 
 ## Prompt'taki hatalar
 
-Bu bölüm, `GOREV-TANIMI-V2.md`'nin yanlış ya da eksik olduğu noktaları listeler. Önce §4.6–§4.7, ardından kartlarda ortaya çıkan diğer bölümler. EK A'da zaten bulunan maddeler (E1, E2, E3, E5, E7) belirtildi; **yeni** maddeler EK A'ya eklenmek üzere önerilmiştir. Bu belge `GOREV-TANIMI-V2.md` dosyasını değiştirmez.
+Bu bölüm, `GOREV-TANIMI-V2.md`'nin yanlış ya da eksik olduğu noktaları listeler. Önce §4.6-§4.7, ardından kartlarda ortaya çıkan diğer bölümler. EK A'da zaten bulunan maddeler (E1, E2, E3, E5, E7) belirtildi; **yeni** maddeler EK A'ya eklenmek üzere önerilmiştir. Bu belge `GOREV-TANIMI-V2.md` dosyasını değiştirmez.
 
 ### §4.6 Uyarı kanalları ve Bluetooth hoparlör
 
@@ -764,9 +764,9 @@ Bu bölüm, `GOREV-TANIMI-V2.md`'nin yanlış ya da eksik olduğu noktaları lis
 | P4 | "Linux'ta BlueZ üzerinden D-Bus (`org.bluez`), A2DP sink profili" | Eksik. BlueZ 5 **ses taşımaz.** A2DP için PipeWire ya da PulseAudio (veya BlueALSA) şart. D-Bus yalnız bağlantıyı yönetir. Python'da `bleak` A2DP yapamaz (yalnız BLE). | §4 |
 | P5 | "Arayüzde: tara → eşleştir → güven → bağlan" | E2'ye ek teknik engeller var. `bluetoothctl` etkileşimsiz modda `-a` bayrağını yok sayar. PIN isteyen hoparlör etkileşimsiz eşleşmez. Taramadan sonraki 30 saniye içinde eşleşme yapılmazsa cihaz silinir. `-t` ile çıkış kodu hep 0 olur. `connect … a2dp-sink` biçimi yalnız BlueZ 5.82 ve sonrasında var. | §4 |
 | P6 | "Windows hedefleniyorsa … eşleştirilmiş cihaz" | Windows'ta programatik eşleştirmede sistem diyaloğu **her zaman** gösteriliyor, yani tam otomatik eşleştirme mümkün değil. | §4 |
-| P7 | "Otomatik yeniden bağlanma (üstel geri çekilme, üst sınır 60 s)" | BlueZ'in kendi politikası yalnız bağlantı kaybında devreye giriyor (7 deneme, 1–64 s); hoparlörün kapatılıp açılması kapsam dışı. Gelen bağlantının kabul edilmesi için `trust` şart. Bu yüzden bir uygulama bekçisi gerekir. Prompt bu ayrımı yapmıyor. | §4 |
+| P7 | "Otomatik yeniden bağlanma (üstel geri çekilme, üst sınır 60 s)" | BlueZ'in kendi politikası yalnız bağlantı kaybında devreye giriyor (7 deneme, 1-64 s); hoparlörün kapatılıp açılması kapsam dışı. Gelen bağlantının kabul edilmesi için `trust` şart. Bu yüzden bir uygulama bekçisi gerekir. Prompt bu ayrımı yapmıyor. | §4 |
 | P8 | "30 s kopuksa `local_audio`'ya düş" | Sink adı ses sunucusuna göre değişiyor (`bluez_sink.*` / `bluez_output.*`); sabit bir ad yazılamaz. PulseAudio'da `switch-on-connect` davranışı dağıtıma göre farklı. Ekransız sunucuda WirePlumber, logind oturumu aktif değilse Bluetooth sink'i hiç oluşturmayabiliyor. | §4 |
-| P9 | "A2DP tipik olarak 100–250 ms" | Bu aralık yayımlanmış bir ölçümle doğrulanamadı; yalnız tekil ölçümler var (SBC için 150,6 ms). Sabit bir sayı yazılmamalı, ölçülmeli. | §4 |
+| P9 | "A2DP tipik olarak 100-250 ms" | Bu aralık yayımlanmış bir ölçümle doğrulanamadı; yalnız tekil ölçümler var (SBC için 150,6 ms). Sabit bir sayı yazılmamalı, ölçülmeli. | §4 |
 | P10 | Docker imajında Bluetooth (§4.9 ile birlikte) | Eksik. Konteynere host'un D-Bus soketi ve ses soketi bağlanır, konteyner aynı UID ile çalışır. `--privileged`, `NET_ADMIN` ve `NET_RAW` gereksizdir. HCI soketi gerekiyorsa `--net=host` şart. İmaja ayrıca işletim sistemi paketleri girer. | §4 |
 | P11 | "MAC adresi `config/alerts.yaml`" | E5: `.env` ya da SQLite kullanılmalı. | EK A |
 
@@ -781,7 +781,7 @@ Bu bölüm, `GOREV-TANIMI-V2.md`'nin yanlış ya da eksik olduğu noktaları lis
 | P16 | "COCO … + özel forklift, **loader**, pallet_jack" | `loader` için hiçbir açık kaynakta sınıf yok (LVIS'te bulldozer "rare", Objects365'te genel "Machinery Vehicle"). `pallet_jack` LOCO'da var. LOCO'da ise `person` sınıfı yok. | §2 |
 | P17 | "Aday açık veri setleri (KULLANMADAN ÖNCE lisans … doğrula)" | Talimat doğru, ama aday listesinin kendisi yanlış: üç KKD adayının üçü de elendi. Bu oturumda KKD için lisansı birincil kaynaktan doğrulanmış ticari-uygun bir set bulunamadı. Ayrıca "Public Domain" ya da CC0 etiketi, görüntüdeki kişilerin mahremiyet haklarını kapsamaz. | §1 |
 | P18 | "Model adayları: … YOLOX (Apache-2.0)" | Lisans doğru. Eksik: YOLOX'un PyPI sürümü 2022'den kalma, son commit Haziran 2025. Export betiği PyTorch 2.5'te kaldırılan `torch.onnx._export`'u kullanıyor; eğitim ortamında PyTorch 2.4 ya da öncesi sabitlenmeli veya betik yamalanmalı. Ultralytics'in hazır **veri setleri** de AGPL lisanslı (Construction-PPE). | §2, §5 |
-| P19 | "Dışa aktarım: ONNX → TensorRT / OpenVINO" | Eksik ve kısmen yanlış. (a) `onnxruntime-gpu` ayrı bir paket; CPU paketiyle aynı ortama kurulursa CUDA sessizce kaybolur. (b) 1.27 ve sonrası CUDA 13 istiyor; 1.30'un TensorRT EP'si libnvinfer 10 ve CUDA 13 kütüphanelerine bağlı. (c) Jetson'da PyPI wheel'i çalışmıyor, JetPack'e özel wheel gerekiyor. (d) OpenVINO ayrı bir paket (`onnxruntime-openvino`), 6 alt sürüm geride ve aynı dizine kuruluyor; ölçülen kazanç ~%10–15, YOLOv5n'de daha yavaş olduğu da raporlanmış. (e) YOLOX README, OpenVINO için opset 10 öneriyor, resmi ONNX dosyaları ise opset 11. | §5 |
+| P19 | "Dışa aktarım: ONNX → TensorRT / OpenVINO" | Eksik ve kısmen yanlış. (a) `onnxruntime-gpu` ayrı bir paket; CPU paketiyle aynı ortama kurulursa CUDA sessizce kaybolur. (b) 1.27 ve sonrası CUDA 13 istiyor; 1.30'un TensorRT EP'si libnvinfer 10 ve CUDA 13 kütüphanelerine bağlı. (c) Jetson'da PyPI wheel'i çalışmıyor, JetPack'e özel wheel gerekiyor. (d) OpenVINO ayrı bir paket (`onnxruntime-openvino`), 6 alt sürüm geride ve aynı dizine kuruluyor; ölçülen kazanç ~%10-15, YOLOv5n'de daha yavaş olduğu da raporlanmış. (e) YOLOX README, OpenVINO için opset 10 öneriyor, resmi ONNX dosyaları ise opset 11. | §5 |
 | P20 | "uç cihazda INT8 kalibrasyonlu" | INT8 kazancı ancak VNNI ya da dot-product komutları olan donanımda görülüyor. VNNI'siz AVX2/AVX512'de U8S8 doygunluk riski var. Kuantizasyon `onnx` paketini gerektiriyor; bu iş yalnız geliştirici makinesinde yapılmalı. Prompt donanım koşulunu yazmıyor. | §5 |
 | P21 | "Model kayıt defteri … sha256" | Doğru. Ancak bugünkü `models/indir.sh` hash doğrulaması yapmıyor. CVE-2026-14647 (model yükleme yolu) bağlamında bu eksiklik önemli. | §5 |
 | P22 | Prompt ORT sürümünden hiç söz etmiyor | 1.19.2'nin gömülü `onnx` 1.16.1'i CVE-2026-14647 kapsamında. Python 3.13 ve sonrası için wheel'i yok. Bu makinede 1.30.0 yaklaşık %25 daha hızlı çıktı. Sürüm yükseltmesi Faz 1'de ele alınmalı. | §5 |

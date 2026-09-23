@@ -1,4 +1,4 @@
-# 10 — Yapay Zeka ile Çalışma Rehberi
+# 10 - Yapay Zeka ile Çalışma Rehberi
 
 Bu dosya sana yazılım öğretmez. **Yazılım bilmeden, yapay zekayla birlikte
 sağlam bir sistem üretmenin yöntemini** anlatır.
@@ -22,7 +22,7 @@ Bu yüzden aşağıdaki iki alışkanlık her şeyden önemli.
 
 ## 2. İki vazgeçilmez alışkanlık
 
-### Alışkanlık 1: Git — "geri alma düğmesi"
+### Alışkanlık 1: Git - "geri alma düğmesi"
 
 Git'i sürüm kontrol sistemi olarak değil, **her şey bozulduğunda geri dönebileceğin
 kayıt noktası** olarak düşün. Oyunlardaki "kaydet" gibi.
@@ -38,12 +38,12 @@ Bir şey bozulduğunda:
 Bunu yapmazsan, 3 hafta sonra bozulan bir şeyi düzeltmek imkânsız hale gelir.
 **Bu tek alışkanlık, projeyi kurtaracak ya da batıracak şeydir.**
 
-### Alışkanlık 2: Testler — yapay zekanın kendi kendini kontrol etmesi
+### Alışkanlık 2: Testler - yapay zekanın kendi kendini kontrol etmesi
 
 Test = "sistem şunu yapmalı" diye yazılmış küçük kontroller. Sen okumazsın, ama
 Claude Code her değişiklikten sonra çalıştırır ve **bir şeyi bozduysa hemen anlar.**
 
-Yazılım bilmeyen biri için testler lüks değil, **zorunluluktur** — çünkü senin
+Yazılım bilmeyen biri için testler lüks değil, **zorunluluktur** - çünkü senin
 gözden kaçıracağın bozulmaları yakalayan tek mekanizma budur.
 
 Her yeni kural veya özellikten sonra:
@@ -68,9 +68,9 @@ Cevap yeşilse devam. Kırmızıysa:
 
 Farkı yaratan üç şey:
 
-1. **Hangi dokümana bakacağını söyle** — dokümanlar tam bu iş için var
-2. **Küçük parça iste** — "sistemi yap" değil, "şu dosyayı yap"
-3. **Sonunda ne göreceğini söyle** — "testleri çalıştır ve göster"
+1. **Hangi dokümana bakacağını söyle** - dokümanlar tam bu iş için var
+2. **Küçük parça iste** - "sistemi yap" değil, "şu dosyayı yap"
+3. **Sonunda ne göreceğini söyle** - "testleri çalıştır ve göster"
 
 ### Her oturumun ilk cümlesi
 
@@ -81,7 +81,7 @@ dokümanlar bu yüzden var.
 
 ---
 
-## 4. Sıralama — hangi işi ne zaman
+## 4. Sıralama - hangi işi ne zaman
 
 Bu sıra tesadüfi değil. Her adım bir öncekinin üstüne kurulur; atlarsan geri dönersin.
 
@@ -158,12 +158,12 @@ Dördüncü madde, ertesi hafta "nerede kalmıştım" kaybını önler.
 
 Bunlar teknik değil, **senin işin:**
 
-- **KKD politika kararları** — mont yelek sayılır mı, kabindeki operatör kapsamda mı
+- **KKD politika kararları** - mont yelek sayılır mı, kabindeki operatör kapsamda mı
   (DALSAN İSG'ye sorulacak, bkz. `04-KKD-BARET-YELEK.md` §5.3)
-- **KVKK yükümlülükleri** — aydınlatma metni, levhalar (DALSAN'ın hukuk birimi)
-- **Kapsam sözleşmesi** — Rev.02 ek protokolü
-- **Eşiklerin son hâli** — sayıyı yapay zeka önerir, **kabul eden İSG yetkilisidir**
-- **"Yeterince iyi mi?" kararı** — gölge mod sonuçlarına bakıp anonsu açma kararı
+- **KVKK yükümlülükleri** - aydınlatma metni, levhalar (DALSAN'ın hukuk birimi)
+- **Kapsam sözleşmesi** - Rev.02 ek protokolü
+- **Eşiklerin son hâli** - sayıyı yapay zeka önerir, **kabul eden İSG yetkilisidir**
+- **"Yeterince iyi mi?" kararı** - gölge mod sonuçlarına bakıp anonsu açma kararı
 
 Yapay zeka bunlarda fikir verir, ama **sorumluluğu taşıyan sensin.** Bu ayrım, İSG
 sistemlerinde teknik ayrımlardan daha önemlidir.

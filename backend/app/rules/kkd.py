@@ -1,4 +1,4 @@
-"""Kural tipi 3 — ppe_violation: KKD ihlali (docs/03 §3, docs/04 §7).
+"""Kural tipi 3 - ppe_violation: KKD ihlali (docs/03 §3, docs/04 §7).
 
 KANITIN YOKLUĞU, İHLALİN VARLIĞI DEĞİLDİR.
 `belirsiz` HİÇBİR ZAMAN olay üretmez. Yalnızca yeterli sayıda GEÇERLİ
@@ -10,7 +10,7 @@ Her kalem (baret, yelek) AYRI karar ve AYRI olaydır (docs/17 §5.6): yalnız
 yelek eksikse yalnız PPE_NO_VEST açılır; ikisi eksikse iki olay, iki bekleme.
 
 Bir karedeki gözlem şüpheliyse (kabindeki sürücü, üst üste iki kişi, bulanık
-kırpık — docs/17 §5.3–5.4) o karede iki kalem de BELİRSİZ yazılır.
+kırpık - docs/17 §5.3-5.4) o karede iki kalem de BELİRSİZ yazılır.
 """
 
 from __future__ import annotations
@@ -155,7 +155,7 @@ class KkdDegerlendirici:
             durum["pencereler"][kkd].append((deger, guven))
 
     def _gozlem_supheli_mi(self, tespit: Tespit, gozlem: KkdGozlem, baglam) -> bool:
-        """Bu karenin gözlemi karar için güvenilmez mi (docs/17 §5.3–5.4)?
+        """Bu karenin gözlemi karar için güvenilmez mi (docs/17 §5.3-5.4)?
 
         Üç kaynak, üçü de saf geometri ya da ölçülmüş sayı:
         - bulanık kırpık: netlik `min_netlik`'in altında (None = kapalı);
@@ -235,7 +235,7 @@ class KkdDegerlendirici:
                             **kararlar,
                             "person_height_px": int(durum.get("son_boy_px", 0)),
                             # model_version olmadan "model iyileşti mi" sorusu
-                            # cevaplanamaz — zorunludur (docs/03 §3)
+                            # cevaplanamaz - zorunludur (docs/03 §3)
                             "model_version": durum.get("model_surumu", ""),
                             "dwell_s": round(kalis, 1),
                         },

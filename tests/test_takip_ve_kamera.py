@@ -1,4 +1,4 @@
-"""Faz 2b — takip ve kamera (docs/17 §13, K7, K8, R29).
+"""Faz 2b - takip ve kamera (docs/17 §13, K7, K8, R29).
 
 Gerçek kamera, ağ ya da model kullanılmaz: zaman elle verilir, cv2 ve kaynak
 sahtedir. Sınanan şey kararlardır: takip hafızası kaç kare, kopukluk kaç
@@ -76,7 +76,7 @@ def test_rtsp_acilisina_zaman_asimlari_gecer(monkeypatch):
         def __init__(self, *argumanlar):
             cagrilar.append(argumanlar)
 
-        def isOpened(self):  # noqa: N802 — OpenCV adı
+        def isOpened(self):  # noqa: N802 - OpenCV adı
             return True
 
     monkeypatch.setattr(kamera_modulu.cv2, "VideoCapture", _SahteYakalayici)

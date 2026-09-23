@@ -25,8 +25,8 @@ Kurallar:
 | Depo / dizin | `RiosenBeq/DALSAN` (branch `main`); tek program: `backend/app/main.py` (FastAPI + arka plan analiz iş parçacığı) |
 | Uç cihaz / sunucu | Fabrika: Linux + Docker, **NVIDIA ≥ 8 GB GPU, ≥ 6 çekirdek, ≥ 16 GB RAM, ≥ 512 GB SSD** (docs/05 §3). Geliştirme: Mac/Windows, Kontrol Paneli (`masaustu/dalsan_launcher.py`) |
 | İşletim sistemi | Fabrika: Ubuntu + Docker (tek container, `docker-compose.yml`). Geliştirme: macOS / Windows 11 |
-| Kameralar | **3–4 mevcut RTSP kamera** (docs/00 kapsam takası; Rev.01'deki 8–10'dan düşürüldü); kamera başına örnekleme `KARE_ORNEKLEME_FPS=6`; video dosyası kaynak tipi de var |
-| Mevcut model / çerçeve | **YOLOX** (Apache-2.0, ADR-002) `yolox_tiny.onnx` (geliştirme) / `yolox_s.onnx` (fabrika), **ONNX Runtime 1.19.2 CPU paketi** (`CIKARIM_CIHAZI=cuda` seçeneği var ama `onnxruntime-gpu` depoda hiçbir yerde kurulmuyor — **ölçüldü**, bkz. E12), supervision 0.25.1 ByteTrack; forklift ayrı sınıf DEĞİL (COCO araç sınıfları); KKD sınıflandırıcı henüz eğitilmedi |
+| Kameralar | **3-4 mevcut RTSP kamera** (docs/00 kapsam takası; Rev.01'deki 8-10'dan düşürüldü); kamera başına örnekleme `KARE_ORNEKLEME_FPS=6`; video dosyası kaynak tipi de var |
+| Mevcut model / çerçeve | **YOLOX** (Apache-2.0, ADR-002) `yolox_tiny.onnx` (geliştirme) / `yolox_s.onnx` (fabrika), **ONNX Runtime 1.19.2 CPU paketi** (`CIKARIM_CIHAZI=cuda` seçeneği var ama `onnxruntime-gpu` depoda hiçbir yerde kurulmuyor - **ölçüldü**, bkz. E12), supervision 0.25.1 ByteTrack; forklift ayrı sınıf DEĞİL (COCO araç sınıfları); KKD sınıflandırıcı henüz eğitilmedi |
 | Bluetooth hoparlör | Bugün: yalnız **işletim sistemi eşleştirmesi** + Anons sayfasından ses çıkışı seçimi (Linux'ta `ANONS_SES_CIHAZI`); docs/14 §2.1.1 uygulama içi eşleştirmeyi **bilerek yapmamış** ("OS'un işini ikinci kez, daha kötü yapmak"). Cihaz modeli, adedi, mesafe: **operatör dolduracak** |
 | Saha koşulları | Alçı fabrikası (DALSAN Alçı, docs/00): toz, iç/dış mekân karışık, metal raf ve duvar (Bluetooth menzili için docs/14 uyarısı); gece/ışık koşulu: **operatör dolduracak** |
 | Alarm alıcıları | Bugün: ekran bandı + ses (ses kartı / HTTP IP hoparlör) + olay kaydı; kişiler: **operatör dolduracak** (İSG uzmanı? vardiya şefi?) |
@@ -144,7 +144,7 @@ Kanallar:
 - Arayüzde: tara → eşleştir → güven → bağlan; MAC adresi `config/alerts.yaml` içinde saklanır.
 - Otomatik yeniden bağlanma (üstel geri çekilme, üst sınır 60 s); her 10 s sağlık kontrolü; 30 s'den uzun kopuksa `local_audio`'ya düş ve `AUDIO_CHANNEL_DOWN` üret.
 - Ses seviyesi ayarı ve "test sesi çal" düğmesi.
-- Gecikme ölçülür ve raporlanır (A2DP tipik olarak 100–250 ms; kabul: uçtan uca bütçe içinde kalması).
+- Gecikme ölçülür ve raporlanır (A2DP tipik olarak 100-250 ms; kabul: uçtan uca bütçe içinde kalması).
 - Belgelenecek sınırlar: menzil ~10 m, metal yapı ve motor gürültüsü etkisi; birden fazla hoparlör gerekiyorsa bölge başına bir cihaz.
 - Bluetooth TEK uyarı kanalı olamaz.
 
@@ -208,7 +208,7 @@ Hedef tutmuyorsa: gerçek sayıyı yaz, nedenini analiz et, sonraki adımı öne
 | 4 | Uyarılar | kanal soyutlaması, kablolu ses, Bluetooth yöneticisi, Türkçe ses varlıkları, panel ayarları | Sahada ses testi |
 | 5 | Sertleştirme | performans, güvenilirlik, KVKK, belgeler, dağıtım (Docker / systemd), saha kabul testi | Kabul listesi |
 
-Faz 1 onayından sonra Faz 2–5'i kendi başına ilerlet; yalnız §8 sorularında dur. Her faz kendi commit'lerine ayrılır; küçük ve tanımlı commit'ler.
+Faz 1 onayından sonra Faz 2-5'i kendi başına ilerlet; yalnız §8 sorularında dur. Her faz kendi commit'lerine ayrılır; küçük ve tanımlı commit'ler.
 
 ## 6. Test stratejisi
 
@@ -250,7 +250,7 @@ Faz 1 onayından sonra Faz 2–5'i kendi başına ilerlet; yalnız §8 soruları
 
 ---
 
-## EK A. Errata — 22 Eyl 2026, depo incelendikten sonra bulunan prompt hataları
+## EK A. Errata - 22 Eyl 2026, depo incelendikten sonra bulunan prompt hataları
 
 Bu prompt DALSAN deposu okunmadan yazıldı. Depo okununca şu maddelerin yanlış ya da çelişkili olduğu görüldü; Faz 1 tasarımı bunları çözmek zorunda:
 
@@ -266,9 +266,9 @@ Bu prompt DALSAN deposu okunmadan yazıldı. Depo okununca şu maddelerin yanlı
 | E8 | §5 `docs/ARCHITECTURE.md`, `docs/AUDIT.md` adları | Depo dokümanları numaralı ve Türkçe (`00-…15-…`) | `docs/AUDIT.md` (Faz 0), `docs/16-DIS-KAYNAK-DOGRULAMA.md`, `docs/17-V2-TASARIM.md` |
 | E9 | §4.7 "veri yoksa COCO ön-eğitimli + özel sınıflar" | docs/04 KKD planı zaten var (iki aşamalı, piksel boyu kısıtı, veri hedefi, politika soruları); KKD teklif Rev.01 kapsamı DIŞI, Rev.02 ek protokol gerekli (docs/00) | Veri toplama ek protokol imzalanmadan başlamaz |
 | E10 | §4.8 hedef metrikler | docs/00: "kaçırılan ihlal bilinen sınır, yanlış alarm ciddi kusur"; docs/05: CPU-only KKD için yetersiz, GPU şart | Yanlış alarm hedefi önce gelir; recall hedefleri GPU'ya koşullu |
-| E11 | §1 tablo boştu | Yukarıda depodan dolduruldu; kalan üç alan operatörün | — |
+| E11 | §1 tablo boştu | Yukarıda depodan dolduruldu; kalan üç alan operatörün | - |
 | E12 | §1'de "GPU seçeneği var" varsayımı | **Ölçüldü 22 Eyl:** `onnxruntime==1.19.2` CPU paketidir; `get_available_providers()` → `['AzureExecutionProvider','CPUExecutionProvider']`. `onnxruntime-gpu` ne `requirements.txt`'te ne `Dockerfile`'da kurulu. `docker-compose.yml:37` GPU bloğunu açmayı söylüyor ama imaj GPU'yu kullanamaz | Faz 2 öncesi GPU imajı ayrı kurulmalı; kod düşüşü zaten yakalayıp uyarıyor (`tespit.py:124-132`) |
 | E13 | §4.8 "≤ 500 ms kare→ses" hedefi | **Ölçüldü:** 4 çekirdek CPU'da 4 kamera yüküyle tespit p90'ı tek başına `yolox_tiny` 121-138 ms, `yolox_s` 473-496 ms | `s` + CPU + Bluetooth birleşimi hedefi karşılayamaz; hedef donanıma koşullu yazılmalı |
 | E14 | §4.8 "kamera başına ≥ 10 fps" | docs/05 bütçesi 4 kamera × **6 fps**; ölçüm `tiny` ile tam %100, `s` ile %40 | Hedef 10 fps değil 6 fps olmalı (projenin kendi bütçesi) |
 
-E12–E14 orkestratörün kendi ölçümlerinden gelir (`docs/AUDIT-OLCUM.md`). Faz 0 tamamlandı (`docs/AUDIT.md`); dış kaynak doğrulaması (`docs/16-DIS-KAYNAK-DOGRULAMA.md`) E1'in kapsamını genişletir: §4.7'de adı geçen üç KKD veri setinin **üçü de** ticari kurulumda kullanılamaz (SH17 CC BY-NC-SA 4.0; CHV ve Pictor-PPE lisanssız). §4.6'daki A2DP "100–250 ms" aralığı da orada DOĞRULANMADI olarak işaretlenmiştir; bir ölçüm değildir.
+E12-E14 orkestratörün kendi ölçümlerinden gelir (`docs/AUDIT-OLCUM.md`). Faz 0 tamamlandı (`docs/AUDIT.md`); dış kaynak doğrulaması (`docs/16-DIS-KAYNAK-DOGRULAMA.md`) E1'in kapsamını genişletir: §4.7'de adı geçen üç KKD veri setinin **üçü de** ticari kurulumda kullanılamaz (SH17 CC BY-NC-SA 4.0; CHV ve Pictor-PPE lisanssız). §4.6'daki A2DP "100-250 ms" aralığı da orada DOĞRULANMADI olarak işaretlenmiştir; bir ölçüm değildir.

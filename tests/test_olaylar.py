@@ -94,7 +94,7 @@ def test_ayni_saniyede_iki_ihlal_ayri_fotograf(test_ayarlari):
 
 def test_silinmis_kamera_olayi_dusurmez(test_ayarlari):
     # Kamera, değerlendirme ile kayıt arasında silinirse olay FK hatasıyla
-    # KAYBOLMAMALI — kamerasız kaydedilmeli
+    # KAYBOLMAMALI - kamerasız kaydedilmeli
     baglanti = veritabani.baglanti_ac(test_ayarlari.veritabani_yolu)
     try:
         veritabani.semayi_uygula(baglanti)
@@ -205,7 +205,7 @@ def test_csv_disa_aktarma(istemci, test_ayarlari):
 
 
 def test_goruntu_yolu_disari_cikamaz(istemci):
-    # Yol kaçışı (path traversal) — .env veya veritabanı dışarı sızmamalı
+    # Yol kaçışı (path traversal) - .env veya veritabanı dışarı sızmamalı
     yanit = istemci.get("/goruntuler/../dalsan.db")
     assert yanit.status_code == 404
     yanit = istemci.get("/goruntuler/..%2F..%2F.env")
@@ -232,7 +232,7 @@ def test_not_eklemek_inceleme_damgasini_kaydirmaz(istemci, test_ayarlari):
     incelendi" sorusunun veri kaynağıdır. Kullanıcı günler sonra bir olaya not
     eklediğinde damga o güne kayarsa, olay o gün incelenmiş gibi görünür ve
     ölçüm sessizce bozulur. Gerçek bir inceleme KARARI (durum değişikliği) ise
-    damgayı yenilemelidir — iki davranış da burada çivileniyor.
+    damgayı yenilemelidir - iki davranış da burada çivileniyor.
     """
     baglanti = veritabani.baglanti_ac(test_ayarlari.veritabani_yolu)
     try:
@@ -288,7 +288,7 @@ def test_not_eklemek_inceleme_damgasini_kaydirmaz(istemci, test_ayarlari):
     not_sonrasi, durum = damga_ve_durum()
     assert durum == "reviewed"
     assert not_sonrasi == GECMIS_DAMGA, (
-        "Sadece not eklemek inceleme damgasını bugüne kaydırdı — K11 ölçümü bozulur"
+        "Sadece not eklemek inceleme damgasını bugüne kaydırdı - K11 ölçümü bozulur"
     )
     assert "vinç operatörüyle konuşuldu" in istemci.get(f"/olaylar/{olay_id}").text
 

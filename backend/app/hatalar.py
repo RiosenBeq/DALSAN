@@ -15,7 +15,7 @@ class DalsanHata(Exception):
     """Tüm bilinçli hataların atası. Mesajı kullanıcıya gösterilir.
 
     `kullanici_mesaji` EKRANA çıkar: kısa, sade Türkçe; adres/yığın izi içermez.
-    `teknik_ayrinti` yalnızca veri/loglar/sistem.log'a yazılır — destek akışı
+    `teknik_ayrinti` yalnızca veri/loglar/sistem.log'a yazılır - destek akışı
     oradan kopyalandığı için tam adres ve özgün hata metni orada durur.
     Verilmezse kullanıcı mesajının aynısıdır (eski davranış korunur).
     """
@@ -29,7 +29,7 @@ class DalsanHata(Exception):
 
 
 class AyarHatasi(DalsanHata):
-    """.env eksik/bozuk — program açılışta durur, yarım çalışmaz."""
+    """.env eksik/bozuk - program açılışta durur, yarım çalışmaz."""
 
 
 class VeritabaniHatasi(DalsanHata):
@@ -51,7 +51,7 @@ class YetkiHatasi(DalsanHata):
 
 
 class DogrulamaHatasi(DalsanHata):
-    """Kullanıcı girdisi geçersiz (form/parametre) — 400 döner, mesaj yol gösterir."""
+    """Kullanıcı girdisi geçersiz (form/parametre) - 400 döner, mesaj yol gösterir."""
 
     http_kodu = 400
 
@@ -76,7 +76,7 @@ _ALAN_ADLARI = {
 
 _BEKLENMEYEN_MESAJ = (
     "Beklenmeyen bir hata oluştu. Ayrıntılar veri/loglar/sistem.log "
-    "dosyasında — kırmızı satırları kopyalayıp Claude Code'a yapıştırın."
+    "dosyasında - kırmızı satırları kopyalayıp Claude Code'a yapıştırın."
 )
 
 
@@ -87,7 +87,7 @@ def hata_yakalayicilari_kur(app) -> None:
     log'a tam ayrıntıyla + ekrana genel bir Türkçe mesajla döner.
 
     Tarayıcıdan gelen sayfa/form istekleri (Accept: text/html) Türkçe bir
-    HATA SAYFASI görür — ham JSON değil. JS/fetch istekleri JSON alır.
+    HATA SAYFASI görür - ham JSON değil. JS/fetch istekleri JSON alır.
     """
     from fastapi import Request
     from fastapi.exceptions import RequestValidationError
@@ -124,7 +124,7 @@ def hata_yakalayicilari_kur(app) -> None:
     @app.exception_handler(YetkiHatasi)
     async def yetki_hatasi(istek: Request, hata: YetkiHatasi):
         # Tarayıcıdan gelen SAYFA isteği giriş ekranına yönlenir; JS/fetch
-        # istekleri 401 JSON alır — yönlendirme onların akışını bozardı
+        # istekleri 401 JSON alır - yönlendirme onların akışını bozardı
         # (önizleme ve durum sorguları sessizce HTML almaya başlardı).
         from urllib.parse import quote
 

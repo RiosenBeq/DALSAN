@@ -16,16 +16,16 @@ gelmezse 'offline' sayılır ve süpervizör sistem olayı üretir.
 
 İKİ AYRI SÜRE (docs/17 K8): ilk bağlantı yavaştır (RTSP el sıkışması, NVR,
 anahtar karelerin gelmesi) ve yeni eklenen kameraya hemen "çevrimdışı" olayı
-düşmemeli — 60 sn tolerans belgelenmiş bir iç sabittir. Ama akan bir görüntü
+düşmemeli - 60 sn tolerans belgelenmiş bir iç sabittir. Ama akan bir görüntü
 KESİLDİĞİNDE 60 sn beklemek, sahada bir dakika boyunca kör bir kameranın
 "çevrimiçi" görünmesi demekti; o eşik ayardır ve kısadır.
 Bağlantı kurulamayınca SEBEP `son_hata` alanında tutulur ve kamera sayfasında
-gösterilir — kullanıcı günlüğü karıştırmak zorunda kalmaz.
+gösterilir - kullanıcı günlüğü karıştırmak zorunda kalmaz.
 
 DÖRDÜNCÜ DURUM, YALNIZCA YÜKLENEN VİDEOLARA ÖZGÜ (şema 006):
   finished    video sonuna kadar oynatıldı ve TEK GEÇİŞ istenmişti
 Bu bir hata değildir, o yüzden 'offline'dan ayrılır: kullanıcı ekranda
-"çevrimdışı — bağlanamadı" yazısını görüp bozuk bir şey olduğunu sanmasın.
+"çevrimdışı - bağlanamadı" yazısını görüp bozuk bir şey olduğunu sanmasın.
 RTSP kameralarda bu durum HİÇ oluşmaz; akışın sonu yoktur, kopması ayrı
 bir şeydir ve yeniden bağlanılır.
 """
@@ -76,7 +76,7 @@ DURUM_BITTI = "finished"
 
 class KameraKaynagi:
     """Tek kameranın okuma iş parçacığı. Yalnızca kare okur; VERİTABANINA
-    DOKUNMAZ — durum bilgisini süpervizör okuyup DB'ye yazar."""
+    DOKUNMAZ - durum bilgisini süpervizör okuyup DB'ye yazar."""
 
     def __init__(
         self,
@@ -143,7 +143,7 @@ class KameraKaynagi:
         return self.durum() == DURUM_ONLINE
 
     def durum(self, simdi: float | None = None) -> str:
-        """online / connecting / offline / finished — tek karar noktası.
+        """online / connecting / offline / finished - tek karar noktası.
 
         Yeni eklenen kameraya daha ilk kare gelmeden 'çevrimdışı' olayı düşmesin
         diye ilk 60 sn 'connecting' sayılır; süre dolar da kare gelmezse offline.
@@ -192,7 +192,7 @@ class KameraKaynagi:
                     # Tek geçişlik video sonuna geldi: yeniden açmak videoyu
                     # baştan oynatır, yani tam da istenmeyen şeyi yapardı.
                     return
-            except Exception as hata:  # noqa: BLE001 — iş parçacığı ölmemeli
+            except Exception as hata:  # noqa: BLE001 - iş parçacığı ölmemeli
                 self.son_hata = (
                     f"Kamera okunurken beklenmeyen hata: {hata}. Kaynak adresini kontrol edin; "
                     "ayrıntı veri/loglar/sistem.log dosyasında."
@@ -210,7 +210,7 @@ class KameraKaynagi:
         yakalayici = self._ac()
         if yakalayici is None:
             self._log.warning(
-                f"Kamera bağlantısı kurulamadı: {self.ad} — {self.son_hata} "
+                f"Kamera bağlantısı kurulamadı: {self.ad} - {self.son_hata} "
                 f"({bekleme:.0f} sn sonra yeniden denenecek)"
             )
             if self._dur.wait(bekleme):
@@ -229,7 +229,7 @@ class KameraKaynagi:
         if kare_geldi:
             # Gerçekten görüntü aktı: bekleme sayacı ancak burada sıfırlanır.
             self.son_hata = "Görüntü akışı koptu; yeniden bağlanılıyor."
-            self._log.warning(f"Kamera akışı koptu: {self.ad} — yeniden bağlanılıyor")
+            self._log.warning(f"Kamera akışı koptu: {self.ad} - yeniden bağlanılıyor")
             bekleme = _BEKLEME_ILK
         else:
             # Bağlantı açıldı ama TEK kare gelmedi (NVR bağlantı limiti, çözülemeyen
@@ -240,7 +240,7 @@ class KameraKaynagi:
                 "olabilir ya da kameranın eşzamanlı bağlantı sınırı dolmuş olabilir."
             )
             self._log.warning(
-                f"Kameradan kare gelmedi: {self.ad} — {bekleme:.0f} sn sonra yeniden denenecek"
+                f"Kameradan kare gelmedi: {self.ad} - {bekleme:.0f} sn sonra yeniden denenecek"
             )
         self.son_deneme_utc = zaman.simdi_utc()
         if self._dur.wait(bekleme):
@@ -286,7 +286,7 @@ class KameraKaynagi:
         if self.kaynak_tipi == "file":
             if not Path(self.kaynak_url).is_file():
                 return (
-                    f"Video dosyası bulunamadı: {self.kaynak_url} — "
+                    f"Video dosyası bulunamadı: {self.kaynak_url} - "
                     "Kamera ayarlarından dosyanın tam yolunu düzeltin."
                 )
             return ""
@@ -306,7 +306,7 @@ class KameraKaynagi:
             with socket.create_connection((host, port), timeout=_AG_KONTROL_SN):
                 return ""
         except socket.gaierror:
-            return f"Kamera adresi çözümlenemedi: {host} — IP adresini kontrol edin."
+            return f"Kamera adresi çözümlenemedi: {host} - IP adresini kontrol edin."
         except (OSError, TimeoutError):
             return (
                 f"Kameraya ağ üzerinden ulaşılamıyor ({host}:{port}). IP adresini, "
@@ -316,7 +316,7 @@ class KameraKaynagi:
     def _acilamama_sebebi(self) -> str:
         if self.kaynak_tipi == "file":
             return (
-                "Video dosyası açılamadı — dosya bozuk ya da biçimi desteklenmiyor "
+                "Video dosyası açılamadı - dosya bozuk ya da biçimi desteklenmiyor "
                 "olabilir (MP4/H.264 önerilir)."
             )
         return (
@@ -335,7 +335,7 @@ class KameraKaynagi:
                 if self.kaynak_tipi == "file":
                     if not self.dongu and kare_geldi:
                         # Tek geçiş istendi ve video gerçekten oynadı: sonuna
-                        # gelindi. `kare_geldi` şartı önemli — hiç kare
+                        # gelindi. `kare_geldi` şartı önemli - hiç kare
                         # gelmeden okuma başarısızsa dosya BOZUKtur, "analiz
                         # bitti" demek kullanıcıyı yanıltırdı.
                         self.bitti = True

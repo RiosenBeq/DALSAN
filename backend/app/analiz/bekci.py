@@ -1,4 +1,4 @@
-"""Bekçi (watchdog) — docs/17 §3.6.
+"""Bekçi (watchdog) - docs/17 §3.6.
 
 Analiz iş parçacığı takılır ya da ölürse sistem görüntü almaya devam eder ama
 HİÇBİR uyarı üretmez; ekran da "çalışıyor" gibi görünür. Bekçi bunu sessiz
@@ -10,13 +10,13 @@ bırakmaz: 10 sn'de bir analiz döngüsünün nabzına bakar.
 - **Öldü:** analiz iş parçacığı çalışmıyor. Yeniden kurulmaz: aynı hatayla
   yine ölürdü.
 
-Tepki: `ANALYSIS_STALLED` sistem olayı (bekçinin kendi kısa bağlantısıyla —
+Tepki: `ANALYSIS_STALLED` sistem olayı (bekçinin kendi kısa bağlantısıyla -
 analizin bağlantısı kilitli olabilir), CRITICAL günlük ve /saglik'te
 `analiz_takildi` / `analiz_olu` (hazır değil). `BEKCI_TEPKISI=yeniden_baslat`
 ise süreç `os._exit(70)` ile kapanır: takılan bir iş parçacığı Python'da
 öldürülemez, tek çare süreci yeniden başlatmaktır ve bunu Docker (`restart:`)
 ya da systemd (`Restart=`) yapar. Masaüstü paketinde sunucu Kontrol Paneli ile
-aynı süreçte çalışır; orada çıkmak paneli de kapatır ve kimse yeniden açmaz —
+aynı süreçte çalışır; orada çıkmak paneli de kapatır ve kimse yeniden açmaz -
 bu yüzden orada her durumda yalnız uyarır.
 
 Aynı sorun bir kez bildirilir (olay seli yok); sorun geçince işaret kalkar.
@@ -89,7 +89,7 @@ class Bekci:
         while not self._dur.wait(BEKCI_ARALIGI_SN):
             try:
                 self.tur()
-            except Exception as hata:  # noqa: BLE001 — bekçinin kendisi ölmemeli
+            except Exception as hata:  # noqa: BLE001 - bekçinin kendisi ölmemeli
                 self._log.error(f"Bekçi denetimi yapılamadı: {hata}", exc_info=hata)
 
     def denetle(self) -> tuple[str, str] | None:
@@ -125,7 +125,7 @@ class Bekci:
         mesaj = f"{baslik}: {aciklama}"
         if self._cikis_izinli:
             mesaj += " Program yeniden başlatılıyor."
-        self._log.critical(f"Bekçi — {mesaj}")
+        self._log.critical(f"Bekçi - {mesaj}")
         self._olay_yaz(mesaj, kod)
         if self._cikis_izinli:
             self._cikis(YENIDEN_BASLATMA_KODU)
@@ -138,5 +138,5 @@ class Bekci:
                 sistem_olayi_yaz(baglanti, mesaj, detaylar={"sebep": kod}, kod="ANALYSIS_STALLED")
             finally:
                 baglanti.close()
-        except Exception as hata:  # noqa: BLE001 — günlük satırı zaten yazıldı
+        except Exception as hata:  # noqa: BLE001 - günlük satırı zaten yazıldı
             self._log.error(f"Bekçi olayı veritabanına yazılamadı: {hata}")

@@ -8,7 +8,7 @@ Burada korunan iki şey var ve ikincisi daha önemlidir:
 
 1. Sayfa SADE açılıyor ve gelişmiş araçlar gizleniyor.
 2. Gizlenen araçlar DOM'DAN SİLİNMİYOR. Silinselerdi kamera_detay.js açılışta
-   onları id ile arar, bulamaz ve sayfanın TAMAMI — çizim dahil — sessizce
+   onları id ile arar, bulamaz ve sayfanın TAMAMI - çizim dahil - sessizce
    çalışmaz hale gelirdi. Bu, düzelttiğimiz sorundan çok daha kötüsü olurdu.
 """
 
@@ -77,8 +77,8 @@ def test_sayfa_sade_kipte_aciliyor(istemci):
 def test_gelismis_araclar_gizlenir_ama_silinmez(istemci):
     """En kritik test: gizlemek silmek DEĞİLDİR.
 
-    Silinselerdi kamera_detay.js bu id'leri bulamaz ve sayfanın tamamı —
-    bölge çizimi dahil — sessizce çalışmaz hale gelirdi.
+    Silinselerdi kamera_detay.js bu id'leri bulamaz ve sayfanın tamamı -
+    bölge çizimi dahil - sessizce çalışmaz hale gelirdi.
     """
     sayfa = istemci.get(f"/kameralar/{_kamera_ekle(istemci)}").text
     for eleman_id in GELISMIS_IDLER + JS_ARADIGI_IDLER:
@@ -148,7 +148,7 @@ def test_localstorage_okunamazsa_sayfa_yine_calisir(sablon):
     """Gizli sekmede / site verisi kapalıyken localStorage erişimi HATA fırlatır.
 
     Yakalanmazsa satır içi betik çöker, sınıf hiç yazılmaz ve sayfa kipsiz
-    (yani her şey açık) kalırdı — üstelik sessizce.
+    (yani her şey açık) kalırdı - üstelik sessizce.
     """
     assert "catch (e)" in sablon
     betik = BETIK.read_text(encoding="utf-8")

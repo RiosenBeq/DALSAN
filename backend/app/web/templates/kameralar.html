@@ -1,6 +1,6 @@
 {% extends "temel.html" %}
 {% from "simge.html" import simge %}
-{% block baslik %}Kameralar — DALSAN İSG{% endblock %}
+{% block baslik %}Kameralar - DALSAN İSG{% endblock %}
 {% block icerik %}
   <div class="baslik-satiri">
     <h2>Kameralar</h2>
@@ -17,10 +17,10 @@
       {% for k in kameralar %}
       <tr>
         <td><a href="/kameralar/{{ k.id }}">{{ k.name }}</a></td>
-        <td>{{ k.area or "—" }}</td>
+        <td>{{ k.area or "-" }}</td>
         <td class="kucuk-metin">{{ k.maskeli_url }}</td>
         <td><span class="rozet {{ k.rozet_rengi }}">{{ k.rozet }}</span></td>
-        <td>{{ k.measured_fps or "—" }}</td>
+        <td>{{ k.measured_fps or "-" }}</td>
         <td>{{ k.son_kare }}</td>
         <td><a href="/kameralar/{{ k.id }}">Aç →</a></td>
       </tr>
@@ -42,11 +42,11 @@
   {# Boş liste ÖĞRETİR: neden boş, ne yapmalı ve doğru sayfaya giden düğme.
      "Kayıt yok" demek, sistemi ilk açan kişiyi burada bırakırdı. #}
   <section class="kart">
-    <p class="bos">Henüz kamera eklenmedi — sistem izleyecek bir görüntü bulamıyor.</p>
+    <p class="bos">Henüz kamera eklenmedi - sistem izleyecek bir görüntü bulamıyor.</p>
     <p>Fabrika kamerası için RTSP adresi gerekir (örnek:
       <code>rtsp://kullanici:sifre@192.168.1.64:554/Streaming/Channels/102</code>).<br>
       Kamera henüz bağlanmadıysa <b>Video ile Test</b> sayfasından elinizdeki bir
-      video dosyasını yükleyin — sistem onu kamera gibi izler, bölgelerini çizip
+      video dosyasını yükleyin - sistem onu kamera gibi izler, bölgelerini çizip
       kurallarınızı şimdiden deneyebilirsiniz.</p>
     <p class="satir-form">
       <a class="dugme simgeli" href="/videolar">{{ simge("video") }} Video ile Test</a>
@@ -57,5 +57,5 @@
   {% endif %}
 {% endblock %}
 {% block betikler %}
-<script src="/static/onizleme.js?v=38"></script>
+<script src="/static/onizleme.js?v=39"></script>
 {% endblock %}

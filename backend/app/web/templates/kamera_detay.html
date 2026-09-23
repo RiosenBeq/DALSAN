@@ -1,13 +1,13 @@
 {% extends "temel.html" %}
-{% block baslik %}{{ kamera.name }} — DALSAN İSG{% endblock %}
+{% block baslik %}{{ kamera.name }} - DALSAN İSG{% endblock %}
 {% block icerik %}
   {% from "ipucu.html" import ipucu %}
   {% from "bilesen.html" import oge_rozeti, bolge_cipi %}
-  {# ÇİZİM KİPİ — sayfa SADE açılır. Bu sayfada yedi ayrı araç var (dondur,
+  {# ÇİZİM KİPİ - sayfa SADE açılır. Bu sayfada yedi ayrı araç var (dondur,
      görüntü yükle, otomatik bul, çiz, dikdörtgen, geri al, kalibrasyon) ve
      hepsi aynı anda ekrandayken ilk kez bölge çizen biri hangisine basacağını
      seçemiyor. Sade kipte yalnızca bölge çizmek için GEREKLİ olanlar durur.
-     Seçim tarayıcıda hatırlanır (cizim_kipi.js); sunucuda saklanmaz — bu bir
+     Seçim tarayıcıda hatırlanır (cizim_kipi.js); sunucuda saklanmaz - bu bir
      kayıt değil, o kişinin ekran tercihi.
 
      Sınıf <html> üzerine, sayfanın geri kalanı ayrıştırılmadan ÖNCE yazılır:
@@ -36,10 +36,10 @@
 
   <section class="kart">
     <h3>Canlı görüntü <span class="not">(1 sn'de bir yenilenir; kutular tespitleri,
-      <b>taralı alanlar</b> çizdiğiniz bölgeleri gösterir — bir bölgeye tıklayın)</span></h3>
+      <b>taralı alanlar</b> çizdiğiniz bölgeleri gösterir - bir bölgeye tıklayın)</span></h3>
     {# Sarmal: kılavuz balonu .cizim-alani'nın DIŞINDA durmalı. İçinde olsaydı
        dar ekranda (balon görüntünün altına inerken) kutuyu uzatır, inset:0 olan
-       tuval de görüntüden taşardı — tıkladığınız yer ile çizilen nokta kayardı. #}
+       tuval de görüntüden taşardı - tıkladığınız yer ile çizilen nokta kayardı. #}
     <div class="cizim-sarmal">
       <div class="cizim-alani onizleme-kutu">
         {# data-bolgesiz: bölgeler görüntünün içine ÇİZİLMEZ; bu sayfada onları
@@ -63,9 +63,9 @@
       </div>
     </div>
     <p id="kare-durumu" class="not" data-kamera="{{ kamera.id }}">
-      {% if kamera.enabled %}Durum alınıyor…{% else %}Kamera pasif — izlenmiyor.{% endif %}
+      {% if kamera.enabled %}Durum alınıyor…{% else %}Kamera pasif - izlenmiyor.{% endif %}
     </p>
-    {# ÇİZİM ARKA PLANI — canlı akış saniyede yenilenirken köşe tıklamak zordur.
+    {# ÇİZİM ARKA PLANI - canlı akış saniyede yenilenirken köşe tıklamak zordur.
        "Kareyi dondur" o anki kareyi sabitler; "Ekran görüntüsü yükle" ise kamera
        hiç bağlı değilken bile (NVR'dan alınmış bir kare ile) çizim yapılmasını
        sağlar. Yüklenen görüntü diske YAZILMAZ (app/web/alan_rotalari.py). #}
@@ -84,7 +84,7 @@
     <p class="not" data-gelismis>Canlı görüntü her saniye yenilendiği için köşe tıklamak zor olabilir:
       <b>Kareyi dondur</b> o anki kareyi sabitler. Kamera henüz takılmadıysa
       <b>Ekran görüntüsü yükle</b> ile NVR'dan aldığınız bir kareyi (ya da telefonla
-      çektiğiniz bir fotoğrafı) kullanabilirsiniz — yüklediğiniz görüntü sunucuya
+      çektiğiniz bir fotoğrafı) kullanabilirsiniz - yüklediğiniz görüntü sunucuya
       <b>kaydedilmez</b>, yalnız çizim yaparken arka plan olur.</p>
 
     {# Görüntüde bir bölgeye tıklayınca burası dolar: hangi bölge seçildi ve
@@ -96,7 +96,7 @@
     {% include "renk_anahtari.html" %}
   </section>
 
-  {# BÖLGE SAYIMI — kural gerektirmez. Bölge çizilen her kamerada çalışır;
+  {# BÖLGE SAYIMI - kural gerektirmez. Bölge çizilen her kamerada çalışır;
      kullanıcı çoğu zaman önce "kaç kişi geçiyor" sorusunun cevabını ister,
      uyarıyı sonra kurar. Sayılar 2 sn'de bir durum.json'dan tazelenir. #}
   <section class="kart" id="sayim-karti"{% if not bolgeler %} hidden{% endif %}>
@@ -112,7 +112,7 @@
       <span class="not" id="sayac-sonuc"></span>
     </div>
     <p class="not"><b>Giren</b>, sayaç sıfırlandığından beri bölgeye giren ayrı
-      nesne sayısıdır — vardiya başında sıfırlayın. <b>İçeride</b> o anda
+      nesne sayısıdır - vardiya başında sıfırlayın. <b>İçeride</b> o anda
       görünendir. <b>En çok</b>, aynı anda görülen en yüksek sayıdır.
       Sayım hiçbir uyarı ya da anons üretmez; yalnız bilgidir.</p>
   </section>
@@ -147,9 +147,9 @@
     </table>
     <p class="not">Kapalı bölge görüntüde çizilmez ve bölge kuralları çalışmaz; kuralları
       silinmez, "Aç"a basınca aynen döner. Ad, tip veya çizim değiştirmek için
-      <b>Düzenle</b>'yi kullanın — <b>Sil</b>, bölgeye bağlı kuralları da siler.</p>
+      <b>Düzenle</b>'yi kullanın - <b>Sil</b>, bölgeye bağlı kuralları da siler.</p>
     {% else %}
-    <p class="bos">Bu kamerada bölge yok — bu kamera hiçbir kural değerlendiremez.</p>
+    <p class="bos">Bu kamerada bölge yok - bu kamera hiçbir kural değerlendiremez.</p>
     <p class="not">Kurallar bölgelerin üstünde çalışır. Aşağıdaki <b>"Yeni bölge çiz"</b>
       bölümünden ad yazıp tip seçin, "Çizime başla"ya basıp görüntüde köşelere tıklayın.
       Adım adım anlatım: <a href="/komuta/kilavuz#bolge">Bölge nasıl çizilir →</a></p>
@@ -169,7 +169,7 @@
       <div class="hazir-satir">
         <p class="not"><b>{{ b.name }}</b> ({{ b.tip_adi }}): {{ h.aciklama }}
           {% if h.kural_tipi == 'safe_distance' and not kalibrasyon_var %}
-          <b>Bu kamera henüz kalibre edilmedi — kural kurulur ama kalibrasyon yapılana
+          <b>Bu kamera henüz kalibre edilmedi - kural kurulur ama kalibrasyon yapılana
             kadar çalışmaz (aşağıdaki "Mesafe kalibrasyonu" bölümü).</b>
           {% endif %}
         </p>
@@ -193,7 +193,7 @@
         silmez.</b> Yeniden çizerken vazgeçmek için <b>Esc</b> (kayıtlı çizim geri gelir);
         düzenlemeyi bırakmak için "Vazgeç".
         {% if duzenlenen.kurali_var %}<br><b>Bu bölgeye bağlı bir kural var:</b> tipini
-        değiştirirseniz kuralı Kurallar sayfasından gözden geçirin — kural silinmez.{% endif %}</p>
+        değiştirirseniz kuralı Kurallar sayfasından gözden geçirin - kural silinmez.{% endif %}</p>
       {% else %}
       <h4>Yeni bölge çiz</h4>
       <p class="not">1) Ad yazıp tip seçin · 2) "Çizime başla"ya basın ·
@@ -204,10 +204,10 @@
         karşı köşeye sürüklemeniz yeter. Çizim bittikten sonra <b>köşeleri fareyle
         sürükleyerek</b> düzeltebilirsiniz.</p>
       {% endif %}
-      {# ALANI OTOMATİK BUL — fabrika zemininde alan zaten boyalıdır (sarı yaya
+      {# ALANI OTOMATİK BUL - fabrika zemininde alan zaten boyalıdır (sarı yaya
          yolu, beyaz yükleme çerçevesi). Sistem o boyayı bulup hazır bir çizim
          önerir; kullanıcı kabul edip köşelerini düzeltir. Kamera henüz bağlı
-         değilse NVR'dan alınmış bir ekran görüntüsü yüklenebilir — böylece
+         değilse NVR'dan alınmış bir ekran görüntüsü yüklenebilir - böylece
          kamera takılmadan önce de bölgeler hazırlanabilir.
          Yüklenen görüntü diske YAZILMAZ (app/web/alan_rotalari.py). #}
       <div class="alan-bul" id="alan-bul" data-gelismis>
@@ -246,7 +246,7 @@
             {% if duzenlenen %}Yeniden çiz{% else %}Çizime başla{% endif %}</button>
           {# Dikdörtgen kipi: yükleme alanı, tır parkı ve KKD alanlarının çoğu
              dikdörtgendir. Dört köşeye ayrı ayrı tıklamak yerine tek sürükleme
-             yeter — dört tıklamanın üçünde hizayı tutturmak zordur. #}
+             yeter - dört tıklamanın üçünde hizayı tutturmak zordur. #}
           <button type="button" class="dugme ikincil" id="cizim-dikdortgen">Dikdörtgen çiz</button>
           <button type="button" class="dugme ikincil" id="cizim-geri" disabled>Son köşeyi geri al</button>
           <button type="button" class="dugme ikincil" id="cizim-temizle" disabled>Temizle</button>
@@ -266,7 +266,7 @@
   <section class="kart" data-gelismis>
     <h3>Mesafe kalibrasyonu
       {{ ipucu('kalibrasyon', 'Kamera piksel görür, güvenli mesafe kuralı metre ölçer; kalibrasyon zeminde ölçüsünü bildiğiniz 4 noktayla bu ikisini birbirine çevirir.') }}
-      {% if kalibrasyon_var %}<span class="rozet yesil">kalibre — {{ kalibrasyon_zamani }}</span>
+      {% if kalibrasyon_var %}<span class="rozet yesil">kalibre - {{ kalibrasyon_zamani }}</span>
       {% else %}<span class="rozet gri">kalibre değil</span>{% endif %}
     </h3>
     <p class="not">Güvenli mesafe kuralının çalışması için gereklidir. Zeminde gerçek
@@ -301,7 +301,7 @@
       {% endfor %}
     </table>
     {% else %}
-    <p class="bos">Bu kameraya henüz kural bağlanmadı — kameradan uyarı gelmez.</p>
+    <p class="bos">Bu kameraya henüz kural bağlanmadı - kameradan uyarı gelmez.</p>
     <p class="not">Bölge çizdiyseniz yukarıdaki <b>"Hazır kurallar"</b> bölümü, bölge
       tipine uyan kuralı tek düğmeyle kurar. Kendi değerlerinizle kurmak için aşağıdaki
       düğmeyi kullanın.</p>
@@ -344,7 +344,7 @@
 <script>window.KAMERA_ID = {{ kamera.id }};
 window.MEVCUT_BOLGELER = {{ bolgeler_json | safe }};
 window.DUZENLENEN_BOLGE = {{ duzenlenen_json | safe }};</script>
-<script src="/static/onizleme.js?v=38"></script>
-<script src="/static/cizim_kipi.js?v=38"></script>
-<script src="/static/kamera_detay.js?v=38"></script>
+<script src="/static/onizleme.js?v=39"></script>
+<script src="/static/cizim_kipi.js?v=39"></script>
+<script src="/static/kamera_detay.js?v=39"></script>
 {% endblock %}

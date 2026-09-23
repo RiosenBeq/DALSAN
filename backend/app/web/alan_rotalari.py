@@ -10,9 +10,9 @@ takılmamışken bile bölgeler çizilip kurallar kurulabilir.
 
 YÜKLENEN GÖRÜNTÜ DİSKE YAZILMAZ. Bellekte çözülür, alanlar bulunur, görüntü
 tarayıcıya geri döner ve orada kalır. Nedeni iki tanedir:
-  1. KVKK — fabrika karesinde çalışanlar vardır; saklamadığımız görüntü,
+  1. KVKK - fabrika karesinde çalışanlar vardır; saklamadığımız görüntü,
      saklama süresi, yedekleme ve silme sorusu doğurmaz (docs/00).
-  2. En az parça (CLAUDE.md §3) — kalıcı olsaydı yeni bir tablo, yeni bir
+  2. En az parça (CLAUDE.md §3) - kalıcı olsaydı yeni bir tablo, yeni bir
      klasör ve bakım döngüsüne yeni bir istisna gerekirdi.
 
 Kalıcı olan tek şey, kullanıcının KABUL ETTİĞİ bölgedir; o zaten `zones`
@@ -37,7 +37,7 @@ router = APIRouter()
 _log = log_al("alan")
 
 # Yüklenen dosya bu boyutu aşarsa okunmaz (bellek dolmasın). Nesne
-# fotoğraflarıyla aynı sınır kullanılır — kullanıcı iki ayrı sınır öğrenmesin.
+# fotoğraflarıyla aynı sınır kullanılır - kullanıcı iki ayrı sınır öğrenmesin.
 _PARCA = 1024 * 1024
 
 # Tarayıcıya geri dönen görüntünün kalitesi ve en büyük genişliği. Tuvalde
@@ -95,7 +95,7 @@ async def alan_bul(
 
     if not oneriler:
         # TEŞHİS: sistemin "boya" saydığı pikseller işaretlenmiş bir görsel
-        # döner. Kullanıcı "neden bulamadı" sorusunun cevabını ekranda görür —
+        # döner. Kullanıcı "neden bulamadı" sorusunun cevabını ekranda görür -
         # boya soluksa maske boş çıkar ve bu, eşik oynamaktan daha açık bir
         # yanıttır. Yalnızca bulunamadığında üretilir: bulunduğunda kimse
         # sormaz ve her istekte ikinci bir JPEG kodlamak boşa işlemcidir.
@@ -105,7 +105,7 @@ async def alan_bul(
             "anlamına gelmez: her fabrika zemininde boya yoktur ya da boya "
             "solmuş olabilir. Alanı görüntü üzerine tıklayarak elle çizin. "
             "Aşağıdaki teşhis görüntüsü, sistemin boya saydığı yerleri "
-            "işaretler — hiçbir yer işaretli değilse zemindeki boya tanınmıyor "
+            "işaretler - hiçbir yer işaretli değilse zemindeki boya tanınmıyor "
             "demektir.",
             gorsel_verisi=_veri_adresi(kare) if yuklendi else None,
             teshis_verisi=_veri_adresi(await run_in_threadpool(alan_bulucu.maske_onizlemesi, kare)),

@@ -36,7 +36,7 @@ MODEL_SINIF_ESLEME: dict[int, str] = {
     7: SINIF_TIR,
 }
 
-# İnsan sınıfının model içindeki indeksi — ayrı eşik ve NMS bandı için
+# İnsan sınıfının model içindeki indeksi - ayrı eşik ve NMS bandı için
 _INSAN_MODEL_ID = 0
 
 # Kullanıcıya görünen Türkçe adlar (arayüz bu tabloyu kullanır)
@@ -50,7 +50,7 @@ SINIF_OVERLAY = {"person": "insan", "truck": "tir", "forklift": "forklift"}
 
 
 class ModelHatasi(DalsanHata):
-    """Model dosyası yok/bozuk — analiz tespitsiz devam eder, sistem çökmez."""
+    """Model dosyası yok/bozuk - analiz tespitsiz devam eder, sistem çökmez."""
 
 
 def _ort_paketleri() -> list[str]:
@@ -82,7 +82,7 @@ def _acilamadi(model_dosyasi: Path, hata: Exception) -> ModelHatasi:
     from app.analiz.model_indir import resmi_yayinla_ayni_mi
 
     ad = gorunen_model_adi(model_dosyasi.name)
-    teknik = f"Tespit modeli yüklenemedi: {model_dosyasi} — {hata!r}"
+    teknik = f"Tespit modeli yüklenemedi: {model_dosyasi} - {hata!r}"
     if resmi_yayinla_ayni_mi(model_dosyasi):
         return ModelHatasi(
             f"{ad} açılamadı ama model dosyası sağlam (doğrulandı): sorun programın "
@@ -126,10 +126,10 @@ class Tespitci:
 
         if not model_dosyasi.exists():
             # Ekranda ürün adı ve YAPILABİLİR bir adım; tam dosya yolu günlüğe
-            # gider (CLAUDE.md §8 — kullanıcıya terminal komutu verilmez).
+            # gider (CLAUDE.md §8 - kullanıcıya terminal komutu verilmez).
             raise ModelHatasi(
                 f"{gorunen_model_adi(model_dosyasi.name)} kurulu değil. Kontrol Paneli'nde "
-                f"Durdur'a, sonra Sistemi Başlat'a basın — {MARKA} ilk açılışta kendiliğinden "
+                f"Durdur'a, sonra Sistemi Başlat'a basın - {MARKA} ilk açılışta kendiliğinden "
                 "iner. Sorun sürerse program klasöründeki veri/loglar/sistem.log dosyasını "
                 "destek ekibine iletin.",
                 f"Tespit modeli bulunamadı: {model_dosyasi}",
@@ -140,7 +140,7 @@ class Tespitci:
             else ["CPUExecutionProvider"]
         )
         # 0 = ONNX Runtime kendi seçer (tüm çekirdekler) ve VARSAYILAN yol
-        # eskisiyle birebir aynı kalır — hiçbir oturum seçeneği verilmez.
+        # eskisiyle birebir aynı kalır - hiçbir oturum seçeneği verilmez.
         # Sunucu başka işler de yapıyorsa .env'den sınırlanır; tek kamerada
         # bile fark eder, çünkü tespit TÜM kameralar için tek oturumda ve
         # kilitle sıralı çalışır: bir çıkarım makinenin tamamını meşgul edebilir.
@@ -172,7 +172,7 @@ class Tespitci:
 
         # CUDA istendi ama sağlayıcı yoksa onnxruntime SESSİZCE CPU'ya düşer.
         # Ana sayfada "cuda" yazarken CPU'da sürünen sistem, teşhis edilemez
-        # bir yavaşlık demektir — durumu dürüstçe sakla (docs/05 ADR-002).
+        # bir yavaşlık demektir - durumu dürüstçe sakla (docs/05 ADR-002).
         self.istenen_cihaz = cihaz
         self.etkin_cihaz = (
             "cuda" if "CUDAExecutionProvider" in self._oturum.get_providers() else "cpu"
@@ -211,7 +211,7 @@ class Tespitci:
 
         girdi = self._oturum.get_inputs()[0]
         self._girdi_adi = girdi.name
-        # Model girdisinden boyutu oku (tiny: 416, s: 640) — sabit kodlama yok.
+        # Model girdisinden boyutu oku (tiny: 416, s: 640) - sabit kodlama yok.
         # Dinamik eksenli ('height' gibi) bir dışa aktarımda int() ValueError
         # verirdi; bu ModelHatasi'na çevrilmezse analiz iş parçacığı sessizce ölür.
         try:
@@ -289,7 +289,7 @@ class Tespitci:
 
         # SINIF SEÇİMİ: 80 sınıfın tümü üzerinde argmax almak yerine YALNIZCA
         # ilgilendiğimiz sınıflara bakılır. Argmax, bir insanı 0.30 ile 'insan',
-        # 0.31 ile 'sırt çantası' bulduğunda insanı tamamen düşürürdü — sahada
+        # 0.31 ile 'sırt çantası' bulduğunda insanı tamamen düşürürdü - sahada
         # kaçırılan insan demektir. Sınıf-farkındalıklı seçim, YOLOX'un kendi
         # class-aware yolu ve tespit isabetindeki en büyük kazanç (docs/08 R1).
         ilgi_idler = np.array(sorted(MODEL_SINIF_ESLEME.keys()))

@@ -6,10 +6,10 @@ kurallarını değerlendiren; ihlalde ekrana ve (altyapı uygunsa) anonsa uyarı
 her olayı kanıt fotoğrafıyla kaydeden, **tek sunucuda çalışan** erken uyarı sistemi.
 
 > Sistem, İSG prosedürlerinin yerine geçmez; onları destekleyen bir erken uyarı
-> katmanıdır. Kaçırılan ihlal bilinen sınırdır, yanlış alarm ise ciddi kusurdur —
+> katmanıdır. Kaçırılan ihlal bilinen sınırdır, yanlış alarm ise ciddi kusurdur -
 > tüm eşikler bu ilkeyle seçilmiştir (bkz. `docs/00-PROJE-BAGLAMI.md`).
 
-## Hızlı başlangıç (geliştirme — Mac/Windows)
+## Hızlı başlangıç (geliştirme - Mac/Windows)
 
 1. [Python 3.12](https://www.python.org/downloads/) kurun
    (Windows'ta **"Add Python to PATH"** işaretli olmalı).
@@ -26,7 +26,7 @@ gerekir, ~20 MB). Ana sayfada "Tespit modeli: Hazır" görünene kadar bekleyin.
 Elle indirmek isterseniz: `bash models/indir.sh`.
 
 Gerçek kamera olmadan denemek için: Kameralar → Yeni Kamera → kaynak tipi
-**Video dosyası** seçip bilgisayardaki bir .mp4 dosyasının tam yolunu verin — sistem
+**Video dosyası** seçip bilgisayardaki bir .mp4 dosyasının tam yolunu verin - sistem
 onu kamera gibi izler. Kamera sayfasındaki durum satırı bağlanamama sebebini
 (dosya bulunamadı, kameraya ulaşılamıyor, şifre yanlış olabilir…) açıkça yazar.
 
@@ -36,17 +36,17 @@ onu kamera gibi izler. Kamera sayfasındaki durum satırı bağlanamama sebebini
 |---|---|
 | Kamera yönetimi (RTSP/video), otomatik yeniden bağlanma, canlı önizleme, bağlantı teşhisi | ✅ |
 | Canlı sayım (insan/araç), ekranda renk anahtarı, görüntü kalitesi teşhisi | ✅ |
-| Yaya yolu kuralı (tek tıkla) — insanların yürüyüş yolunu kullanması | ✅ |
+| Yaya yolu kuralı (tek tıkla) - insanların yürüyüş yolunu kullanması | ✅ |
 | İhlalde ekran bandı + sesli uyarı + Türkçe seslendirme, anons deneme düğmesi | ✅ |
 | İnsan / araç tespiti (**NextGen AI** tespit motoru) + ByteTrack takip | ✅ |
 | Bölge çizimi (tarayıcıda poligon) ve bölge ihlali kuralı | ✅ |
-| **Zemindeki boyadan otomatik alan tanıma** — sarı/beyaz işaretli alanı bulup çizim önerir | ✅ |
-| **Ekran görüntüsü üzerine bölge çizme** — kamera takılmadan önce hazırlık | ✅ |
-| **Kareyi dondurup çizme** — canlı akış yenilenirken köşe tıklama zahmeti biter | ✅ |
-| **Bölgeye tıklayıp seçme** — seçili alan taralı görünür, Düzenle/Kapat/Sil yanında çıkar | ✅ |
-| **Bölgeler videonun üstünde de taralı** — sistemin gördüğü alan ekrandakiyle aynı | ✅ |
+| **Zemindeki boyadan otomatik alan tanıma** - sarı/beyaz işaretli alanı bulup çizim önerir | ✅ |
+| **Ekran görüntüsü üzerine bölge çizme** - kamera takılmadan önce hazırlık | ✅ |
+| **Kareyi dondurup çizme** - canlı akış yenilenirken köşe tıklama zahmeti biter | ✅ |
+| **Bölgeye tıklayıp seçme** - seçili alan taralı görünür, Düzenle/Kapat/Sil yanında çıkar | ✅ |
+| **Bölgeler videonun üstünde de taralı** - sistemin gördüğü alan ekrandakiyle aynı | ✅ |
 | **Dikdörtgen çizim + köşe sürükleme** ile kolay alan düzeltme | ✅ |
-| **Bölge sayımı** — içeride kaç var, vardiyada kaç girdi (video üstünde de yazar) | ✅ |
+| **Bölge sayımı** - içeride kaç var, vardiyada kaç girdi (video üstünde de yazar) | ✅ |
 | Güvenli mesafe kuralı (4 nokta zemin kalibrasyonu, metre cinsinden) | ✅ |
 | Olay kaydı + kanıt fotoğrafı + canlı uyarı ekranı (SSE) + CSV | ✅ |
 | Anons altyapısı (ses kartı / HTTP IP hoparlör / kapalı) | ✅ arayüz hazır, saha entegrasyonu bekliyor |
@@ -84,7 +84,7 @@ içinde test edilir; bu kural `tests/rules/test_saflik.py` ile korunur.
 Arayüzde tespit motoru **NextGen AI** adıyla görünür (Hızlı / İsabetli). Bu ad
 kurulumun ürün adıdır; ekrandaki adı üreten tek yer
 `backend/app/analiz/model_adi.py`'dir. Dosya adları, indirme adresleri ve
-`.env` içindeki `MODEL_DOSYASI` anahtarı özgün hâliyle kalır — sistem modeli
+`.env` içindeki `MODEL_DOSYASI` anahtarı özgün hâliyle kalır - sistem modeli
 onlarla bulur.
 
 Altta çalışan açık kaynak bileşenlerin telif ve lisans atfı depo kökündeki

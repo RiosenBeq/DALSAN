@@ -1,4 +1,4 @@
-# 14 — Anons Sistemine Bağlama Kılavuzu
+# 14 - Anons Sistemine Bağlama Kılavuzu
 
 Sistemin ihlalde **hoparlörden konuşabilmesi** için fabrikanın mevcut anons
 altyapısına bağlanması gerekir. Bu belge o işi adım adım tarif eder.
@@ -36,7 +36,7 @@ iştir ve hiçbir ağ ayarı gerektirmez.
 
 ---
 
-## 2. Yol A — Ses kartı (en kolay)
+## 2. Yol A - Ses kartı (en kolay)
 
 Sunucunun ses çıkışı, mevcut amfinin hat girişine bağlanır. Sistem ihlalde
 kayıtlı bir `.wav` dosyasını çalar; amfi onu hoparlörlere dağıtır.
@@ -114,7 +114,7 @@ yalnızca "bu hoparlörden ses çıkıyor mu" sorusunu cevaplar.
 ### 2.3 Ses dosyalarını hazırlama
 
 Her anons mesajının bir `.wav` dosyası olmalıdır. Beş temel mesaj sistemle
-birlikte gelir ama **ses dosyaları gelmez** — metni siz seslendirirsiniz.
+birlikte gelir ama **ses dosyaları gelmez** - metni siz seslendirirsiniz.
 
 | Mesaj anahtarı | Varsayılan metin |
 |---|---|
@@ -132,7 +132,7 @@ Ses dosyası üretmenin üç yolu:
 3. **Anons firmasından isteyin.** Çoğu firma bunu ücretsiz yapar.
 
 **Dosya biçimi:** WAV, 16 bit, 44.1 kHz, tek kanal (mono) yeterlidir. MP3
-**çalışmaz** — Windows'un yerleşik çalıcısı MP3 desteklemez, bu yüzden WAV şart.
+**çalışmaz** - Windows'un yerleşik çalıcısı MP3 desteklemez, bu yüzden WAV şart.
 
 Dosyaları program klasörünün içine (ör. `veri/sesler/`) koyun ve **Anons**
 sayfasında her mesajın yanına yolunu yazın: `veri/sesler/baret.wav`.
@@ -142,7 +142,7 @@ sayfasında her mesajın yanına yolunu yazın: `veri/sesler/baret.wav`.
 
 ---
 
-## 3. Yol B — IP hoparlör / anons sunucusu (HTTP)
+## 3. Yol B - IP hoparlör / anons sunucusu (HTTP)
 
 Sistem, ihlalde anons cihazının adresine bir **HTTP isteği** gönderir.
 Cihazlar bu isteği tek tip beklemez; bu yüzden üç biçim desteklenir.
@@ -200,7 +200,7 @@ Gönderilen gövde: `{"key": "helmet", "text": "Lütfen baretinizi takınız."}`
 ### 3.4 Adres kullanıcı adı/şifre içeriyorsa
 
 `http://kullanici:sifre@10.0.0.9/play` biçiminde yazılabilir. Sistem bu adresi
-**maskeler** — şifre hiçbir sayfada, hiçbir hata mesajında ve günlükte
+**maskeler** - şifre hiçbir sayfada, hiçbir hata mesajında ve günlükte
 (`veri/loglar/sistem.log`) görünmez; formda `••••` olarak durur ve öyle
 bırakılırsa kayıtlı şifre korunur (docs/17 R18).
 
@@ -209,7 +209,7 @@ bırakılırsa kayıtlı şifre korunur (docs/17 R18).
 Hoparlör adresi `127.0.0.1`, `localhost`, `::1`, `0.0.0.0` ya da bağlantı-yerel
 bir adres (`169.254.x.x`, `fe80::`) olamaz; form bunu kaydetmez ve anons
 gönderilirken de yeniden denetlenir (docs/17 R30). Hoparlör fabrika ağındadır
-(`10.x`, `172.16–31.x`, `192.168.x` serbesttir). Adres bir ad ise (`anons.fabrika`)
+(`10.x`, `172.16-31.x`, `192.168.x` serbesttir). Adres bir ad ise (`anons.fabrika`)
 ad çözülür ve sonuç da aynı denetimden geçer.
 
 ---
@@ -255,7 +255,7 @@ bir kanalı sonradan silerseniz geri gelmez.
 
 ---
 
-## 5. Devreye alma sırası — bu sırayı bozmayın
+## 5. Devreye alma sırası - bu sırayı bozmayın
 
 Yeni kurulan bir kuralı ilk günden anonsa açmak, sistem henüz ayarlanmamışken
 çalışanı yanlış uyarır ve **bir daha düzelmeyen bir güven kaybı** yaratır.

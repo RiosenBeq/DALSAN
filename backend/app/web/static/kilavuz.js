@@ -1,8 +1,8 @@
-/* Kılavuz yardımcıları — İKİ kabuğun da (temel.html ve komuta_temel.html)
+/* Kılavuz yardımcıları - İKİ kabuğun da (temel.html ve komuta_temel.html)
  * kullandığı TEK dosya:
  *
  *   1) Ekranın üstündeki açıklama şeridini gizleme/gösterme. Tercih yalnızca
- *      bu tarayıcıda saklanır (localStorage) — sunucuya hiçbir şey yazılmaz.
+ *      bu tarayıcıda saklanır (localStorage) - sunucuya hiçbir şey yazılmaz.
  *   2) Karmaşık alanların yanındaki "?" ipucu balonları.
  *
  * Kütüphane yok, derleme adımı yok (CLAUDE.md §4). Bu dosya hiç yüklenmese
@@ -98,7 +98,7 @@
     if (dugme) {
       // Bazı ipuçları bir <label>'ın içindedir. Varsayılan davranışı durdurmazsak
       // tıklama etikete geçer ve kullanıcı farkında olmadan onay kutusunu
-      // değiştirir — açıklamaya bakmak ayarı değiştirmemeli.
+      // değiştirir - açıklamaya bakmak ayarı değiştirmemeli.
       olay.preventDefault();
       var acikti = dugme.getAttribute("aria-expanded") === "true";
       tumBalonlariKapat(dugme);

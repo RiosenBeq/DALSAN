@@ -1,6 +1,6 @@
 """Mac ve Windows üretim tariflerinin ORTAK bölümü.
 
-NEDEN AYRI BİR DOSYA — iki `.spec` dosyası aynı listeleri kopyala-yapıştır
+NEDEN AYRI BİR DOSYA - iki `.spec` dosyası aynı listeleri kopyala-yapıştır
 taşısaydı zamanla ayrışırdı: birine yeni bir şablon klasörü eklenir, diğerine
 unutulur ve HATA yalnızca o platformda, üstelik ancak uygulama açılmayınca
 görülürdü (paketlenmiş programın çıktısı hiçbir yere gitmez). Bu yüzden
@@ -60,7 +60,7 @@ def veri_dosyalari(depo: Path) -> list[tuple[str, str]]:
 def gizli_moduller(depo: Path) -> list[str]:
     """PyInstaller'ın kodu tarayarak BULAMAYACAĞI modüller.
 
-    TUZAK: uvicorn bazı parçalarını adıyla yükler — `http="auto"` ayarı
+    TUZAK: uvicorn bazı parçalarını adıyla yükler - `http="auto"` ayarı
     aslında "uvicorn.protocols.http.auto" METNİDİR. Tarayıcı bunu bir import
     olarak göremez, modülü pakete koymaz ve sunucu hiç açılmaz.
     """
@@ -100,7 +100,7 @@ def gizli_moduller(depo: Path) -> list[str]:
     ]
 
 
-# Pakete KONMAYACAKLAR — yalnızca geliştirme/test araçları.
+# Pakete KONMAYACAKLAR - yalnızca geliştirme/test araçları.
 #
 # Görüntü işleme zinciri (numpy, opencv, onnxruntime, supervision) ve
 # supervision'ın zorunlu bağımlılıkları ÇIKARILAMAZ: scipy ByteTrack'in Kalman
@@ -125,7 +125,7 @@ def yaz(mesaj: str) -> None:
 
     TUZAK (Windows): konsolun varsayılan kod sayfası cp857/cp1254'tür ve
     Türkçe harfleri olmayan bir kod sayfasında `print` UnicodeEncodeError
-    verir — üretim, hiç ilgisi olmayan bir hatayla YARIDA KESİLİR. Burada
+    verir - üretim, hiç ilgisi olmayan bir hatayla YARIDA KESİLİR. Burada
     yazılamayan harf '?' olur, üretim devam eder.
     """
     try:

@@ -3,10 +3,10 @@
 Sistemi ilk açan kişi yazılım bilmiyor ve ekranda ne yapması gerektiğini
 bilmiyor (CLAUDE.md §8). Bu modül iki şeyi üretir:
 
-1. `EKRAN_ACIKLAMALARI` — her komuta ekranının üstünde görünen, kapatılabilir
+1. `EKRAN_ACIKLAMALARI` - her komuta ekranının üstünde görünen, kapatılabilir
    şeridin metni: "bu ekran ne işe yarar" + "ne yapmalısınız". İki cümleyi
    geçmez, teknik terim içermez.
-2. `kurulum_durumu()` — sistemin GERÇEK veritabanı durumundan üretilen sıralı
+2. `kurulum_durumu()` - sistemin GERÇEK veritabanı durumundan üretilen sıralı
    kontrol listesi. Hiçbir adım "tamam" görünmez; her adımın cevabı o anda
    sorgulanır. Sahte ilerleme çubuğu YOK.
 
@@ -141,7 +141,7 @@ DURUM_ROZETLERI = {
 
 
 def _model_adimi(supervizor, ayarlar) -> dict:
-    """1. adım — tespit motoru.
+    """1. adım - tespit motoru.
 
     Bu adım SONRAKİ adımları engellemez (`engeller=False`): model inerken ya da
     yüklenemezken bile kamera eklemek, bölge çizmek ve kural kurmak anlamlıdır.
@@ -172,7 +172,7 @@ def _model_adimi(supervizor, ayarlar) -> dict:
         }
     if durum == "hata":
         # Süpervizörün ürettiği metin zaten sade Türkçedir ve ne yapılacağını
-        # söyler (adres, dosya yolu içermez — tests/test_model_hatasi_ekranda.py).
+        # söyler (adres, dosya yolu içermez - tests/test_model_hatasi_ekranda.py).
         hata = getattr(supervizor, "tespit_hatasi", "") or f"{ad} başlatılamadı."
         return {**ortak, "tamam": False, "hal": "sorun", "aciklama": hata}
     return {
@@ -244,7 +244,7 @@ def _kalibrasyon_adimi(bekleyenler: list[dict]) -> dict:
 
 
 def _ham_adimlar(baglanti, supervizor, ayarlar) -> list[dict]:
-    """Altı adımın ham cevabı — hepsi veritabanından ve sistem durumundan."""
+    """Altı adımın ham cevabı - hepsi veritabanından ve sistem durumundan."""
     kamera_sayisi = baglanti.execute("SELECT COUNT(*) AS n FROM cameras").fetchone()["n"]
     goruntu_veren = baglanti.execute(
         "SELECT COUNT(*) AS n FROM cameras WHERE enabled = 1 AND last_frame_at IS NOT NULL"
@@ -351,7 +351,7 @@ def _ham_adimlar(baglanti, supervizor, ayarlar) -> list[dict]:
             "tamam": bool(ayarlar.yonetici_sifresi),
             "hal": "",
             "aciklama": (
-                "Şifre tanımlı — sisteme girmek için şifre soruluyor."
+                "Şifre tanımlı - sisteme girmek için şifre soruluyor."
                 if ayarlar.yonetici_sifresi
                 else (
                     "Şifre yok: sistemi açabilen herkes kamera silebilir, kural "
@@ -363,7 +363,7 @@ def _ham_adimlar(baglanti, supervizor, ayarlar) -> list[dict]:
             "bag": "/ayarlar",
             "bag_yazi": "Şifre koy",
             # Engellemez: şifresiz sistem çalışır. Ama isteğe bağlı olduğu için
-            # listeyi sürekli "eksik" göstermez — kullanıcı anonssuz da,
+            # listeyi sürekli "eksik" göstermez - kullanıcı anonssuz da,
             # şifresiz de çalışan bir sistemle baş başa kalmamalı.
             "istege_bagli": True,
             "engeller": False,
@@ -403,7 +403,7 @@ def kurulum_durumu(baglanti, supervizor, ayarlar) -> dict:
     "Tamamlanan adım sonraki adımı açar": ilk tamamlanmamış ENGELLEYİCİ adımdan
     sonraki adımlar soluk görünür ve düğmeleri çizilmez. Kullanıcı her an tek
     bir sonraki hamle görür; altı düğmeden hangisine basacağını seçmek zorunda
-    kalmaz. Zaten tamamlanmış bir adım, sırası geçmiş olsa da yeşil kalır —
+    kalmaz. Zaten tamamlanmış bir adım, sırası geçmiş olsa da yeşil kalır -
     doğru olanı göstermek, listeyi düzgün göstermekten önemlidir.
     """
     ham = _ham_adimlar(baglanti, supervizor, ayarlar)

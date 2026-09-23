@@ -102,7 +102,7 @@
       var bos = document.createElement("div");
       bos.className = "sayim-kutu bos-sayim";
       bos.appendChild(Object.assign(document.createElement("span"), {
-        className: "sayi", textContent: "—" }));
+        className: "sayi", textContent: "-" }));
       bos.appendChild(Object.assign(document.createElement("span"), {
         textContent: "şu an görünen nesne yok" }));
       sayimKutusu.appendChild(bos);
@@ -166,7 +166,7 @@
       bos.appendChild(Object.assign(document.createElement("span"), {
         className: "sayi", textContent: String(toplam || 0) }));
       bos.appendChild(Object.assign(document.createElement("span"), {
-        textContent: "—" }));
+        textContent: "-" }));
       kutu.appendChild(bos);
     } else {
       adlar.forEach(function (ad) {

@@ -53,14 +53,14 @@ def _yazi(gorsel, metin: str, konum: tuple[int, int], renk, kalinlik: int = 1) -
 _KKD_KARE_ARALIGI = 5
 
 # Overlay renkleri (BGR). Ekrandaki renk anahtarı (kamera sayfası) bu tabloyla
-# BİREBİR aynı olmalı — kullanıcı ekranda gördüğü rengi tanıyabilmeli.
+# BİREBİR aynı olmalı - kullanıcı ekranda gördüğü rengi tanıyabilmeli.
 _RENKLER = {
-    "person": (80, 200, 80),  # yeşil  — insan
-    "forklift": (0, 170, 255),  # turuncu — forklift
-    "truck": (255, 140, 60),  # mavi   — tır/araç
+    "person": (80, 200, 80),  # yeşil  - insan
+    "forklift": (0, 170, 255),  # turuncu - forklift
+    "truck": (255, 140, 60),  # mavi   - tır/araç
 }
-_IHLAL_RENGI = (0, 0, 220)  # kırmızı — kural ihlali olan nesne
-_BOLGE_RENGI = (200, 60, 160)  # mor — araç mavisiyle karışmasın
+_IHLAL_RENGI = (0, 0, 220)  # kırmızı - kural ihlali olan nesne
+_BOLGE_RENGI = (200, 60, 160)  # mor - araç mavisiyle karışmasın
 # KKD göstergeleri: baret beyaz-mavi, reflektörlü yelek SARI (sahadaki yeleğin
 # rengiyle aynı olsun ki bakan kişi anında eşleştirsin)
 _BARET_RENGI = (255, 200, 60)
@@ -74,19 +74,19 @@ _KKD_ALAN_ADLARI = {"helmet": "baret", "vest": "yelek"}
 # Önizleme JPEG kalitesi: ağ trafiği ile okunabilirlik arasında denge
 _JPEG_KALITE = [int(cv2.IMWRITE_JPEG_QUALITY), 80]
 
-# SAYIM ROZETİ — bölgenin içine yazılan "3 insan · 1 tır" etiketi.
+# SAYIM ROZETİ - bölgenin içine yazılan "3 insan · 1 tır" etiketi.
 # Sayı, kuralın ürettiği uyarıdan BAĞIMSIZ bir bilgidir; bu yüzden ihlal
 # kırmızısından da bölge morundan da farklı, nötr koyu bir zemine yazılır.
 _SAYIM_ZEMINI = (45, 40, 38)
 _SAYIM_YAZISI = (245, 245, 245)
 _SAYIM_YUKSEKLIGI = 22
 
-# BÖLGE TARAMASI — bölgenin içi çapraz çizgilerle taranır. Yalnızca çerçeve
+# BÖLGE TARAMASI - bölgenin içi çapraz çizgilerle taranır. Yalnızca çerçeve
 # çizmek yetmiyordu: kullanıcı "alanın içi neresi" sorusunu görüntüye bakarak
 # cevaplayamıyordu; iç içe ya da yan yana iki bölgede hangi çizginin hangisine
 # ait olduğu da anlaşılmıyordu. Tarama, alanı bir bakışta okunur yapar.
 #
-# HIZ — ölçüldü (1080p, bölgenin sınır kutusu karenin ~%65'i):
+# HIZ - ölçüldü (1080p, bölgenin sınır kutusu karenin ~%65'i):
 #   tam kare boolean maskesi + numpy .......... 22,2 ms/kare
 #   dağınık koordinatlarla fancy-index ......... 7,2 ms/kare
 #   sınır kutusunda cv2.addWeighted + copyTo ... 1,1 ms/kare   ← seçilen
@@ -96,7 +96,7 @@ _SAYIM_YUKSEKLIGI = 22
 # 7x24 çalışan, kamera başına saniyede 6 kare işleyen bir sistemde bu fark
 # işlemcinin kendisidir.
 # Aralık, karenin KISA KENARINA oranlıdır; sabit piksel değil. Sabit 14 px,
-# 480p'de seyrek görünürken 1080p'de saç teli gibi sıklaşıyordu — hem çirkin
+# 480p'de seyrek görünürken 1080p'de saç teli gibi sıklaşıyordu - hem çirkin
 # hem gereksiz pahalıydı (taranan piksel sayısı çözünürlükle katlanıyordu).
 _TARAMA_ARALIK_ORANI = 0.022
 _TARAMA_EN_AZ_ARALIK_PX = 9
@@ -138,7 +138,7 @@ class KameraHatti:
         self._kalite_sayaci = 0
         # TAKİP HAFIZASI VE KAYIP TOLERANSI AYNI SÜREDEN türer (docs/17 §6.3):
         # takipçi kaybolan izi N sn aynı kimlikle beklerken kural ve sayaç onu
-        # daha kısa beklerse kalış sayacı yine sıfırlanır — hafızayı uzatmanın
+        # daha kısa beklerse kalış sayacı yine sıfırlanır - hafızayı uzatmanın
         # anlamı kalmazdı. Tolerans değerlendirme (işlenen kare) sayısıdır:
         # ceil(sn × fps). Verilmezse (testler, eski çağrılar) iki taraf da eski
         # varsayılanında kalır.
@@ -162,9 +162,9 @@ class KameraHatti:
         self._bolgeler: list[Bolge] = []
         self._kalibrasyon: Kalibrasyon | None = None
         # KKD veri örneği için en küçük kişi boyu (px): kameranın KKD kuralının
-        # min_person_height_px'i (docs/17 §5.8) — sayı ikinci kez yazılmaz.
+        # min_person_height_px'i (docs/17 §5.8) - sayı ikinci kez yazılmaz.
         self._kkd_en_kucuk_boy = _KKD_VARSAYILAN_BOY
-        # Tarama önbelleği — bölge çizimi değişmedikçe yeniden üretilmez.
+        # Tarama önbelleği - bölge çizimi değişmedikçe yeniden üretilmez.
         self._tarama_imzasi: tuple | None = None
         self._tarama_kutu: tuple[int, int, int, int] | None = None
         self._tarama_maskesi: np.ndarray | None = None
@@ -181,7 +181,7 @@ class KameraHatti:
         # ÖNİZLEME TEMBELDİR: kare saklanır, JPEG ancak İSTENDİĞİNDE üretilir.
         #
         # Ölçüldü: JPEG kodlaması kare işleme süresinin %62'si (1080p'de 8,95 ms
-        # / 14,33 ms). Eskiden her karede yapılıyordu — tarayıcıda hiç sayfa
+        # / 14,33 ms). Eskiden her karede yapılıyordu - tarayıcıda hiç sayfa
         # açık olmasa bile. 4 kamera x 6 kare/sn ile bu, bir çekirdeğin
         # %21'inin karşılığı olmayan bir işe gitmesi demekti.
         #
@@ -232,13 +232,13 @@ class KameraHatti:
 
         if self.iyilestir:
             # Tespit ve önizleme AYNI kareyi kullanır: kullanıcı ekranda modelin
-            # gördüğü görüntüyü görmeli (docs/09 — dürüstlük)
+            # gördüğü görüntüyü görmeli (docs/09 - dürüstlük)
             kare = goruntu.iyilestir(kare)
 
         yukseklik, genislik = kare.shape[:2]
 
         if tespitci is None:
-            tespitler: list[Tespit] = []  # model yok — kamera izlenir, tespit yapılmaz
+            tespitler: list[Tespit] = []  # model yok - kamera izlenir, tespit yapılmaz
         else:
             kutular, guvenler, siniflar = tespitci.tespit_et(kare)
             tespitler = self._takipci.guncelle(kutular, guvenler, siniflar)
@@ -302,11 +302,11 @@ class KameraHatti:
         return dict(self._kare_sayimi)
 
     def sayaci_sifirla(self, bolge_id: int | None = None) -> None:
-        """Kümülatif ('giren') sayaçları sıfırlar — vardiya başı içindir."""
+        """Kümülatif ('giren') sayaçları sıfırlar - vardiya başı içindir."""
         self._sayac.sifirla(bolge_id)
 
     def son_islenmis_jpeg(self, bolgeler_dahil: bool = True) -> bytes | None:
-        """Son işlenmiş kare (JPEG) — İSTENDİĞİNDE kodlanır.
+        """Son işlenmiş kare (JPEG) - İSTENDİĞİNDE kodlanır.
 
         bolgeler_dahil=False → kayıtlı bölgelerin ÇİZİLMEDİĞİ sürüm. Bölge
         çizim sayfası bölgeleri kendi tuvaline çizdiği için oraya bu sürüm
@@ -344,7 +344,7 @@ class KameraHatti:
         return veri
 
     def kkd_bolgesinde_mi(self, tespit: Tespit, kare_boyutu: tuple[float, float]) -> bool:
-        """Kişi KKD zorunlu alanda mı — muaf alanlar (kabin, ofis köşesi) oyulur.
+        """Kişi KKD zorunlu alanda mı - muaf alanlar (kabin, ofis köşesi) oyulur.
 
         Bu kapı hem KKD sınıflandırıcısını hem veri örneklemeyi açar: muaf
         alandaki kişiden kırpık üretilmez, toplanmaz (docs/17 §5.5, KVKK).
@@ -437,7 +437,7 @@ class KameraHatti:
 
         # JPEG BURADA ÜRETİLMEZ (bkz. son_islenmis_jpeg): kareler saklanır,
         # kodlama isteyen olursa yapılır. Sayaç artınca önbellek kendiliğinden
-        # geçersizleşir — ayrıca temizlemek gerekmez.
+        # geçersizleşir - ayrıca temizlemek gerekmez.
         with self._kilit:
             self._son_kare_bolgeli = bolgeli
             self._son_kare_bolgesiz = gorsel if aktif_bolgeler else None
@@ -447,7 +447,7 @@ class KameraHatti:
         """Bölgelerin içini çapraz taramayla doldurur (yerinde değiştirir).
 
         Yalnız tarama çizgileri renklenir; alanın altındaki görüntü (insan,
-        forklift) okunur kalır — bu bir vurgu, örtü değil. Çalışma, bölgelerin
+        forklift) okunur kalır - bu bir vurgu, örtü değil. Çalışma, bölgelerin
         sınır kutusuyla sınırlıdır ve tamamı OpenCV'nin bitişik bellek
         yollarından geçer (bkz. yukarıdaki HIZ ölçümü).
         """
@@ -515,7 +515,7 @@ class KameraHatti:
 
         Sayı, videonun üstünde görünmelidir: kullanıcı sayıyı ayrı bir tabloda
         değil, saydığı yerin üstünde görmek ister. Boş bölgeye rozet
-        ÇİZİLMEZ — altı bölgeli bir kamerada altı tane "0" yalnızca gürültüdür.
+        ÇİZİLMEZ - altı bölgeli bir kamerada altı tane "0" yalnızca gürültüdür.
 
         Yazı ASCII'dir (cv2.putText Türkçe harf çizemez, "tır" → "t?r"):
         SINIF_OVERLAY tablosu tespit kutularıyla aynı karşılıkları verir.
@@ -599,6 +599,6 @@ class KameraHatti:
                 cv2.rectangle(gorsel, (kx, ky), (kx + 22, ky + 20), _KKD_YOK_RENGI, -1)
                 cv2.line(gorsel, (kx + 3, ky + 3), (kx + 19, ky + 17), (255, 255, 255), 2)
                 cv2.line(gorsel, (kx + 19, ky + 3), (kx + 3, ky + 17), (255, 255, 255), 2)
-            else:  # belirsiz — karar verilemedi, ihlal sayılmaz
+            else:  # belirsiz - karar verilemedi, ihlal sayılmaz
                 cv2.rectangle(gorsel, (kx, ky), (kx + 22, ky + 20), (150, 150, 150), 1)
                 _yazi(gorsel, "?", (kx + 7, ky + 15), (150, 150, 150))

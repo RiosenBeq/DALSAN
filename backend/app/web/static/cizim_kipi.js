@@ -1,12 +1,12 @@
 // Sade / gelişmiş çizim kipi (kamera sayfası).
 //
-// NEDEN VAR — kamera sayfasında yedi ayrı araç yaşıyor: kareyi dondur, ekran
+// NEDEN VAR - kamera sayfasında yedi ayrı araç yaşıyor: kareyi dondur, ekran
 // görüntüsü yükle, alanları otomatik bul, çizime başla, dikdörtgen çiz, son
 // köşeyi geri al, mesafe kalibrasyonu. Hepsi aynı anda ekrandayken ilk kez
 // bölge çizen biri hangisine basacağını seçemiyor; oysa bölge çizmek için
 // bunların yalnızca üçü gerekiyor.
 //
-// Sade kipte `data-gelismis` işaretli her şey GİZLENİR — ama DOM'dan
+// Sade kipte `data-gelismis` işaretli her şey GİZLENİR - ama DOM'dan
 // SİLİNMEZ. Silinseydi kamera_detay.js açılışta o düğmeleri id ile arar,
 // bulamaz ve sayfanın tamamı (çizim dahil) sessizce çalışmaz hale gelirdi.
 // Gizleme CSS'tedir (stil.css → .kip-basit [data-gelismis]).
@@ -28,7 +28,7 @@
     "için “Gelişmiş araçlar”a basın.";
   var GELISMIS_NOT =
     "Gelişmiş görünüm: tüm araçlar açık. Sayfa kalabalık geldiyse " +
-    "“Sade görünüm”e dönebilirsiniz — çizdiğiniz bölgeler etkilenmez.";
+    "“Sade görünüm”e dönebilirsiniz - çizdiğiniz bölgeler etkilenmez.";
 
   function oku() {
     try {

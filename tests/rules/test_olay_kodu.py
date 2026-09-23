@@ -1,4 +1,4 @@
-"""Olay kodları ve önem (docs/17 §6.1–6.3): sözlüğün tamamı ve motorun ataması.
+"""Olay kodları ve önem (docs/17 §6.1-6.3): sözlüğün tamamı ve motorun ataması.
 
 Kod değerlendiricide değil motorda atanır; bu yüzden kural testlerinin geri
 kalanı kod yüzünden değişmez. Burada sınanan: her ihlal tek ve doğru bir kod

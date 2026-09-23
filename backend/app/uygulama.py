@@ -84,7 +84,7 @@ def uygulama_olustur(ayarlar: Ayarlar, analiz: bool = True) -> FastAPI:
                 baglanti.close()
         except VeritabaniHatasi as hata:
             # Türkçe mesaj hem günlüğe hem Kontrol Paneli çıktısına düşsün;
-            # ardından açılış bilerek durdurulur — sistem yarım çalışmaz.
+            # ardından açılış bilerek durdurulur - sistem yarım çalışmaz.
             log.error(hata.kullanici_mesaji)
             raise
         # Veritabanının tam yolu Kontrol Paneli penceresinde görünmesin; destek
@@ -133,12 +133,12 @@ def uygulama_olustur(ayarlar: Ayarlar, analiz: bool = True) -> FastAPI:
     )
     uygulama.state.ayarlar = ayarlar
     hata_yakalayicilari_kur(uygulama)
-    # İSTEK KAYNAĞI — her şeyden önce: izinsiz sunucu adıyla gelen istek (DNS
+    # İSTEK KAYNAĞI - her şeyden önce: izinsiz sunucu adıyla gelen istek (DNS
     # yeniden bağlama) 421, başka siteden gönderilen form (CSRF) 403 alır.
     # Giriş kapısından da önce çalışır; ayrıntı web/kaynak_denetimi.py.
     uygulama.add_middleware(KaynakDenetimi)
 
-    # YETKİ — tek kapı. .env'deki YONETICI_SIFRESI boşsa `oturum_gerekli`
+    # YETKİ - tek kapı. .env'deki YONETICI_SIFRESI boşsa `oturum_gerekli`
     # hiçbir şey sormaz (tek makinede çalışan kurulum); doluysa aşağıdaki
     # routerların HEPSİ giriş ister. Ayrıntı: web/giris.py.
     #
@@ -151,7 +151,7 @@ def uygulama_olustur(ayarlar: Ayarlar, analiz: bool = True) -> FastAPI:
     uygulama.include_router(rotalar.router, dependencies=korumali)
     uygulama.include_router(kameralar.router, dependencies=korumali)
     # Video ile test (/videolar): yüklenen video, source_type='file' olan
-    # sıradan bir kameraya dönüşür — bu yüzden kameraların hemen yanında durur.
+    # sıradan bir kameraya dönüşür - bu yüzden kameraların hemen yanında durur.
     uygulama.include_router(videolar.router, dependencies=korumali)
     # Alan tanıma ("Alanları Otomatik Bul"): kamera sayfasının yanında durur.
     # Yüklenen ekran görüntüsü DİSKE YAZILMAZ; ayrıntısı alan_rotalari.py'de.
@@ -167,10 +167,10 @@ def uygulama_olustur(ayarlar: Ayarlar, analiz: bool = True) -> FastAPI:
     # kurulum sayfaları eski kabukta kalır; ikisi bağlantıyla geçer.
     uygulama.include_router(komuta.router, dependencies=korumali)
     # Dönem raporu (/komuta/rapor): komuta kabuğunun içindedir ama veri
-    # hazırlığı ayrı dosyadadır — komuta.py zaten altı ekranın verisini taşıyor.
+    # hazırlığı ayrı dosyadadır - komuta.py zaten altı ekranın verisini taşıyor.
     uygulama.include_router(rapor.router, dependencies=korumali)
     # Nesne kütüphanesi (şema 003): kullanıcının kendi nesnesini fotoğrafla
-    # tanıtması. Komuta kabuğunu kullanır ama CANLI ANALİZE GİRMEZ — arama
+    # tanıtması. Komuta kabuğunu kullanır ama CANLI ANALİZE GİRMEZ - arama
     # yalnızca o sayfaya yüklenen fotoğraflarda yapılır.
     uygulama.include_router(nesne_rotalari.router, dependencies=korumali)
     # Ayarlar sayfası: .env'in ekrandaki karşılığı. Paketlenmiş programda ayar

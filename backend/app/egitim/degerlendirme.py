@@ -508,9 +508,9 @@ def html_raporu(
     """Tek, kendi içinde yeterli HTML: stil ve görüntüler gömülü."""
     kume_adi = {"train": "eğitim", "val": "doğrulama", "test": "test", "tum": "tüm"}[kume]
     olusturma = manifest.get("olusturma_utc")
-    veri_seti_tarihi = zaman.ekranda_goster(olusturma) if olusturma else "—"
+    veri_seti_tarihi = zaman.ekranda_goster(olusturma) if olusturma else "-"
     gunler = sorted({s["ad"] for s in dict(sonuc["kirilimlar"])["Güne göre"]})
-    donem = f"{gunler[0]} – {gunler[-1]}" if gunler else "—"
+    donem = f"{gunler[0]} - {gunler[-1]}" if gunler else "-"
     uyarilar = list(manifest.get("uyarilar") or [])
     if kume != "test":
         uyarilar.append(
@@ -528,10 +528,10 @@ def html_raporu(
     parcalar = [
         "<!doctype html><html lang='tr'><head><meta charset='utf-8'>",
         "<meta name='viewport' content='width=device-width, initial-scale=1'>",
-        f"<title>KKD model değerlendirmesi — {_e(model_surumu)}</title>",
+        f"<title>KKD model değerlendirmesi - {_e(model_surumu)}</title>",
         f"<style>{_STIL}</style></head><body><main>",
         "<header class='kart'>",
-        f"<h1>KKD model değerlendirmesi — {_e(model_surumu)}</h1>",
+        f"<h1>KKD model değerlendirmesi - {_e(model_surumu)}</h1>",
         f"<p class='kunye'>Veri seti: {_e(kume_adi)} kümesi, <b>{sonuc['adet']}</b> etiketli "
         f"kırpık, {len(gunler)} gün ({_e(donem)}) · veri seti {_e(veri_seti_tarihi)} · "
         f"güven eşiği {_e(_ondalik(min_guven))} "

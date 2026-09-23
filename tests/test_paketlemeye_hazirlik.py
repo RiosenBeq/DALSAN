@@ -1,6 +1,6 @@
 """Paketlenmiş (tek dosyalık) çalışmaya hazırlık: yol ve veri klasörü çözümü.
 
-NEDEN BU TESTLER VAR — paketleme sırasında iki şey birden değişir:
+NEDEN BU TESTLER VAR - paketleme sırasında iki şey birden değişir:
 
 * Kaynak dosyalar (şablon, stil, şema betiği) artık depoda değil, programın
   açtığı geçici klasördedir; `__file__` oraya işaret ETMEZ.
@@ -122,7 +122,7 @@ def test_eski_konumdaki_veri_TASINMAZ_oradan_okunmaya_devam_eder(sahte_paket, tm
     konum = kaynaklar.veri_konumu(program_dizini_=program, kullanici_dizini=profil)
 
     assert konum.kok == program.resolve()
-    assert konum.gunluk_notu, "Olağandışı konum sessiz kalmamalı — günlüğe not düşmeli"
+    assert konum.gunluk_notu, "Olağandışı konum sessiz kalmamalı - günlüğe not düşmeli"
     assert "taşınmadı" in konum.gunluk_notu.lower()
     # Hiçbir şey taşınmadı / kopyalanmadı:
     assert kayit.read_bytes() == b"eski kayitlar"
@@ -237,7 +237,7 @@ def test_gelistirmede_env_kendiliginden_olusturulmaz(tmp_path):
 #
 # Yukarıdaki testler `kaynak_yolu` fonksiyonunu tek tek sınıyor; üretim
 # tarifi (paketleme/) de "şu klasörler pakete konacak" diyor. Ama ikisi
-# birbirini TUTUYOR MU sorusu hiçbir yerde sorulmuyordu — ve tutmadığında
+# birbirini TUTUYOR MU sorusu hiçbir yerde sorulmuyordu - ve tutmadığında
 # ortaya çıkan hata tam olarak şudur: uygulama açılır açılmaz "şablon
 # bulunamadı" ile çöker, çıktı hiçbir ekrana düşmez, kullanıcı yalnızca
 # "açılmıyor" der.
@@ -319,7 +319,7 @@ def _paketlenmis_sistemi_baslat(tmp_path: Path):
 
 
 def test_tarifin_kopyaladigi_paketle_sistem_gercekten_aciliyor(tmp_path):
-    """Şablon, stil ve şema betikleri pakette bulunuyor mu — uçtan uca."""
+    """Şablon, stil ve şema betikleri pakette bulunuyor mu - uçtan uca."""
     sonuc, _, _ = _paketlenmis_sistemi_baslat(tmp_path)
     assert sonuc.returncode == 0, (
         "Paketlenmiş sistem açılamadı. Üretim tarifindeki `veri_dosyalari()` "
@@ -337,5 +337,5 @@ def test_paketten_acilinca_veritabani_ve_env_kullanici_klasorune_yaziliyor(tmp_p
 
     assert (veri_koku / ".env").is_file(), ".env örnekten üretilmemiş"
     assert (veri_koku / "veri" / "dalsan.db").is_file(), "veritabanı kullanıcı klasöründe yok"
-    assert not (paket / "veri").exists(), "pakete yazılmış — paket salt okunur olmalı"
+    assert not (paket / "veri").exists(), "pakete yazılmış - paket salt okunur olmalı"
     assert not (paket / ".env").exists(), "ayar dosyası pakete yazılmış"

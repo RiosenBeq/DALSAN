@@ -47,7 +47,7 @@ def baglanti_ac(veritabani_yolu: Path | str) -> sqlite3.Connection:
     # ham İngilizce traceback yerine Türkçe mesaj gitmeli.
     try:
         # check_same_thread=False: FastAPI, istek bağımlılığını threadpool'da,
-        # async gövdeyi event loop'ta çalıştırabilir — bağlantı istek boyunca
+        # async gövdeyi event loop'ta çalıştırabilir - bağlantı istek boyunca
         # SIRALI kullanılır, eşzamanlı kullanılmaz; CPython sqlite3 zaten
         # 'serialized' derlenir. Bu bayrak olmadan async uçlar ProgrammingError verir.
         baglanti = sqlite3.connect(str(veritabani_yolu), check_same_thread=False)
@@ -74,9 +74,9 @@ def baglanti_ac(veritabani_yolu: Path | str) -> sqlite3.Connection:
             "basın. Program klasöründeki veri/yedekler/ klasöründe duran en yeni "
             "dalsan-... dosyasını veri klasörüne kopyalayıp adını dalsan.db yapın, "
             "sonra Sistemi Başlat'a basın. Yedek yoksa bozuk dalsan.db dosyasının "
-            "adını dalsan-bozuk.db yapın — sistem boş bir kayıt dosyasıyla açılır, "
+            "adını dalsan-bozuk.db yapın - sistem boş bir kayıt dosyasıyla açılır, "
             "eski olay kayıtları geri gelmez.",
-            f"Veritabanı açılamadı: {veritabani_yolu} — {hata!r}",
+            f"Veritabanı açılamadı: {veritabani_yolu} - {hata!r}",
         ) from hata
 
     return baglanti
@@ -86,7 +86,7 @@ def semayi_uygula(baglanti: sqlite3.Connection, sema_dizini: Path = SEMA_DIZINI)
     """sema/ altındaki .sql betiklerini isim sırasıyla, birer kez uygular.
 
     Uygulanan her betiğin adı sema_surumu tablosuna yazılır; kayıtlı betik
-    atlanır. Böylece açılışta her seferinde çağrılabilir — idempotenttir.
+    atlanır. Böylece açılışta her seferinde çağrılabilir - idempotenttir.
     """
     baglanti.execute(
         "CREATE TABLE IF NOT EXISTS sema_surumu ("
@@ -111,7 +111,7 @@ def semayi_uygula(baglanti: sqlite3.Connection, sema_dizini: Path = SEMA_DIZINI)
     # GÖÇ ÖNCESİ YEDEK (docs/17 §8.4): yabancı anahtarı kapatan (tablo yeniden
     # kuran) bir betik uygulanacaksa önce veritabanının kopyası alınır. Neden:
     # bütünlük denetimi COMMIT'ten SONRA koşar; bozukluk bulunduğunda açılış
-    # durur ama veritabanı yazılmıştır — tek kurtarma yolu bu yedektir.
+    # durur ama veritabanı yazılmıştır - tek kurtarma yolu bu yedektir.
     # YALNIZ KURULU veritabanında: yeni kurulumda ve testlerde her çağrı boş
     # bir yedek bırakır, "Yedekten Geri Yükle" listesini kirletirdi.
     if uygulananlar and any(
@@ -127,7 +127,7 @@ def semayi_uygula(baglanti: sqlite3.Connection, sema_dizini: Path = SEMA_DIZINI)
         # ya ikisi de yazılır ya hiçbiri. Aksi halde "tablolar var ama sürüm kaydı yok"
         # durumunda sistem bir daha açılamazdı. Bu yüzden betikler BEGIN/COMMIT
         # İÇERMEZ; sarmalamayı burası yapar. (Değerler bizim ürettiğimiz dosya adı
-        # ve zaman damgasıdır — kullanıcı girdisi değildir.)
+        # ve zaman damgasıdır - kullanıcı girdisi değildir.)
         tam_sql = (
             "BEGIN;\n"
             f"{sql}\n"
@@ -161,7 +161,7 @@ def semayi_uygula(baglanti: sqlite3.Connection, sema_dizini: Path = SEMA_DIZINI)
                 "Veritabanı güncellemesi tamamlanamadı; hiçbir değişiklik yazılmadı. "
                 "Kontrol Paneli'nde Durdur'a, sonra Sistemi Başlat'a basın. Sorun sürerse "
                 "program klasöründeki veri/loglar/sistem.log dosyasını destek ekibine iletin.",
-                f"Şema betiği uygulanamadı: {betik.name} — {hata!r}",
+                f"Şema betiği uygulanamadı: {betik.name} - {hata!r}",
             ) from hata
         finally:
             # Anahtar HER DURUMDA geri açılır: hata yüzünden kapalı kalırsa
@@ -200,7 +200,7 @@ def _goc_oncesi_yedek(baglanti: sqlite3.Connection, betik_koku: str) -> Path | N
             "Veritabanı güncellemesinden önce yedek alınamadı; güncelleme YAPILMADI ve "
             "kayıtlarınız olduğu gibi duruyor. Diskte yer olduğundan emin olup Kontrol "
             "Paneli'nde Durdur'a, sonra Sistemi Başlat'a basın.",
-            f"Göç öncesi yedek alınamadı: {hedef} — {hata!r}",
+            f"Göç öncesi yedek alınamadı: {hedef} - {hata!r}",
         ) from hata
     return hedef
 

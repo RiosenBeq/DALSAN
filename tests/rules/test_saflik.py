@@ -8,7 +8,7 @@ Dört sızma yolu birden denetlenir:
 1. Doğrudan import (import cv2 / from torch import ...)
 2. Dinamik import (importlib.import_module("cv2"), __import__("sqlite3"))
 3. Dolaylı import: app.rules dışındaki app modülleri (ör. app.veritabani
-   sqlite3'ü, app.web fastapi'yi içeri taşır) — rules/ yalnızca kendi
+   sqlite3'ü, app.web fastapi'yi içeri taşır) - rules/ yalnızca kendi
    paketinden import yapabilir.
 4. Göreli import: `from ..veritabani import baglanti_ac` ve `from .. import web`
    de 3. maddedeki sızmayı yapar; dosyanın paketine göre mutlak ada çevrilip
@@ -29,7 +29,7 @@ RULES_DIZINI = BACKEND_DIZINI / "app" / "rules"
 YASAKLI_MODULLER = {"cv2", "torch", "torchvision", "ultralytics", "sqlite3", "fastapi", "importlib"}
 
 # app.hatalar İZİNLİ: modül seviyesinde hiçbir şey import etmez (FastAPI importu
-# bilerek fonksiyon içindedir) — hata sınıflarının ortak olması için gerekli.
+# bilerek fonksiyon içindedir) - hata sınıflarının ortak olması için gerekli.
 IZINLI_APP_MODULLERI = ("app.rules", "app.hatalar")
 
 
@@ -75,7 +75,7 @@ def _kaynak_ihlalleri(kaynak: str, paket: str = "app.rules") -> set[str]:
         if modul:
             _modul_denetle(".".join([*taban, modul]))
             return
-        # `from .. import veritabani` — içeri alınan adlar alt modül adıdır
+        # `from .. import veritabani` - içeri alınan adlar alt modül adıdır
         for ad in adlar:
             _modul_denetle(".".join([*taban, ad]))
 
@@ -113,7 +113,7 @@ def test_rules_yasakli_modullere_ulasmiyor():
         if bulunanlar:
             ihlaller.append(f"{dosya.relative_to(KOK)} → {', '.join(sorted(bulunanlar))}")
     assert not ihlaller, (
-        "rules/ SAF kalmalı (CLAUDE.md §6) — yasaklı erişim bulundu:\n" + "\n".join(ihlaller)
+        "rules/ SAF kalmalı (CLAUDE.md §6) - yasaklı erişim bulundu:\n" + "\n".join(ihlaller)
     )
 
 
@@ -133,7 +133,7 @@ def test_bekci_dinamik_importu_yakaliyor():
 
 
 def test_bekci_dolayli_app_importunu_yakaliyor():
-    # app.veritabani sqlite3'ü içeri taşırdı — rules/ yalnız kendi paketini kullanabilir
+    # app.veritabani sqlite3'ü içeri taşırdı - rules/ yalnız kendi paketini kullanabilir
     assert "app.veritabani" in _kaynak_ihlalleri("from app.veritabani import baglanti_ac")
     assert "app.web.rotalar" in _kaynak_ihlalleri("from app.web.rotalar import router")
     assert not _kaynak_ihlalleri("from app.rules.geometri import nokta_iceride_mi")
@@ -161,7 +161,7 @@ def test_bekci_izinli_goreli_importa_ses_cikarmiyor():
 
 
 def test_bekci_paket_disina_cikan_goreli_importu_yakaliyor():
-    # app.rules içinden `from ... import x` paket kökünü aşar — Python'da da hatadır
+    # app.rules içinden `from ... import x` paket kökünü aşar - Python'da da hatadır
     assert _kaynak_ihlalleri("from ... import bir_sey")
     assert _kaynak_ihlalleri("from ...disarisi import bir_sey")
 

@@ -1,6 +1,6 @@
-"""Alan bulucu — zemindeki boyadan bölge önerisi (app/analiz/alan_bulucu.py).
+"""Alan bulucu - zemindeki boyadan bölge önerisi (app/analiz/alan_bulucu.py).
 
-Kamera GEREKMEZ: sahneler burada üretilir. Sınanan söz şudur — sistem
+Kamera GEREKMEZ: sahneler burada üretilir. Sınanan söz şudur - sistem
 fabrika zemininde boyayla işaretli alanı bulabilmeli, boya yoksa da
 UYDURMAMALI. Yanlış öneri kullanıcının kabul etmediği bir çizimdir, ama
 sürekli yanlış öneren bir düğmeye kimse ikinci kez basmaz.
@@ -14,7 +14,7 @@ import pytest
 
 from app.analiz.alan_bulucu import AlanOnerisi, alanlari_bul, maske_onizlemesi
 
-SARI = (0, 215, 245)  # BGR — sahadaki yol boyası
+SARI = (0, 215, 245)  # BGR - sahadaki yol boyası
 BEYAZ = (235, 235, 235)
 
 
@@ -26,7 +26,7 @@ def zemin(genislik: int = 960, yukseklik: int = 540) -> np.ndarray:
 
 
 def yaya_yolu_zemini() -> np.ndarray:
-    """İki paralel KESİKLİ sarı çizgi — sahadaki en yaygın yaya yolu işareti."""
+    """İki paralel KESİKLİ sarı çizgi - sahadaki en yaygın yaya yolu işareti."""
     kare = zemin()
     for x in range(80, 880, 60):
         cv2.rectangle(kare, (x, 200), (x + 38, 212), SARI, -1)
@@ -50,7 +50,7 @@ def test_paralel_sari_cizgiler_yaya_yolu_onerir():
 
 
 def test_onerilen_alan_cizgilerin_arasini_kapsar():
-    """Öneri, iki çizginin ARASINI da içermeli — yol orasıdır, çizgiler değil."""
+    """Öneri, iki çizginin ARASINI da içermeli - yol orasıdır, çizgiler değil."""
     en_iyi = alanlari_bul(yaya_yolu_zemini())[0]
     ys = [y for _, y in en_iyi.poligon]
     # Çizgiler 200-342 piksel (540 yükseklikte) → 0,37-0,63 bandı
@@ -65,7 +65,7 @@ def test_beyaz_cerceve_yukleme_alani_onerir():
 
 
 def test_bos_zeminde_oneri_uretilmez():
-    """Boyasız betonda öneri uydurulmaz — bulunamadı, bulunamadıdır."""
+    """Boyasız betonda öneri uydurulmaz - bulunamadı, bulunamadıdır."""
     assert alanlari_bul(zemin()) == []
 
 
@@ -106,7 +106,7 @@ def test_maske_onizlemesi_ayni_boyutta_gorsel_verir():
 
 def test_alan_yuzdesi_makul():
     en_iyi = alanlari_bul(yukleme_alani_zemini())[0]
-    # 400x310 / 960x540 = %23,9 — çerçeve kalınlığıyla birlikte biraz üstü
+    # 400x310 / 960x540 = %23,9 - çerçeve kalınlığıyla birlikte biraz üstü
     assert 15.0 < en_iyi.alan_yuzdesi < 40.0
 
 

@@ -1,5 +1,5 @@
 // Kamera detay sayfası: bölge çizimi ve kalibrasyon nokta seçimi.
-// Koordinatlar NORMALİZE (0-1) kaydedilir — çözünürlük değişse de geçerli kalır.
+// Koordinatlar NORMALİZE (0-1) kaydedilir - çözünürlük değişse de geçerli kalır.
 //
 // Bu sayfada bölgeleri YALNIZCA bu tuval çizer: görüntü sunucudan bölgesiz
 // istenir (onizleme.js → ?bolgesiz=1). Tek çizen olduğu için renk, izleme
@@ -13,12 +13,12 @@
 //   · çizilen bölge, seçilen tipin rengiyle çizilir (renkler stil.css'te),
 //   · DİKDÖRTGEN KİPİ: bir köşeden karşı köşeye sürükleyip bırakmak yeter
 //     (yükleme alanı, tır parkı ve KKD alanlarının çoğu dikdörtgendir),
-//   · KÖŞE SÜRÜKLEME: konmuş bir köşe fareyle tutulup taşınabilir — eskiden
+//   · KÖŞE SÜRÜKLEME: konmuş bir köşe fareyle tutulup taşınabilir - eskiden
 //     tek yanlış köşe için tüm çizimi baştan yapmak gerekiyordu,
 //   · ALANI OTOMATİK BUL: zemindeki boyalı alan sunucuda bulunur ve öneri
 //     kartına tıklanınca hazır çizim tuvale yüklenir (app/web/alan_rotalari.py),
 //   · TARALI DOLGU: çizilen ve seçilen alanlar çapraz taramayla dolar. Yalnız
-//     çerçeve çizmek yetmiyordu — "alanın içi neresi" sorusu görüntüye
+//     çerçeve çizmek yetmiyordu - "alanın içi neresi" sorusu görüntüye
 //     bakılarak cevaplanamıyor, yan yana iki bölgede hangi çizginin hangisine
 //     ait olduğu anlaşılmıyordu. Sunucu da videoyu aynı biçimde tarar
 //     (analiz/boru_hatti.py), böylece ekranla video aynı şeyi söyler,
@@ -30,13 +30,13 @@
 // yüklenir ve üzerinde değişiklik yapılabilir; hiç dokunulmazsa kayıtlı çizim
 // olduğu gibi korunur (form boş poligon gönderir, sunucu eskisini saklar).
 (function () {
-  // Bölge rengi — boru_hatti.py _BOLGE_RENGI (mor) ve renk_anahtari.html ile aynı
+  // Bölge rengi - boru_hatti.py _BOLGE_RENGI (mor) ve renk_anahtari.html ile aynı
   var BOLGE_RENGI = "#A03CC8";
   var BOLGE_DOLGU = saydam(BOLGE_RENGI, 0.12); // aynı morun saydam dolgusu
   var KAPATMA_YARICAPI = 14; // ilk noktaya bu kadar yakın tıklama alanı kapatır
   var TUTMA_YARICAPI = 12;   // köşeyi sürüklemek için bu kadar yakın tutmak yeter
   var SURUKLEME_ESIGI = 3;   // bu kadar pikselden az hareket "tıklama" sayılır
-  var ILK_NOKTA_R = 8;       // kapatılabilir ilk köşe — büyük hedef
+  var ILK_NOKTA_R = 8;       // kapatılabilir ilk köşe - büyük hedef
   var NOKTA_R = 5;           // diğer köşeler
   var KESIK = [7, 6];        // canlı kenar önizlemesinin kesik deseni
   var TARAMA_ARALIGI = 9;    // çapraz tarama çizgileri arası (px)
@@ -82,7 +82,7 @@
   var bolgeNoktalari = [];
   var kalibrasyonNoktalari = [];
   var kapandi = false;  // ilk noktaya tıklanarak alan kapatıldı mı
-  var imlec = null;     // farenin son konumu (0-1) — canlı kenar için
+  var imlec = null;     // farenin son konumu (0-1) - canlı kenar için
   var suruklenen = null;    // taşınmakta olan köşenin sırası (yoksa null)
   var tiklamaYut = false;   // sürükleme bitti → ardından gelen click yutulur
   var dikdortgenBasi = null; // dikdörtgen kipinde basılan ilk köşe (0-1)
@@ -145,7 +145,7 @@
     return desen;
   }
 
-  // Nokta poligonun içinde mi (ışın yöntemi) — rules/geometri.py ile aynı
+  // Nokta poligonun içinde mi (ışın yöntemi) - rules/geometri.py ile aynı
   // mantık. Bölgeye tıklayarak seçme buna dayanır.
   function noktaPoligonda(nokta, poligon) {
     var icinde = false;
@@ -182,7 +182,7 @@
   function ciz() {
     baglam.clearRect(0, 0, tuval.width, tuval.height);
 
-    // Kayıtlı bölgeler (mor — renk anahtarındaki "Çizdiğiniz bölge" rengi).
+    // Kayıtlı bölgeler (mor - renk anahtarındaki "Çizdiğiniz bölge" rengi).
     // Pasif bölge çizilmez: sistem onu değerlendirmiyor, ekranda da durmamalı.
     (window.MEVCUT_BOLGELER || []).forEach(function (bolge) {
       if (bolge.aktif === false) return;
@@ -258,7 +258,7 @@
     baglam.strokeStyle = renk; baglam.lineWidth = kapandi ? 3 : 2; baglam.stroke();
 
     // canlı kenar önizlemesi: son köşeden imlece kesikli çizgi. Kapatılabilir
-    // durumdaysa ilk köşeye kadar da uzatılır — alanın nasıl kapanacağı görünür.
+    // durumdaysa ilk köşeye kadar da uzatılır - alanın nasıl kapanacağı görünür.
     if (!kapandi && imlec) {
       var son = bolgeNoktalari[bolgeNoktalari.length - 1];
       baglam.save();
@@ -326,7 +326,7 @@
     if (balonNoktasi) balonNoktasi.style.background = renk;
 
     if (mod === "dikdortgen") {
-      if (balonTipAdi) balonTipAdi.textContent = seciliTipAdi() + " — dikdörtgen";
+      if (balonTipAdi) balonTipAdi.textContent = seciliTipAdi() + " - dikdörtgen";
       if (balonAdim) {
         balonAdim.textContent = "Alanın bir köşesine basılı tutun, karşı köşesine " +
           "sürükleyip bırakın. Vazgeçmek için Esc.";
@@ -336,7 +336,7 @@
     }
     if (balonTipAdi) {
       balonTipAdi.textContent = duzenlenen
-        ? "\"" + duzenlenen.ad + "\" düzenleniyor — " + seciliTipAdi()
+        ? "\"" + duzenlenen.ad + "\" düzenleniyor - " + seciliTipAdi()
         : seciliTipAdi() + " çiziyorsunuz";
     }
 
@@ -349,11 +349,11 @@
           "Kaydet\"e basabilirsiniz. Vazgeçmek için Esc.";
     } else if (sayi === 0) {
       adim = duzenlenen
-        ? "Çizim temizlendi — kaydederseniz kayıtlı çizim olduğu gibi kalır. Yeni alan " +
+        ? "Çizim temizlendi - kaydederseniz kayıtlı çizim olduğu gibi kalır. Yeni alan " +
           "çizmek için köşelere tıklayın; Esc kayıtlı çizime döndürür."
         : "Bölgenin köşelerine sırayla tıklayın (en az 3). Vazgeçmek için Esc.";
     } else if (sayi < 3) {
-      adim = "Köşe eklemeye devam edin — en az " + (3 - sayi) + " köşe daha gerek.";
+      adim = "Köşe eklemeye devam edin - en az " + (3 - sayi) + " köşe daha gerek.";
     } else {
       adim = "Bitirmek için İLK (büyük) noktaya tıklayın; ya da köşe eklemeye devam edin.";
     }
@@ -379,7 +379,7 @@
   }
 
   // Çizimi tümüyle bırakır: mod kapanır, kılavuz gizlenir, konan köşeler silinir.
-  // Yarıda kalan kalibrasyon seçimi de temizlenir — yoksa ekranda karşılığı
+  // Yarıda kalan kalibrasyon seçimi de temizlenir - yoksa ekranda karşılığı
   // olmayan "Nokta 1/2..." satırları kalır.
   function cizimiIptalEt() {
     var kalibrasyonSurerken = mod === "kalibrasyon";
@@ -655,7 +655,7 @@
     ciz();
   }
 
-  // Esc: çizimden vazgeçilir. Bölge düzenlerken bu, kayıtlı çizime dönmektir —
+  // Esc: çizimden vazgeçilir. Bölge düzenlerken bu, kayıtlı çizime dönmektir -
   // düzenlemeyi tümüyle bırakmak için sayfadaki "Vazgeç" bağlantısı var.
   document.addEventListener("keydown", function (olay) {
     if (olay.key !== "Escape" || !mod) return;
@@ -686,7 +686,7 @@
       mod = "dikdortgen";
       kapandi = false;
       // Çizmeye geçiliyor: kayıtlı bölge seçimi bırakılır. "Çizime başla" ile
-      // aynı davranış — iki düğmeden biri seçimi bırakıp öbürü bırakmasaydı
+      // aynı davranış - iki düğmeden biri seçimi bırakıp öbürü bırakmasaydı
       // ekranda hem seçili hem çizilen alan taralı görünür, karışırdı.
       seciliBolgeId = null;
       seciliBolgeyiYaz(null);
@@ -773,7 +773,7 @@
   // Sunucu, zemindeki boyalı alanları bulup öneri listesi döner
   // (app/web/alan_rotalari.py). Burada yapılan üç şey var: isteği atmak,
   // önerileri kart olarak listelemek ve tıklanan kartın çizimini tuvale
-  // yüklemek. Yüklenen ekran görüntüsü tuvalin arka planı olur — kamera
+  // yüklemek. Yüklenen ekran görüntüsü tuvalin arka planı olur - kamera
   // bağlı olmasa da bölge çizilebilsin diye.
 
   // --- ÇİZİM ARKA PLANI: dondur / yükle / canlıya dön ---
@@ -838,7 +838,7 @@
     arkaplanDosya.addEventListener("change", function () {
       if (arkaplanDosya.files && arkaplanDosya.files[0]) {
         // Aynı uç nokta kullanılır (app/web/alan_rotalari.py): görüntü hem
-        // arka plan olur hem — varsa — alan önerisi döner. İki ayrı yol
+        // arka plan olur hem - varsa - alan önerisi döner. İki ayrı yol
         // açmak, aynı görüntünün iki kez yüklenmesi demekti.
         alanBul(arkaplanDosya.files[0], "ciz");
       }
@@ -857,7 +857,7 @@
 
   // amac: "bul" → kullanıcı alan arıyor · "ciz" → yalnız arka plan istiyor,
   // öneri çıkarsa ikramdır. İkisi aynı uç noktayı kullanır; fark, bulunamadığında
-  // kullanıcıya söylenen cümlededir — çizmek için yüklenen bir görüntüde
+  // kullanıcıya söylenen cümlededir - çizmek için yüklenen bir görüntüde
   // "bulunamadı" kırmızısı yersiz bir başarısızlık hissi verirdi.
   function alanBul(dosya, amac) {
     if (!alanOnerileri) return;
@@ -886,7 +886,7 @@
               ? "Ekran görüntüsü yüklendi; üstüne çizebilirsiniz." +
                 (sonuc.oneriler && sonuc.oneriler.length
                   ? " Sistem ayrıca " + sonuc.oneriler.length +
-                    " hazır alan önerdi — aşağıdaki kartlara bakın."
+                    " hazır alan önerdi - aşağıdaki kartlara bakın."
                   : "")
               : (sonuc.mesaj || "Görüntü yüklenemedi."),
             !sonuc.gorsel

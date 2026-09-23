@@ -1,4 +1,4 @@
--- 008_kkd_veri.sql — Faz 3 (docs/17 §8.3, §5.7–5.8). YALNIZ ADD COLUMN: tablo
+-- 008_kkd_veri.sql - Faz 3 (docs/17 §8.3, §5.7-5.8). YALNIZ ADD COLUMN: tablo
 -- yeniden kurulmaz, yabancı anahtar kapatılmaz, göç öncesi yedek gerekmez.
 --
 -- ppe_samples: örnek alınırken kişinin kutu yüksekliği ve kırpığın netliği

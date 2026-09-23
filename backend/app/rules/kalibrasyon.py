@@ -1,4 +1,4 @@
-"""4 nokta zemin homografisi — saf numpy (OpenCV YOK, CLAUDE.md §6).
+"""4 nokta zemin homografisi - saf numpy (OpenCV YOK, CLAUDE.md §6).
 
 Normalize görüntü koordinatı (0-1) → zemin düzlemi (metre) dönüşümü.
 Kalibre edilmemiş kamerada mesafe kuralı ÇALIŞMAZ; yaklaşık sonuç üretilmez

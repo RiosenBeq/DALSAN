@@ -10,7 +10,7 @@ ayrı bir sayfaya gidip form dolduruyordu. Yazılım bilmeyen bir kullanıcı i�
 
 Artık altı bölge tipinin altısında da hazır kural var. Eşleme docs/03'ten
 gelir; eşikler app/rules/parametreler.py'deki şema varsayılanlarından (yine
-docs/03 tabloları) okunur — hiçbir eşik iki ayrı yerde yazılmaz. Bu testler
+docs/03 tabloları) okunur - hiçbir eşik iki ayrı yerde yazılmaz. Bu testler
 hem eşlemeyi hem de "eşik tek kaynaktan gelir" kuralını korur.
 """
 
@@ -240,7 +240,7 @@ def test_mesafe_kisayolu_kalibrasyon_uyarisi_gosterir(istemci, test_ayarlari):
 
 def test_kkd_kisayolu_kkd_bolgesine_baglanir(istemci, test_ayarlari):
     """KKD kuralı bölgesiz çalışmaz ve yalnızca 'KKD zorunlu alan' tipinde
-    çalışır (docs/03 §3) — kısayol bu kuralı bozmamalı."""
+    çalışır (docs/03 §3) - kısayol bu kuralı bozmamalı."""
     kamera_id = _kamera_ekle(istemci, test_ayarlari)
     bolge_id = _bolge_ekle(istemci, test_ayarlari, kamera_id, "ppe_required", "Kaynakhane")
     istemci.post("/kurallar/hazir", data={"zone_id": str(bolge_id)}, follow_redirects=False)

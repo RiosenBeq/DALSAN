@@ -1,16 +1,16 @@
-"""Bölge sayımı — kaç nesne var, kaç tanesi girdi (CLAUDE.md §6: SAF).
+"""Bölge sayımı - kaç nesne var, kaç tanesi girdi (CLAUDE.md §6: SAF).
 
 Bu modül kural DEĞİLDİR: ihlal üretmez, anons tetiklemez, olay yazmaz.
 Yalnızca "şu anda bölgede kaç kişi var" ve "vardiya başından beri kaç kişi
-girdi" sorularını cevaplar. Ayrı tutulmasının nedeni budur — sayım yanlışsa
+girdi" sorularını cevaplar. Ayrı tutulmasının nedeni budur - sayım yanlışsa
 kimse uyarı almaz, yalnızca bir sayı yanlış görünür.
 
 ÜÇ SAYI ÜRETİLİR, ÜÇÜ DE FARKLI SORUYU CEVAPLAR:
 
-  anlik  — şu anda bölgede olan nesne sayısı ("içeride 3 kişi var")
-  giren  — sayaç sıfırlandığından beri bölgeye giren AYRI nesne sayısı
+  anlik  - şu anda bölgede olan nesne sayısı ("içeride 3 kişi var")
+  giren  - sayaç sıfırlandığından beri bölgeye giren AYRI nesne sayısı
            ("bu vardiyada 47 kişi girdi")
-  zirve  — anlık sayının gördüğü en yüksek değer ("aynı anda en çok 7 kişi")
+  zirve  - anlık sayının gördüğü en yüksek değer ("aynı anda en çok 7 kişi")
 
 `giren` TAKİP BAZLIDIR: aynı kişi bölgede on dakika dursa da bir kez sayılır.
 Kare bazlı sayım (her karede içeridekileri toplamak) saniyede altı kare işleyen
@@ -23,7 +23,7 @@ bölgede görülmelidir.
 
 NEDEN KAYIP TOLERANSI (`_KAYIP_TOLERANSI`): tozlu fabrika sahnesinde tek
 karelik tespit kaçağı olağandır. Kaçak anında "çıktı" sayılırsa aynı kişi
-tekrar tekrar girmiş görünür — `bolge_ihlali.py` ile aynı gerekçe.
+tekrar tekrar girmiş görünür - `bolge_ihlali.py` ile aynı gerekçe.
 """
 
 from __future__ import annotations
@@ -50,7 +50,7 @@ class BolgeSayimi:
     """Tek bir bölgenin o andaki sayım tablosu.
 
     Sözlükler sınıf adına göredir: {"person": 3, "truck": 1}. Sıfır olan
-    sınıflar YAZILMAZ — ekranda "forklift: 0" satırı, o bölgede hiç forklift
+    sınıflar YAZILMAZ - ekranda "forklift: 0" satırı, o bölgede hiç forklift
     beklenmediği durumda yalnızca gürültüdür.
     """
 
@@ -127,7 +127,7 @@ class BolgeSayaci:
     def sifirla(self, bolge_id: int | None = None) -> None:
         """Kümülatif sayaçları sıfırlar (vardiya başı / "Sayacı sıfırla" düğmesi).
 
-        ANLIK sayı sıfırlanmaz — o, o anda görülen gerçektir; sıfırlanacak olan
+        ANLIK sayı sıfırlanmaz - o, o anda görülen gerçektir; sıfırlanacak olan
         "kaç tane girdi" geçmişidir. bolge_id verilmezse tüm bölgeler sıfırlanır.
         """
         if bolge_id is None:

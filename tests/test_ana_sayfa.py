@@ -32,7 +32,7 @@ def test_sifresizken_her_sayfa_dogrudan_acilir(istemci):
 
 def test_sifresizken_giris_sayfasi_ana_sayfaya_yollar(istemci):
     """Şifre yokken giriş kutusu göstermek, kullanıcıyı ne yazacağını
-    aramaya iter — anlamsız bir duvar."""
+    aramaya iter - anlamsız bir duvar."""
     yanit = istemci.get("/giris", follow_redirects=False)
     assert yanit.status_code == 303
     assert yanit.headers["location"] == "/"

@@ -1,6 +1,6 @@
 """Nesneler sayfası: kendi nesneni fotoğrafla tanıt, yüklediğin fotoğrafta ara.
 
-KAPSAM — ekranda da yazan cümle: burada tanıtılan nesne CANLI KAMERALARDA
+KAPSAM - ekranda da yazan cümle: burada tanıtılan nesne CANLI KAMERALARDA
 ARANMAZ. Kural motoru, canlı boru hattı ve olay kayıtları bu sayfadan
 etkilenmez; arama yalnızca bu sayfaya yüklenen fotoğraflarda yapılır. Bu sınır
 bilinçlidir ve kullanıcı "tanıttım ama kamera görmüyor" demesin diye hem
@@ -150,7 +150,7 @@ async def nesne_olustur(
     istek: Request,
     ad: str = Form(...),
     aciklama: str = Form(""),
-    fotograflar: list[UploadFile] = None,  # noqa: RUF013 — FastAPI çoklu dosya deyimi
+    fotograflar: list[UploadFile] = None,  # noqa: RUF013 - FastAPI çoklu dosya deyimi
     baglanti=Depends(baglanti_al),
 ):
     dosyalar = [d for d in fotograflar or [] if d.filename]
@@ -300,7 +300,7 @@ def _esigi_coz(ham: str, varsayilan: float) -> tuple[float, str]:
     Ekranda artık yüzde girilmez; "Otomatik" / "Daha temkinli" seçilir
     (teshis.CITA_SECENEKLERI). Sayı biçimi yine de KABUL EDİLİR: eski bir form
     ya da kayıtlı bir bağlantı elde sayıyla gelirse sessizce hata vermek yerine
-    o sayı kullanılır. Boş ya da tanınmayan değer Otomatik'e döner — kullanıcı
+    o sayı kullanılır. Boş ya da tanınmayan değer Otomatik'e döner - kullanıcı
     ne yaparsa yapsın sistem ölçülmüş ayarına geri gelir.
     """
     metin = (ham or "").replace(",", ".").strip()

@@ -1,4 +1,4 @@
-# 01 — MVP Kapsamı ve Karar Matrisi
+# 01 - MVP Kapsamı ve Karar Matrisi
 
 > Bu dosya, tek başına duran önceki MVP analizinin yerini alır.
 > Değişiklikler: kamera 8-10 → **3-4**, KKD (baret/yelek) kural tipi **eklendi**.
@@ -50,7 +50,7 @@ Kamera (RTSP) → Kare örnekleme → Tespit (insan/forklift/tır) → Takip (ka
 | RTSP ile mevcut kamera/NVR'dan görüntü (3-4 kamera) | ✅ | MUST | Sistemin girdisi. | Hayır |
 | Kamera CRUD (ad, alan, RTSP URL, aktif, örnekleme fps) | ✅ | MUST | Kamera eklemek geliştiriciye bağlı olmamalı. | Hayır |
 | Otomatik yeniden bağlanma + sağlık durumu (online/offline, son kare, gerçek fps) | ✅ | MUST | Fabrika ağında RTSP kopmaları rutin. 7x24 çalışma bunsuz olmaz. | Hayır |
-| Son kare önizleme (JPEG, 1-2 sn'de yenilenen) | ⚠️ | SHOULD | Bölge çizimi ve kalibrasyon bunun üstünde yapılır. | Hayır — editörün ön koşulu |
+| Son kare önizleme (JPEG, 1-2 sn'de yenilenen) | ⚠️ | SHOULD | Bölge çizimi ve kalibrasyon bunun üstünde yapılır. | Hayır - editörün ön koşulu |
 | Video dosyasını kamera gibi kullanma (dev/test) | ✅ | MUST | Mac/Windows'ta fabrikasız geliştirme + regresyon testi. | Hayır |
 | `cameras.area` alanı (bölüm adı, düz metin) | ✅ | MUST | Fabrika geneli yayılımın ilk adımı; filtreleme için. Tablo değil, tek alan. | Hayır (maliyeti sıfır) |
 | Tarayıcıda canlı video (WebRTC/HLS) | ❌ | NICE | NVR istemcisi zaten veriyor; transcoding karmaşıklığı. | Evet → Phase 2 |
@@ -77,9 +77,9 @@ Kamera (RTSP) → Kare örnekleme → Tespit (insan/forklift/tır) → Takip (ka
 |---|---|---|---|---|
 | Poligon bölge tanımı (yaya yolu, sevkiyat/yükleme, tır alanı, **KKD zorunlu alan**) | ✅ | MUST | Üç kural tipinin de dayanağı. | Hayır |
 | Bölge çizim editörü (son kare üzerine poligon) | ⚠️ | SHOULD | JSON ile de olur ama her saha ayarı geliştirici gerektirir. Yalın SVG editörü 1-2 gün. | Kısmen |
-| **Kural tipi 1 — Bölge ihlali** | ✅ | MUST | Senaryo 5, 6, 7'yi tek tip karşılıyor. | Hayır |
-| **Kural tipi 2 — Güvenli mesafe** | ✅ | MUST | Senaryo 8. | Hayır |
-| **Kural tipi 3 — KKD ihlali** | ✅ | MUST | Yeni kapsam. Bölgeye bağlı, zamansal oylamalı, üç durumlu. | Hayır |
+| **Kural tipi 1 - Bölge ihlali** | ✅ | MUST | Senaryo 5, 6, 7'yi tek tip karşılıyor. | Hayır |
+| **Kural tipi 2 - Güvenli mesafe** | ✅ | MUST | Senaryo 8. | Hayır |
+| **Kural tipi 3 - KKD ihlali** | ✅ | MUST | Yeni kapsam. Bölgeye bağlı, zamansal oylamalı, üç durumlu. | Hayır |
 | Mesafe kalibrasyonu (4 nokta zemin homografisi) | ✅ | MUST | Kalibrasyonsuz piksel mesafesi anlamsız. Kalibre olmayan kamerada mesafe kuralı **pasif**. | Hayır |
 | Kural parametreleri arayüzden düzenlenebilir | ✅ | MUST | Ayarlama haftası bunsuz çok yavaş; restart gerektirmemeli. | Hayır |
 | Vardiya/saat bazlı kural aktifliği | ❌ | NICE | Kurala iki alan eklemek yeterli; keşifte çıkarsa. | Evet |
@@ -106,7 +106,7 @@ Kamera (RTSP) → Kare örnekleme → Tespit (insan/forklift/tır) → Takip (ka
 | Overlay'li snapshot (bbox + bölge + KKD etiketi) | ✅ | MUST | Kare zaten elde. Yanlış alarm ayıklaması ve KKD doğrulaması bunsuz yapılamaz. | Hayır |
 | Olay listesi + filtre (tarih, kamera, kural tipi, durum, **alan**) | ✅ | MUST | Senaryo 12. | Hayır |
 | Olay detayı (snapshot + meta) | ✅ | MUST | Listeyle aynı ekranda panel. | Hayır |
-| Olay durumu: Yeni / İncelendi / Yanlış alarm + not | ⚠️ | SHOULD | Tek alan + tek buton. **K11'in ölçüm aracı** ve KKD veri geri beslemesinin kaynağı. | Hayır — KKD varsa şart |
+| Olay durumu: Yeni / İncelendi / Yanlış alarm + not | ⚠️ | SHOULD | Tek alan + tek buton. **K11'in ölçüm aracı** ve KKD veri geri beslemesinin kaynağı. | Hayır - KKD varsa şart |
 | CSV dışa aktarma | ⚠️ | SHOULD | ~30 satır; "veriye dayalı izleme"nin en ucuz aracı. | Evet ama dahil |
 | Kamera durum paneli | ⚠️ | SHOULD | Operatör "sistem çalışıyor mu" sorusunu ekrandan cevaplamalı. | Kısmen |
 | Sistem olayları (kamera düştü/geldi) aynı listede | ⚠️ | SHOULD | Kamera 3 gün kapalıysa İSG bilmeli. Aynı tablo, `system` tipi. | Kısmen |

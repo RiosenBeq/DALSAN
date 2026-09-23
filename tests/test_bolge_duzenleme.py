@@ -11,7 +11,7 @@ Bölge yönetiminde iki gerçek boşluk vardı.
 
 2. Geçici kapatma yoktu. `zones.enabled` sütunu şemada vardı ve analizde
    okunuyordu; eksik olan yalnızca rota ve düğmeydi. Bakım/tadilat sırasında
-   bölgeyi susturmak için silmek gerekiyordu — yani yine kural kaybı.
+   bölgeyi susturmak için silmek gerekiyordu - yani yine kural kaybı.
 """
 
 from __future__ import annotations
@@ -91,7 +91,7 @@ def test_bolge_guncellemesi_bagli_kurallari_silmez(istemci, test_ayarlari):
     assert yanit.headers["location"] == f"/kameralar/{kamera_id}"
 
     sonra = _tek_satir(test_ayarlari, "SELECT * FROM rules WHERE zone_id = ?", (bolge_id,))
-    assert sonra is not None, "bölge güncellemesi kuralı SİLDİ — veri kaybı"
+    assert sonra is not None, "bölge güncellemesi kuralı SİLDİ - veri kaybı"
     assert sonra["id"] == once["id"]
     assert sonra["params"] == once["params"], "kural parametreleri değişmemeli"
     assert sonra["enabled"] == once["enabled"]
@@ -193,7 +193,7 @@ def test_olmayan_bolgenin_guncellenmesi_404(istemci, test_ayarlari):
 
 def test_kkd_kurali_varken_tip_degistirilemez(istemci, test_ayarlari):
     """KKD kuralı YALNIZCA 'KKD zorunlu alan' bölgesinde çalışır. Tip başka bir
-    şeye çevrilseydi kural kayıtta kalır ama hiçbir zaman uyarı üretmezdi —
+    şeye çevrilseydi kural kayıtta kalır ama hiçbir zaman uyarı üretmezdi -
     sessiz başarısızlık. Reddedilir; ne bölge ne kural bozulur."""
     _, bolge_id = _kamera_ve_bolge(istemci, test_ayarlari, tip="ppe_required", ad="Kaynakhane")
     istemci.post("/kurallar/hazir", data={"zone_id": str(bolge_id)}, follow_redirects=False)
@@ -254,7 +254,7 @@ def test_duzenlenen_bolge_tuvalde_iki_kez_cizilmez(istemci, test_ayarlari):
     duzenleme = istemci.get(f"/kameralar/{kamera_id}?duzenle={bolge_id}").text
     mevcut = json.loads(duzenleme.split("window.MEVCUT_BOLGELER = ", 1)[1].split(";\n", 1)[0])
     idler = [b["id"] for b in mevcut]
-    assert bolge_id not in idler, "düzenlenen bölge kayıtlılar arasında — iki kez çizilir"
+    assert bolge_id not in idler, "düzenlenen bölge kayıtlılar arasında - iki kez çizilir"
     assert ikinci in idler, "diğer bölgeler görünmeye devam etmeli"
 
     duzenlenen = json.loads(

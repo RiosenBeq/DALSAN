@@ -1,4 +1,4 @@
-"""KKD (baret/yelek) sınıflandırıcısı — iki aşamalı yaklaşımın 2. aşaması.
+"""KKD (baret/yelek) sınıflandırıcısı - iki aşamalı yaklaşımın 2. aşaması.
 
 İnsan kutusu kırpılır (üstten %10 pay), 128x256'ya getirilir ve iki başlı
 sınıflandırıcıya verilir (docs/04 §2, docs/17 §5.2). Model DALSAN sahasından
@@ -10,7 +10,7 @@ gözlemsiz pencereyi 'belirsiz' sayar ve ASLA olay üretmez (docs/04 §1).
 
 MODEL SÖZLEŞMESİ (eğitimi yapan uzman buna göre dışa aktarır; docs/04 §6.6):
 
-- girdi: float32 [N, 3, 256, 128]; RGB, 0–1 aralığı (255'e bölünmüş). Ortalama
+- girdi: float32 [N, 3, 256, 128]; RGB, 0-1 aralığı (255'e bölünmüş). Ortalama
   ve sapma normalizasyonu MODELİN İÇİNDEDİR: ürün ikinci bir ön işleme
   sözleşmesi taşımaz, iki taraf ayrı normalizasyon yapıp sessizce ayrışamaz.
 - çıktı: "baret" ve "yelek" adlı iki çıktı; her biri [N, 3] OLASILIK (softmax
@@ -34,7 +34,7 @@ import numpy as np
 from app.analiz.tespit import ModelHatasi
 from app.rules.tipler import BELIRSIZ, VAR, YOK, KkdGozlem
 
-# Kırpma sözleşmesi (eğitim ve çıkarım AYNI olmalı — docs/04 §2):
+# Kırpma sözleşmesi (eğitim ve çıkarım AYNI olmalı - docs/04 §2):
 CROP_UST_PAY = 0.10  # kutunun üstüne %10 pay (baret kutu dışına taşabilir)
 CROP_BOYUT = (128, 256)  # genişlik x yükseklik, portre
 
@@ -112,7 +112,7 @@ def _sozlesme_hatasi(model_dosyasi: Path, neden: str) -> ModelHatasi:
         f"KKD modeli sözleşmeye uymuyor ({neden}). Modeli veren uzmandan docs/04 §6.6'ya "
         "göre yeniden dışa aktarılmış dosyayı isteyin; o zamana kadar KKD kuralı olay "
         "üretmez.",
-        f"KKD modeli sözleşme denetimi: {model_dosyasi} — {neden}",
+        f"KKD modeli sözleşme denetimi: {model_dosyasi} - {neden}",
     )
 
 
@@ -150,21 +150,21 @@ class KkdSiniflandirici:
             raise ModelHatasi(
                 "KKD modeli yüklenmedi: dosya, models/SHA256SUMS'taki özetle aynı değil "
                 "(bozuk ya da farklı bir sürüm). Modeli veren uzmandan doğru dosyayı isteyin.",
-                f"KKD modeli özeti tutmadı: {model_dosyasi} — beklenen {beklenen}, dosya {gercek}",
+                f"KKD modeli özeti tutmadı: {model_dosyasi} - beklenen {beklenen}, dosya {gercek}",
             )
         try:
             oturum = oturum_kur(model_dosyasi)
-        except Exception as hata:  # noqa: BLE001 — ORT'nin hata tipleri sürüme göre değişir
+        except Exception as hata:  # noqa: BLE001 - ORT'nin hata tipleri sürüme göre değişir
             raise ModelHatasi(
                 "KKD modeli açılamadı: dosya ONNX Runtime ile okunamıyor. Modeli veren "
                 "uzmandan dosyayı yeniden isteyin.",
-                f"KKD modeli açılamadı: {model_dosyasi} — {hata!r}",
+                f"KKD modeli açılamadı: {model_dosyasi} - {hata!r}",
             ) from hata
         self._oturum = oturum
         self._sozlesmeyi_dogrula(model_dosyasi)
         try:
             self.kart = dict(oturum.get_modelmeta().custom_metadata_map)
-        except Exception:  # noqa: BLE001 — kart isteğe bağlı; yoksa yalnız gösterilmez
+        except Exception:  # noqa: BLE001 - kart isteğe bağlı; yoksa yalnız gösterilmez
             self.kart = {}
         self.model_surumu = f"{model_dosyasi.stem}-{gercek[:12]}"
         self.model_var = True
@@ -212,7 +212,7 @@ class KkdSiniflandirici:
 
     @staticmethod
     def _girdi(kirpik: np.ndarray) -> np.ndarray:
-        """BGR uint8 [256, 128, 3] → RGB float32 [3, 256, 128], 0–1."""
+        """BGR uint8 [256, 128, 3] → RGB float32 [3, 256, 128], 0-1."""
         return np.ascontiguousarray(kirpik[:, :, ::-1].transpose(2, 0, 1), dtype=np.float32) / 255.0
 
     def degerlendir(self, kirpik: np.ndarray) -> KkdGozlem | None:

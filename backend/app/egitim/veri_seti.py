@@ -5,17 +5,17 @@ teste düşerse model ezberler: test %98 çıkar, saha %70 (docs/04 §5.4). Böl
 birimi Türkiye yerel GÜNÜDÜR: bir günün bütün kameraları aynı kümeye düşer.
 Böylece kamera × gün grubu hiçbir zaman iki kümede olmaz; aynı anı iki ayrı
 kameradan gören kareler de ayrılmaz. Günler kronolojik ayrılır (docs/04 §5.4
-örneği: 1.–5. gün eğitim, 6. doğrulama, 7.–8. test): model hep eğitimde
+örneği: 1.-5. gün eğitim, 6. doğrulama, 7.-8. test): model hep eğitimde
 görmediği SONRAKİ günlerde sınanır.
 
 Eğitim ürün dışıdır (docs/04 §6, S31): burada yalnız dışa aktarım var. Zip
 stdlib `zipfile` ile yazılır:
 
-- `goruntuler/<küme>/<örnek no>.jpg` — kırpıklar;
-- `etiketler.csv` — virgüllü, UTF-8; eğitim betiği okur, kişi adı ya da kamera
+- `goruntuler/<küme>/<örnek no>.jpg` - kırpıklar;
+- `etiketler.csv` - virgüllü, UTF-8; eğitim betiği okur, kişi adı ya da kamera
   adı taşımaz;
-- `bolme.json` — hangi gün ve kamera × gün grubu hangi kümede;
-- `manifest.json` — sayılar, uyarılar ve her dosyanın sha256'sı.
+- `bolme.json` - hangi gün ve kamera × gün grubu hangi kümede;
+- `manifest.json` - sayılar, uyarılar ve her dosyanın sha256'sı.
 """
 
 from __future__ import annotations

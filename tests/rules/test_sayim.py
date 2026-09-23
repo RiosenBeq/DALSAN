@@ -1,7 +1,7 @@
-"""Bölge sayacı — kamerasız, sahte veriyle (CLAUDE.md §6).
+"""Bölge sayacı - kamerasız, sahte veriyle (CLAUDE.md §6).
 
 Sayımın kullanıcı için anlamı şudur: ekrandaki sayı, sahada olanı yansıtmalı.
-Bu testler o sözü korur — özellikle "aynı kişi ikinci kez sayılmasın".
+Bu testler o sözü korur - özellikle "aynı kişi ikinci kez sayılmasın".
 """
 
 from __future__ import annotations
@@ -37,7 +37,7 @@ def test_bolge_disindaki_kisi_sayilmaz():
 
 
 def test_titreyen_kutu_hemen_sayilmaz():
-    """min_kare dolmadan ne anlık ne giren sayılır — sınırdaki titreme
+    """min_kare dolmadan ne anlık ne giren sayılır - sınırdaki titreme
     onlarca sahte 'giriş' üretmemeli."""
     sayac = BolgeSayaci(min_kare=3)
     b = [bolge()]
@@ -102,7 +102,7 @@ def test_kisa_tespit_kacagi_anlik_sayiyi_dusurmez():
     sayac.guncelle(KARE, [tespit(ayak=ICERI, takip_id=1)], b)
     sayac.guncelle(KARE, [], b)  # kaçak: hiç tespit yok
     sonuc = sayac.guncelle(KARE, [tespit(ayak=ICERI, takip_id=1)], b)
-    # Kaçak sonrası aynı kişi geri geldi — İKİNCİ KEZ SAYILMAMALI
+    # Kaçak sonrası aynı kişi geri geldi - İKİNCİ KEZ SAYILMAMALI
     assert sonuc[0].giren == {"person": 1}
 
 

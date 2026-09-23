@@ -1,6 +1,6 @@
 {% extends "temel.html" %}
 {% from "simge.html" import simge %}
-{% block baslik %}Video ile Test — DALSAN İSG{% endblock %}
+{% block baslik %}Video ile Test - DALSAN İSG{% endblock %}
 {% block icerik %}
   <div class="baslik-satiri">
     <h2>Video ile Test</h2>
@@ -20,11 +20,11 @@
       <label>Video dosyası
         <input type="file" name="video" id="video-dosya" required
                accept="{{ kabul_listesi }}">
-        <span class="not">Kabul edilen türler: {{ izinli_uzantilar }} —
+        <span class="not">Kabul edilen türler: {{ izinli_uzantilar }} -
           en fazla {{ en_buyuk_mb }} MB.</span>
       </label>
       <label>Bu denemenin adı <span class="not">(boş bırakırsanız dosya adı kullanılır)</span>
-        <input name="name" placeholder="örn. Sevkiyat rampası — sabah vardiyası">
+        <input name="name" placeholder="örn. Sevkiyat rampası - sabah vardiyası">
       </label>
       <label>Örnekleme hızı (fps)
         <input name="sample_fps" type="number" step="0.5" min="0.5" max="30"
@@ -32,18 +32,18 @@
         <span class="not">Saniyede kaç kare analiz edilsin. 6 iyi bir başlangıç.</span>
       </label>
       {# Varsayılan İŞARETLİ: "şu videoda kaç ihlal var" sorusu, döngüye giren
-         bir videoda hiçbir zaman cevaplanamaz — aynı ihlal her turda yeniden
+         bir videoda hiçbir zaman cevaplanamaz - aynı ihlal her turda yeniden
          yazılır ve sayı sonsuza kadar büyür. #}
       <label class="onay-satiri">
         <input type="checkbox" name="tek_gecis" value="1" checked>
         Video bitince dursun (tek geçiş)
         <span class="not">İşaretli bırakın: video bir kez baştan sona izlenir ve
-          analiz biter. İşareti kaldırırsanız video başa sarıp sürekli döner —
+          analiz biter. İşareti kaldırırsanız video başa sarıp sürekli döner -
           bu, eşik ve bölge ayarını denerken işe yarar ama olay listesi aynı
           ihlalin kopyalarıyla dolar.</span>
       </label>
       <button type="submit" class="dugme simgeli" id="yukle-dugmesi">{{ simge("yukle") }} Videoyu Yükle</button>
-      <p class="not" id="yukleme-notu" hidden>Video yükleniyor — dosya büyükse
+      <p class="not" id="yukleme-notu" hidden>Video yükleniyor - dosya büyükse
         bu birkaç dakika sürebilir. Sayfayı kapatmayın.</p>
     </form>
   </section>

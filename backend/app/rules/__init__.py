@@ -1,4 +1,4 @@
-"""SAF karar mantığı — bu klasör kutsaldır (CLAUDE.md §6).
+"""SAF karar mantığı - bu klasör kutsaldır (CLAUDE.md §6).
 
 Bu klasördeki dosyalar ŞUNLARI IMPORT EDEMEZ:
     cv2 (OpenCV), torch, ultralytics, sqlite3, fastapi

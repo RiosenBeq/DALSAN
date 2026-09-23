@@ -109,7 +109,7 @@ def test_kalibrasyon_kaydi_ve_silme(istemci):
         follow_redirects=False,
     )
     assert yanit.status_code == 303
-    assert "kalibre —" in istemci.get(f"/kameralar/{kamera_id}").text
+    assert "kalibre -" in istemci.get(f"/kameralar/{kamera_id}").text
     istemci.post(f"/kameralar/{kamera_id}/kalibrasyon/sil", follow_redirects=False)
     assert "kalibre değil" in istemci.get(f"/kameralar/{kamera_id}").text
 

@@ -13,6 +13,6 @@ SEMA_DIZINI = Path(__file__).resolve().parents[1] / "backend" / "sema"
 
 SEMA_BETIKLERI = sorted(yol.name for yol in SEMA_DIZINI.glob("*.sql"))
 SEMA_BETIK_SAYISI = len(SEMA_BETIKLERI)
-# veritabani.mevcut_surum() MAX(surum) döndürür — betikler isim sırasıyla
+# veritabani.mevcut_surum() MAX(surum) döndürür - betikler isim sırasıyla
 # uygulandığı için bu, sondaki betiğin adıdır.
 SON_SEMA_SURUMU = SEMA_BETIKLERI[-1]

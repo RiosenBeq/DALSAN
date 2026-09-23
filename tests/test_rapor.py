@@ -1,13 +1,13 @@
-"""Dönem raporu (/komuta/rapor) — docs/07 #3.
+"""Dönem raporu (/komuta/rapor) - docs/07 #3.
 
 Rapor dışarıya (yönetime, denetime) gidecek bir belgedir. Bu yüzden testler
 "sayfa açılıyor mu"dan fazlasını sorar:
 
-  · Sayı DOĞRU mu — dönem dışındaki olay sayılmıyor mu?
+  · Sayı DOĞRU mu - dönem dışındaki olay sayılmıyor mu?
   · Gün ve saat kovaları TÜRKİYE saatine göre mi (UTC'ye göre 3 saat kayma
     gece vardiyasını yanlış güne düşürürdü)?
   · Kural tipi, kuralın BUGÜNKÜ halinden değil olay anındaki görüntüsünden mi
-    okunuyor — kural silinince geçmiş rapor değişiyor mu?
+    okunuyor - kural silinince geçmiş rapor değişiyor mu?
   · Yanlış alarm oranı hangi küme üzerinden veriliyor, bunu ekran YAZIYOR mu?
   · Excel çıktısı ekrandaki sayının AYNISINI mı veriyor?
 """
@@ -165,7 +165,7 @@ def test_alan_filtresi_yalniz_o_bolumu_sayar(db):
 
 
 def test_kural_tipi_olay_anindaki_goruntuden_okunur(db):
-    """Kural sonradan silinse bile geçmiş rapor aynı sayıyı vermelidir —
+    """Kural sonradan silinse bile geçmiş rapor aynı sayıyı vermelidir -
     rapor bir kanıt belgesidir, her açılışta değişemez."""
     kamera = _kamera(db)
     _olay(db, kamera, "2026-08-10T09:00:00+00:00", kural_tipi="ppe_violation")
@@ -229,7 +229,7 @@ def test_hic_isaretlenmemisse_oran_yerine_cizgi(db):
     kamera = _kamera(db)
     _olay(db, kamera, "2026-08-10T09:00:00+00:00")
     veri = _veri(db, baslangic="2026-08-01", bitis="2026-08-31")
-    assert _satir(veri["kirilimlar"][0], "Bölge ihlali")["yanlis_alarm"] == "—"
+    assert _satir(veri["kirilimlar"][0], "Bölge ihlali")["yanlis_alarm"] == "-"
     assert any("henüz incelenmemiştir" in n for n in veri["notlar"])
 
 

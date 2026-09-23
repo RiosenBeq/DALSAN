@@ -17,7 +17,7 @@ değiştirmek imkânsız olurdu.
 
 Değişiklikler yeniden başlatınca geçerli olur: `Ayarlar` nesnesi açılışta bir
 kez okunur ve çalışırken değiştirilmez. Bu sayfanın en üstünde de aynı cümle
-yazar — "kaydettim ama hiçbir şey değişmedi" sorusu doğmasın diye.
+yazar - "kaydettim ama hiçbir şey değişmedi" sorusu doğmasın diye.
 """
 
 from __future__ import annotations
@@ -91,7 +91,7 @@ AYAR_GRUPLARI: tuple[AyarGrubu, ...] = (
                 aciklama=(
                     "“Ağdaki diğer cihazlar” seçilirse ŞİFRE ZORUNLUDUR; şifre boşken "
                     "sistem açılmayı reddeder. Fabrika dışından (evden, telefondan) "
-                    "erişim için önce docs/15-UZAKTAN-ERISIM.md belgesini okuyun — "
+                    "erişim için önce docs/15-UZAKTAN-ERISIM.md belgesini okuyun - "
                     "sistemi doğrudan internete açmak önerilmez."
                 ),
             ),
@@ -138,9 +138,9 @@ AYAR_GRUPLARI: tuple[AyarGrubu, ...] = (
                 etiket="IP hoparlörün beklediği biçim",
                 tur="secim",
                 secenekler=(
-                    ("json", "JSON gövde — anons sunucusu / yazılım geçidi"),
-                    ("form", "Form alanı — gömülü web arayüzlü amfi, röle kartı"),
-                    ("get", "Yalnızca adres çağrılır — “çağır ve çal” hoparlörler"),
+                    ("json", "JSON gövde - anons sunucusu / yazılım geçidi"),
+                    ("form", "Form alanı - gömülü web arayüzlü amfi, röle kartı"),
+                    ("get", "Yalnızca adres çağrılır - “çağır ve çal” hoparlörler"),
                 ),
                 aciklama=(
                     "IP hoparlörler isteği aynı biçimde beklemez; cihazınızın "
@@ -206,7 +206,7 @@ AYAR_GRUPLARI: tuple[AyarGrubu, ...] = (
                 adim="0.05",
                 aciklama=(
                     "Kalabalıkta iki kişi tek kutuda birleşiyorsa artırın "
-                    "(0.5 – 0.6 deneyin); aynı kişiye iki kutu çiziliyorsa azaltın."
+                    "(0.5 - 0.6 deneyin); aynı kişiye iki kutu çiziliyorsa azaltın."
                 ),
             ),
             AyarAlani(
@@ -420,7 +420,7 @@ AYAR_GRUPLARI: tuple[AyarGrubu, ...] = (
                     "Ölçümle bulunan değer 0.24'tür: 264 sorguluk ölçümde hiç yanlış "
                     "isim yazmadan en çok nesnenin bulunduğu nokta. Yükseltmek yanlış "
                     "isimden korumaz (0.24 ve üstündeki her kademede yanlış isim zaten "
-                    "sıfır), yalnızca daha az nesne buldurur — 0.36'da hiçbir nesne "
+                    "sıfır), yalnızca daha az nesne buldurur - 0.36'da hiçbir nesne "
                     "bulunmaz. Düşürmek ise tehlikelidir: 0.22'de sistem yanlış isim "
                     "yazmaya başlar. Bilerek değiştirmiyorsanız 0.24'te bırakın."
                 ),

@@ -19,17 +19,17 @@ BEKLENEN_TABLOLAR = {
     "events",
     "announcement_messages",
     "ppe_samples",
-    # 002 — hoparlör bölgeleri: anonsun hangi adrese gideceği
+    # 002 - hoparlör bölgeleri: anonsun hangi adrese gideceği
     "speaker_zones",
-    # 003 — nesne kütüphanesi: kullanıcının fotoğrafla tanıttığı kendi nesneleri
+    # 003 - nesne kütüphanesi: kullanıcının fotoğrafla tanıttığı kendi nesneleri
     "library_objects",
     "library_object_photos",
-    # 004 — nesne teşhisi: "bu nesne ne kadar tanınabilir" ölçümünün önbelleği
+    # 004 - nesne teşhisi: "bu nesne ne kadar tanınabilir" ölçümünün önbelleği
     "library_object_diagnosis",
-    # 007 — analiz edilen süre (yanlış alarm / saat paydası) ve KKD toplama kapısı
+    # 007 - analiz edilen süre (yanlış alarm / saat paydası) ve KKD toplama kapısı
     "analysis_hours",
     "ppe_collection_gate",
-    # 009 — uyarı teslim kaydı (docs/17 §7.3-10)
+    # 009 - uyarı teslim kaydı (docs/17 §7.3-10)
     "alert_deliveries",
 }
 
@@ -86,7 +86,7 @@ def test_anons_mesajlari_seed_edilmis(baglanti):
         "vehicle_position",
         "helmet",
         "vest",
-        # 007 — ek hazır kuralların ve yasak alanın mesajları (metinler taslak, S21)
+        # 007 - ek hazır kuralların ve yasak alanın mesajları (metinler taslak, S21)
         "vehicle_on_walkway",
         "person_in_vehicle_lane",
         "restricted_entry",
@@ -107,7 +107,7 @@ def test_yabanci_anahtar_zorlaniyor(baglanti):
 
 def test_bozuk_betik_hicbir_sey_birakmaz(tmp_path):
     # Betik ile sürüm kaydı TEK transaction: betik yarıda patlarsa ne tablo
-    # kalmalı ne sürüm kaydı — aksi halde sistem bir daha açılamaz.
+    # kalmalı ne sürüm kaydı - aksi halde sistem bir daha açılamaz.
     sema = tmp_path / "sema"
     sema.mkdir()
     (sema / "001_kotu.sql").write_text(
@@ -165,7 +165,7 @@ def _eski_kurulum(tmp_path, betik_adi_baslangici: str = "005"):
 
     Yalnız sıralı listede verilen betikten ÖNCE gelenler kopyalanır (docs/17
     §8.4). Eskiden yalnız o betik atlanıyordu: "005 öncesi" veritabanı 006 ve
-    007 ile kuruluyor, 005 en son uygulanıyordu — gerçek bir güncellemenin
+    007 ile kuruluyor, 005 en son uygulanıyordu - gerçek bir güncellemenin
     sırası değil.
     """
     eski_sema = tmp_path / "sema_eski"

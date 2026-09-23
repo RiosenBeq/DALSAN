@@ -1,11 +1,11 @@
 # -*- mode: python ; coding: utf-8 -*-
-"""Windows uygulaması (.exe) üretim tarifi — PyInstaller.
+"""Windows uygulaması (.exe) üretim tarifi - PyInstaller.
 
     Üretmek için:  paketleme\\Windows-Uygulama-Uret.bat dosyasına ÇİFT TIKLAYIN.
     Elle:          .venv\\Scripts\\python.exe -m PyInstaller --noconfirm --clean ^
                        paketleme\\NextGenDetector-windows.spec
 
-ÖNEMLİ — bu dosya YALNIZCA Windows'ta çalıştırılabilir. PyInstaller çapraz
+ÖNEMLİ - bu dosya YALNIZCA Windows'ta çalıştırılabilir. PyInstaller çapraz
 derleme yapmaz: Mac'te Windows uygulaması üretilemez. Üretim, uygulamanın
 çalışacağı Windows bilgisayarda yapılır.
 
@@ -14,7 +14,7 @@ Sonuç: dist\\NextGen Detector\\  klasörü. İçinde iki şey vardır:
     NextGen Detector.exe   ← kullanıcı buna çift tıklar
     _internal\\             ← programın parçaları, dokunulmaz
 
-KLASÖR MÜ, TEK DOSYA MI — bilerek klasör (onedir) seçildi:
+KLASÖR MÜ, TEK DOSYA MI - bilerek klasör (onedir) seçildi:
   * Tek dosya (onefile) her açılışta 240 MB'ı geçici klasöre AÇAR; açılış
     her seferinde yarım dakika uzar, üstelik zaten uzun olan ilk açılışa
     eklenir.
@@ -64,7 +64,7 @@ DEPO = Path(SPECPATH).resolve().parent          # noqa: F821  (SPECPATH: PyInsta
 BACKEND = DEPO / "backend"
 
 # Ortak bölüm (pakete konacak dosyalar, gizli modüller, dışarıda kalanlar)
-# iki tarifte de aynıdır ve TEK yerde durur — bkz. paketleme_ortak.py.
+# iki tarifte de aynıdır ve TEK yerde durur - bkz. paketleme_ortak.py.
 sys.path.insert(0, SPECPATH)                    # noqa: F821
 import paketleme_ortak as ortak                 # noqa: E402
 

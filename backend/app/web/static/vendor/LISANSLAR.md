@@ -1,4 +1,4 @@
-# vendor/ — depoya KOPYALANMIŞ üçüncü parti dosyalar
+# vendor/ - depoya KOPYALANMIŞ üçüncü parti dosyalar
 
 Bu klasördeki dosyalar başka projelerden gelir ve **olduğu gibi depoda
 durur.** İnternetten (CDN'den) çekilmezler.
@@ -7,7 +7,7 @@ durur.** İnternetten (CDN'den) çekilmezler.
 
 Fabrika sunucusunda internet olmayabilir; olsa bile kurumsal güvenlik duvarı
 dış adresleri engelleyebilir. CDN'den çekilen bir yazı tipi ya da simge
-dosyası o durumda GELMEZ ve arayüz yarı çizilmiş görünür — üstelik sistemin
+dosyası o durumda GELMEZ ve arayüz yarı çizilmiş görünür - üstelik sistemin
 kendisi sorunsuz çalışırken. Teslim edilen uygulama (`.exe` / `.app`) da
 çift tıklanıp açıldığı anda çalışmalıdır; bir ağ isteğini beklememelidir.
 
@@ -19,7 +19,7 @@ bu dosyalar için ayrı bir adım yoktur.
 
 | Dosya | Kaynak | Lisans |
 |---|---|---|
-| `simgeler.svg` | [Lucide](https://lucide.dev) — seçili 48 simgeden üretilmiş sprite, artı Lucide kuralıyla çizilmiş 1 DALSAN simgesi (yelek) | ISC (Lucide) · DALSAN çizimi projenin kendisinindir |
+| `simgeler.svg` | [Lucide](https://lucide.dev) - seçili 48 simgeden üretilmiş sprite, artı Lucide kuralıyla çizilmiş 1 DALSAN simgesi (yelek) | ISC (Lucide) · DALSAN çizimi projenin kendisinindir |
 | `inter-latin.woff2` | [Inter](https://rsms.me/inter/) (fontsource, latin altkümesi) | SIL OFL 1.1 |
 | `inter-latin-ext.woff2` | Inter (latin-ext altkümesi) | SIL OFL 1.1 |
 
@@ -38,8 +38,8 @@ bölümde durur; onlar üçüncü parti kod değildir.
 
 ## Lisans metinleri
 
-* Lucide — ISC: <https://github.com/lucide-icons/lucide/blob/main/LICENSE>
-* Inter — SIL Open Font License 1.1: <https://github.com/rsms/inter/blob/master/LICENSE.txt>
+* Lucide - ISC: <https://github.com/lucide-icons/lucide/blob/main/LICENSE>
+* Inter - SIL Open Font License 1.1: <https://github.com/rsms/inter/blob/master/LICENSE.txt>
 
 Her ikisi de ticari kullanıma, değiştirmeye ve yeniden dağıtıma izin verir.
 Tek koşul telif bildiriminin korunmasıdır; bu dosya o bildirimdir.

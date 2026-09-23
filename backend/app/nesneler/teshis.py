@@ -3,12 +3,12 @@
 
 Burada üç soru cevaplanır:
 
-1. **Bu nesne ne kadar tanınabilir?** (`nesne_teshisi`) — kullanıcı fotoğrafları
+1. **Bu nesne ne kadar tanınabilir?** (`nesne_teshisi`) - kullanıcı fotoğrafları
    yükler yüklemez söylenir. Yargı UYDURMA DEĞİLDİR: nesnenin KENDİ
    fotoğraflarından ölçülür ve aşağıdaki sayılara dayanır.
-2. **Kaç fotoğraf yeter?** (`fotograf_notu`) — ölçülmüş bir sayıdır, yuvarlanmış
+2. **Kaç fotoğraf yeter?** (`fotograf_notu`) - ölçülmüş bir sayıdır, yuvarlanmış
    bir tavsiye değil; ölçümün NEREYE KADAR yapıldığı da söylenir.
-3. **"Eşleşme yok" çıktıysa ne yapmalı?** (`tarama_eylemi`) — yüzde göstermek
+3. **"Eşleşme yok" çıktıysa ne yapmalı?** (`tarama_eylemi`) - yüzde göstermek
    yetmez; yüzdenin yanına TEK CÜMLELİK bir eylem konur.
 
 --------------------------------------------------------------------- ÖLÇÜM
@@ -47,7 +47,7 @@ Bu tablodan çıkan ÜÇ KOVA (aşağıdaki sınırlar bunları ayırır):
 
 TABLO 2026-09'DA YENİDEN ÖLÇÜLDÜ ve okunuşu değişti. Eskiden DÜZ kova %35,7
 buluyordu ama bulduklarının yalnız %7,1'inde işaret gerçekten nesnenin
-üstündeydi — sistem doğru adı sahnenin başka bir köşesindeki aynı renkli
+üstündeydi - sistem doğru adı sahnenin başka bir köşesindeki aynı renkli
 yamaya yazıyordu. Aynı kapıdan kütüphanede HİÇ OLMAYAN nesnelere de isim
 yazılıyordu. "Renk taşımaz" kuralı o kapıyı kapattı: düz ve zor kovalar
 sıfırlandı, kolay kova %69'dan %15,7'ye düştü, ama bulunan her nesnede işaret
@@ -82,7 +82,7 @@ from app.nesneler.kutuphane import (
 
 # --------------------------------------------------------------- sınırlar
 #
-# TUTARLILIK SINIRI — nesnenin kendi fotoğrafları birbirini bu kadar tanıyorsa
+# TUTARLILIK SINIRI - nesnenin kendi fotoğrafları birbirini bu kadar tanıyorsa
 # "kolay tanınır" denir. YENİDEN ÖLÇÜLDÜ (2026-09, "renk taşımaz" kuralından
 # sonra, 12 nesne): üç kolay nesne 0,591 / 0,623 / 0,624; dördüncü sıradaki
 # nesne 0,111. Aradaki boşluk eskisinden çok daha geniştir (eskiden 0,591'e
@@ -95,13 +95,13 @@ _TUTARLILIK_KOLAY = 0.45
 #   nokta < DESEN_TABAN_NOKTA    → desen skoru tam ağırlığına ULAŞAMAZ (payda tabanı)
 # Teşhis onları buradan okur; motor değişirse teşhis de kendiliğinden değişir.
 
-# NETLİK SINIRI — yüklenen fotoğrafın Laplace değişintisi (AYRINTI ölçüsü) bunun
+# NETLİK SINIRI - yüklenen fotoğrafın Laplace değişintisi (AYRINTI ölçüsü) bunun
 # altındaysa "bulanık, karanlık ya da çok düşük kontrastlı" denir; üçü de bu
 # ölçüyü düşürür ve üçünün de cevabı aynıdır (daha net, daha aydınlık kare).
 # ÖLÇÜLDÜ (194 sorgu): bilerek bulanıklaştırılmış
 # 28 sorgunun 26'sı bu sınırın altında kalıyor, buna karşılık bulanık OLMAYAN
 # 166 sorgunun HİÇBİRİ altında değil (en düşüğü 57). Kütüphaneye yüklenen
-# referans fotoğrafların en düşüğü ise 147 — yani net bir fotoğrafa yanlışlıkla
+# referans fotoğrafların en düşüğü ise 147 - yani net bir fotoğrafa yanlışlıkla
 # "bulanık" denmiyor. Yanlış suçlama, kaçırmaktan kötüdür; sınır o yüzden
 # ölçülen boşluğun bulanık tarafına yakın duruyor.
 _NETLIK_SINIRI = 55.0
@@ -109,7 +109,7 @@ _NETLIK_SINIRI = 55.0
 # eşleşme YAKINDI demektir ve doğru eylem "bu açıdan bir fotoğraf ekleyin"dir.
 # Ölçüldü: kütüphanede olmayan nesneler sorulduğunda en yüksek yabancı skor
 # ortalaması 0,13'tür; varsayılan çıtanın (0,24) 0,75'i 0,18 eder, yani
-# yabancıların ortalaması bu sınırın ALTINDA kalır — "kıl payı" cümlesi
+# yabancıların ortalaması bu sınırın ALTINDA kalır - "kıl payı" cümlesi
 # kütüphanede hiç olmayan bir nesne için boşuna çıkmaz.
 _YAKIN_PAYI = 0.75
 
@@ -119,7 +119,7 @@ _YAKIN_PAYI = 0.75
 # 0,24): "renk taşımaz" kuralı düz ve zor kovalarını SIFIRA indirdi; eski
 # değerleri (36 ve 14) yalnız renge dayanan eşleşmelerdi ve aynı kapıdan
 # kütüphanede olmayan nesnelere de isim yazılıyordu. Kolay kovada bulunan
-# 8 sorgunun 8'inde işaret gerçekten nesnenin üstünde — eskiden bu oran çok
+# 8 sorgunun 8'inde işaret gerçekten nesnenin üstünde - eskiden bu oran çok
 # daha düşüktü (bulunan 61 sorgunun 38'i).
 _KOVA_ISABETI = {"kolay": (16, 16), "duz": (0, 0), "zor": (0, 0)}
 
@@ -131,8 +131,8 @@ class NesneTeshisi:
     seviye: str  # "kolay" | "duz" | "zor" | "tek"
     rozet: str  # ekrandaki renk sınıfı: yesil | sari | kirmizi | gri
     baslik: str  # "Kolay tanınır"
-    aciklama: str  # neden böyle — tek cümle
-    oneri: str  # ne yapmalı — tek cümle
+    aciklama: str  # neden böyle - tek cümle
+    oneri: str  # ne yapmalı - tek cümle
     fotograf_sayisi: int
     nokta: int  # anahtar nokta sayısının ortancası
     tutarlilik: float  # 0-1
@@ -163,7 +163,7 @@ class NesneTeshisi:
 
 
 def olcumler(parmakizleri: list[Parmakizi]) -> tuple[int, float]:
-    """(anahtar nokta ortancası, tutarlılık) — teşhisin dayandığı iki sayı.
+    """(anahtar nokta ortancası, tutarlılık) - teşhisin dayandığı iki sayı.
 
     TUTARLILIK: her fotoğrafın DİĞER fotoğraflara en iyi benzerliğinin
     ortalaması. Ortalama değil de "en iyi" alınır çünkü motor da öyle karar
@@ -214,12 +214,12 @@ def teshisi_kur(fotograf_sayisi: int, nokta: int, tutarlilik: float) -> NesneTes
         return NesneTeshisi(
             seviye="duz",
             rozet="sari",
-            baslik="Düz renkli — bulunamaz",
+            baslik="Düz renkli - bulunamaz",
             aciklama=(
                 "Nesnenin tutunacak bir deseni yok (yazı, logo, kenar çizgisi); geriye "
                 "yalnızca renk kalıyor. Renk tek başına iki nesneyi birbirinden "
                 "ayıramadığı için sistem bu nesneye isim YAZMAZ: ölçümde böyle "
-                "nesnelerin hiçbiri bulunmadı. Bu bilerek verilmiş bir karardır — aynı "
+                "nesnelerin hiçbiri bulunmadı. Bu bilerek verilmiş bir karardır - aynı "
                 "renkteki bambaşka bir şeye bu nesnenin adını yazmaktansa susmak."
             ),
             oneri=(
@@ -238,7 +238,7 @@ def teshisi_kur(fotograf_sayisi: int, nokta: int, tutarlilik: float) -> NesneTes
             rozet="yesil",
             baslik="Kolay tanınır",
             aciklama=(
-                "Belirgin bir deseni var ve yüklediğiniz fotoğraflar birbirini tanıyor — "
+                "Belirgin bir deseni var ve yüklediğiniz fotoğraflar birbirini tanıyor - "
                 "sistemin güvendiği iki kanıt da yerinde."
             ),
             oneri=(
@@ -308,7 +308,7 @@ def teshisi_kur(fotograf_sayisi: int, nokta: int, tutarlilik: float) -> NesneTes
 # artık kabul edilmiyor; o eşleşmelerin bir kısmı doğru ada denk geliyordu ama
 # aynı kapıdan kütüphanede olmayan nesnelere de isim yazılıyordu.
 # DÜRÜSTÇE: ölçüm 4 fotoğrafa kadar yapıldı; 5 ve üstünün katkısı ÖLÇÜLMEDİ,
-# o yüzden "4'ten sonrası boşa" denmiyor — "4'e kadarki katkı biliniyor" deniyor.
+# o yüzden "4'ten sonrası boşa" denmiyor - "4'e kadarki katkı biliniyor" deniyor.
 FOTOGRAF_EGRISI: tuple[tuple[int, int, int], ...] = (
     # (fotoğraf sayısı, 204 sorguda bulunan, işaret nesnenin üstünde olan)
     (1, 3, 3),
@@ -343,7 +343,7 @@ def fotograf_notu(sayi: int) -> str:
     )
 
 
-# ================================ 3) "ne kadar emin olsun" — günlük dilde
+# ================================ 3) "ne kadar emin olsun" - günlük dilde
 
 
 @dataclass(frozen=True)
@@ -352,7 +352,7 @@ class CitaSecenegi:
 
     anahtar: str  # formdan gelen değer
     ad: str  # ekranda görünen ad
-    sonuc: str  # bunu seçersem ne olur — tek cümle
+    sonuc: str  # bunu seçersem ne olur - tek cümle
     carpan: float  # .env'deki çıtanın katı
 
 
@@ -360,7 +360,7 @@ class CitaSecenegi:
 # Ölçüm (tests/nesne_kiyas, 264 sorgu) çıtayı 0,10'dan 0,60'a tarar. Bugünkü
 # çıta (0,24) "yanlış isim SIFIR kalırken en çok bulan" noktadır; bir adım
 # aşağıda (0,22) sistem yanlış isim yazmaya başlar. Yani indirilecek pay yoktur
-# — indirmek isabeti değil, YANLIŞ İSMİ artırır (docs/00: yanlış alarm güveni
+# - indirmek isabeti değil, YANLIŞ İSMİ artırır (docs/00: yanlış alarm güveni
 # bitirir). Sahada gerçekten gerekiyorsa değer .env → NESNE_ESLESME_ESIGI'dir;
 # ekranda tek tıkla erişilebilir bir tuzak olarak durmaz.
 CITA_SECENEKLERI: tuple[CitaSecenegi, ...] = (
@@ -387,7 +387,7 @@ CITA_SECENEKLERI: tuple[CitaSecenegi, ...] = (
         #
         # NEDEN 1,5'TEN 1,25'E İNDİ (2026-09): eski çarpan 0,36'ya denk geliyordu
         # ve o çıta eski motorda hâlâ 42 nesne buluyordu. "Renk taşımaz"
-        # kuralından sonra 0,36'da HİÇBİR nesne bulunmuyor — yani seçenek
+        # kuralından sonra 0,36'da HİÇBİR nesne bulunmuyor - yani seçenek
         # kullanıcıyı "hiç sonuç çıkmayan" bir ayara götüren bir tuzağa
         # dönüşmüştü. Çarpan, ölçümde hâlâ sonuç veren en yüksek kademeye çekildi.
         carpan=1.25,
@@ -401,7 +401,7 @@ VARSAYILAN_CITA_SECIMI = CITA_SECENEKLERI[0].anahtar
 #
 # NEDEN VAR: .env dosyası git'e girmez. Motor değişip önerilen çıta 0,42'den
 # 0,24'e indiğinde, DAHA ÖNCE KURULMUŞ bir sunucu kendi .env'inde 0,42 ile
-# kalır. O sunucuda yeni motor sessizce daha kötü çalışır — ölçüldü: 0,42
+# kalır. O sunucuda yeni motor sessizce daha kötü çalışır - ölçüldü: 0,42
 # çıtada 204 sorgunun HİÇBİRİ bulunmuyor, 0,24 çıtada 8'i bulunuyor ve yanlış
 # isim iki ayarda da sıfır. Yani yüksek çıta hiçbir şey kazandırmıyor, yalnız
 # kaybettiriyor.
@@ -417,7 +417,7 @@ VARSAYILAN_CITA_SECIMI = CITA_SECENEKLERI[0].anahtar
 #   çıta 0,22 → 13/204 bulundu ama YANLIŞ İSİM 1  (kırmızı çizgi aşıldı)
 # Cümle "sizin ayarınız {N} nesne buldu" biçiminde kurulur: sayıdan SONRA ek
 # gelmez. Gelseydi ek sayıya göre değişirdi ("8'i" ama "0'ı") ve bu dosya, tam
-# da o hatayı düzelten süzgeci (web/ortak.py sayi_eki) kullanamaz — nesneler
+# da o hatayı düzelten süzgeci (web/ortak.py sayi_eki) kullanamaz - nesneler
 # katmanı web katmanından bir şey import etmez.
 _ESIK_EGRISI = {0.24: 8, 0.26: 4, 0.28: 3, 0.30: 2, 0.32: 2, 0.34: 1, 0.36: 0}
 # Bu farktan küçük sapmalar not çıkarmaz: kullanıcı 0,25 yazmışsa uyarmak
@@ -426,10 +426,10 @@ _ESIK_SAPMA_PAYI = 0.01
 
 
 def _bulunan_metni(esik: float) -> str:
-    """Bu çıtada kaç nesne bulunduğunu ANLATIR — ölçmediğimiz sayıyı UYDURMAZ.
+    """Bu çıtada kaç nesne bulunduğunu ANLATIR - ölçmediğimiz sayıyı UYDURMAZ.
 
     Eğri yalnızca çift yüzdeliklerde ölçüldü. Ölçülmemiş bir çıtada (0,25 gibi)
-    eskiden "0 nesne" yazılıyordu; bu, ölçüm gibi görünen YANLIŞ bir sayıydı —
+    eskiden "0 nesne" yazılıyordu; bu, ölçüm gibi görünen YANLIŞ bir sayıydı -
     0,25'te gerçekte 6 nesne bulunuyor. Artık ölçülmemiş çıta için iki komşu
     ölçümden bir ARALIK verilir. Eğri azalan olduğu için aralık matematiksel
     olarak doğrudur: daha yüksek çıta daha az bulur.
@@ -456,7 +456,7 @@ def _bulunan_metni(esik: float) -> str:
 def cita_notu(esik: float, onerilen: float = VARSAYILAN_ESIK) -> str:
     """Sunucunun çıtası ölçülen değerden farklıysa Türkçe not; değilse boş.
 
-    Boş dönmesi olağan durumdur — not yalnızca gerçekten bir sapma varsa çıkar.
+    Boş dönmesi olağan durumdur - not yalnızca gerçekten bir sapma varsa çıkar.
     """
     # round(): kayan nokta yüzünden abs(0,25 - 0,24) = 0,010000000000000009 çıkar
     # ve payı AŞAR; 0,23 ise aşmaz. Yuvarlamadan, bir adım yukarısı "eski kurulum"
@@ -479,7 +479,7 @@ def cita_notu(esik: float, onerilen: float = VARSAYILAN_ESIK) -> str:
         )
     return (
         ortak + "Çıtanız önerilenin ALTINDA. Ölçümde bir adım aşağıda (0,22) sistem yanlış isim "
-        "yazmaya başlıyor — yani bu ayar, kütüphanenizde hiç olmayan bir şeye nesne adı "
+        "yazmaya başlıyor - yani bu ayar, kütüphanenizde hiç olmayan bir şeye nesne adı "
         "yazdırabilir. Ayarlar sayfasındaki “Nesne arama titizliği” kutusuna "
         f"{onerilen:.2f} yazıp kaydedin."
     )
@@ -500,7 +500,7 @@ def netlik(bgr: np.ndarray) -> float:
     """Fotoğrafın ayrıntı ölçüsü (Laplace değişintisi). Düşük = bulanık ya da karanlık.
 
     Karanlık fotoğraf da düşük çıkar ve bu BİLEREK böyledir: ikisinin de
-    kullanıcı için cevabı aynıdır — "daha net, daha aydınlık bir kare çekin".
+    kullanıcı için cevabı aynıdır - "daha net, daha aydınlık bir kare çekin".
     """
     gri = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
     return float(cv2.Laplacian(gri, cv2.CV_64F).var())
@@ -540,7 +540,7 @@ def tarama_eylemi(
         # ÜÇ SEBEP DE SAYILIR ("bulanık" demekle yetinilmez): ölçülen şey
         # fotoğraftaki AYRINTI miktarıdır ve bu üçünde de düşer. Yalnız
         # "bulanık" deseydik, net ama karanlık bir fotoğrafta kullanıcıya
-        # yanlış bir şey söylemiş olurduk — o da fotoğrafı yeniden çekerken
+        # yanlış bir şey söylemiş olurduk - o da fotoğrafı yeniden çekerken
         # yanlış şeyi düzeltmeye çalışırdı.
         return (
             "Bu fotoğrafta ayrıntı az: bulanık, karanlık ya da çok düşük kontrastlı "
@@ -553,7 +553,7 @@ def tarama_eylemi(
     if en_yuksek_skor >= olcut * _YAKIN_PAYI:
         return (
             "Kıl payı kaçtı. Çıtayı indirmek yerine, nesnenin BU açıdan ve bu ışıktan "
-            "çekilmiş bir fotoğrafını kütüphaneye ekleyin — daha güvenli yol budur."
+            "çekilmiş bir fotoğrafını kütüphaneye ekleyin - daha güvenli yol budur."
         )
     if duz_kutuphane:
         return (

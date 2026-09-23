@@ -1,4 +1,4 @@
-"""Tespit modelinin KULLANICIYA GÖRÜNEN adı — tek kaynak.
+"""Tespit modelinin KULLANICIYA GÖRÜNEN adı - tek kaynak.
 
 Ekranda teknik dosya adı değil, ürün adı yazar. Dosya adları, indirme
 adresleri ve `.env` içindeki `MODEL_DOSYASI` anahtarı AYNEN kalır: sistem

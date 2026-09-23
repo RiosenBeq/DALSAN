@@ -1,4 +1,4 @@
-"""Kıyas takımının görüntülerini ÇİZER — depoda ikili dosya tutulmaz.
+"""Kıyas takımının görüntülerini ÇİZER - depoda ikili dosya tutulmaz.
 
 Neden fotoğraf yerine çizim: fotoğraf koysaydık depo şişerdi, dosyalar
 zamanla kaybolur ya da değişirdi ve ölçüm tekrarlanamaz olurdu. Buradaki her
@@ -77,7 +77,7 @@ def _silindir_golgesi(gorsel: np.ndarray, kutu: tuple[int, int, int, int], dikey
 
 
 def yazili_pano() -> Cizim:
-    """Sarı zeminli, yazılı uyarı panosu — motorun en rahat işi."""
+    """Sarı zeminli, yazılı uyarı panosu - motorun en rahat işi."""
     gorsel = _tuval((40, 190, 235))
     cv2.rectangle(gorsel, (7, 7), (192, 192), _KOYU, 5)
     cv2.putText(gorsel, "DIKKAT", (18, 62), _YAZI, 1.05, _KOYU, 2, cv2.LINE_AA)
@@ -103,7 +103,7 @@ def logolu_kutu() -> Cizim:
 
 
 def barkod_etiketi() -> Cizim:
-    """Beyaz etiket üzerinde değişen kalınlıkta çubuklar — çok yüksek desen."""
+    """Beyaz etiket üzerinde değişen kalınlıkta çubuklar - çok yüksek desen."""
     gorsel = _tuval((246, 246, 244))
     cv2.rectangle(gorsel, (4, 4), (195, 195), (170, 170, 170), 2)
     x, sira = 16, 0
@@ -120,7 +120,7 @@ def barkod_etiketi() -> Cizim:
 
 
 def halkali_tup() -> Cizim:
-    """Mavi/yeşil halkalı gaz tüpü — sahada BULUNAMAYAN nesnenin benzeri."""
+    """Mavi/yeşil halkalı gaz tüpü - sahada BULUNAMAYAN nesnenin benzeri."""
     gorsel = _tuval((250, 250, 250))
     maske = _bos_maske()
     govde = (56, 34, 146, 192)
@@ -154,7 +154,7 @@ def cizgili_baret() -> Cizim:
 
 
 def duz_bidon() -> Cizim:
-    """Tek renk mavi bidon — üzerinde hiç yazı/desen yok."""
+    """Tek renk mavi bidon - üzerinde hiç yazı/desen yok."""
     gorsel = _tuval((250, 250, 250))
     maske = _bos_maske()
     cv2.rectangle(gorsel, (46, 26), (154, 190), MAVI_BIDON, -1)
@@ -166,7 +166,7 @@ def duz_bidon() -> Cizim:
 
 
 def duz_baret() -> Cizim:
-    """Düz beyaz baret — desensiz; motorun tutunacağı tek şey renk."""
+    """Düz beyaz baret - desensiz; motorun tutunacağı tek şey renk."""
     gorsel = _tuval((250, 250, 250))
     maske = _bos_maske()
     cv2.ellipse(gorsel, (100, 140), (74, 68), 0, 180, 360, BEYAZ_BARET, -1)
@@ -178,7 +178,7 @@ def duz_baret() -> Cizim:
 
 
 def gri_boru() -> Cizim:
-    """Yatay gri boru — düz, desensiz."""
+    """Yatay gri boru - düz, desensiz."""
     gorsel = _tuval((250, 250, 250))
     maske = _bos_maske()
     cv2.rectangle(gorsel, (10, 70), (190, 132), GRI_BORU, -1)
@@ -289,7 +289,7 @@ def lastik_yigini() -> Cizim:
 # Takımın en önemli bölümü burasıdır ve sonradan eklenmiştir. Eski takımdaki
 # yabancı nesnelerin HEPSİ kütüphanedekilerden başka renkteydi (kırmızı
 # söndürücü, mor makara, turuncu koni, siyah lastik); dolayısıyla motorun
-# "iki taraf da desensiz" dalı — kararı YALNIZ renge bırakan dal — hiç
+# "iki taraf da desensiz" dalı - kararı YALNIZ renge bırakan dal - hiç
 # sınanmıyordu. Bağımsız doğrulayıcı gerçek ürün yolunda tam oradan girip
 # kütüphanede olmayan düz mavi bir kasaya "Düz mavi bidon" adını yazdırdı.
 #
@@ -298,10 +298,10 @@ def lastik_yigini() -> Cizim:
 # aynıdır: "eşleşme yok".
 #
 # NEDEN GÖLGELİ ÇİZİLİYORLAR: tek renkle doldurulmuş kusursuz düz bir yama
-# gerçekte yoktur ve motoru da kırmaz — histogramı tek bir göze toplanır,
+# gerçekte yoktur ve motoru da kırmaz - histogramı tek bir göze toplanır,
 # gölgeli bir referansa benzemez (ölçüldü: gölgesiz kasa 0,21, gölgeli kasa
 # 0,52). Gerçek bir kasanın/örtünün üstünde ışık kayar. Gölge eklemek takımı
-# KOLAYLAŞTIRMAZ, gerçeğe yaklaştırır — ve motorun deliğini görünür kılan da
+# KOLAYLAŞTIRMAZ, gerçeğe yaklaştırır - ve motorun deliğini görünür kılan da
 # tam olarak budur.
 
 
@@ -331,7 +331,7 @@ def mavi_ortu() -> Cizim:
 
 
 def mavi_duvar_parcasi() -> Cizim:
-    """Bidonla AYNI maviye boyanmış duvar/pano parçası — hiç biçimi yok."""
+    """Bidonla AYNI maviye boyanmış duvar/pano parçası - hiç biçimi yok."""
     gorsel = _tuval(MAVI_BIDON)
     _silindir_golgesi(gorsel, (0, 0, TUVAL, TUVAL), dikey=False)
     return gorsel, _dolu_maske()
@@ -345,7 +345,7 @@ def gri_sac_levha() -> Cizim:
 
 
 def gri_beton_blok() -> Cizim:
-    """Gri panolarla AYNI gri beton blok — üstünde ızgara/çapraz deseni YOK."""
+    """Gri panolarla AYNI gri beton blok - üstünde ızgara/çapraz deseni YOK."""
     gorsel = _tuval(GRI_PANO)
     _silindir_golgesi(gorsel, (0, 0, TUVAL, TUVAL), dikey=True)
     return gorsel, _dolu_maske()
@@ -362,7 +362,7 @@ def beyaz_cuval() -> Cizim:
 
 
 def beyaz_levha() -> Cizim:
-    """Beyaz baretle AYNI beyaz, düz levha — desensiz dikdörtgen."""
+    """Beyaz baretle AYNI beyaz, düz levha - desensiz dikdörtgen."""
     gorsel = _tuval(BEYAZ_BARET)
     _silindir_golgesi(gorsel, (0, 0, TUVAL, TUVAL), dikey=True)
     return gorsel, _dolu_maske()
@@ -470,13 +470,13 @@ def _isik_gradyani(zemin: np.ndarray, rastgele) -> np.ndarray:
 # ------------------------------------------------- GERÇEKTEN desensiz zemin
 
 # Yukarıdaki `arka_plan` zeminleri "boş" olsa da DESENSİZ değildir: benek,
-# çizik, leke ve ızgara çizgileri ORB'ye tutunacak yer bırakır. Ölçüldü — bu
+# çizik, leke ve ızgara çizgileri ORB'ye tutunacak yer bırakır. Ölçüldü - bu
 # zeminlerin tam karesinde 14-111 anahtar nokta çıkıyor, yani motorun
 # "iki taraf da desensiz" dalına HİÇ girmiyorlar. Altı boş zemin sorgusu bu
 # yüzden motorun en zayıf dalını sınamıyordu.
 #
 # Aşağıdakiler o boşluğu kapatır: bulanık, karanlık ya da tek renge boyanmış
-# yüzeyler. Ölçüldü — taranan 420 pencerenin 420'sinde de ORB nokta sayısı
+# yüzeyler. Ölçüldü - taranan 420 pencerenin 420'sinde de ORB nokta sayısı
 # SIFIRDIR, yani `kutuphane.EN_AZ_ANAHTAR_NOKTA`nın altındadır ve düz-düz dalı
 # gerçekten çalışır. Bu ölçüm rapora da basılır (`__main__._desensiz_kaniti`)
 # ve kalite kapısı bunu her koşuda yeniden doğrular; yoksa takım yine kör olur.

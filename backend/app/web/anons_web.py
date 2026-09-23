@@ -95,7 +95,7 @@ def mesaj_kaydet(
             raise DogrulamaHatasi("Ses dosyası proje klasörünün içinde olmalı.")
         if not tam.is_file():
             raise DogrulamaHatasi(
-                f"Ses dosyası bulunamadı: {ses} — Dosyayı proje klasörüne kopyalayıp "
+                f"Ses dosyası bulunamadı: {ses} - Dosyayı proje klasörüne kopyalayıp "
                 "yolunu 'veri/sesler/baret.wav' gibi yazın."
             )
         if tam.suffix.lower() != ".wav":
@@ -122,7 +122,7 @@ def mesaj_kaydet(
 def mesaj_dene(
     istek: Request, mesaj_id: int, donus: str = Form("anons"), baglanti=Depends(baglanti_al)
 ):
-    """Anonsu HEMEN çalar (cooldown uygulanmaz) — saha kurulumunu denemek için."""
+    """Anonsu HEMEN çalar (cooldown uygulanmaz) - saha kurulumunu denemek için."""
     if donus not in DONUS_YOLLARI:
         raise DogrulamaHatasi(f"Bilinmeyen dönüş ekranı: {donus}")
     satir = baglanti.execute(

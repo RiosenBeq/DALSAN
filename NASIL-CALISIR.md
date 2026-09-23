@@ -1,4 +1,4 @@
-# Nasıl Çalışır — Kurulum ve Çalıştırma Kılavuzu
+# Nasıl Çalışır - Kurulum ve Çalıştırma Kılavuzu
 
 Bu dosya üç projeyi birden anlatır ve **hangi ortamda neyin çalıştığını**
 dürüstçe yazar. Yazılım bilmeden okunabilecek şekilde yazılmıştır.
@@ -20,7 +20,7 @@ diğerleri etkilenmez.
 
 ```
 Kamera (RTSP / USB / video dosyası)
-        │  saniyede 3-6 kare örneklenir (hepsi değil — işlemci boğulmasın)
+        │  saniyede 3-6 kare örneklenir (hepsi değil - işlemci boğulmasın)
         ▼
    TESPİT       Görüntüde ne var? (insan, araç, bardak…)  → NextGen AI
         ▼
@@ -36,7 +36,7 @@ Kamera (RTSP / USB / video dosyası)
 
 **Neden "takip bazlı karar":** tek bir karede yanılmak kolaydır (gölge, toz,
 hareket bulanıklığı). Sistem bir nesneyi birkaç saniye izler, sonra karar
-verir. Bu yüzden sayılar birkaç saniye gecikmeyle görünür — bu bir yavaşlık
+verir. Bu yüzden sayılar birkaç saniye gecikmeyle görünür - bu bir yavaşlık
 değil, yanlış alarmı önleyen bilinçli bir tasarımdır.
 
 **Karar verilemeyen durumlar "belirsiz" yazılır**, ihlal sayılmaz. Kanıtın
@@ -45,7 +45,7 @@ yokluğu, ihlalin varlığı değildir.
 **Tek program:** Web sayfası ve analiz aynı program içinde çalışır. Başlatılacak
 tek şey, bakılacak tek günlük vardır.
 
-**Tek veri klasörü:** `veri/` — veritabanı, olay fotoğrafları, günlükler.
+**Tek veri klasörü:** `veri/` - veritabanı, olay fotoğrafları, günlükler.
 **Yedekleme = bu klasörü kopyalamak.**
 
 ---
@@ -59,8 +59,8 @@ tek şey, bakılacak tek günlük vardır.
 | **IP kamera (RTSP)** | ✅ | ✅ | ✅ | ✅ |
 | **Bilgisayarın kendi kamerası** | ❌ *(DALSAN yalnız RTSP ve video dosyası kabul eder)* | ❌ | ❌ | ❌ |
 | **Ekran kartı (GPU) hızlandırma** | ❌ *(Mac'te Docker GPU yok)* | ⚠️ WSL2 + NVIDIA ile | ❌ | ✅ NVIDIA + Container Toolkit |
-| Anons — ses kartı | ✅ | ✅ | ❌ | ✅ *(`/dev/snd` bağlanırsa)* |
-| Anons — IP hoparlör (HTTP) | ✅ | ✅ | ✅ | ✅ |
+| Anons - ses kartı | ✅ | ✅ | ❌ | ✅ *(`/dev/snd` bağlanırsa)* |
+| Anons - IP hoparlör (HTTP) | ✅ | ✅ | ✅ | ✅ |
 | 7/24 kendiliğinden çalışma | ⚠️ pencere açık kalmalı | ⚠️ pencere açık kalmalı | ✅ | ✅ |
 
 **Özet karar:**
@@ -92,7 +92,7 @@ Docker içindir (aşağıya bakın).
 ## 4. Windows'ta çalıştırma
 
 1. [python.org](https://www.python.org/downloads/) → **Python 3.12** kur.
-   Kurulum ekranında **"Add Python to PATH"** kutusunu işaretle — en kritik adım.
+   Kurulum ekranında **"Add Python to PATH"** kutusunu işaretle - en kritik adım.
 2. **Baslat-Windows.bat** dosyasına **çift tıkla**.
    SmartScreen uyarısı çıkarsa: Daha fazla bilgi → Yine de çalıştır.
 3. Tarayıcı kendiliğinden açılır.
@@ -107,7 +107,7 @@ Windows'a özel olarak halledilmiş şeyler:
 - **Saat dilimi:** Windows saat dilimi veritabanıyla gelmez; `tzdata` paketi
   bağımlılıklara eklendi, saatler Türkiye saatinde doğru gösterilir.
 - **Anons sesi:** `afplay`/`aplay` Windows'ta yoktur; PowerShell'in hazır ses
-  çalıcısı kullanılır. **Yalnızca .wav çalar** — sistem başka biçimi kabul etmez.
+  çalıcısı kullanılır. **Yalnızca .wav çalar** - sistem başka biçimi kabul etmez.
 - **Türkçe klasör adı:** Kanıt ve KKD fotoğrafları `C:\Users\Gökhan\...` gibi
   yollara da yazılabilir (OpenCV'nin yol kodlaması atlanır).
 - **Kamera:** Kaynak olarak yalnızca RTSP adresi veya video dosyası kullanılır;
@@ -136,7 +136,7 @@ bash models/indir.sh                   # yapay zeka modelini indirir ve doğrula
 > yapın. Şifre boşsa sistem açılmaz ve sebebini `docker compose logs` yazar.
 
 > Model indirilmeden imaj derlenmez: derleme **"models/yolox_tiny.onnx
-> bulunamadi"** diyerek durur. Bu bilinçlidir — modelsiz container hiçbir şey
+> bulunamadi"** diyerek durur. Bu bilinçlidir - modelsiz container hiçbir şey
 > tespit etmeden sessizce çalışırdı. (Çift tıkla çalıştırmada model eksikse
 > sistem ilk açılışta kendisi indirir; Docker'da imaj derlenmeden önce
 > indirilmiş olmalıdır.)
@@ -192,9 +192,9 @@ Sık kullanılan satırlar:
 | `KAYNAK` | **Yalnızca demolarda** (otopark/bardak sayacı) kamera seçimi. DALSAN'da kameralar ekrandan eklenir, .env'de kaynak ayarı yoktur |
 | `CIKARIM_CIHAZI` | `cpu` veya `cuda` (yalnız NVIDIA'lı Linux sunucuda `cuda`) |
 | `KARE_ORNEKLEME_FPS` / `KARE_FPS` | Saniyede kaç kare analiz edilsin (3-6 yeterli) |
-| `YONETICI_SIFRESI` | Boş = giriş sorulmaz (tek makine). Ağa açarken **doldurun** — en az 6 karakter |
+| `YONETICI_SIFRESI` | Boş = giriş sorulmaz (tek makine). Ağa açarken **doldurun** - en az 6 karakter |
 | `ANONS` | `null` (kapalı), `ses_karti`, `http` |
-| `ANONS_HTTP_BICIMI` | IP hoparlörün beklediği biçim: `json`, `form`, `get` — hangi cihaz için hangisi: `docs/14-ANONS-SISTEMI-BAGLAMA.md` |
+| `ANONS_HTTP_BICIMI` | IP hoparlörün beklediği biçim: `json`, `form`, `get` - hangi cihaz için hangisi: `docs/14-ANONS-SISTEMI-BAGLAMA.md` |
 | `OLAY_SAKLAMA_GUN` vb. | Verinin ne kadar saklanacağı (KVKK politikasıyla uyumlu olmalı) |
 
 Bölge, kural, mesafe eşiği gibi **sık değişen ayarlar .env'de değil ekrandadır**;
@@ -246,7 +246,7 @@ yükleme provası yapın.
 - Nesne görüntüden çıkıp tekrar girerse yeni takip numarası alır ve yeniden
   sayılabilir.
 - Kameraya uzak / çok küçük görünen nesneler için karar verilmez ("belirsiz").
-- Kalibre edilmemiş kamerada mesafe kuralı **çalışmaz** — yaklaşık bir sayı
+- Kalibre edilmemiş kamerada mesafe kuralı **çalışmaz** - yaklaşık bir sayı
   uydurulmaz.
 - Hazır tespit modeli genel amaçlıdır; forklift ve kafe bardağı gibi özel
   nesnelerde isabet, saha görüntüleriyle ince ayar yapılınca belirgin artar.

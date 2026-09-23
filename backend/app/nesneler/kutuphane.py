@@ -1,6 +1,6 @@
-"""Parmak izi çıkarma ve eşleştirme — MODEL EĞİTİMİ DEĞİLDİR.
+"""Parmak izi çıkarma ve eşleştirme - MODEL EĞİTİMİ DEĞİLDİR.
 
-Kullanıcı bir nesnenin birkaç fotoğrafını yükler (ölçülen yeterli sayı: 4 —
+Kullanıcı bir nesnenin birkaç fotoğrafını yükler (ölçülen yeterli sayı: 4 -
 bkz. teshis.FOTOGRAF_EGRISI); her fotoğraftan iki parmak izi çıkarılır:
 
 1. **Renk parmak izi** (HSV histogramı): nesnenin renk dağılımı. Aydınlatma
@@ -24,7 +24,7 @@ yüksek skor, kabul çıtasının bir oranıdır (TEK_KANIT_TAVAN_ORANI) ve çı
 çekilirse çekilsin onun ALTINDA kalır. Yani düz gri desensiz nesnelerde sistem
 "zayıf" değil, çekimserdir: isim yazmaz. Yöntem ayırt edici deseni olan
 nesnelerde (yazılı pano, sarı tüp, markalı kutu) çalışır. Eşiğin altında kalan
-en iyi skor bile kabul edilmez — sistem uydurma isim YAZMAZ, "eşleşme yok" der
+en iyi skor bile kabul edilmez - sistem uydurma isim YAZMAZ, "eşleşme yok" der
 (docs/12'deki üç durum ilkesiyle aynı çizgi).
 
 Buradaki her sayı ELDE ÖLÇÜLMÜŞTÜR, tahmin değildir; ölçüm düzeneği
@@ -44,13 +44,13 @@ import numpy as np
 
 # Karşılaştırmadan önce her görüntü bu boyuta getirilir (hız + tutarlılık)
 _STANDART_BOYUT = (160, 160)
-# HSV histogram gözleri: ton 24, doygunluk 8 (parlaklık bilerek düşük ağırlıklı —
+# HSV histogram gözleri: ton 24, doygunluk 8 (parlaklık bilerek düşük ağırlıklı -
 # fabrika aydınlatması saatten saate değişir, ton değişmez)
 _TON_GOZ, _DOYGUNLUK_GOZ = 24, 8
 # Renk izinin İKİNCİ katmanı: karşılaştırma karesinin ortasındaki dairenin
 # yarıçapı (kenarın bu oranı kadar). Neden gerekli: tek bir histogram bütün
 # kareyi tek torbaya atar, "ortada nesne, kenarda zemin" bilgisi kaybolur.
-# Ölçümde bunun bedeli görüldü — düz renkli nesnelerde isabetin %45'i doğruydu
+# Ölçümde bunun bedeli görüldü - düz renkli nesnelerde isabetin %45'i doğruydu
 # ama işaretin yalnız %4,8'i gerçekten nesnenin üstündeydi; sistem doğru adı
 # sahnenin başka bir köşesindeki aynı renkli yamaya yazıyordu. Kullanıcı
 # fotoğrafı nesne ortada olacak şekilde çeker; pencerenin ORTASI da uymuyorsa
@@ -58,7 +58,7 @@ _TON_GOZ, _DOYGUNLUK_GOZ = 24, 8
 # kare köşeleri farklı şeyleri kapsar, daire kapsamaz.
 _MERKEZ_YARICAP_ORANI = 0.24
 # Merkez kanıtına tanınan PAY: ortası, bütün karenin bu kadar altında kalabilir
-# ve ceza yemez. Sıfır pay (sert veto) ölçüldü ve fazla sertti — pencere
+# ve ceza yemez. Sıfır pay (sert veto) ölçüldü ve fazla sertti - pencere
 # ızgarası nesneyi hiçbir zaman referanstaki kadar sıkı çerçevelemediği için
 # doğru eşleşmeleri de kesiyordu.
 _MERKEZ_PAYI = 0.25
@@ -69,7 +69,7 @@ _MERKEZ_PAYI = 0.25
 # kenarları bu oranda dışa doğru uzatılarak (kenar pikseli tekrarlanarak) ikinci
 # bir renk izi çıkarılır; karşılaştırma iki çerçevelemenin İYİ olanını kullanır.
 # Ölçüldü: aynı şeyi ikinci bir DESEN izi ekleyerek yapmak da işe yarıyordu ama
-# tarama süresini üçe katlıyordu — kazancın tamamına yakını renkten geliyor.
+# tarama süresini üçe katlıyordu - kazancın tamamına yakını renkten geliyor.
 _GENIS_CERCEVE = 1.60
 # ORB anahtar nokta sayısı
 _ORB_NOKTA = 300
@@ -82,7 +82,7 @@ _ORB_MESAFE = 55
 _GEOMETRI_SAPMA_PX = 12.0
 # Geometri sınamasından geçmiş sayılmak için gereken en az uyan nokta. Dönüşümün
 # kendisi İKİ noktayla kurulur; dört beş nokta rastlantıyla da hizalanabilir.
-# Bunun altındaki desen kanıtı "az" değil, YOK sayılır (0) — çünkü az anahtar
+# Bunun altındaki desen kanıtı "az" değil, YOK sayılır (0) - çünkü az anahtar
 # noktalı bir referansta (düz beyaz baret: ~20 nokta) beş rastgele eşleşme bile
 # 0,25'lik bir desen skoru yapar ve yanlış isim yazdırır.
 _GEOMETRI_EN_AZ_UYAN = 6
@@ -94,22 +94,22 @@ _GEOMETRI_EN_AZ_UYAN = 6
 #
 # AÇIK (alt çizgisiz) ad: `teshis.py` bunu okur. Kullanıcıya "bu nesne kolay mı
 # tanınır" derken uydurma bir sınır değil, MOTORUN KENDİ dallanma noktası
-# kullanılsın diye — motor değişirse teşhis de kendiliğinden onunla değişir.
+# kullanılsın diye - motor değişirse teşhis de kendiliğinden onunla değişir.
 DESEN_TABAN_NOKTA = 30
 # Renk ve desen skorlarının karışım ağırlığı
 _RENK_AGIRLIGI = 0.45
 _DESEN_AGIRLIGI = 0.55
 # İki kanıttan biri bu değerin altındaysa (biri uyuyor, öteki uymuyor) skor
-# düşürülür — çelişkili kanıt "eşleşti" saydırmamalı. Ceza SABİT DEĞİLDİR:
+# düşürülür - çelişkili kanıt "eşleşti" saydırmamalı. Ceza SABİT DEĞİLDİR:
 # zayıf kanıt sıfıra yaklaştıkça sertleşir, sınıra yaklaştıkça yumuşar.
 # Gerekçe ölçüldü: sabit çarpanla, rengi bambaşka ama deseni BİREBİR aynı iki
-# nesne (aynı ürünün başka renklisi) 0,38 alıyordu — kanıtın biri hiç yokken
+# nesne (aynı ürünün başka renklisi) 0,38 alıyordu - kanıtın biri hiç yokken
 # bu kadar yüksek bir skor "eşleşti" saydırır. Dereceli cezayla aynı çift
 # 0,06'ya iner; kanıtı yalnız ZAYIF olan gerçek eşleşmeler ise az kaybeder.
 _UYUSMA_ALT_SINIRI = 0.30
 _CELISKI_CEZASI = 0.65
 # Desen kanıtı için gereken en az anahtar nokta (altındaysa "desensiz").
-# Açık ad: `teshis.py` bunu okur — bkz. DESEN_TABAN_NOKTA'daki gerekçe.
+# Açık ad: `teshis.py` bunu okur - bkz. DESEN_TABAN_NOKTA'daki gerekçe.
 EN_AZ_ANAHTAR_NOKTA = 8
 # İki taraf da desensizse tutunacak tek iz renktir. Bu üç sayı artık bir
 # SKOR değil, "yalnız renge bakarken ne kadar güvenebilirim" GÜVENİDİR (0-1):
@@ -118,11 +118,11 @@ EN_AZ_ANAHTAR_NOKTA = 8
 _DUZ_RENK_BARI = 0.68
 _DUZ_KABUL = 0.62
 _DUZ_ZAYIF = 0.38
-# Biri desenli öteki düz: kanıtlar uyuşmuyor. Ceza burada da DERECELİDİR —
+# Biri desenli öteki düz: kanıtlar uyuşmuyor. Ceza burada da DERECELİDİR -
 # düz tarafta hiç anahtar nokta yoksa (bomboş bir duvar/zemin parçası) çelişki
 # tamdır ve skor sıfırlanır; birkaç nokta varsa (bulanıklıktan deseni silinmiş
 # bir pencere) çelişki kısmidir. Ölçüldü: sabit çarpanla, desenli bir nesneyle
-# AYNI RENKTE düz bir yama o nesnenin adını alabiliyordu (0,30) — sistemin
+# AYNI RENKTE düz bir yama o nesnenin adını alabiliyordu (0,30) - sistemin
 # yazmaması gereken tam da bu isimdir.
 # Bu da bir skor değil GÜVENDİR (bkz. _DUZ_KABUL); çıtaya çevrilmesi
 # `kabul_skoru()` işidir.
@@ -137,7 +137,7 @@ _KANIT_UYUSMAZLIGI = 0.26
 # başına isim yazdıramaz. Sistem emin değilse "eşleşme yok" der (docs/00:
 # kaçırmak sistemin bilinen sınırıdır, yanlış alarm ise güveni bitirir).
 #
-# Kural TEK ve HER DALA aynı biçimde uygulanır — `benzerlik_ayrintili()`
+# Kural TEK ve HER DALA aynı biçimde uygulanır - `benzerlik_ayrintili()`
 # skorun DESEN'den gelen payını (`Skor.desen_payi`) da döndürür:
 #
 #   iki taraf da desensiz    → desen payı 0  → taşımaz
@@ -147,13 +147,13 @@ _KANIT_UYUSMAZLIGI = 0.26
 #                              tavana sıkıştırılır
 #
 # GÜVENCE ORANSALDIR: taşımayan bir karşılaştırmanın alabileceği EN YÜKSEK
-# skor, kabul çıtasının bu oranı kadardır. Oran 1'in ALTINDA olduğu sürece —
-# çıta .env'den (NESNE_ESLESME_ESIGI) kaça çekilirse çekilsin — o skor çıtayı
+# skor, kabul çıtasının bu oranı kadardır. Oran 1'in ALTINDA olduğu sürece -
+# çıta .env'den (NESNE_ESLESME_ESIGI) kaça çekilirse çekilsin - o skor çıtayı
 # MATEMATİKSEL OLARAK aşamaz (ham skor tanım gereği 0-1 arasındadır):
 #
 #     tavan = TEK_KANIT_TAVAN_ORANI · çıta  <  çıta        (0 < oran < 1)
 #
-# NEDEN SABİT TAVAN OLMAZ — BU HATA BİR KEZ YAPILDI: eski güvence sabitti
+# NEDEN SABİT TAVAN OLMAZ - BU HATA BİR KEZ YAPILDI: eski güvence sabitti
 # (düz-düz dalının tavanı 0,62, uyuşmazlık dalınınki 0,23) ve çıta 0,42'yken
 # doğruydu. Çıta 0,24'e indirilince dal tavanları yerinde kaldı, güvence
 # sessizce çöktü: kütüphanede OLMAYAN düz mavi bir kasa "Düz mavi bidon" adını
@@ -162,12 +162,12 @@ _KANIT_UYUSMAZLIGI = 0.26
 # Oransal tavanda böyle bir sessiz çöküş olamaz; üstelik
 # tests/test_nesne_kutuphanesi.py bunu 0,05'ten 0,95'e her çıta için sınar.
 #
-# NEDEN "DESEN PAYI ÇITAYI GEÇSİN" — İKİNCİ DELİK: ilk düzeltmede yalnız
+# NEDEN "DESEN PAYI ÇITAYI GEÇSİN" - İKİNCİ DELİK: ilk düzeltmede yalnız
 # desensiz iki dal kapatıldı ve ölçüm ikinci bir deliği gösterdi. Kütüphanedeki
 # "Düz beyaz baret" referansının 23 anahtar noktası var (yani motor onu
 # "desenli" sayıyor), ama bu noktalar desen değil GÖLGE gürültüsüdür. Beyaz bir
 # çuvalın 9 noktası rastlantıyla hizalanınca desen skoru 0,30, renk 0,754 ve
-# toplam 0,504 çıkıyordu — skorun 0,339'u (üçte ikisi) RENKTEN geliyordu.
+# toplam 0,504 çıkıyordu - skorun 0,339'u (üçte ikisi) RENKTEN geliyordu.
 # Desen payı ise yalnız 0,165'ti, yani çıtayı tek başına asla geçemezdi.
 # Kural bu yüzden dala değil, PAYA bakar.
 TEK_KANIT_TAVAN_ORANI = 0.90
@@ -179,7 +179,7 @@ TEK_KANIT_TAVAN_ORANI = 0.90
 # 2026-09'da, "renk taşımaz" kuralıyla birlikte YENİDEN ölçüldü: o nokta yine
 # 0,24'tür (8/204 isabet, 0 yanlış isim); ilk yanlış isim 0,22'de çıkar, yani
 # bir adımlık pay vardır. Çıtanın üstündeki bütün kademelerde de yanlış isim
-# sıfırdır ve isabet düşer — yükseltmenin kazancı yoktur.
+# sıfırdır ve isabet düşer - yükseltmenin kazancı yoktur.
 #
 # Bu sayı artık GÜVENLİKTEN sorumlu değildir, yalnız isabet/kaçırma dengesini
 # ayarlar: yalnız renge dayanan bir kanıtın isim yazdıramaması çıtanın
@@ -212,7 +212,7 @@ class Desen:
     """
 
     tanimlayicilar: np.ndarray
-    noktalar: np.ndarray  # (N, 2) float32 — standart 160x160 çerçevesinde
+    noktalar: np.ndarray  # (N, 2) float32 - standart 160x160 çerçevesinde
 
     def __len__(self) -> int:
         return len(self.tanimlayicilar)
@@ -266,7 +266,7 @@ def parmakizi_cikar(bgr: np.ndarray | None) -> Parmakizi | None:
 
 
 def _merkez_maskesi(oran: float) -> np.ndarray:
-    """Karşılaştırma karesinin ortasındaki daire (255) — dışı 0."""
+    """Karşılaştırma karesinin ortasındaki daire (255) - dışı 0."""
     maske = np.zeros((_STANDART_BOYUT[1], _STANDART_BOYUT[0]), dtype=np.uint8)
     merkez = (_STANDART_BOYUT[0] // 2, _STANDART_BOYUT[1] // 2)
     cv2.circle(maske, merkez, int(min(_STANDART_BOYUT) * oran), 255, -1)
@@ -291,7 +291,7 @@ def _geriden(bgr: np.ndarray) -> np.ndarray:
 
 
 def renk_izi(bgr: np.ndarray, genis_de: bool = False) -> RenkIzi:
-    """Renk izi — taramanın UCUZ ön elemesi de bunu kullanır.
+    """Renk izi - taramanın UCUZ ön elemesi de bunu kullanır.
 
     `genis_de` yalnız REFERANS fotoğraflar için açılır. Geniş çerçeve
     karşılaştırmada hep referans tarafından okunur; taranan her pencere için de
@@ -317,10 +317,10 @@ def renk_izi(bgr: np.ndarray, genis_de: bool = False) -> RenkIzi:
 
 
 def desen_izi(bgr: np.ndarray) -> Desen | None:
-    """Yalnız desen (ORB) izi — taramanın PAHALI adımı budur."""
+    """Yalnız desen (ORB) izi - taramanın PAHALI adımı budur."""
     gri = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
     # NOT: ORB öncesi kontrast açma (CLAHE) kardeş sistemde denendi ve GERİ
-    # ALINDI — düz/mat yüzeylerde sensör gürültüsünden kararsız sahte desen
+    # ALINDI - düz/mat yüzeylerde sensör gürültüsünden kararsız sahte desen
     # üretip düz nesnenin kendisiyle eşleşmesini bozuyordu.
     noktalar, tanimlayicilar = _orb().detectAndCompute(gri, None)
     if tanimlayicilar is None or not noktalar:
@@ -359,7 +359,7 @@ def renk_benzerligi(a: RenkIzi, b: RenkIzi) -> float:
     de "buldum" demek işareti yanlış yere koydurur.
 
     Bu soru çifti referansın İKİ çerçevelemesi için ayrı ayrı sorulur (yakın
-    çekim ve bir adım geriden — `_GENIS_CERCEVE`); iyi olan kazanır, çünkü
+    çekim ve bir adım geriden - `_GENIS_CERCEVE`); iyi olan kazanır, çünkü
     pencerenin nesneyi hangi sıkılıkta çerçevelediğini önceden bilemeyiz.
 
     `arama.py`'deki ucuz ön eleme de tam bu fonksiyonu çağırır; dolayısıyla
@@ -377,7 +377,7 @@ def _cerceve_benzerligi(aday: RenkIzi, tum: np.ndarray, merkez: np.ndarray) -> f
 
 
 def _kesisim(a: np.ndarray, b: np.ndarray) -> float:
-    """Histogram kesişimi: 0 (hiç benzemiyor) — 1 (aynı)."""
+    """Histogram kesişimi: 0 (hiç benzemiyor) - 1 (aynı)."""
     toplam = float(np.sum(np.maximum(a, b)))
     if toplam <= 0:
         return 0.0
@@ -385,7 +385,7 @@ def _kesisim(a: np.ndarray, b: np.ndarray) -> float:
 
 
 def _desen_benzerligi(a: Desen | None, b: Desen | None) -> float:
-    """Eşleşen ORB anahtar noktalarının oranı — İKİ elemeden geçirilmiş.
+    """Eşleşen ORB anahtar noktalarının oranı - İKİ elemeden geçirilmiş.
 
     1. Oran testi (Lowe): bir noktanın EN yakın eşi, ikinci en yakınından
        belirgin iyi değilse eşleşme rastlantısaldır ve sayılmaz.
@@ -393,7 +393,7 @@ def _desen_benzerligi(a: Desen | None, b: Desen | None) -> float:
        dönüşümle (döndürme + ölçek + kaydırma) açıklanabilenleri sayılır.
        Neden şart: oran testi tek tek noktalara bakar, bütüne bakmaz. Ölçümde
        "barkod" sorulunca "düz beyaz baret" adının 0,40 skorla yazıldığı
-       görüldü — baretin az sayıdaki gürültü noktası barkodun çubuklarına
+       görüldü - baretin az sayıdaki gürültü noktası barkodun çubuklarına
        dağınık biçimde denk gelmişti. Gerçek bir eşleşmede noktalar dağılmaz,
        hepsi aynı yer değiştirmeyi gösterir. Bu sınama o yanlış isimleri
        (ölçümde 5 taneydi, hepsi bu daldandı) sıfıra indirir.
@@ -440,7 +440,7 @@ def _geometrik_uyanlar(aday_yerleri: list, referans_yerleri: list) -> int:
 
 
 def benzerlik_ayrintili(aday: Parmakizi, referans: Parmakizi) -> Skor:
-    """İki parmak izinin HAM karşılaştırması — hangi daldan geçtiğiyle birlikte.
+    """İki parmak izinin HAM karşılaştırması - hangi daldan geçtiğiyle birlikte.
 
     İki kanıt (renk ve desen) birbirini DOĞRULAMALIDIR. Yalnız biri uyuyorsa
     skor düşürülür; çünkü:
@@ -467,7 +467,7 @@ def benzerlik_ayrintili(aday: Parmakizi, referans: Parmakizi) -> Skor:
 
     if aday_desensiz and referans_desensiz:
         # İkisi de düz/desensiz: tutunacak tek iz renktir. Renk barı geçilmediyse
-        # güven ayrıca düşürülür — orta karar bir renk benzerliği "aynı nesne"
+        # güven ayrıca düşürülür - orta karar bir renk benzerliği "aynı nesne"
         # saydırmaya hiç yaklaşmasın.
         return Skor(renk * (_DUZ_KABUL if renk >= _DUZ_RENK_BARI else _DUZ_ZAYIF), 0.0)
 
@@ -504,12 +504,12 @@ def kabul_skoru(skor: Skor, esik: float) -> float:
 
     Desen payı çıtayı tek başına geçiyorsa skor olduğu gibi geçer: renk orada
     yalnızca doğrulama görevindedir. Geçmiyorsa skor `[0, tavan]` aralığına
-    ORANI KORUYARAK sıkıştırılır — sıralama bozulmaz (hangi karşılaştırma daha
+    ORANI KORUYARAK sıkıştırılır - sıralama bozulmaz (hangi karşılaştırma daha
     çok tuttuysa o hâlâ önde), ama çıta MATEMATİKSEL OLARAK aşılamaz.
 
     Sıkıştırma yerine düz bir `min()` KULLANILMADI, bilerek: `min` bütün zayıf
     adayları tavana yığar ve kullanıcıya "en yüksek benzerlik %22, çıta %24"
-    dedirtir — teşhis buna bakıp "kıl payı kaldı, bu açıdan bir fotoğraf
+    dedirtir - teşhis buna bakıp "kıl payı kaldı, bu açıdan bir fotoğraf
     ekleyin" der (teshis._YAKIN_PAYI), oysa fotoğraf eklemek bu durumu
     düzeltmez. Oranı koruyan sıkıştırmada zayıf kanıt zayıf sayı olarak görünür.
     """
@@ -534,7 +534,7 @@ def renk_alt_siniri(esik: float) -> float:
     Neden var: tarama, yüklenen fotoğrafı yüzlerce pencereye bölüp her birini
     kütüphaneyle karşılaştırır. Pahalı olan adım desen (ORB) çıkarımıdır; renk
     histogramı ise ucuzdur. Bu fonksiyon, "bu pencere için desen hesaplamaya
-    hiç değmez" diyebilmenin GÜVENLİ sınırını verir — hesap `benzerlik()`
+    hiç değmez" diyebilmenin GÜVENLİ sınırını verir - hesap `benzerlik()`
     formülünün üst sınırından çıkarılmıştır, tahmin değildir. Desen en fazla 1
     olabileceğine göre, bir renk değeri `r` için alınabilecek en yüksek skor:
 
@@ -543,7 +543,7 @@ def renk_alt_siniri(esik: float) -> float:
 
     Tek kanıtlı dallar (desensiz ve uyuşmazlık) bu hesaba HİÇ girmez: onların
     tavanı zaten çıtanın altındadır (`tek_kanit_tavani`), yani renk 1,0 bile
-    olsa eşiği geçemezler. Eleme yalnızca hızlandırır; sonucu DEĞİŞTİRMEZ —
+    olsa eşiği geçemezler. Eleme yalnızca hızlandırır; sonucu DEĞİŞTİRMEZ -
     tests/test_nesne_kutuphanesi.py bunu rastgele çiftlerle sınar.
     """
     sinirda = _RENK_AGIRLIGI * _UYUSMA_ALT_SINIRI + _DESEN_AGIRLIGI
@@ -562,7 +562,7 @@ def en_iyi_eslesme(
 ) -> tuple[Nesne | None, float]:
     """Aday görüntüyü kütüphanedeki nesnelerle karşılaştırır.
 
-    Nesnenin BİRDEN ÇOK açıdan fotoğrafı varsa en iyi eşleşen açı kullanılır —
+    Nesnenin BİRDEN ÇOK açıdan fotoğrafı varsa en iyi eşleşen açı kullanılır -
     bu yüzden farklı açılardan fotoğraf yüklemek isabeti artırır.
     Eşiğin altındaki en iyi skor bile kabul EDİLMEZ: (None, skor) döner.
     """
@@ -579,7 +579,7 @@ def en_iyi_eslesme_izinden(
 
     Çıta yalnız "kabul edildi mi" sorusunda değil, skorun KENDİSİNDE de
     kullanılır (`kabul_skoru`): tek kanıtlı bir aday çıtanın altında bir skor
-    alır, dolayısıyla kabul edilebilir bir adayı asla geçemez — sıralamayı
+    alır, dolayısıyla kabul edilebilir bir adayı asla geçemez - sıralamayı
     bozmadan elenir.
     """
     en_iyi_nesne, en_iyi_skor = None, 0.0
@@ -598,7 +598,7 @@ def en_iyi_eslesme_izinden(
 
 
 # ============================================================================
-# DENENDİ VE GERİ ALINDI — aynı yollara tekrar girilmesin diye yazılıyor.
+# DENENDİ VE GERİ ALINDI - aynı yollara tekrar girilmesin diye yazılıyor.
 # 1-5 arası `tests/nesne_kiyas` tam takımıyla (12 nesne, 194 sorgu) ölçüldü;
 # 6 ve sonrası sertleştirilmiş takımla (264 sorgu).
 # ============================================================================
@@ -613,7 +613,7 @@ def en_iyi_eslesme_izinden(
 #
 # 2) REFERANSI YAKINLAŞTIRARAK ÇOK ÖLÇEKLİ PARMAK İZİ (referansın ortasını
 #    kırpıp ayrıca izlemek). FELAKET: sıkı kırpılmış referans neredeyse tek
-#    renkli bir yamaya dönüşüyor ve her şeye benziyor — her eşikte yüzlerce
+#    renkli bir yamaya dönüşüyor ve her şeye benziyor - her eşikte yüzlerce
 #    yanlış isim. UZAKLAŞTIRMAK (kenarı uzatarak geniş çerçeve) ise işe
 #    yaradı; bugün `_GENIS_CERCEVE` olarak duruyor.
 #
@@ -638,7 +638,7 @@ def en_iyi_eslesme_izinden(
 # 6) ÇITAYI YÜKSELTEREK "RENK TAŞIYOR" DELİĞİNİ KAPATMAK. Sertleştirilmiş takım
 #    (264 sorgu) çıtayı 0,42'ye geri çekmenin yanlış ismi 76'dan 58'e indirip
 #    BİTİRMEDİĞİNİ gösterdi. Sebebi basit: delik çıtada değil, dalın
-#    formülündeydi — düz-düz dalının tavanı (0,62) çıtadan (0,24) yüksekti ve
+#    formülündeydi - düz-düz dalının tavanı (0,62) çıtadan (0,24) yüksekti ve
 #    çıtayla birlikte oynamıyordu. Bugünkü çözüm tavanı çıtaya BAĞLADI.
 #
 # 7) "RENK TAŞIMAZ" KURALINI GEVŞETMEK (desen payından çıtanın tamamı yerine
@@ -651,7 +651,7 @@ def en_iyi_eslesme_izinden(
 #    Doğru çözüm çıtayı ya da oranı oynatmak DEĞİL, referansın deseninin
 #    AYIRT EDİCİ olup olmadığını ölçmektir (docs/07-YOL-HARITASI.md).
 #
-# 8) DÜZ NESNELERE "İKİNCİ KANIT" ARAMAK — RENKTEN BAĞIMSIZ BİR ÖLÇÜ.
+# 8) DÜZ NESNELERE "İKİNCİ KANIT" ARAMAK - RENKTEN BAĞIMSIZ BİR ÖLÇÜ.
 #    Düz/desensiz nesnelerin isabeti bugün sıfırdır ve bunu kurtarmanın tek
 #    meşru yolu, renge dayanmayan İKİNCİ bir kanıt bulmaktır (çünkü "renk
 #    taşımaz" kuralı gevşetilemez). Üç aile ayrı ayrı ve birlikte ölçüldü;
@@ -683,7 +683,7 @@ def en_iyi_eslesme_izinden(
 #    gri sac levha) pürüzsüz oldukları için referansa, sahnede dönmüş /
 #    bulanıklaşmış / yarısı örtülmüş GERÇEK nesneden DAHA ÇOK benziyor.
 #    Bu yüzden aynı nesnenin dört referansı birbirini, ikizini tanıdığından
-#    DAHA AZ tanıyor (ör. HOG: kendi 0,827 — ikizi 0,850). Sıralaması ters
+#    DAHA AZ tanıyor (ör. HOG: kendi 0,827 - ikizi 0,850). Sıralaması ters
 #    olan bir kanıt hiçbir eşik, ağırlık ya da birleşimle düzelmez.
 #
 #    Hu momentleri ayrıca elendi: aynı nesnenin dört referansı arasındaki
@@ -691,9 +691,9 @@ def en_iyi_eslesme_izinden(
 #    eşiklemesi tarama penceresinde nesneyi zeminden ayıramıyor.
 #
 #    SONUÇ: düz/desensiz nesneler bu yöntemle BULUNAMAZ ve bu, kapatılmamış
-#    bir eksiktir. Gizlenmiyor: Nesneler sayfasında rozet "Düz renkli —
+#    bir eksiktir. Gizlenmiyor: Nesneler sayfasında rozet "Düz renkli -
 #    bulunamaz" der, kılavuzda ve "Bu yöntem ne yapar, ne yapmaz" bölümünde
 #    de yazar. Sıradaki fikir (ölçülmedi): tarama penceresini nesnenin
-#    silüetine OTURTMAK — bugün kare pencere ızgarası nesneyi hiçbir zaman
+#    silüetine OTURTMAK - bugün kare pencere ızgarası nesneyi hiçbir zaman
 #    referanstaki gibi çerçevelemiyor, dolayısıyla biçim kanıtı daha
 #    hesaplanırken bozuluyor (docs/07-YOL-HARITASI.md).

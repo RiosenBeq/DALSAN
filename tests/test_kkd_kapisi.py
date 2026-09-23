@@ -86,7 +86,7 @@ def test_olculmeyen_sayi_yazilmaz():
     sayac = KalemSayaci(olay=5)
     assert kkd_karnesi.precision_metni(sayac) == "ölçülecek"
     assert kkd_karnesi.kapsama_metni(sayac) == "%0"
-    assert kkd_karnesi.kapsama_metni(KalemSayaci()) == "—"
+    assert kkd_karnesi.kapsama_metni(KalemSayaci()) == "-"
     assert kkd_karnesi.kapsama_metni(KalemSayaci(olay=300, dogru=299)) == "%99"
 
 

@@ -8,11 +8,11 @@ bunu söyler; sistem anonstan bağımsız çalışır (K6). Eskiden kanalı .env
 ANONS ayarı seçiyordu; o ayar ilk açılışta bir kez satıra aktarılır
 (olaylar/kanallar.py).
 
-Anons cooldown'u ekran uyarısından BAĞIMSIZ ve daha uzundur — ekranda 3 olay
+Anons cooldown'u ekran uyarısından BAĞIMSIZ ve daha uzundur - ekranda 3 olay
 görünmesi sorun değil; hoparlörün 3 kez bağırması sorundur (docs/03 §5).
 
 HTTP BİÇİMİ (.env → ANONS_HTTP_BICIMI): sahadaki IP hoparlörlerin HTTP
-arayüzü tek tip değildir. Üç biçim desteklenir — `json` (gövdede JSON,
+arayüzü tek tip değildir. Üç biçim desteklenir - `json` (gövdede JSON,
 varsayılan), `form` (gövdede form alanı), `get` (adres çağrılır, mesaj adresteki
 {anahtar}/{metin} yer tutucularına yazılır). Hangi cihaz için hangisinin
 seçileceği docs/14-ANONS-SISTEMI-BAGLAMA.md'de tarif edilir.
@@ -42,7 +42,7 @@ _log = log_al("anons")
 
 
 class AnonsHatasi(Exception):
-    """Ses çalınamadı — sebebi Anons sayfasında gösterilir."""
+    """Ses çalınamadı - sebebi Anons sayfasında gösterilir."""
 
 
 def _ses_komutu(ses_dosyasi: str, cihaz: str = "") -> list[str] | None:
@@ -56,11 +56,11 @@ def _ses_komutu(ses_dosyasi: str, cihaz: str = "") -> list[str] | None:
     `cihaz` (kanal satırının `device`'ı) hangi ses ÇIKIŞINA çalınacağıdır ve
     yalnızca Linux'ta işe yarar: paplay/aplay çıkışı adıyla alır, afplay ve
     winsound almaz. Mac/Windows'ta çıkış, işletim sisteminin ses
-    ayarlarından seçilir — ayrıntı: olaylar/ses_cihazlari.py.
+    ayarlarından seçilir - ayrıntı: olaylar/ses_cihazlari.py.
     """
     if sys.platform == "win32":
         return None
-    # SIRA ÖNEMLİ — paplay, aplay'den ÖNCE denenir. aplay ham ALSA'dır ve
+    # SIRA ÖNEMLİ - paplay, aplay'den ÖNCE denenir. aplay ham ALSA'dır ve
     # Bluetooth hoparlörü HİÇ GÖRMEZ; Bluetooth çıkışı PulseAudio/PipeWire
     # tarafındadır ve ona ancak paplay çalar. İkisi de kuruluyken aplay
     # seçilseydi, kullanıcı listeden Bluetooth hoparlörünü seçer ve ses
@@ -80,7 +80,7 @@ def _ses_komutu(ses_dosyasi: str, cihaz: str = "") -> list[str] | None:
 
 
 def _windows_cal(ses_dosyasi: str) -> None:
-    """Windows: WAV'ı stdlib `winsound` ile çalar — süreç açılmaz, komut kurulmaz.
+    """Windows: WAV'ı stdlib `winsound` ile çalar - süreç açılmaz, komut kurulmaz.
 
     Eskiden PowerShell'e `(New-Object Media.SoundPlayer '<yol>').PlaySync()`
     METNİ veriliyordu. Yol arayüzden girildiği için güvenlik tek tırnak
@@ -88,7 +88,7 @@ def _windows_cal(ses_dosyasi: str) -> None:
     alır; kaçılacak bir şey yoktur.
 
     SND_NODEFAULT şarttır: onsuz, dosya bulunamadığında ya da WAV değilse
-    Windows varsayılan "bip" sesini çalar ve çağrı BAŞARILI döner — "Anonsu
+    Windows varsayılan "bip" sesini çalar ve çağrı BAŞARILI döner - "Anonsu
     Dene" düğmesi "çalındı" derdi. Çağrı ses bitene kadar bekler (anons zaten
     kendi iş parçacığındadır). İkinci bir anons ilki çalarken gelirse Windows
     ilkini keser: PlaySound süreç başına tek sestir. Üst üste binen iki
@@ -230,9 +230,9 @@ def _istek_hazirla(adres: str, anahtar: str, metin: str, bicim: str):
     """Biçime göre urllib isteği kurar (json | form | get).
 
     Üç biçim, sahadaki üç yaygın cihaz ailesine karşılık gelir:
-      json — anons sunucuları / yazılım geçitleri (varsayılan, eski davranış)
-      form — gömülü web arayüzlü amfi ve röle kartları
-      get  — "adresi çağır, sesi çal" diyen IP hoparlörler
+      json - anons sunucuları / yazılım geçitleri (varsayılan, eski davranış)
+      form - gömülü web arayüzlü amfi ve röle kartları
+      get  - "adresi çağır, sesi çal" diyen IP hoparlörler
     """
     dolu_adres = adresi_doldur(adres, anahtar, metin)
     if bicim == "get":
@@ -270,7 +270,7 @@ def http_gonder(adres: str, anahtar: str, metin: str, bicim: str = "json") -> No
         with urllib.request.urlopen(istek, timeout=5) as yanit:
             _log.info(f"Anons HTTP gönderildi ({yanit.status}): {metin}")
     except (urllib.error.URLError, TimeoutError, ValueError) as hata:
-        # ValueError: adres biçimi bozuksa urllib bunu fırlatır — ve metnine
+        # ValueError: adres biçimi bozuksa urllib bunu fırlatır - ve metnine
         # adresi OLDUĞU GİBİ koyar ("unknown url type: 'htp://kul:sifre@…'").
         # Adresteki kullanıcı adı/şifre ne günlüğe ne ekrana gider (R18): adres
         # de sebep de maskelenir; çağıran taraf hangi hoparlör olduğunu maskeli
@@ -306,7 +306,7 @@ class HttpAnonscu:
 
 
 def bolgeleri_sec(bolgeler: list[dict], kamera_alani: str | None) -> list[dict]:
-    """Olayın duyurulacağı kanallar — seçim kuralının TEK yeri (docs/17 §7.3-1).
+    """Olayın duyurulacağı kanallar - seçim kuralının TEK yeri (docs/17 §7.3-1).
 
     Kameranın bölümündeki BÜTÜN açık kanallar (bir bölümde ses çıkışı ve IP
     hoparlör birlikte olabilir); bölümde kanal yoksa "Tüm fabrika" (area boş)
@@ -430,7 +430,7 @@ class AnonsYoneticisi:
         if bolge is None:
             # Kanal yoksa ses çalmaz; bu bir hata değil, kurulum eksiğidir
             self.son_sonuc = (
-                "Son anons ÇALINAMADI — sesli kanal tanımlı değil. Anons sayfasından bir "
+                "Son anons ÇALINAMADI - sesli kanal tanımlı değil. Anons sayfasından bir "
                 "ses çıkışı ya da IP hoparlör ekleyin; o zamana kadar yalnızca ekran uyarısı "
                 "verilir."
             )
@@ -444,10 +444,10 @@ class AnonsYoneticisi:
                 self._son_anonsu_yaz(int(bolge["id"]))
         except AnonsHatasi as hata:
             # Bilinen sebep: kullanıcıya olduğu gibi göster
-            self.son_sonuc = f"Son anons ÇALINAMADI{nereye} — {hata}"
+            self.son_sonuc = f"Son anons ÇALINAMADI{nereye} - {hata}"
             _log.error(f"Anons çalınamadı: {hata}")
-        except Exception as hata:  # noqa: BLE001 — anons hatası sistemi durdurmaz
-            self.son_sonuc = f"Son anons ÇALINAMADI{nereye} — beklenmeyen hata: {hata}"
+        except Exception as hata:  # noqa: BLE001 - anons hatası sistemi durdurmaz
+            self.son_sonuc = f"Son anons ÇALINAMADI{nereye} - beklenmeyen hata: {hata}"
             _log.error(f"Anons çalınamadı: {hata}", exc_info=hata)
 
     def _son_anonsu_yaz(self, bolge_id: int) -> None:

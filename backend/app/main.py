@@ -38,9 +38,9 @@ def uygulamayi_kur() -> FastAPI:
     """Ayarları okur, log sistemini kurar, uygulamayı döndürür.
 
     İki çağıranı vardır ve ikisi de bu dosyadan geçer:
-      * aşağıdaki `app` — uvicorn'un beklediği modül düzeyi nesne
+      * aşağıdaki `app` - uvicorn'un beklediği modül düzeyi nesne
         (Kontrol Paneli geliştirme kurulumunda böyle başlatır);
-      * paketlenmiş programın Kontrol Paneli — sunucuyu kendi süreci
+      * paketlenmiş programın Kontrol Paneli - sunucuyu kendi süreci
         içinde başlattığı için HER "Sistemi Başlat"ta yeniden çağırır.
 
     İkinci çağıran yüzünden bu iş bir fonksiyonda durmalı: yoksa Durdur →
@@ -58,7 +58,7 @@ def uygulamayi_kur() -> FastAPI:
         if hata.teknik_ayrinti != hata.kullanici_mesaji:
             # Log dosyası henüz kurulmadı (klasörü kurulamamış olabilir); teknik
             # ayrıntı bu yüzden Kontrol Paneli'nin "Sistem günlüğü" panelinde
-            # kalır — destek akışı oradan kopyalanıyor, hiçbir bilgi kaybolmaz.
+            # kalır - destek akışı oradan kopyalanıyor, hiçbir bilgi kaybolmaz.
             _guvenli_yaz(f"[AYRINTI] {hata.teknik_ayrinti}\n")
         raise SystemExit(1) from hata
     loglama.kur(ayarlar)

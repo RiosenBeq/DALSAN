@@ -15,7 +15,7 @@ Buradaki testler o AKIŞI okur. Sızıntı hangi yoldan gelirse gelsin görürle
 İki yönlü kontrol yapılır, çünkü tek yön yetmez:
   1) EKRAN akışında yasaklı parça GEÇMEMELİ (sızıntı yok).
   2) GÜNLÜK DOSYASINDA aynı ayrıntı GEÇMELİ (destek akışı kör kalmasın).
-Sadece (1) olsaydı, ayrıntıyı tamamen silmek de testi geçerdi — ve destek
+Sadece (1) olsaydı, ayrıntıyı tamamen silmek de testi geçerdi - ve destek
 ekibinin tek ipucu yok olurdu.
 """
 
@@ -94,7 +94,7 @@ def test_ekran_bicimi_ayrintiyi_yazmaz_dosya_bicimi_yazar(test_ayarlari, capsys)
 
 
 def test_yigin_izi_ekrana_dusmez_dosyada_durur(test_ayarlari, capsys):
-    """Yığın izi kaynak dosyaların mutlak yollarını içerir — ekrana değil,
+    """Yığın izi kaynak dosyaların mutlak yollarını içerir - ekrana değil,
     yalnızca destek ekibine giden dosyaya yazılır."""
     loglama.kur(test_ayarlari)
     try:
@@ -129,7 +129,7 @@ class _SahteGirdi:
 
 
 class _SahteOturum:
-    """onnxruntime.InferenceSession yerine geçer — gerçek model dosyası gerekmez."""
+    """onnxruntime.InferenceSession yerine geçer - gerçek model dosyası gerekmez."""
 
     def __init__(self, *_args, **_kwargs) -> None:
         pass
@@ -233,7 +233,7 @@ def test_model_hatasinda_ekranda_sade_mesaj_dosyada_teknik_ayrinti(test_ayarlari
 
     dosya = _dosya_satirlari(test_ayarlari)
     assert any(str(test_ayarlari.model_dosyasi) in satir.get("ayrinti", "") for satir in dosya), (
-        "Tam yol günlük dosyasından da silinmiş — destek akışı kör kalır"
+        "Tam yol günlük dosyasından da silinmiş - destek akışı kör kalır"
     )
 
 

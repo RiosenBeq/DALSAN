@@ -1,7 +1,7 @@
-{# Uyarı zinciri — "bir kural çiğnenince ne oluyor?" sorusunun tek ekrandaki cevabı.
+{# Uyarı zinciri - "bir kural çiğnenince ne oluyor?" sorusunun tek ekrandaki cevabı.
 
    Tasarımdaki (317-388) dört satırın üçü gerçek kural tiplerimizdir; dördüncüsü
-   ("Ani hareket · forklift hızı") sistemde YOK ve uydurulmadı — docs/07 yol
+   ("Ani hareket · forklift hızı") sistemde YOK ve uydurulmadı - docs/07 yol
    haritasına yazıldı. Sağdaki telefon bildirimi ekranı da taşınmadı: sistemde
    e-posta/SMS/push altyapısı yok, sahte bir bildirim önizlemesi göstermek
    "kurulu" izlenimi verirdi. O alan, ekrandaki tek gerçek güvenli deneme
@@ -55,7 +55,7 @@
             {# Kural adı SATIRIN BAŞINDA zaten yazıyor; buraya sabit bir kural
                adı yazılırsa (eskiden "güvenli mesafe" yazıyordu) araç hızı
                satırında YANLIŞ kuralın adı görünür. #}
-            <span class="zincir-uyari">{{ z.kalibrasyonsuz }} kamerada kalibrasyon yok —
+            <span class="zincir-uyari">{{ z.kalibrasyonsuz }} kamerada kalibrasyon yok -
               bu kural o kamerada bilerek pasif</span>
             {% endif %}
           </span>
@@ -64,7 +64,7 @@
             <span>{{ z.anons }}</span>
             <span class="panel-notu">{{ z.yol }}{% if z.ses %} · {{ z.ses }}{% endif %}</span>
             {% if z.anons_kapali %}
-            <span class="zincir-uyari">bu mesaj Anons sisteminde kapalı — çalınmaz</span>
+            <span class="zincir-uyari">bu mesaj Anons sisteminde kapalı - çalınmaz</span>
             {% endif %}
           </span>
 
@@ -127,7 +127,7 @@
       {% endif %}
       <p class="panel-notu">"Bildirim" sütunu her satırda <b>kurulmadı</b> yazar: sistemde
         e-posta, SMS ve mobil bildirim altyapısı <b>yoktur</b>. Bu, unutulmuş bir eksik
-        değil, bilinçli bir sınır — <b>docs/07-YOL-HARITASI.md</b> dosyasında
+        değil, bilinçli bir sınır - <b>docs/07-YOL-HARITASI.md</b> dosyasında
         "Phase 2, madde 4: Bildirim kanalları" olarak duruyor.</p>
     </section>
 
@@ -139,20 +139,20 @@
       </div>
       <div class="tirmandirma">
         <div class="komuta-kutu">
-          <span class="sayi-etiketi">0. dakika — çalışıyor</span>
+          <span class="sayi-etiketi">0. dakika - çalışıyor</span>
           <span class="satir-adi">Ekran bandı + anons</span>
           <span class="panel-notu">İhlal anında ekranda uyarı bandı çıkar, olay kuyruğa
             düşer ve kurala mesaj bağlıysa hoparlör çalar. Aynı kamera ve mesaj için
             {{ anons_bekleme_sn }} saniye dolmadan tekrar çalınmaz.</span>
         </div>
         <div class="komuta-kutu bos-adim">
-          <span class="sayi-etiketi">Sonraki adım — kurulmadı</span>
+          <span class="sayi-etiketi">Sonraki adım - kurulmadı</span>
           <span class="satir-adi">Vardiya şefine bildirim</span>
           <span class="panel-notu">"İhlal 3 dakikadır incelenmedi → telefona düşsün" için
             e-posta/SMS/push altyapısı gerekir; sistemde yok. docs/07 Phase 2, madde 4.</span>
         </div>
         <div class="komuta-kutu bos-adim">
-          <span class="sayi-etiketi">Sonraki adım — kurulmadı</span>
+          <span class="sayi-etiketi">Sonraki adım - kurulmadı</span>
           <span class="satir-adi">İSG uzmanına özet</span>
           <span class="panel-notu">"Aynı bölümde 3+ ihlal birikirse özet gönder" de aynı
             altyapıya bağlı. docs/07 Phase 2, madde 3 ve 4.</span>
@@ -176,7 +176,7 @@
       "doğru uyarı / yanlış alarm" diye işaretleyin. Kural isabetli çalışıyorsa
       "Anonsu aç" düğmesine basın.</p>
     <p class="panel-notu">İlk günden anonsla başlamak, henüz ayarlanmamış bir kuralın
-      çalışanı boşuna uyarmasına yol açar — bir kez kaybedilen güven geri gelmez.
+      çalışanı boşuna uyarmasına yol açar - bir kez kaybedilen güven geri gelmez.
       KKD kuralının devreye alınması bu yüzden zaten gölge modla başlar.</p>
     <p class="panel-notu">KKD kuralının anonsu bir <b>kapıdan</b> geçer: baret ve yelek
       için ayrı ayrı, yüklü model sürümüyle precision en az
@@ -190,7 +190,7 @@
       <span class="sayi-alt">{{ zincir|length }} zincir satırından</span>
     </div>
     <p class="panel-notu">Aynı ayar kuralın kendi düzenleme sayfasında da var
-      ("Gölge mod — olay kaydedilsin ama anons çalmasın").</p>
+      ("Gölge mod - olay kaydedilsin ama anons çalmasın").</p>
   </section>
 </div>
 {% endif %}

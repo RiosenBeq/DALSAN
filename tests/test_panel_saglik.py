@@ -39,7 +39,7 @@ def panel():
 @pytest.mark.parametrize(
     ("govde", "renk", "parca"),
     [
-        (None, "gri", "—"),
+        (None, "gri", "-"),
         ({"durum": "calisiyor", "analiz": True, "model": "hazir", "hazir": True}, "ok", "Hazır"),
         (
             {"analiz": True, "model": "hazir", "hazir": True, "sorunlar": ["kritik_kural_pasif"]},

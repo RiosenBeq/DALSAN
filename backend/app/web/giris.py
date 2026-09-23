@@ -23,7 +23,7 @@ yalnız şifreden türerdi: ele geçen tek bir çerezle şifre, sunucuya hiç
 dokunmadan (kaba kuvvet kilidine takılmadan) çevrimdışı denenebilirdi.
 
 KABA KUVVET KORUMASI: tek şifreli bir sistemde sınırsız deneme, şifreyi
-fiilen yok sayar — saniyede yüzlerce deneme yapan bir betik altı haneli bir
+fiilen yok sayar - saniyede yüzlerce deneme yapan bir betik altı haneli bir
 şifreyi kısa sürede bulur. Aynı adresten arka arkaya birkaç yanlış denemeden
 sonra o adres bir süre kilitlenir. Kilit ADRES BAZLIDIR: fabrikadaki bir
 kişinin yanlış yazması, başka bir bilgisayardan girişi engellemez. Adres,
@@ -131,7 +131,7 @@ def cerez_uret(sifre: str, *, sir: bytes, simdi: float | None = None) -> str:
 
 
 def _esit(birinci: str, ikinci: str) -> bool:
-    """Sabit süreli karşılaştırma — Türkçe karakterle de çalışır.
+    """Sabit süreli karşılaştırma - Türkçe karakterle de çalışır.
 
     `hmac.compare_digest` iki METİN alınca ASCII dışı bir karakterde TypeError
     fırlatır: "ş" içeren bir şifre kurulduğunda ya da giriş kutusuna Türkçe
@@ -157,7 +157,7 @@ def cerez_gecerli(cerez: str | None, sifre: str, *, sir: bytes, simdi: float | N
 
 
 def _istemci_adresi(istek: Request) -> str:
-    """İsteğin geldiği adres — kaba kuvvet kilidi bu adrese uygulanır.
+    """İsteğin geldiği adres - kaba kuvvet kilidi bu adrese uygulanır.
 
     `X-Forwarded-For` burada BİLEREK okunmaz. O başlığın ilk değerini
     istemcinin kendisi yazar: her denemede farklı bir değer gönderen bir
@@ -208,7 +208,7 @@ def denemeleri_sifirla(adres: str | None = None) -> None:
 
 
 def sifre_kurulu_mu(ayarlar) -> bool:
-    """Şifre tanımlı mı — ekranlardaki uyarı bunu sorar."""
+    """Şifre tanımlı mı - ekranlardaki uyarı bunu sorar."""
     return bool(ayarlar.yonetici_sifresi)
 
 
@@ -286,7 +286,7 @@ def giris_yap(istek: Request, sifre: str = Form(...), sonra: str = Form("/")):
         kalan = kilit_kalan_sn(adres)
         _log.warning(
             f"Yanlış şifre denemesi ({adres})"
-            + (f" — adres {kalan} sn kilitlendi." if kalan else "")
+            + (f" - adres {kalan} sn kilitlendi." if kalan else "")
         )
         if kalan > 0:
             return RedirectResponse(f"/giris?sonra={sonra}&kilit={kalan}", status_code=303)

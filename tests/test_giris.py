@@ -1,7 +1,7 @@
 """Giriş / oturum (web/giris.py).
 
 Sınanan iki söz:
-  · ŞİFRE BOŞKEN bugünkü yerel kullanım aynen sürer — hiçbir yerde şifre
+  · ŞİFRE BOŞKEN bugünkü yerel kullanım aynen sürer - hiçbir yerde şifre
     sorulmaz. Kullanıcı kendi bilgisayarında sistemi denerken engellenmemeli.
   · ŞİFRE DOLUYKEN hiçbir sayfa açılmaz. Kural değiştirebilen, kamera
     silebilen ve hoparlörden anons yaptırabilen bir sistem şirket ağında
@@ -21,7 +21,7 @@ from app.web.giris import cerez_gecerli, cerez_uret, denemeleri_sifirla
 SIFRE = "dalsan2026"
 SIR = bytes(range(32))  # kuruluma özgü sırrın yerine sabit
 
-# Şifre koyunca korunması BEKLENEN sayfalar — her biri sistemi değiştirebilir
+# Şifre koyunca korunması BEKLENEN sayfalar - her biri sistemi değiştirebilir
 # ya da fabrika görüntüsü/olay geçmişi gösterir.
 KORUMALI_YOLLAR = (
     "/",
@@ -59,7 +59,7 @@ def sifreli_istemci(sifreli_ayarlar):
 
     `Accept: text/html` başlığı bilerek verilir: gerçek tarayıcı bunu gönderir
     ve yetki hatası giriş sayfasına YÖNLENDİRİLİR. Başlıksız bir istemci
-    (fetch çağrısı gibi) 401 JSON alır — o da ayrıca sınanır.
+    (fetch çağrısı gibi) 401 JSON alır - o da ayrıca sınanır.
     """
     uygulama = uygulama_olustur(sifreli_ayarlar, analiz=False)
     with TestClient(uygulama, headers={"accept": "text/html"}) as istemci:
@@ -198,7 +198,7 @@ def test_acik_yonlendirme_engellenir(sifreli_istemci, kotu):
 
 
 def test_kisa_sifre_acilista_reddedilir(tmp_path):
-    """Üç harflik bir şifre, şifre yokmuş gibi davranır — sessizce kabul edilmemeli."""
+    """Üç harflik bir şifre, şifre yokmuş gibi davranır - sessizce kabul edilmemeli."""
     from app.ayarlar import AyarHatasi, ayarlari_yukle
 
     (tmp_path / ".env").write_text("YONETICI_SIFRESI=abc\n", encoding="utf-8")

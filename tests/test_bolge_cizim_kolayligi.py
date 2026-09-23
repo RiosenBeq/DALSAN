@@ -70,7 +70,7 @@ def test_ilk_nokta_buyuk_cizilir_ve_alani_kapatir():
     assert re.search(r"NOKTA_R\s*=\s*5", kaynak), "diğer köşeler 5 px yarıçapla çizilmeli"
     assert re.search(r"KAPATMA_YARICAPI\s*=\s*14", kaynak), "kapatma hedefi 14 px olmalı"
     assert "Math.hypot" in kaynak, "ilk noktaya uzaklık ölçülmüyor"
-    # kapatma yalnızca en az 3 köşe varken olmalı — 2 köşe alan değildir
+    # kapatma yalnızca en az 3 köşe varken olmalı - 2 köşe alan değildir
     assert "bolgeNoktalari.length >= 3 &&" in kaynak
 
 
@@ -167,7 +167,7 @@ def test_koordinatlar_normalize_kaydediliyor():
     kaynak = _js()
     govde = kaynak.split("function oranHesapla(", 1)[1].split("\n  }", 1)[0]
     assert "kutu.width" in govde and "kutu.height" in govde, (
-        "koordinat piksel olarak alınıyor — çözünürlük değişince bölge kayar"
+        "koordinat piksel olarak alınıyor - çözünürlük değişince bölge kayar"
     )
     assert "JSON.stringify(bolgeNoktalari)" in kaynak, "poligon gizli alana yazılmıyor"
 
@@ -199,7 +199,7 @@ def test_bolge_tipi_renkleri_birbirinden_farkli():
 def test_secilen_tipin_rengi_ve_turkce_adi_gosteriliyor():
     """Kullanıcı hangi tipi çizdiğini renkten VE yazıdan görmeli.
 
-    Türkçe ad, seçim kutusundaki metinden okunur — böylece tek kaynak sunucudaki
+    Türkçe ad, seçim kutusundaki metinden okunur - böylece tek kaynak sunucudaki
     BOLGE_TIPLERI tablosudur, JS'te ikinci bir Türkçe liste tutulmaz.
     """
     kaynak = _js()
@@ -238,7 +238,7 @@ def test_balon_gizliyken_gercekten_gorunmuyor():
     koyu şerit görüntünün üstünde duruyordu."""
     css = _css()
     assert ".cizim-balonu[hidden] { display: none; }" in css, (
-        "hidden özniteliği balonu gizlemiyor — sınıftaki display:flex onu yener"
+        "hidden özniteliği balonu gizlemiyor - sınıftaki display:flex onu yener"
     )
     # sınıf gerçekten flex olduğu için bu kural şart
     blok = css.split(".cizim-balonu {", 1)[1].split("}", 1)[0]
@@ -252,7 +252,7 @@ def test_balon_tuvalin_olcusunu_bozmuyor():
     kayıyordu. Balon artık kardeş düğüm: ölçüyü etkileyemez."""
     sablon = _sablon()
     alan = sablon.split('<div class="cizim-alani onizleme-kutu">', 1)[1].split("</div>", 1)[0]
-    assert "cizim-balonu" not in alan, "kılavuz balonu .cizim-alani içinde — tuvalin ölçüsünü bozar"
+    assert "cizim-balonu" not in alan, "kılavuz balonu .cizim-alani içinde - tuvalin ölçüsünü bozar"
     assert 'class="cizim-sarmal"' in sablon, "balonu tutan sarmal yok"
     css = _css()
     assert ".cizim-sarmal { position: relative;" in css, (

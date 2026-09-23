@@ -1,4 +1,4 @@
-{# Olay inceleme — solda kuyruk, sağda seçili olayın kanıtı ve kural özeti.
+{# Olay inceleme - solda kuyruk, sağda seçili olayın kanıtı ve kural özeti.
 
    İşaretleme düğmeleri GERÇEKTEN veritabanına yazar; ama yeni bir yazma yolu
    açılmaz: form, olay detay sayfasının da kullandığı /olaylar/{id}/durum
@@ -71,7 +71,7 @@
           {# Gölge moddaki kuralın olayında hoparlör HİÇ çalmamıştır; bunu
              yazmazsak kullanıcı "anons neden duyulmadı" diye arıza arar. #}
           {% if olay.golge_mod %}
-          <span class="rozet sari">gölge mod — anons çalmadı</span>
+          <span class="rozet sari">gölge mod - anons çalmadı</span>
           {% endif %}
           {{ onem_hapi(olay) }}
           {{ surec_hapi(olay) }}
@@ -86,7 +86,7 @@
         {% else %}
           {# Fotoğraf yazılamamış olabilir (disk dolu, klasör izni): olay yine
              de kaydedilir. Boş bir kutu bırakmak yerine sebebi söylenir. #}
-          <span class="kanit-yazi">Bu olayın kanıt fotoğrafı kaydedilememiş —
+          <span class="kanit-yazi">Bu olayın kanıt fotoğrafı kaydedilememiş -
             olay kaydı yine de geçerlidir.</span>
         {% endif %}
       </div>
@@ -113,7 +113,7 @@
       </form>
 
       <p class="panel-notu">«Yanlış alarm» işaretini esirgemeyin: yanlış uyarı,
-        kaçırılan ihlalden daha ağır bir kusurdur — çalışanın sisteme güvenini
+        kaçırılan ihlalden daha ağır bir kusurdur - çalışanın sisteme güvenini
         bitirir. Bu işaretler, sistemin isabetini ölçebildiğimiz tek veridir.</p>
 
       {# --- gezinme + görünür klavye ipucu --- #}
@@ -136,5 +136,5 @@
 
 {% endblock %}
 {% block betikler %}
-<script src="/static/inceleme.js?v=38"></script>
+<script src="/static/inceleme.js?v=39"></script>
 {% endblock %}

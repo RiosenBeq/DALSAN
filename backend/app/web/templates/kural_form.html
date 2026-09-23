@@ -1,8 +1,8 @@
 {% extends "temel.html" %}
-{% block baslik %}Kural — DALSAN İSG{% endblock %}
+{% block baslik %}Kural - DALSAN İSG{% endblock %}
 {% block icerik %}
   {# İpucu balonları: "?" işaretine tıklayınca tek cümlelik Türkçe açıklama
-     açılır. İmport blok İÇİNDEDİR — extends eden şablonda blok dışındaki
+     açılır. İmport blok İÇİNDEDİR - extends eden şablonda blok dışındaki
      isimler bloklardan görünmez. #}
   {% from "ipucu.html" import ipucu %}
   <h2>{{ "Kuralı Düzenle" if kural else "Yeni Kural" }}</h2>
@@ -147,7 +147,7 @@
           Kare kenarında kesik görünen kişiyi değerlendirme (önerilir)</label>
         <label class="yatay"><input type="checkbox" name="surucu_muaf" value="1"
           {% if pk.surucu_muaf %}checked{% endif %}>
-          Forklift / tır kabinindeki sürücüyü değerlendirme (politika: docs/kkd-politika.md #4–5)</label>
+          Forklift / tır kabinindeki sürücüyü değerlendirme (politika: docs/kkd-politika.md #4-5)</label>
         <label><span>Araçla örtüşme oranı (0,1-1)
           {{ ipucu('kkd-surucu', 'Kişi kutusunun bu kadarı araç kutusuyla örtüşürse kişi sürücü sayılır; ayağı araç kutusundaysa her durumda.') }}</span>
           <input name="surucu_ortusme_orani" type="number" step="0.05" min="0.1" max="1"
@@ -209,7 +209,7 @@
          hesaplanır (/kurallar/onem). Varsayılanın altına inmek sarı kutudaki
          onayı ister; sunucu kaydederken aynı denetimi yeniden yapar. #}
       <label><span>Önem
-        {{ ipucu('onem', 'Uyarının ne kadar ciddi olduğu: ekrandaki renk, uyarı bandı ve inceleme sırası buna göre belirlenir. «Varsayılan», olay türünün kendi önemidir; örneğin araç–yaya yakınlığı Kritik, yaya yolu dışında yürümek Orta.') }}</span>
+        {{ ipucu('onem', 'Uyarının ne kadar ciddi olduğu: ekrandaki renk, uyarı bandı ve inceleme sırası buna göre belirlenir. «Varsayılan», olay türünün kendi önemidir; örneğin araç-yaya yakınlığı Kritik, yaya yolu dışında yürümek Orta.') }}</span>
         <select name="severity" id="severity">
           <option value="warning" id="onem-varsayilan-secenek"
             {% if onem_secimi not in IHLAL_ONEMLERI %}selected{% endif %}>Varsayılan{% if onem %} ({{ onem.varsayilan_adi }}){% endif %}</option>
@@ -229,14 +229,14 @@
       </div>
 
       <label><span>Tekrar uyarı bastırma / cooldown (saniye)
-        {{ ipucu('cooldown', 'Aynı kural aynı kamerada bu süre dolmadan ikinci kez uyarı üretmez — hoparlör üst üste bağırmaz. Açılmış bir olay sürerken anons da en çok bu aralıkla tekrarlanır.') }}</span>
+        {{ ipucu('cooldown', 'Aynı kural aynı kamerada bu süre dolmadan ikinci kez uyarı üretmez - hoparlör üst üste bağırmaz. Açılmış bir olay sürerken anons da en çok bu aralıkla tekrarlanır.') }}</span>
         <input name="cooldown_s" id="cooldown_s" type="number" min="5" max="86400"
                value="{{ kural.cooldown_s if kural else cooldown_varsayilanlari[secili_tip] }}">
       </label>
 
       <label>Anons mesajı <span class="not">(anons sistemi bağlıysa çalar)</span>
         <select name="announcement_id">
-          <option value="">— anons yok —</option>
+          <option value="">- anons yok -</option>
           {% for a in anonslar %}
           <option value="{{ a.id }}" {% if kural and kural.announcement_id == a.id %}selected{% endif %}>{{ a.text }}</option>
           {% endfor %}
@@ -248,7 +248,7 @@
 
       <label class="yatay"><input type="checkbox" name="shadow_mode" value="1"
         {% if kural and kural.shadow_mode %}checked{% endif %}>
-        Gölge mod — olay kaydedilsin ama anons çalmasın
+        Gölge mod - olay kaydedilsin ama anons çalmasın
         {# İpucu etiketin İÇİNDE: dışarıda kalsaydı form ızgarasında ayrı bir
            satıra düşüp tek başına duran bir "?" gibi görünürdü. Düğmeye
            tıklamak onay kutusunu değiştirmez (kilavuz.js tıklamayı durdurur). #}
@@ -280,7 +280,7 @@ function bolgeleriDoldur() {
   secim.innerHTML = "";
   if (tip === "safe_distance" || tip === "vehicle_speed") {
     var bos = document.createElement("option");
-    bos.value = ""; bos.textContent = "— tüm kare —";
+    bos.value = ""; bos.textContent = "- tüm kare -";
     secim.appendChild(bos);
   }
   BOLGELER.filter(function (b) { return b.camera_id === kamera; }).forEach(function (b) {
@@ -290,7 +290,7 @@ function bolgeleriDoldur() {
     secim.appendChild(sec);
   });
   document.getElementById("bolge-notu").textContent =
-    secim.options.length === 0 ? "Bu kamerada bölge yok — önce kamera sayfasında çizin." : "";
+    secim.options.length === 0 ? "Bu kamerada bölge yok - önce kamera sayfasında çizin." : "";
   onemVarsayilaniniGetir();
 }
 

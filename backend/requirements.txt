@@ -1,4 +1,4 @@
-# DALSAN İSG — gerekli paketler
+# DALSAN İSG - gerekli paketler
 # Kontrol Paneli'ndeki "İlk Kurulumu Yap" düğmesi bu dosyayı kurar.
 fastapi
 uvicorn[standard]
@@ -22,7 +22,7 @@ opencv-python==4.10.0.84
 # 1.19.2 onnx 1.16.1 taşıyordu) ve aynı makinede CPU çıkarımı ~%25 hızlı.
 # Intel Mac'te x86_64 tekerleği olan SON sürüm 1.23.2'dir (1.24.1 ve sonrası
 # yalnız arm64); orada pip kaynaktan derlemeye kalkmasın diye 1.23.2 kurulur.
-# 1.23.2'nin CVE durumu doğrulanmadı — Intel Mac yalnız geliştirme içindir.
+# 1.23.2'nin CVE durumu doğrulanmadı - Intel Mac yalnız geliştirme içindir.
 onnxruntime==1.30.0; sys_platform != "darwin" or platform_machine != "x86_64"
 onnxruntime==1.23.2; sys_platform == "darwin" and platform_machine == "x86_64"
 numpy

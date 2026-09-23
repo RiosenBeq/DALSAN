@@ -2,7 +2,7 @@
 
 Kullanıcı yazılımcı değil; ana sayfada "yolox_tiny.onnx" yazması ne olduğunu
 anlatmaz. Dosya adları, indirme adresleri ve .env anahtarları ise AYNEN
-kalmalı — değişirse sistem modeli bulamaz. Bu testler tam olarak bu ayrımı
+kalmalı - değişirse sistem modeli bulamaz. Bu testler tam olarak bu ayrımı
 korur: görünen ad markalı, çalışan ad özgün.
 """
 
@@ -79,7 +79,7 @@ def test_ekrana_cikan_metinlerde_alt_bilesen_adi_gecmez():
 
     Atıf LICENSE-THIRD-PARTY'de ve kod yorumlarındadır (ADR-002). Burada
     denetlenen yalnızca ÇALIŞMA ZAMANI metinleri: docstring'ler, yorumlar ve
-    teknik sabitler (indirme adresi, dosya adları) kapsam dışıdır — onlar
+    teknik sabitler (indirme adresi, dosya adları) kapsam dışıdır - onlar
     ekrana değil, koda ve günlüğe aittir.
     """
     dosyalar = [
@@ -190,7 +190,7 @@ def test_ozel_modelde_supervizor_markali_aciklama_verir(test_ayarlari):
 def test_ekran_metinlerinde_terminal_komutu_yok():
     """CLAUDE.md §8: kullanıcıya terminal komutu değil, arayüz adımı söylenir.
 
-    Docstring ve yorumlar kapsam dışıdır — betiğin adı kodda anılabilir,
+    Docstring ve yorumlar kapsam dışıdır - betiğin adı kodda anılabilir,
     ekranda anılamaz.
     """
     dosyalar = [

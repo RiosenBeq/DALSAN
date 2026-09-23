@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================================================
-#  NextGen Detector — Mac uygulamasi (.app) uretir.
+#  NextGen Detector - Mac uygulamasi (.app) uretir.
 #  Bu dosyaya CIFT TIKLAYIN. Baska hicbir sey yapmaniza gerek yoktur.
 #
 #  Sonuc: dist/NextGen Detector.app   (islem sonunda Finder'da acilir)
@@ -16,7 +16,7 @@ PY="$DEPO/.venv/bin/python"
 
 echo ""
 echo "=============================================================="
-echo "  NextGen Detector — Mac uygulamasi uretiliyor"
+echo "  NextGen Detector - Mac uygulamasi uretiliyor"
 echo "=============================================================="
 echo ""
 
@@ -87,7 +87,7 @@ echo "-> Uygulama uretiliyor (ekran arada sessiz kalabilir, bekleyin)…"
 }
 
 # build/ klasoru yuzlerce MB'dir ve ise yaramaz: uretim bitince silinir.
-# dist/NextGen Detector (klasor) ise .app'in ayni icerikteki ikizidir —
+# dist/NextGen Detector (klasor) ise .app'in ayni icerikteki ikizidir -
 # PyInstaller once onu kurar, sonra .app'in icine kopyalar. Kullaniciya
 # iki ayni sey gostermek kafa karistirir, ustelik bir o kadar yer kaplar.
 echo ""
@@ -97,7 +97,7 @@ rm -rf "$DEPO/build" "$DEPO/dist/NextGen Detector"
 BOYUT="$(du -sh "$DEPO/dist/NextGen Detector.app" 2>/dev/null | cut -f1)"
 echo ""
 echo "=============================================================="
-echo "  TAMAM — 'NextGen Detector.app' hazir  (boyut: ${BOYUT:-bilinmiyor})"
+echo "  TAMAM - 'NextGen Detector.app' hazir  (boyut: ${BOYUT:-bilinmiyor})"
 echo "=============================================================="
 echo ""
 echo "  Simdi acilan Finder penceresindeki uygulamayi Uygulamalar"

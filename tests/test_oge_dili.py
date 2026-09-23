@@ -183,7 +183,7 @@ def test_komuta_ekrani_ihlalleri_ogeye_gore_sayar(istemci, test_ayarlari):
     kartlar = re.findall(
         r'class="oge-karti-deger">(\d+)</span>\s*<span class="oge-karti-ad">([^<]+)</span>', metin
     )
-    assert kartlar == [("2", "Araç–yaya yakınlığı"), ("1", "Yelek yok")]
+    assert kartlar == [("2", "Araç-yaya yakınlığı"), ("1", "Yelek yok")]
 
 
 def test_ihlal_yokken_oge_paneli_cikmaz(istemci):
@@ -329,7 +329,7 @@ def test_kamera_sayfasinda_bolge_cipi_ve_kural_rozeti(istemci, test_ayarlari):
 
 def test_kilavuz_her_ogeyi_aciklamasiyla_gosterir(istemci):
     """Sözlük OGELER'den üretilir: yeni öğe eklenince kılavuzda eksik kalmaz,
-    ama açıklaması yoksa boş satır çıkar — bu test onu yakalar."""
+    ama açıklaması yoksa boş satır çıkar - bu test onu yakalar."""
     metin = istemci.get("/komuta/kilavuz").text
     sozluk = metin.split('class="simge-sozlugu"', 1)[1].split('class="durum-ornekleri"', 1)[0]
     for oge in OGELER.values():

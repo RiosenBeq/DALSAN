@@ -2,15 +2,15 @@
 
 İki ayrı soru vardır ve bu modül ikisini birbirinden ayırır:
 
-1. **Kaynak dosyalar nerede?** — şablonlar, stil dosyaları, şema betikleri,
+1. **Kaynak dosyalar nerede?** - şablonlar, stil dosyaları, şema betikleri,
    `.env.example`. Bunlar programla birlikte gelir, program bunları YAZMAZ.
    Cevap: `kaynak_yolu(...)`.
-2. **Yazılabilir veri nerede?** — `veri/` (veritabanı, kanıt fotoğrafları,
+2. **Yazılabilir veri nerede?** - `veri/` (veritabanı, kanıt fotoğrafları,
    günlük, yedekler), `models/` (indirilen model) ve `.env`. Bunlar
    kullanıcıya aittir, program bunlara YAZAR.
    Cevap: `veri_konumu()`.
 
-NEDEN AYRILDI — paketleme (tek dosyalık uygulama) sırasında bu iki soru aynı
+NEDEN AYRILDI - paketleme (tek dosyalık uygulama) sırasında bu iki soru aynı
 cevabı vermez:
 
 * Kaynak dosyalar, program açılırken geçici bir klasöre açılır. `__file__`
@@ -102,7 +102,7 @@ def veri_konumu(
 
     Kurallar:
 
-    * Paketlenmemiş çalışmada depo kökü kullanılır — BUGÜNKÜ davranış aynen
+    * Paketlenmemiş çalışmada depo kökü kullanılır - BUGÜNKÜ davranış aynen
       korunur, geliştirme kurulumunun veri yolu değişmez.
     * Paketlenmiş çalışmada kullanıcı profilindeki klasör kullanılır.
     * ANCAK programın yanında (eski düzendeki gibi) zaten bir kayıt dosyası

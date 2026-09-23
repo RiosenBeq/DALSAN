@@ -1,9 +1,9 @@
-# CLAUDE.md — DALSAN İSG Görüntü Analiz Sistemi
+# CLAUDE.md - DALSAN İSG Görüntü Analiz Sistemi
 
 Claude Code'un bu depoda çalışırken uyacağı kurallar. Her oturumun başında okunur.
 
 > **ÖNEMLİ:** Projeyi yazılım bilmeyen bir kişi, yapay zeka yardımıyla yürütüyor.
-> Bu, kalite standardını düşürmez — **basitlik standardını yükseltir.**
+> Bu, kalite standardını düşürmez - **basitlik standardını yükseltir.**
 > Kullanıcı kodu okuyup onaylamayacak; sistemin **davranışını** deneyerek onaylayacak.
 
 ---
@@ -21,7 +21,7 @@ ihlalde ekrana ve (mümkünse) anonsa uyarı düşüren; her olayı kanıt foto�
 
 > **"Bu, `docs/01-MVP-KAPSAM.md` §1'deki uçtan uca akışın çalışması için gerekli mi?"**
 
-Hayırsa kod yazılmaz — `docs/07-YOL-HARITASI.md`'ye satır olarak eklenir.
+Hayırsa kod yazılmaz - `docs/07-YOL-HARITASI.md`'ye satır olarak eklenir.
 
 ---
 
@@ -35,15 +35,15 @@ Yeni bir araç, kütüphane, servis veya çalışma zamanı eklemeden önce sor:
 
 ---
 
-## 4. Teknoloji — sabit, tartışmaya kapalı
+## 4. Teknoloji - sabit, tartışmaya kapalı
 
 | Katman | Karar |
 |---|---|
 | Dil | Python 3.12 |
 | Web çatısı | FastAPI |
 | Arayüz | **Jinja2 şablonu + sade JavaScript.** React/Vue/Node.js **YOK** |
-| Simge & yazı tipi | Lucide simgeleri + Inter yazı tipi — **depoya kopyalanmış** (`static/vendor/`), CDN **YOK**. Bkz. aşağıdaki not |
-| Veritabanı | **SQLite** — tek dosya: `veri/dalsan.db` |
+| Simge & yazı tipi | Lucide simgeleri + Inter yazı tipi - **depoya kopyalanmış** (`static/vendor/`), CDN **YOK**. Bkz. aşağıdaki not |
+| Veritabanı | **SQLite** - tek dosya: `veri/dalsan.db` |
 | Süreç | **TEK program.** Analiz, FastAPI içinde arka plan iş parçacığı olarak çalışır |
 | Şema | Sürümlü SQL betikleri: `backend/sema/001_*.sql`. Alembic **YOK** |
 | Görüntü | OpenCV (RTSP over TCP) |
@@ -86,16 +86,16 @@ dalsan-isg/
 │   ├── sema/                   # 001_ilk.sql, 002_...  (sıralı, geri alınabilir)
 │   └── app/
 │       ├── main.py             # TEK giriş noktası
-│       ├── ayarlar.py          # .env okur — tek kaynak
+│       ├── ayarlar.py          # .env okur - tek kaynak
 │       ├── veritabani.py       # SQLite bağlantısı, şema uygulama
 │       ├── modeller.py         # tablo tanımları
 │       ├── web/                # rotalar + templates/ + static/
 │       ├── analiz/             # kamera, tespit, takip, kkd_siniflandirici, boru_hatti,
 │       │                       #   alan_bulucu (zemindeki boyadan bölge önerisi)
-│       ├── rules/              # SAF karar mantığı — aşağıya bak (sayim.py dahil)
+│       ├── rules/              # SAF karar mantığı - aşağıya bak (sayim.py dahil)
 │       ├── olaylar/            # olay yazımı, fotoğraf, anons
 │       └── egitim/             # veri seti dışa aktarımı, değerlendirme, HTML rapor
-│                               #   (eğitimin kendisi ürün dışı — docs/04 §6)
+│                               #   (eğitimin kendisi ürün dışı - docs/04 §6)
 ├── tests/
 ├── veri/                       # dalsan.db, goruntuler/, loglar/, yedekler/  (git'e girmez)
 └── docs/
@@ -142,7 +142,7 @@ sonucu kullanıcıya **göster**.
 - **Küçük adımlar.** Bir istekte 10+ dosya değişiyorsa işi böl ve önce ilkini yap.
 - **Her adımın sonunda deneme talimatı ver:** "Kontrol Paneli'nde Başlat'a bas,
   tarayıcıda Kameralar sekmesini aç, listede şunu görmelisin."
-- **Hata mesajlarını sadeleştirme** — kullanıcı günlükten kopyalayıp yapıştıracak.
+- **Hata mesajlarını sadeleştirme** - kullanıcı günlükten kopyalayıp yapıştıracak.
 - **Terminal komutu vermek yerine** mümkünse Kontrol Paneli'ne düğme ekle.
 - **Türkçe konuş.** Kod içi isimler İngilizce, kullanıcıya görünen her şey Türkçe.
 - Her çalışan aşamadan sonra git commit'i öner.
@@ -180,4 +180,4 @@ ruff check . && ruff format .
 | `15-UZAKTAN-ERISIM.md` | Fabrika ağına ve fabrika dışına açma: üç seviye, VPN/Tailscale önerisi, kaba kuvvet koruması, KVKK uyarısı |
 | `14-ANONS-SISTEMI-BAGLAMA.md` | Anons altyapısına bağlanma: ses kartı / IP hoparlör, üç HTTP biçimi, devreye alma sırası, anons firmanıza soracaklarınız |
 
-Bir karar bu dosyalarda yoksa **uydurma — sor.**
+Bir karar bu dosyalarda yoksa **uydurma - sor.**

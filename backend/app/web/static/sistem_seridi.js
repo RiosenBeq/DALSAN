@@ -56,10 +56,10 @@
     });
     if (govde.hazir === false && !aciklandi) {
       if (govde.model === "yukleniyor" || govde.model === "indiriliyor") {
-        gri.push("Analiz hazırlanıyor — tespit modeli yükleniyor");
+        gri.push("Analiz hazırlanıyor - tespit modeli yükleniyor");
       } else {
         kirmizi.unshift(
-          govde.analiz ? "Sistem hazır değil — uyarı üretilemiyor" : "Analiz çalışmıyor — uyarı üretilmiyor"
+          govde.analiz ? "Sistem hazır değil - uyarı üretilemiyor" : "Analiz çalışmıyor - uyarı üretilmiyor"
         );
       }
     }
@@ -86,7 +86,7 @@
         goster(sonuc[0], sonuc[1]);
       })
       .catch(function () {
-        goster("Sistem durumu alınamıyor — sunucuya ulaşılamıyor", "gri");
+        goster("Sistem durumu alınamıyor - sunucuya ulaşılamıyor", "gri");
       });
   }
 

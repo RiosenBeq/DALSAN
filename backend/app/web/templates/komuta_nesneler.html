@@ -1,4 +1,4 @@
-{# Nesneler — kendi eşyanı fotoğrafla tanıt, yüklediğin fotoğrafta ara.
+{# Nesneler - kendi eşyanı fotoğrafla tanıt, yüklediğin fotoğrafta ara.
 
    Sayfanın en üstündeki UYARI ŞERİDİ KAPATILAMAZ ve gizlenemez: bu özelliğin
    tek büyük yanlış anlaşılma riski "tanıttım ama kamera görmüyor"dur. Diğer
@@ -10,7 +10,7 @@
 
    BU SAYFADA "EŞİK", "SKOR", "PARMAK İZİ EŞLEŞMESİ" GİBİ TERİMLER YOKTUR.
    Kullanıcı yazılım bilmiyor; her sayının yanında ne anlama geldiği ve NE
-   YAPILACAĞI yazar. Sayıların kendisi uydurma değildir — hepsi
+   YAPILACAĞI yazar. Sayıların kendisi uydurma değildir - hepsi
    tests/nesne_kiyas ölçümünden gelir (bkz. app/nesneler/teshis.py). #}
 {% extends "komuta_temel.html" %}
 {% block icerik %}
@@ -23,7 +23,7 @@
     <b>Bu sayfa canlı kameraları ETKİLEMEZ.</b> Burada tanıttığınız nesne yalnızca
     buraya yüklediğiniz fotoğraflarda aranır; kameralarda aranmaz, uyarı üretmez,
     olay kaydı oluşturmaz. Yaya yolu, yükleme alanı gibi <b>YERLER</b> ise
-    kameranın kendi sayfasında bölge çizilerek tanıtılır ve canlı kurallara girer —
+    kameranın kendi sayfasında bölge çizilerek tanıtılır ve canlı kurallara girer -
     bu sayfa <b>taşınabilir eşyalar</b> içindir.
   </span>
 </section>
@@ -65,12 +65,12 @@
     <div><button class="dugme" type="submit">Nesneyi Ekle</button></div>
   </form>
 
-  {# Kaç fotoğraf — ölçülmüş sayılarla, uydurma tavsiye değil. #}
+  {# Kaç fotoğraf - ölçülmüş sayılarla, uydurma tavsiye değil. #}
   <details class="nesne-rehber">
     <summary>Kaç fotoğraf gerekli, hangi açılardan?</summary>
     <p class="panel-notu">
       <b>En az 2, tercihen {{ olculen_fotograf }} fotoğraf.</b> Tek fotoğrafla sistem
-      nesnenin ne kadar tanınacağını <b>ölçemez</b> — karşılaştıracak ikinci bir kare
+      nesnenin ne kadar tanınacağını <b>ölçemez</b> - karşılaştıracak ikinci bir kare
       yoktur.
     </p>
     <p class="panel-notu">
@@ -79,7 +79,7 @@
       tersine işe yaramıyor: sistem fotoğrafları birbiriyle karşılaştırarak karar
       verdiği için, birbirini tanımayan fotoğraflar nesneyi <b>zor tanınır</b> yapıyor.
       Nesnenin <b>yazılı, etiketli ya da logolu</b> bir yüzü varsa mutlaka ondan
-      fotoğraf koyun — ölçümde en iyi sonuç veren nesneler bunlar oldu.
+      fotoğraf koyun - ölçümde en iyi sonuç veren nesneler bunlar oldu.
     </p>
     <div class="komuta-tablo nesne-egri-tablo">
       <div class="komuta-tablo-basligi">
@@ -172,7 +172,7 @@
 <section class="komuta-panel">
   <div class="panel-basligi">
     <h2>Fotoğrafta ara</h2>
-    <span class="panel-notu">yüklediğiniz kareyi tarar — kameralara dokunmaz</span>
+    <span class="panel-notu">yüklediğiniz kareyi tarar - kameralara dokunmaz</span>
   </div>
 
   <form method="post" action="/nesneler/tara" enctype="multipart/form-data" class="dikey-form">
@@ -197,7 +197,7 @@
     <p class="panel-notu">
       Listede <b>“daha çok işaret çıksın” diye bir seçenek yok</b>, çünkü ölçüm şunu
       gösterdi: sistemin bugünkü ayarı, hiç yanlış isim yazmadan en çok nesneyi bulduğu
-      noktadır. Bir adım aşağısında sistem <b>yanlış isim yazmaya başlıyor</b> — ve
+      noktadır. Bir adım aşağısında sistem <b>yanlış isim yazmaya başlıyor</b> - ve
       yanlış isim, nesneyi kaçırmaktan çok daha ağır bir kusurdur.
     </p>
     <p class="panel-notu">
@@ -265,14 +265,14 @@
   </p>
   <p class="panel-notu">
     <b>Yapmaz:</b> yapay zeka modelini yeniden eğitmez, canlı kameralarda arama
-    yapmaz. <b>Düz renkli, desensiz nesnelerde sistem isim yazmaz</b> — ölçümde
+    yapmaz. <b>Düz renkli, desensiz nesnelerde sistem isim yazmaz</b> - ölçümde
     böyle nesnelerin hiçbiri bulunmadı. Sebebi şudur: geriye yalnız renk kalınca
     sistem o nesneyi aynı renkteki bambaşka bir şeyden ayıramaz, o yüzden
     susmayı seçer. <b>Birbirine çok benzeyen iki nesneyi</b> (aynı gri panonun iki
     kardeşi, aynı kasanın iki rengi) de ayırt edemez ve yine isim yazmaz.
   </p>
   <p class="panel-notu">
-    <b>Bu eksiği kapatmaya çalıştık, kapatamadık — dürüstçe yazıyoruz.</b> Düz
+    <b>Bu eksiği kapatmaya çalıştık, kapatamadık - dürüstçe yazıyoruz.</b> Düz
     nesneleri kurtarmak için renge hiç bakmayan üç ayrı ölçü denendi: nesnenin
     renklerinin karede nasıl dağıldığı, dış hattının biçimi ve kenarlarının
     yönü. Üçü ayrı ayrı, sonra birlikte ölçüldü; hiçbiri işe yaramadı. Dahası,

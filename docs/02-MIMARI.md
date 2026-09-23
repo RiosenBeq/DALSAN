@@ -1,11 +1,11 @@
-# 02 — Mimari ve Veri Modeli
+# 02 - Mimari ve Veri Modeli
 
 ## 1. Prensip: Modular Monolith, iki runtime süreci
 
 Tek repo, tek Python paketi (`app/`), tek veritabanı. Çalışma zamanında iki süreç:
 
-- **`api`** — FastAPI + derlenmiş frontend (statik). Konfigürasyon CRUD, olay sorguları, SSE.
-- **`analyzer`** — Görüntü alma, tespit, takip, KKD sınıflandırma, kural değerlendirme, olay yazma, anons.
+- **`api`** - FastAPI + derlenmiş frontend (statik). Konfigürasyon CRUD, olay sorguları, SSE.
+- **`analyzer`** - Görüntü alma, tespit, takip, KKD sınıflandırma, kural değerlendirme, olay yazma, anons.
 
 Bu bir microservice ayrımı **değildir**: aynı kod tabanı, aynı modeller, aynı `settings`.
 Ayrı süreç olmasının tek nedeni GPU çıkarımının API'yi bloklamaması ve analizörün
@@ -19,7 +19,7 @@ Kameralar / NVR ──RTSP──▶ ┌─────────────�
                           │  → Detector (paylaşımlı model, batch)               │
                           │  → Tracker (kamera başına ByteTrack)                │
                           │  → PpeClassifier (yalnızca KKD bölgesindeki person) │
-                          │  → RuleEngine [rules/ — SAF, CV bağımsız]           │
+                          │  → RuleEngine [rules/ - SAF, CV bağımsız]           │
                           │  → EventSink: DB + snapshot + Announcer             │──▶ Ses kartı / HTTP
                           └────────────────────────┬───────────────────────────┘
                              INSERT events         │  UPDATE camera status
@@ -45,11 +45,11 @@ dalsan-isg/
 ├── .env.example                 # tüm değişkenler açıklamalı
 ├── backend/
 │   ├── pyproject.toml
-│   ├── alembic/                 # migrasyonlar — 1. günden
+│   ├── alembic/                 # migrasyonlar - 1. günden
 │   ├── app/
 │   │   ├── core/                # settings, logging, db session, auth
 │   │   ├── db/                  # SQLAlchemy modelleri (yalnızca şema)
-│   │   ├── schemas/             # Pydantic — validasyon burada
+│   │   ├── schemas/             # Pydantic - validasyon burada
 │   │   ├── api/                 # cameras, zones, rules, calibration, events, stream, health
 │   │   ├── analyzer/            # source, sampler, detector, ppe_classifier, tracker, pipeline, supervisor
 │   │   ├── rules/               # SAF: geometry, calibration, zone, distance, ppe, cooldown
@@ -58,12 +58,12 @@ dalsan-isg/
 │   │   ├── main_api.py
 │   │   └── main_analyzer.py
 │   └── tests/
-│       ├── rules/               # birim — CV'siz, hızlı
+│       ├── rules/               # birim - CV'siz, hızlı
 │       ├── api/                 # entegrasyon
 │       └── analyzer/            # video dosyasıyla duman testi
 ├── frontend/                    # Vite + React + TS + Tailwind
 ├── deploy/                      # Dockerfile.api, Dockerfile.analyzer, backup.sh, restore.sh, RUNBOOK.md
-├── models/                      # ağırlıklar — download.sh, repoya commit YOK
+├── models/                      # ağırlıklar - download.sh, repoya commit YOK
 └── docs/                        # bu dosyalar + kkd-politika.md + kalibrasyon rehberi
 ```
 
@@ -77,11 +77,11 @@ Sonuç: tüm eşik, cooldown, zamansal oylama ve KKD karar mantığı sentetik v
 milisaniyeler içinde test edilir. Yanlış alarm ayarlaması bir tahmin işi değil,
 testle doğrulanan bir mühendislik işi olur.
 
-## 3. Veri modeli (MVP — 7 tablo)
+## 3. Veri modeli (MVP - 7 tablo)
 
 | Tablo | Alanlar (özet) | Not |
 |---|---|---|
-| `cameras` | id, name, **area**, source_type (rtsp/file), source_url, enabled, sample_fps, status, last_frame_at, measured_fps, created_at, updated_at | `source_url` yanıtlarda maskeli. `area` düz metin — fabrika geneli yayılımın ilk adımı. |
+| `cameras` | id, name, **area**, source_type (rtsp/file), source_url, enabled, sample_fps, status, last_frame_at, measured_fps, created_at, updated_at | `source_url` yanıtlarda maskeli. `area` düz metin - fabrika geneli yayılımın ilk adımı. |
 | `camera_calibrations` | camera_id (PK/FK), image_points JSONB[4], world_points JSONB[4], homography JSONB[3×3], calibrated_at | 1:1. Yoksa o kamerada mesafe kuralı **pasif**. |
 | `zones` | id, camera_id FK, name, zone_type, polygon JSONB, enabled, updated_at | `zone_type`: pedestrian_path · loading_area · truck_parking · vehicle_area · **ppe_required** · restricted. Poligon normalize (0-1) koordinat. |
 | `rules` | id, camera_id FK, rule_type, zone_id FK nullable, target_classes JSONB, params JSONB, severity, cooldown_s, announcement_id FK nullable, enabled, updated_at | `rule_type`: zone_intrusion · safe_distance · ppe_violation · **vehicle_speed** (şema 005). `params` şeması `rule_type`'a göre Pydantic ile doğrulanır. |
@@ -94,7 +94,7 @@ testle doğrulanan bir mühendislik işi olur.
 - Tüm zamanlar UTC `timestamptz`; UI Europe/Istanbul'a çevirir
 - FK'ler açık `ON DELETE` politikalı
 - JSONB alanları yazılmadan Pydantic ile doğrulanır (poligon ≥ 3 nokta, normalize aralık; kural `params` şeması tipine göre)
-- Snapshot dosyası **önce** yazılır, DB kaydı **sonra** — yetim kayıt olmaz
+- Snapshot dosyası **önce** yazılır, DB kaydı **sonra** - yetim kayıt olmaz
 - Soft delete yok (basitlik)
 - Şema değişikliği yalnızca Alembic migrasyonuyla
 
@@ -104,7 +104,7 @@ Analizör olayı `events` tablosuna yazar. API'nin `/api/v1/stream` SSE endpoint
 saniyede bir `SELECT ... WHERE id > :last_id` çalıştırıp yeni olayları tarayıcıya iter.
 Tek operatör ekranı için bu yük ihmal edilebilir. Gecikme ≤ 1 sn + çıkarım süresi → K4.
 
-Yükseltme yolu (gerekirse): PostgreSQL `LISTEN/NOTIFY` — yine ek altyapı yok.
+Yükseltme yolu (gerekirse): PostgreSQL `LISTEN/NOTIFY` - yine ek altyapı yok.
 
 ## 5. Konfigürasyon yayılımı (yeniden başlatmasız)
 
@@ -115,7 +115,7 @@ Kamera eklenmesi/kaldırılması thread başlatır/durdurur. Restart yok, broker
 ## 6. Analizör tasarım notları
 
 - **"Son kare" deseni:** RTSP akışı sürekli okunur, işlenmeyen kareler atılır. Aksi halde tampon dolar ve gecikme dakikalara çıkar. Kamera thread'i her zaman en güncel kareyi tutar.
-- **Alt akış (substream):** Kameraların düşük çözünürlüklü ikinci akışı kullanılır — **ama KKD bölgelerindeki kameralar için ana akış gerekebilir** (piksel eşiği, bkz. `04-KKD-BARET-YELEK.md` Bölüm 3). Bu, 1. hafta ölçümüyle kamera bazında kararlaştırılır.
+- **Alt akış (substream):** Kameraların düşük çözünürlüklü ikinci akışı kullanılır - **ama KKD bölgelerindeki kameralar için ana akış gerekebilir** (piksel eşiği, bkz. `04-KKD-BARET-YELEK.md` Bölüm 3). Bu, 1. hafta ölçümüyle kamera bazında kararlaştırılır.
 - **Kamera izolasyonu:** Bir kameranın hatası yalnızca o thread'i etkiler; supervisor üstel bekleme ile (1→30 sn) yeniden bağlanır. Yeni başlatılan kamera ilk 60 sn `connecting` (bağlanıyor) sayılır ve olay üretmez; bu sürede hiç kare gelmezse `offline` + sebebi yazılı sistem olayı. Akan görüntü kesilince `offline` kopukluk eşiğinde gelir (`.env KAMERA_KOPUK_ESIGI_SN`, varsayılan 10 sn); "tekrar çevrimiçi" olayı görüntü `KAMERA_UP_KARARLILIK_SN` (5 sn) kesintisiz akınca yazılır. RTSP açılış/okuma zaman aşımı 5/10 sn (`RTSP_*_ZAMAN_ASIMI_MS`).
 - **Kurtarılamaz hata** (GPU) → süreç çıkar, Docker restart eder. Yarım kalan durum yok çünkü tek durum kaynağı DB.
 - **Ayak noktası:** Bölge ve mesafe hesabı bbox'ın alt-orta noktasıyla (zemin teması) yapılır; merkez nokta perspektifte yanıltır.
@@ -123,14 +123,14 @@ Kamera eklenmesi/kaldırılması thread başlatır/durdurur. Restart yok, broker
 
 ### Önizleme JPEG'i TEMBELDİR (işlemci)
 
-Ölçüldü — kare işleme süresinin dağılımı (bölgeli, tespitsiz):
+Ölçüldü - kare işleme süresinin dağılımı (bölgeli, tespitsiz):
 
 | Çözünürlük | `isle()` toplam | JPEG kodlama | Payı |
 |---|---|---|---|
 | 1280x720 | 6,43 ms | 3,86 ms | %60 |
 | 1920x1080 | 14,33 ms | 8,95 ms | %62 |
 
-Bu kodlama eskiden **her karede** yapılıyordu — tarayıcıda hiç sayfa açık
+Bu kodlama eskiden **her karede** yapılıyordu - tarayıcıda hiç sayfa açık
 olmasa bile. 4 kamera x 6 kare/sn ile bir çekirdeğin **%20'si** karşılığı
 olmayan bir işe gidiyordu.
 
@@ -142,7 +142,7 @@ işliyor: açık sayfada bile 6 kat az iş; sayfa kapalıyken sıfır.
 
 Kodlama kilit DIŞINDA yapılır (1080p'de ~9 ms; o süre analiz iş parçacığını
 bekletmenin anlamı yok) ve sonuç yalnızca kare sayacı hâlâ aynıysa
-önbelleğe yazılır — aksi halde eski kare yeni karenin yerine servis edilir ve
+önbelleğe yazılır - aksi halde eski kare yeni karenin yerine servis edilir ve
 ekranda donmuş görüntü görünürdü.
 
 ### Çıkarım iş parçacığı sayısı
@@ -153,7 +153,7 @@ yapıyorsa sınırlanır: tespit TÜM kameralar için tek oturumda ve kilitle s�
 çalıştığı için tek bir çıkarım makinenin tamamını meşgul edebilir.
 
 GPU yolu ayrı bir kod değildir: `CIKARIM_CIHAZI=cuda` seçilince ONNX Runtime
-CUDA sağlayıcısını kullanır. Sağlayıcı yoksa **sessizce CPU'ya düşmez** —
+CUDA sağlayıcısını kullanır. Sağlayıcı yoksa **sessizce CPU'ya düşmez** -
 sistem bunu ana sayfada Türkçe bir uyarı olarak yazar (ADR-002), çünkü
 "cuda yazarken CPU'da sürünen sistem" teşhis edilemez bir yavaşlıktır.
 
@@ -185,7 +185,7 @@ desteklenir:
 | `get` | Gövde yok; adres çağrılır | "Adresi çağır, sesi çal" hoparlörler |
 
 Adreste `{anahtar}` ve `{metin}` yer tutucuları doldurulur (URL kaçışlı).
-`get` biçiminde adresin `{anahtar}` taşıması **zorunludur** — yoksa her ihlalde
+`get` biçiminde adresin `{anahtar}` taşıması **zorunludur** - yoksa her ihlalde
 aynı ses çalardı; ayarlar bunu açılışta reddeder.
 
 Yer tutucu doldurulurken `str.format` **kullanılmaz**: anons sisteminin kendi
@@ -198,10 +198,10 @@ gider; ayrılırlarsa deneme "başarılı" derken saha sessiz kalırdı.
 
 Bağlama tarifi, cihaz soruları ve sorun giderme: `14-ANONS-SISTEMI-BAGLAMA.md`.
 
-## 8. Bölge sayımı (`rules/sayim.py`) — kural DEĞİLDİR
+## 8. Bölge sayımı (`rules/sayim.py`) - kural DEĞİLDİR
 
 Sayım ayrı bir modüldür ve kural motorundan bağımsız çalışır: **ihlal üretmez,
-anons tetiklemez, olay yazmaz.** Ayrı tutulmasının gerekçesi bu ayrımdır —
+anons tetiklemez, olay yazmaz.** Ayrı tutulmasının gerekçesi bu ayrımdır -
 sayım yanlışsa kimse yanlış uyarı almaz, yalnızca bir sayı yanlış görünür.
 
 Üç sayı, üç ayrı soruyu cevaplar:
@@ -224,7 +224,7 @@ tespit kaçağı "çıktı" sayılmasın).
 Bölge çizilen her kamerada kural kurulmadan çalışır: kullanıcı çoğu zaman önce
 "kaç kişi geçiyor" sorusunun cevabını ister, uyarıyı sonra kurar.
 
-## 9. Alan tanıma (`analiz/alan_bulucu.py`) — öneri, karar değil
+## 9. Alan tanıma (`analiz/alan_bulucu.py`) - öneri, karar değil
 
 Fabrika zemininde alan **zaten boyalıdır**: yaya yolu sarı çizgilerle, yükleme
 alanı beyaz çerçeveyle. Bu modül o boyayı bulup poligon **önerir**; veritabanına
@@ -233,16 +233,16 @@ kabul etmediği bir çizimdir.
 
 İki geçiş vardır çünkü sahadaki iki işaretleme biçimi farklı davranır:
 
-1. **Kapama geçişi** — kesikli çizgiler ve çerçeveler birleştirilir; dolu bir
+1. **Kapama geçişi** - kesikli çizgiler ve çerçeveler birleştirilir; dolu bir
    alan (beyaz çerçeveli yükleme sahası) tek konturdan çıkar.
-2. **Kümeleme geçişi** — yaya yolu İKİ PARALEL çizgiyle işaretlidir ve aradaki
+2. **Kümeleme geçişi** - yaya yolu İKİ PARALEL çizgiyle işaretlidir ve aradaki
    boşluk kapama çekirdeğinden kat kat geniştir. Birinci geçiş iki çizgiyi ayrı
    ayrı "çok ince" diye eler; ikinci geçiş birbirine yakın parça kümelerinin
-   dışbükey zarfını alır — aradaki yol da alana dahil olur.
+   dışbükey zarfını alır - aradaki yol da alana dahil olur.
 
 Kaynak iki türlüdür: kameranın canlı karesi ya da kullanıcının **yüklediği bir
 ekran görüntüsü**. İkincisi, kamera daha takılmadan bölge hazırlamayı mümkün
-kılar. **Yüklenen görüntü diske yazılmaz** — bellekte incelenir, tarayıcıya geri
+kılar. **Yüklenen görüntü diske yazılmaz** - bellekte incelenir, tarayıcıya geri
 döner. Gerekçe KVKK (fabrika karesinde çalışan vardır; saklamadığımız görüntü
 saklama süresi ve silme sorusu doğurmaz) ve en az parçadır (kalıcı olsaydı yeni
 tablo, yeni klasör ve bakım döngüsüne yeni istisna gerekirdi).
@@ -258,7 +258,7 @@ ekran ile video aynı şeyi söyler.
 Tarama bir **vurgu**, örtü değildir: çizgiler alanın ~%8'ini kaplar ve altındaki
 tespit kutuları okunur kalır (`test_tarama_alttaki_goruntuyu_ortmez`).
 
-Sunucu tarafında hız kritiktir — 7x24, kamera başına saniyede 6 kare. Üç yol
+Sunucu tarafında hız kritiktir - 7x24, kamera başına saniyede 6 kare. Üç yol
 ölçüldü (1080p, bölgenin sınır kutusu karenin ~%65'i):
 
 | Yöntem | Kare başına |
@@ -272,14 +272,14 @@ tek gitmek, bitişik bir bloğu baştan sona taramaktan pahalıdır. Maske, renk
 ve harman tamponu bölge çizimi değişmedikçe yeniden üretilmez.
 
 Tarama aralığı ve çizgi kalınlığı karenin kısa kenarına **oranlıdır**: sabit
-piksel, 480p'de seyrek görünürken 1080p'de saç teli gibi sıklaşıyordu — hem
+piksel, 480p'de seyrek görünürken 1080p'de saç teli gibi sıklaşıyordu - hem
 çirkin hem gereksiz pahalıydı.
 
 ### Çizim arka planı
 
 Kullanıcı çizim yaparken arka planı seçebilir: canlı akış (varsayılan), **dondurulmuş
 kare** ya da **yüklenen ekran görüntüsü**. Dondurma, önizleme betiğinin okuduğu
-`data-donmus` özniteliğiyle yapılır — tazeleme durur, kare ekranda kalır. Canlı
+`data-donmus` özniteliğiyle yapılır - tazeleme durur, kare ekranda kalır. Canlı
 akış saniyede yenilendiği için köşe tıklamak aksi halde zordur.
 
 Alan bulunamadığında bir **teşhis görüntüsü** döner: sistemin "boya" saydığı

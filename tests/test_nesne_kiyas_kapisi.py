@@ -3,14 +3,14 @@
 Bu dosya bir ölçüm değil, bir BEKÇİDİR. Kıyas takımının küçük sürümünü
 çalıştırır ve üç şeyi korur:
 
-  1. KIRMIZI ÇİZGİ — sistem yanlış isim YAZMAZ. İki türü de ayrı ayrı sıfır
+  1. KIRMIZI ÇİZGİ - sistem yanlış isim YAZMAZ. İki türü de ayrı ayrı sıfır
      olmalıdır (docs/00-PROJE-BAGLAMI.md: yanlış alarm güveni bitirir):
        KÜTÜPHANE İÇİ  → A nesnesine B nesnesinin adı. SIFIR, sert kural.
        KÜTÜPHANE DIŞI → kütüphanede olmayan bir şeye isim. 2026-09'a kadar
                         `xfail` ile işaretli açık bir borçtu; "renk taşımaz"
                         kuralıyla kapandı ve artık o da SIFIR, sert kural.
-  2. TABAN İSABET — bugün bulabildiklerimizi yarın da bulabilmeliyiz.
-  3. TAKIMIN KENDİSİ KÖR OLMASIN — sertleştirilmiş sorgular motorun en zayıf
+  2. TABAN İSABET - bugün bulabildiklerimizi yarın da bulabilmeliyiz.
+  3. TAKIMIN KENDİSİ KÖR OLMASIN - sertleştirilmiş sorgular motorun en zayıf
      dalına gerçekten giriyor mu? Bu da her koşuda ölçülür; ölçülmezse bir
      sonraki "sadeleştirme" takımı sessizce eski kör hâline döndürebilir.
 
@@ -45,7 +45,7 @@ from tests.nesne_kiyas import cizim, olcum, takim
 # yanlış isimlerin tamamı, kararı fiilen RENGE kalmış karşılaştırmalardan
 # geliyordu; o kapıyı kapatmak aynı kapıdan geçen isabetleri de kapattı.
 # Bilerek ödenen bedeldir (docs/00: yanlış alarm güveni bitirir). Kaybedilen
-# isabetin bir kısmı zaten sahteydi — tam takımda bulunan 61 sorgunun yalnız
+# isabetin bir kısmı zaten sahteydi - tam takımda bulunan 61 sorgunun yalnız
 # 38'inde işaret gerçekten nesnenin üstündeydi; bugün 8'in 8'inde üstünde.
 TABAN_ISABET = 1
 TABAN_YERINDE = 1
@@ -56,7 +56,7 @@ TABAN_ORTALAMA_SKOR = 0.055
 # bir sonraki küçük değişiklik çıtayı aşar. Kırmızı çizgi kırılmadan önce
 # ötmesi gereken yer burasıdır. Bu dört tavan eskiden çıtanın (0,24) dibindeydi
 # (0,19-0,52); "renk taşımaz" kuralından sonra hepsi çıtanın yarısının altına
-# indi — pay artık kıl payı değil.
+# indi - pay artık kıl payı değil.
 TAVAN_NEGATIF_SKOR = 0.041  # eski (başka renkte) yabancı nesneler + boş zeminler
 TAVAN_YANLIS_ADAY_SKORU = 0.049  # pozitif sorguda YANLIŞ kütüphane nesnesi
 TAVAN_DESENSIZ_ZEMIN_SKORU = 0.047  # desensiz zeminler
@@ -146,7 +146,7 @@ def test_bulanik_kutuphane_nesnesi_kardesinin_adini_almaz(kiyas):
 
     "Gri pano A" ile "Gri pano B" aynı gri, farklı desendir. Bulanıklık deseni
     sildiğinde geriye yalnız renk kalır ve ikisi ayırt edilemez hâle gelir.
-    Doğru davranış "eşleşme yok"tur — kendi adı da yazılmayabilir, ama
+    Doğru davranış "eşleşme yok"tur - kendi adı da yazılmayabilir, ama
     KARDEŞİNİN adı asla yazılmamalıdır.
 
     Eskiden yazılmıyordu ama kıl payıyla: kardeş her bulanıklık kademesinde en
@@ -161,7 +161,7 @@ def test_bulanik_kutuphane_nesnesi_kardesinin_adini_almaz(kiyas):
         for kayit in kayitlar
         if kayit.sorgu.dogru_ad == "Gri pano A (kareli)" and "bulanıklık" in kayit.sorgu.bozulma
     ]
-    assert bulanik, "takımda deseni silinmiş 'Gri pano A' sorgusu yok — takım kör"
+    assert bulanik, "takımda deseni silinmiş 'Gri pano A' sorgusu yok - takım kör"
     for kayit in bulanik:
         yazilanlar = [b.nesne_adi for b in kayit.bulgular(VARSAYILAN_ESIK)]
         assert "Gri pano B (çapraz)" not in yazilanlar, (
@@ -170,7 +170,7 @@ def test_bulanik_kutuphane_nesnesi_kardesinin_adini_almaz(kiyas):
     tavan = max(kayit.yabanci_en_yuksek for kayit in bulanik)
     assert tavan <= TAVAN_YANLIS_ADAY_SKORU + _PAY_SKOR, (
         f"bulanık panoda kardeşin skoru yükseldi: {tavan:.3f}, "
-        f"tavan {TAVAN_YANLIS_ADAY_SKORU} — çıta 0,24'e yaklaşıyor"
+        f"tavan {TAVAN_YANLIS_ADAY_SKORU} - çıta 0,24'e yaklaşıyor"
     )
 
 
@@ -203,7 +203,7 @@ def test_dusuk_esikte_de_gerileme_yok(kiyas):
     assert ozet.kutuphane_disi_yanlis <= TANI_ESIGINDE_BEKLENEN_KUTUPHANE_DISI, (
         f"çıtanın bir adım altında yanlış isim arttı: "
         f"{ozet.kutuphane_disi_yanlis}, beklenen en çok "
-        f"{TANI_ESIGINDE_BEKLENEN_KUTUPHANE_DISI} — doğru ile yanlış arasındaki pay eriyor"
+        f"{TANI_ESIGINDE_BEKLENEN_KUTUPHANE_DISI} - doğru ile yanlış arasındaki pay eriyor"
     )
 
 
@@ -254,7 +254,7 @@ def test_desensiz_zeminler_gercekten_desensiz(kiyas):
 
     Bu takımın eski kör noktası tam buydu: "boş zemin" sorguları vardı ama
     hiçbiri desensiz değildi, dolayısıyla kararı yalnız renge bırakan dal hiç
-    çalışmıyordu. Ölçülmeyen delik kapatılamaz — bu yüzden zeminlerin
+    çalışmıyordu. Ölçülmeyen delik kapatılamaz - bu yüzden zeminlerin
     desensizliği her koşuda yeniden kanıtlanır.
     """
     _, kayitlar = kiyas
@@ -266,7 +266,7 @@ def test_desensiz_zeminler_gercekten_desensiz(kiyas):
             f"(motorun sınırı {EN_AZ_ANAHTAR_NOKTA})"
         )
         assert desensiz == pencere, (
-            f"'{bozulma}' zemininde {pencere - desensiz} pencere desenli çıktı — "
+            f"'{bozulma}' zemininde {pencere - desensiz} pencere desenli çıktı - "
             "bu sorgu düz-düz dalını sınamıyor"
         )
 
@@ -284,7 +284,7 @@ def test_eski_bos_zeminler_duz_dala_girmiyordu(kiyas):
     ]
     assert eskiler, "eski boş zemin sorguları kaybolmuş"
     assert all(tam_kare >= EN_AZ_ANAHTAR_NOKTA for _, tam_kare, _, _, _ in eskiler), (
-        "eski boş zeminler artık desensiz görünüyor — o zaman ayrı bir desensiz "
+        "eski boş zeminler artık desensiz görünüyor - o zaman ayrı bir desensiz "
         "zemin ailesine gerek kalmamış olabilir, ölçüp karar verin"
     )
 
@@ -313,7 +313,7 @@ def test_takimda_ayni_renkte_duz_yabanci_var():
         )
         assert fark.max() <= 20, (
             f"'{tanim.ad}' ikizi '{tanim.ikiz}' ile aynı renkte değil (fark {fark.max():.0f}) "
-            "— bu nesne artık 'aynı renk, farklı biçim' tuzağını kurmuyor"
+            "- bu nesne artık 'aynı renk, farklı biçim' tuzağını kurmuyor"
         )
 
     # Üç renk ailesinin üçü de bulunmalı: mavi (doygun), gri ve beyaz
@@ -352,7 +352,7 @@ def test_takimda_her_zorluk_ve_iki_tuzak_da_var():
 
 
 def test_olcum_gercek_taramayla_ayni_sonucu_verir(kiyas, test_ayarlari):
-    """Kıyas, motorun kendi `arama.tara()` çıktısını ölçmelidir — taklidini değil.
+    """Kıyas, motorun kendi `arama.tara()` çıktısını ölçmelidir - taklidini değil.
 
     Ölçüm hızlansın diye her sorgu bir kez taranır ve eşik sonradan uygulanır.
     Bu kısayol sonucu değiştirmiş olsaydı, bütün taban değerler anlamsız

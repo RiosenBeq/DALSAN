@@ -1,11 +1,11 @@
-"""Ayarların TEK kaynağı — yazılabilir kökteki .env dosyasını okur.
+"""Ayarların TEK kaynağı - yazılabilir kökteki .env dosyasını okur.
 
 Başka hiçbir dosya os.environ'a veya .env'e bakmaz; ayar gereken her yer
 buradan bir `Ayarlar` nesnesi alır (CLAUDE.md §7: sabit kodlanmış eşik,
 yol, IP yasak).
 
 Eksik veya bozuk ayar, program açılışında anlaşılır Türkçe bir `AyarHatasi`
-ile durdurur — sistem yarım ayarla ÇALIŞMAZ.
+ile durdurur - sistem yarım ayarla ÇALIŞMAZ.
 """
 
 from __future__ import annotations
@@ -69,12 +69,12 @@ class Ayarlar:
     goruntu_iyilestirme: str
     # Yönetici şifresi. BOŞ = giriş sorulmaz (tek makinede, 127.0.0.1'de
     # çalışan kurulum). Dolu = her sayfa giriş ister. Fabrika sunucusunda ya
-    # da sistem ağa açıldığında DOLDURULMALIDIR — kural değiştirebilen ve
+    # da sistem ağa açıldığında DOLDURULMALIDIR - kural değiştirebilen ve
     # anons tetikleyen bir sistem LAN'da bile şifresiz durmamalı.
     yonetici_sifresi: str
     # Sunucunun DİNLEYECEĞİ adres. 127.0.0.1 = yalnız bu bilgisayar (varsayılan).
     # 0.0.0.0 = ağdaki diğer cihazlar da erişebilir (uzaktan erişimin ön koşulu).
-    # Şifresiz bir sistemin ağa açılması AÇILIŞTA REDDEDİLİR — bkz. ayarlari_yukle.
+    # Şifresiz bir sistemin ağa açılması AÇILIŞTA REDDEDİLİR - bkz. ayarlari_yukle.
     sunucu_adresi: str
     # Uyarı KANALLARI (ses çıkışı, IP hoparlör) .env'de değil, veritabanında
     # tanımlanır (speaker_zones; Komuta → Anons, docs/17 K22). Eski ANONS /
@@ -155,7 +155,7 @@ def sunucu_adi(ham: str) -> str:
     '127.0.0.1:8080' → '127.0.0.1' · '[::1]:8080' → '::1' ·
     'ISG.Dalsan.Local.' → 'isg.dalsan.local' · 'http://10.0.0.5:8080/x' → '10.0.0.5'.
     Ad olamayacak bir değer (boşluk, '@', '/' içeren; kapanmamış köşeli
-    parantez; sayı olmayan port) BOŞ metin döner — çağıran taraf onu izinsiz
+    parantez; sayı olmayan port) BOŞ metin döner - çağıran taraf onu izinsiz
     sayar.
     """
     metin = ham.strip().lower()
@@ -280,12 +280,12 @@ def ayarlari_coz(
     konum = konum or kaynaklar.VeriKonumu(kok)
 
     # Giriş şifresi İSTEĞE BAĞLIDIR (YONETICI_SIFRESI): boşken giriş sorulmaz
-    # — tek makinede, 127.0.0.1'e bağlı çalışan kurulum. Sistem ağa açılırken
+    # - tek makinede, 127.0.0.1'e bağlı çalışan kurulum. Sistem ağa açılırken
     # (SUNUCU_ADRESI) şifre ZORUNLU olur; aşağıdaki emniyet kilidi bunu
     # açılışta uygular. Ayrıntı: web/giris.py, docs/15-UZAKTAN-ERISIM.md
 
     # Not: sistemin portunu Kontrol Paneli belirler (8080). Bu yüzden .env'de
-    # port ayarı YOKTUR — okunmayan bir ayar ekranda yanlış bilgi gösterirdi.
+    # port ayarı YOKTUR - okunmayan bir ayar ekranda yanlış bilgi gösterirdi.
 
     # veri/ klasörünün yeri sabittir: Kontrol Paneli günlüğü veri/loglar/sistem.log
     # dosyasından okur ve yedekleme "veri/ klasörünü kopyala" diye tarif edilir.
@@ -303,7 +303,7 @@ def ayarlari_coz(
     # Kullanıcının yüklediği test videoları. Görüntü klasörünün DIŞINDA durur:
     # oradaki kanıt fotoğraflarını bakım döngüsü saklama süresi dolunca siler
     # (supervizor.py _eski_dosyalari_sil). Yüklenen video bir kanıt değil,
-    # kullanıcının kendi dosyasıdır — kendiliğinden silinmemelidir.
+    # kullanıcının kendi dosyasıdır - kendiliğinden silinmemelidir.
     video_klasoru = kok / _metin(degerler, "VIDEO_KLASORU", "veri/videolar")
     log_dosyasi = veri_dizini / "loglar" / "sistem.log"
 
@@ -327,7 +327,7 @@ def ayarlari_coz(
     # KAPSAYICI KİLİDİ (docs/17 §10.4, R13): Docker'da sunucu her zaman bütün
     # ağ arayüzlerini dinler (Dockerfile: --host 0.0.0.0); aşağıdaki
     # SUNUCU_ADRESI kilidi orada işlemez. docker-compose.yml'deki port satırı
-    # "8080:8080" yapıldığı anda şifresiz sistem ağa açılırdı — bu yüzden
+    # "8080:8080" yapıldığı anda şifresiz sistem ağa açılırdı - bu yüzden
     # kapsayıcıda şifre, port satırından bağımsız olarak ZORUNLUDUR.
     if kaynaklar.kapsayicida_mi() and not yonetici_sifresi:
         raise AyarHatasi(
@@ -341,11 +341,11 @@ def ayarlari_coz(
     sunucu_adresi = degerler.get("SUNUCU_ADRESI", "127.0.0.1").strip() or "127.0.0.1"
     # EMNİYET KİLİDİ: sistemi ağa açıp şifresiz bırakmak, ağdaki herkese
     # kamera silme ve anons yaptırma yetkisi vermektir. Bu, uyarıyla
-    # geçiştirilecek bir durum değil — açılış DURDURULUR.
+    # geçiştirilecek bir durum değil - açılış DURDURULUR.
     if not _yerel_adres_mi(sunucu_adresi) and not yonetici_sifresi:
         raise AyarHatasi(
             f".env dosyasında SUNUCU_ADRESI={sunucu_adresi} yazıyor: sistem ağdaki "
-            "diğer cihazlara açılacak. Ama YONETICI_SIFRESI boş — bu haliyle ağdaki "
+            "diğer cihazlara açılacak. Ama YONETICI_SIFRESI boş - bu haliyle ağdaki "
             "herkes kamera silebilir, kural değiştirebilir ve hoparlörden anons "
             "yaptırabilir.\n\n"
             "Ya YONETICI_SIFRESI satırına bir şifre yazın (en az 6 karakter), "
@@ -372,7 +372,7 @@ def ayarlari_coz(
         kkd_ham_veri_saklama_gun=_tam_sayi(degerler, "KKD_HAM_VERI_SAKLAMA_GUN", 30, 1, 3650),
         sistem_olay_saklama_gun=_tam_sayi(degerler, "SISTEM_OLAY_SAKLAMA_GUN", 90, 1, 3650),
         # KKD veri toplama: kamera başına saatte en çok kaç kişi görüntüsü
-        # örneklenir (docs/04 §4.3 — aynı kişinin 200 ardışık karesi değil)
+        # örneklenir (docs/04 §4.3 - aynı kişinin 200 ardışık karesi değil)
         kkd_ornek_saat_limit=_tam_sayi(degerler, "KKD_ORNEK_SAAT_LIMIT", 60, 1, 3600),
         # Boş disk bu değerin altına inince sistem olayı üretilir (docs/08 R8)
         disk_uyari_gb=_tam_sayi(degerler, "DISK_UYARI_GB", 5, 1, 1000),
@@ -408,7 +408,7 @@ def ayarlari_coz(
         kkd_model_dosyasi=kok / _metin(degerler, "KKD_MODEL_DOSYASI", "models/kkd.onnx"),
         # --- Nesne kütüphanesi sınırları -------------------------------------
         # Yükleme doğrulaması koda gömülmez (CLAUDE.md §7): hangi uzantı kabul
-        # edilir, dosya en fazla kaç MB olur, bir taramada kaç dosya işlenir —
+        # edilir, dosya en fazla kaç MB olur, bir taramada kaç dosya işlenir -
         # üçü de .env'den okunur.
         nesne_izinli_uzantilar=_uzanti_listesi(
             degerler, "NESNE_IZINLI_UZANTILAR", "jpg,jpeg,png,webp,bmp"
@@ -421,7 +421,7 @@ def ayarlari_coz(
         # emin olmadığı yere isim YAZMAZ (docs/12'deki üç durum ilkesiyle aynı).
         nesne_eslesme_esigi=_ondalik(degerler, "NESNE_ESLESME_ESIGI", 0.24, 0.05, 0.95),
         # --- Yüklenen test videoları -----------------------------------------
-        # Hangi uzantı kabul edilir ve dosya en fazla kaç MB olur — ikisi de
+        # Hangi uzantı kabul edilir ve dosya en fazla kaç MB olur - ikisi de
         # koda gömülmez (CLAUDE.md §7). Varsayılan sınır bilerek yüksek: bir
         # vardiyanın kamera kaydı kolayca yüz MB'ı geçer, kullanıcıyı dosyayı
         # kırpmaya zorlamak "test etmek" işini baştan zorlaştırırdı.
@@ -480,7 +480,7 @@ _ENV_SATIRI = re.compile(r"^(\s*)([A-Za-z_][A-Za-z0-9_]*)(\s*=\s*)(.*)$")
 _SATIR_SONU_YORUMU = re.compile(r"\s+#.*$")
 
 # SATIR ENJEKSİYONU (docs/AUDIT.md R14): "hdmi\nYONETICI_SIFRESI=" gibi bir
-# değer dosyaya YENİ BİR SATIR ekler — şifreyi silen ya da sistemi ağa açan
+# değer dosyaya YENİ BİR SATIR ekler - şifreyi silen ya da sistemi ağa açan
 # bir satır. Açılış doğrulayıcısı bunu göremez: formdaki değeri tek bir değer
 # olarak okur, satır ancak dosyaya yazıldıktan sonra doğar. Bu yüzden yazmadan
 # ÖNCE reddedilir. Yalnız \n ve \r değil: C0/C1 kontrol karakterleri ve
@@ -507,7 +507,7 @@ def env_guncelle(metin: str, degisiklikler: dict[str, str]) -> str:
 
     Var olan anahtarın yalnızca değeri değişir; dosyada olmayan anahtarlar
     sona eklenir. Satır enjeksiyonu taşıyan değişiklik reddedilir
-    (`env_degisikliklerini_dogrula`) — her yazma yolu buradan geçer.
+    (`env_degisikliklerini_dogrula`) - her yazma yolu buradan geçer.
     """
     env_degisikliklerini_dogrula(degisiklikler)
     kalan = dict(degisiklikler)
@@ -562,12 +562,12 @@ def env_dosyasina_yaz(env_yolu: Path, degisiklikler: dict[str, str]) -> None:
     Önce yanına geçici bir dosya yazılır, sonra tek adımda yerine geçer:
     yazma yarıda kalsa bile (disk dolu, elektrik kesildi) ESKİ ayar dosyası
     bozulmadan kalır ve sistem bir daha açılamaz duruma düşmez. Yarım kalan
-    geçici dosya bilerek silinmez — bir sonraki kayıtta üzerine yazılır ve
+    geçici dosya bilerek silinmez - bir sonraki kayıtta üzerine yazılır ve
     varlığı destek için ipucudur.
     """
     # .env bir sembolik bağ olabilir (Docker: /uygulama/.env → ayar/.env, bağlı
     # dizin; docs/17 §10.5 R27). Geçici dosya HEDEFİN yanında açılır: bağın
-    # yanında açılsaydı replace() bağın KENDİSİNİ düz dosyayla değiştirirdi —
+    # yanında açılsaydı replace() bağın KENDİSİNİ düz dosyayla değiştirirdi -
     # ayar kapsayıcının içinde kalır, sunucudaki dosya değişmez ve kapsayıcı
     # yenilenince kaybolurdu. Hedefle aynı dizinde olmak, yerine koymanın tek
     # adımda (atomik) kalmasının da şartıdır.
@@ -610,7 +610,7 @@ def _sunucu_adlari(degerler: dict, anahtar: str) -> tuple[str, ...]:
     """'192.168.1.50, ISG.dalsan.local:8080' → ('192.168.1.50', 'isg.dalsan.local').
 
     Port ve 'http://' hoş görülür (kullanıcı tarayıcıdaki adresi yapıştırabilir);
-    ad olmayan değer açılışı durdurur — sessizce atlanırsa kullanıcı neden
+    ad olmayan değer açılışı durdurur - sessizce atlanırsa kullanıcı neden
     hâlâ "izin verilmeyen adres" gördüğünü anlayamazdı.
     """
     adlar = []

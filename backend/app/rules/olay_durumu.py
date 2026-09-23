@@ -1,4 +1,4 @@
-"""Olay yaşam döngüsü (docs/17 §6.3) — saf; zamanı çağıran verir.
+"""Olay yaşam döngüsü (docs/17 §6.3) - saf; zamanı çağıran verir.
 
 Değerlendiriciler bugünkü gibi `list[Ihlal]` üretir ve tekrar bastırmayı
 (cooldown) kendileri uygular; bu makine o ihlalleri OLAYA çevirir:
@@ -9,7 +9,7 @@ Değerlendiriciler bugünkü gibi `list[Ihlal]` üretir ve tekrar bastırmayı
   süren bir ihlal olay listesini artık her `cooldown_s`'de bir satırla doldurmaz.
 - **kapandı:** anahtar `bitis_s` boyunca değerlendiricinin AKTİF kümesinde
   görünmedi → olayın bitişi yazılır. Bitiş, koşulun SON GÖRÜLDÜĞÜ andır;
-  kapandığının fark edildiği an değil — bekleme süresi olayın süresine eklenmez.
+  kapandığının fark edildiği an değil - bekleme süresi olayın süresine eklenmez.
 
 Aktif küme, değerlendiricinin ÇIKIŞ eşiğidir (girişten gevşek olabilir): bölge
 ihlalinde kişi bölgede ya da iz kayıp toleransı içinde; mesafede çift yakın;
@@ -22,7 +22,7 @@ açılır; o da kuralın bekleme süresine tabidir (cooldown zaten orada).
 
 Anahtar, cooldown anahtarıyla aynı biçimdedir: (kural, kamera, iz) ya da
 mesafede (kural, kamera, küçük iz, büyük iz); KKD'de sona kalem eklenir
-(kural, kamera, iz, "helmet") — baret ve yelek ayrı olaydır.
+(kural, kamera, iz, "helmet") - baret ve yelek ayrı olaydır.
 """
 
 from __future__ import annotations

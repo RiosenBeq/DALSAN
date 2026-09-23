@@ -233,7 +233,7 @@ def test_dns_yeniden_baglama_host_ile_durur(test_ayarlari):
     """Saldırganın adı bu makineye çözüldüğünde tarayıcı için köken
     değişmemiştir: Origin ve Host AYNI sahte adı taşır, Sec-Fetch-Site
     'same-origin' der. Origin'i Host'la kıyaslamak hiçbir şeyi durdurmaz;
-    durduran, Host'un izin listesinde olmamasıdır. GET de reddedilir —
+    durduran, Host'un izin listesinde olmamasıdır. GET de reddedilir -
     saldırının amacı yanıtı OKUMAKTIR."""
     with _istemci(test_ayarlari, "") as istemci:
         sahte = {

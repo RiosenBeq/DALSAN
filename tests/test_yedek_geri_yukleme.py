@@ -1,12 +1,12 @@
 """Yedekten geri yükleme (masaustu/dalsan_launcher.py).
 
 K7 (docs/01): "Yedek alma ve geri yükleme dokümante edilmiş ve EN AZ BİR KEZ
-PROVA EDİLMİŞ." Prova edilmemiş bir yedek, yedek değildir — bu dosya provanın
+PROVA EDİLMİŞ." Prova edilmemiş bir yedek, yedek değildir - bu dosya provanın
 kendisidir.
 
 Sınanan sözler:
   · Geri yükleme, geri ALINABİLİR olmalı (önce güvenlik kopyası).
-  · Bayat WAL dosyaları silinmeli — kalırlarsa SQLite eski WAL'i yeni
+  · Bayat WAL dosyaları silinmeli - kalırlarsa SQLite eski WAL'i yeni
     veritabanının üstüne uygular ve dosya bozulur.
   · Geri yüklenen veritabanı gerçekten AÇILABİLİR olmalı.
 """
@@ -25,7 +25,7 @@ BASLATICI = KOK / "masaustu" / "dalsan_launcher.py"
 
 @pytest.fixture
 def panel():
-    """Kontrol Paneli modülü — tkinter penceresi AÇILMADAN import edilir."""
+    """Kontrol Paneli modülü - tkinter penceresi AÇILMADAN import edilir."""
     tanim = importlib.util.spec_from_file_location("panel_geri_yukleme", BASLATICI)
     modul = importlib.util.module_from_spec(tanim)
     tanim.loader.exec_module(modul)

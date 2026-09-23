@@ -1,10 +1,10 @@
-# DALSAN İSG — fabrika sunucusu (Ubuntu + NVIDIA GPU) için.
+# DALSAN İSG - fabrika sunucusu (Ubuntu + NVIDIA GPU) için.
 # Çalıştırma:  docker compose up -d
 # Günlük:      docker compose logs -f
 # Durdurma:    docker compose down
 #
 # NOT: Mac ve Windows'ta da çalışır ama GPU kullanılamaz (CIKARIM_CIHAZI=cpu).
-# Geliştirme için Docker gerekmez — Kontrol Paneli yeterlidir.
+# Geliştirme için Docker gerekmez - Kontrol Paneli yeterlidir.
 
 services:
   dalsan:
@@ -24,7 +24,7 @@ services:
       - ./veri:/uygulama/veri
       # Ayarlar ./ayar/.env dosyasındadır ve DİZİNLE bağlanır: Ayarlar sayfası
       # kaydedebilsin diye salt okunur değildir (tek dosya bağlamada kayıt
-      # çalışmıyordu — docs/17 §10.5 R27).
+      # çalışmıyordu - docs/17 §10.5 R27).
       #   İlk kurulum:          mkdir -p ayar && cp .env.example ayar/.env
       #   Eski kurulumdan:      mkdir -p ayar && mv .env ayar/.env
       # Docker'da YONETICI_SIFRESI ZORUNLUDUR: boşsa sistem açılmaz ve sebebini

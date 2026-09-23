@@ -1,10 +1,10 @@
-# 00 — Proje Bağlamı
+# 00 - Proje Bağlamı
 
 ## Taraflar
 
 | | |
 |---|---|
-| **Geliştirici** | NextGen Yazılım — Mehmet Furkan Salihoğlu |
+| **Geliştirici** | NextGen Yazılım - Mehmet Furkan Salihoğlu |
 | **Müşteri** | DALSAN Alçı Sanayi ve Ticaret A.Ş. |
 | **Kaynak doküman** | Proje Teklifi Rev. 01, 18 Ağustos 2026 |
 | **Bedel** | 150.000 TL + KDV (yazılım ve entegrasyon) |
@@ -18,13 +18,13 @@ Sistem, DALSAN'ın mevcut İSG prosedürlerinin, saha denetimlerinin ve eğitim 
 Bu cümle pazarlama dili değil, üç somut sonucu olan bir tasarım kararıdır:
 
 1. **Teknik:** Sistem "kesin tespit" taahhüdü vermez. Kaçırılan ihlal bir hata değil,
-   sistemin bilinen sınırıdır. Buna karşılık **yanlış alarm** ciddi bir kusurdur —
+   sistemin bilinen sınırıdır. Buna karşılık **yanlış alarm** ciddi bir kusurdur -
    çünkü güveni ve dolayısıyla kullanımı bitirir.
 2. **Hukuki:** Sistem çıktısı disiplin işlemi veya ceza dayanağı olarak konumlandırılmaz.
 3. **İnsani:** Çalışan sistemi "gözetleyen" değil "hatırlatan" olarak algılamalıdır.
    Aksi halde kameradan kaçma, açıyı bozma, sabotaj gibi davranışlar başlar.
 
-## Kapsam sınırı — kamera sayısı revizyonu
+## Kapsam sınırı - kamera sayısı revizyonu
 
 Teklif Rev.01'de kamera kapsamı **8-10 kamera** olarak yazılmıştır.
 **Güncel karar: MVP'de 3-4 kamera.**
@@ -37,10 +37,10 @@ Bu bir kapsam daralması değil, **kapsam takası**dır:
 | Kural tipleri | Bölge ihlali, güvenli mesafe | Bölge ihlali, güvenli mesafe, **+ KKD (baret/yelek)** |
 | Bedel | 150.000 TL + KDV | Değişmedi |
 
-Serbest kalan kamera entegrasyon eforu, KKD senaryosunun veri toplama–etiketleme–eğitim
+Serbest kalan kamera entegrasyon eforu, KKD senaryosunun veri toplama-etiketleme-eğitim
 işine aktarılmıştır. Bu takas **yazılı olarak mutabık kalınmalı** (bkz. aşağıda "Rev.02").
 
-## KKD senaryosu — teklif kapsamı ile ilişkisi
+## KKD senaryosu - teklif kapsamı ile ilişkisi
 
 Teklif Rev.01, Bölüm 10'da şunu kapsam dışı bırakmıştır:
 
@@ -49,16 +49,16 @@ Teklif Rev.01, Bölüm 10'da şunu kapsam dışı bırakmıştır:
 Baret ve yelek tespiti **tam olarak bu tanıma girer.** MVP'ye alınması ticari olarak
 sessizce yapılamaz. Yapılması gereken:
 
-**Teklif Rev.02 veya yazılı kapsam ek protokolü** — içeriği:
+**Teklif Rev.02 veya yazılı kapsam ek protokolü** - içeriği:
 
 - Kamera kapsamının 3-4 olarak kesinleştirilmesi
 - KKD senaryosunun (baret + yelek) kapsama alınması
 - KKD'nin **hangi bölgelerde ve hangi koşullarda** çalışacağının açıkça yazılması
-  (bkz. `04-KKD-BARET-YELEK.md` — piksel eşiği ve mesafe sınırı)
+  (bkz. `04-KKD-BARET-YELEK.md` - piksel eşiği ve mesafe sınırı)
 - Veri toplama için DALSAN'ın sağlayacağı desteğin yazılması
   (planlı çekim seansı, İSG refakati, çalışan bilgilendirmesi)
 - Beklenen performansın **ölçülebilir ve koşullu** ifade edilmesi
-  ("sistem KKD tespit eder" DEĞİL — bkz. aşağıdaki başlık)
+  ("sistem KKD tespit eder" DEĞİL - bkz. aşağıdaki başlık)
 
 Ek protokol imzalanmadan KKD veri toplamaya başlanmamalıdır. Sebebi hem ticari
 hem de KVKK'dır.
@@ -75,7 +75,7 @@ durumlar 'belirsiz' olarak işaretlenir ve uyarı üretmez."
 Bu ifade biçimi teslimatta yaşanacak tartışmaların çoğunu baştan keser. Sözleşmeye
 bu dille girmelidir.
 
-## KVKK — atlanamaz
+## KVKK - atlanamaz
 
 Çalışanların görüntüsünün işlenmesi, üstelik **KKD uyumu gibi davranışsal bir çıkarım**
 üretilmesi, KVKK kapsamında kişisel veri işlemedir. Sorumluluk dağılımı:
@@ -86,7 +86,7 @@ bu dille girmelidir.
 | Veri işleyen | **NextGen Yazılım** |
 
 Projeye başlamadan önce DALSAN tarafında hazır olması gereken (DALSAN'ın hukuk/KVKK
-birimince teyit edilmeli — bu doküman hukuki görüş değildir):
+birimince teyit edilmeli - bu doküman hukuki görüş değildir):
 
 - Çalışan aydınlatma metni (görüntü işleme + KKD analizi ayrıca belirtilerek)
 - Kamera izlemesi yapılan alanlarda görünür bilgilendirme levhaları
@@ -102,7 +102,7 @@ Sistem tarafındaki teknik karşılıklar (MVP'de uygulanır):
 - Erişimin şifre ile sınırlanması
 - RTSP kimlik bilgilerinin API yanıtlarında maskelenmesi
 - Snapshot dizininin dışarıdan doğrudan erişime kapalı olması
-- Ham video **kaydedilmez** — yalnızca olay anı görüntüsü saklanır
+- Ham video **kaydedilmez** - yalnızca olay anı görüntüsü saklanır
 
 Phase 2 gizlilik seçeneği: snapshot'larda yüz bulanıklaştırma (bkz. `07-YOL-HARITASI.md`).
 
@@ -111,4 +111,4 @@ Phase 2 gizlilik seçeneği: snapshot'larda yüz bulanıklaştırma (bkz. `07-YO
 DALSAN'ın orta vadeli hedefi sistemi **tüm fabrika bölümlerine** yaymaktır.
 Bu, MVP'de hiçbir ek özellik geliştirilmesini gerektirmez; ancak birkaç mimari kararı
 etkiler (kamera gruplama, analizör bölümlendirme, kural şablonları, depolama büyümesi).
-Bu kararlar `07-YOL-HARITASI.md` Bölüm 3'te tasarım olarak yazılmıştır — **kod olarak değil.**
+Bu kararlar `07-YOL-HARITASI.md` Bölüm 3'te tasarım olarak yazılmıştır - **kod olarak değil.**

@@ -4,7 +4,7 @@ Kural: veritabanına yazılan her zaman `simdi_utc()` ile üretilmiş
 ISO-8601 UTC metnidir; ekranda gösterilen her zaman `ekranda_goster()`
 ile Türkiye saatine (Europe/Istanbul) çevrilir.
 
-Kodun BAŞKA HİÇBİR YERİNDE datetime.now() kullanılmaz — iki ayrı saat
+Kodun BAŞKA HİÇBİR YERİNDE datetime.now() kullanılmaz - iki ayrı saat
 kaynağı olursa olay zamanları tutarsızlaşır (bkz. docs/08 R7).
 """
 
@@ -25,7 +25,7 @@ except ZoneInfoNotFoundError:
 def simdi_utc() -> str:
     """Şu an, ISO-8601 UTC metni. Örnek: '2026-08-26T13:05:41+00:00'.
 
-    Sabit uzunlukta olduğu için metin olarak sıralanabilir — SQLite'ta
+    Sabit uzunlukta olduğu için metin olarak sıralanabilir - SQLite'ta
     ORDER BY ve indeksler doğru çalışır.
     """
     return datetime.now(UTC).isoformat(timespec="seconds")
@@ -117,7 +117,7 @@ def yerel_tarih_iso(utc_metni: str | None = None) -> str:
 
 
 def ekranda_saat(utc_metni: str) -> str:
-    """Yalnız saat: 'SS:DD' — canlı akış satırlarındaki gibi, günü belli olan
+    """Yalnız saat: 'SS:DD' - canlı akış satırlarındaki gibi, günü belli olan
     listelerde tarihi tekrar yazmamak için."""
     return _yerel(utc_metni).strftime("%H:%M")
 
@@ -130,7 +130,7 @@ def ne_kadar_once(utc_metni: str, simdi: datetime | None = None) -> str:
     kafasında çıkarmak zorunda kalır. Biçim ve hesap tek yerde durur ki
     ekranın başka köşesinde farklı bir "önce" yazımı doğmasın.
 
-    `simdi` yalnızca test içindir. Verilmezse gerçek saat kullanılır — çağıran
+    `simdi` yalnızca test içindir. Verilmezse gerçek saat kullanılır - çağıran
     üretim kodunun hiçbir yeri bunu geçmez. Test edilebilir olması şart:
     "48 sn önce" beklentisini gerçek saate bırakırsak, makine bir saniye
     yavaşladığında test "49 sn önce" görüp sebepsiz kırılır. Böyle bir test
@@ -139,7 +139,7 @@ def ne_kadar_once(utc_metni: str, simdi: datetime | None = None) -> str:
     saniye = ((simdi or datetime.now(UTC)) - _yerel(utc_metni)).total_seconds()
     if saniye < 0:
         # İleri tarihli damga: sunucu saati geri alınmış olabilir. Negatif
-        # süre ("−3 sn önce") yazmak yerine nötr bir ifade kullanılır.
+        # süre ("-3 sn önce") yazmak yerine nötr bir ifade kullanılır.
         return "az önce"
     if saniye < 60:
         return f"{max(int(saniye), 1)} sn önce"
@@ -177,7 +177,7 @@ def sure_metni(saniye: float) -> str:
 
 
 def yerel_saat(utc_metni: str) -> int:
-    """Olayın Türkiye saatindeki saat dilimi (0-23) — saatlik histogram için."""
+    """Olayın Türkiye saatindeki saat dilimi (0-23) - saatlik histogram için."""
     return _yerel(utc_metni).hour
 
 
@@ -187,7 +187,7 @@ def _yerel(utc_metni: str) -> datetime:
     except ValueError as hata:
         raise ValueError(f"Geçersiz zaman metni: {utc_metni!r}") from hata
     if an.tzinfo is None:
-        # Saat dilimi belirtilmemiş metin UTC kabul edilir — veritabanındaki
+        # Saat dilimi belirtilmemiş metin UTC kabul edilir - veritabanındaki
         # her değer zaten UTC yazılır.
         an = an.replace(tzinfo=UTC)
     return an.astimezone(_ISTANBUL)

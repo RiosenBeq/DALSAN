@@ -1,12 +1,12 @@
-# 07 — Yol Haritası
+# 07 - Yol Haritası
 
 MVP'de **geliştirilmeyen**, mimarinin engellemediği başlıklar. Bir özellik MVP'den
-çıkarıldığında buraya satır olarak eklenir — böylece hiçbir fikir kaybolmaz ama
+çıkarıldığında buraya satır olarak eklenir - böylece hiçbir fikir kaybolmaz ama
 hiçbiri erken kodlanmaz.
 
 ---
 
-## 1. Phase 2 — MVP sonrası (aynı 3-4 kamera)
+## 1. Phase 2 - MVP sonrası (aynı 3-4 kamera)
 
 Sıralama beklenen faydaya göre.
 
@@ -14,7 +14,7 @@ Sıralama beklenen faydaya göre.
 |---|---|---|---|
 | 1 | **Olay video klibi** (öncesi/sonrası 5+5 sn) | Yanlış alarm incelemesinde ve İSG eğitiminde snapshot'tan çok daha güçlü. En sık istenecek özellik. | Orta |
 | 2 | **KKD geri besleme döngüsü** | MVP'nin "Yanlış alarm" işaretleri + snapshot'ları zaten veri seti. Kalan iş: periyodik yeniden eğitim betiği + model sürüm yönetimi. Precision'ı zamanla yükseltir. | Orta |
-| 3 | **Raporlamanın kalanı: vardiya karşılaştırması ve eğilim** | Dönem raporu YAPILDI (aşağıdaki kapananlar). Açık kalan: vardiya (08–16 / 16–24 / 24–08) kırılımı ve dönemler arası eğilim ("geçen aya göre %18 azaldı"). İkisi de vardiya tanımını sisteme sokmayı gerektirir; bugün sistemde vardiya kavramı YOK ve uydurulmadı. | Orta |
+| 3 | **Raporlamanın kalanı: vardiya karşılaştırması ve eğilim** | Dönem raporu YAPILDI (aşağıdaki kapananlar). Açık kalan: vardiya (08-16 / 16-24 / 24-08) kırılımı ve dönemler arası eğilim ("geçen aya göre %18 azaldı"). İkisi de vardiya tanımını sisteme sokmayı gerektirir; bugün sistemde vardiya kavramı YOK ve uydurulmadı. | Orta |
 | 4 | **Bildirim kanalları** (e-posta, SMS/WhatsApp, mobil push) | Kritik ihlalin ekran başında kimse yokken duyulması. `EventSink` arayüzüne yeni sink. | Küçük-orta |
 | 5 | **Kullanıcı yönetimi ve roller** (İSG yöneticisi / operatör / izleyici) | Birden çok departman kullanmaya başladığında; kim neyi değiştirdi izlenebilirliği. Auth zaten tek dependency'de. | Orta |
 | 6 | **Yüz bulanıklaştırma** (snapshot'ta) | KVKK açısından değerli; KKD kapsamı genişledikçe önemi artar. Kişi bbox'ının üst bölgesine blur. | Küçük |
@@ -26,7 +26,7 @@ Sıralama beklenen faydaya göre.
 | 12 | **NVR kayıt entegrasyonu** | Olaydan NVR'daki tam kayda atlama. | Orta |
 | 13 | **Düşme / hareketsizlik tespiti** | Ayrı model, ayrı veri, ayrı bedel. Teklifte kapsam dışı. | Büyük |
 | 14 | **PLC / SCADA / ERP entegrasyonu** | Teklifte açıkça kapsam dışı. İhlalde hat/kapı sinyali senaryosu doğarsa. | Değişken |
-| 17 | **Tanıtılan nesnenin CANLI kamerada aranması** | Nesne kütüphanesi (Nesneler sayfası, şema 003) bugün yalnızca kullanıcının YÜKLEDİĞİ fotoğrafta arıyor — kullanıcı kararıyla kapsam böyle sınırlandı. Canlıya taşımak ayrı bir iştir: parmak izi eşleştirmesi kare başına saniyeler sürer (kayan pencere), canlı boru hattı ise saniyede 6 kare işler. Doğru yol, tespit modeline nesne sınıfı öğretmek ya da eşleştirmeyi yalnızca model kutularıyla ve seyrek karelerde çalıştırmaktır. Ayrıca canlıda "yanlış eşleşme" artık bir uyarı/anons demektir; bugünkü doğruluk buna yetmiyor. | Orta-büyük |
+| 17 | **Tanıtılan nesnenin CANLI kamerada aranması** | Nesne kütüphanesi (Nesneler sayfası, şema 003) bugün yalnızca kullanıcının YÜKLEDİĞİ fotoğrafta arıyor - kullanıcı kararıyla kapsam böyle sınırlandı. Canlıya taşımak ayrı bir iştir: parmak izi eşleştirmesi kare başına saniyeler sürer (kayan pencere), canlı boru hattı ise saniyede 6 kare işler. Doğru yol, tespit modeline nesne sınıfı öğretmek ya da eşleştirmeyi yalnızca model kutularıyla ve seyrek karelerde çalıştırmaktır. Ayrıca canlıda "yanlış eşleşme" artık bir uyarı/anons demektir; bugünkü doğruluk buna yetmiyor. | Orta-büyük |
 | 18 | **Nesne aramada video yükleme** | Bugün yalnızca fotoğraf yüklenebiliyor. Video, eşit aralıklı kare örnekleyip her kareyi taramak demektir; kayan pencere taraması kare başına saniyeler sürdüğü için tek videonun taraması dakikalara çıkar. Önce tarama hızlandırılmalı. | Orta |
 | 19 | **Sayımın kalıcı kaydı** (vardiya/gün raporu) | Bölge sayımı bugün BELLEKTE tutulur: sistem yeniden başlayınca "giren" sıfırlanır ve geçmiş gün karşılaştırılamaz. Kalıcı olması için sayaçları düzenli aralıkla yazan bir tablo gerekir. Bilerek ertelendi: önce sayının sahada DOĞRU olduğu görülmeli; yanlış bir sayıyı kalıcı kaydetmek, yanlışı rapora taşımaktır. | Küçük-orta |
 | 20 | **Çizgi geçiş sayımı** (kapıdan kaç kişi geçti) | Bugün sayım BÖLGE bazlıdır: "içeride kaç var" ve "kaç tanesi girdi". Yön bilgisi (içeri mi çıktı mı) için çizgi ve geçiş yönü gerekir. Bölge sayımı çoğu İSG sorusuna yettiği için önce o yapıldı. | Orta |
@@ -45,11 +45,11 @@ Sıralama beklenen faydaya göre.
 | Anons uç noktasının somut biçimi (R3) | Kapandı: üç HTTP biçimi (`json`/`form`/`get`) ve adres yer tutucuları eklendi; hangi cihaz için hangisinin seçileceği `14-ANONS-SISTEMI-BAGLAMA.md`'de. Sahadaki cihaz öğrenilince kod DEĞİL, ayar değişir. |
 | Bölge çiziminin zahmeti | Kapandı: zemindeki boyadan otomatik alan önerisi, dikdörtgen kipi, köşe sürükleme ve ekran görüntüsü üzerine çizim. |
 | Paketlemenin doğrulanması | **Kapandı:** `.app`/`.exe` bu depoda üretilemez ama üretimin sınanabilir her parçası artık testte: iki tarif de sahte PyInstaller ile ÇALIŞTIRILIYOR (Mac tarifi eskiden `otool` yüzünden çalıştırılamıyordu), tarifin dediği paket geçici klasöre kurulup sistem ayrı süreçte AÇILIYOR, `.env.example` eksiksizliği kilitlendi. Ayrıntı `13-UYGULAMA-PAKETLEME.md` §8.1. |
-| Raporlama: PDF/Excel çıktı (#3'ün ana kısmı) | **Kapandı:** Komuta → Rapor. Kamera / kural / bölge / bölüm kırılımı, saatlik ve günlük dağılım. PDF için yeni kütüphane KURULMADI: sayfa yazdırmaya hazır (`@media print`), tarayıcının "PDF olarak kaydet" adımı yeterli. Excel çıktısı noktalı virgüllü + BOM'lu CSV. Kamera başına analiz edilen süre ve yanlış alarm / saat de raporda (Faz 2e-3; yalnız incelemesi tam günlerden, `17-V2-TASARIM.md` §14). Vardiya ve eğilim kırılımı hâlâ açık — #3. |
-| Dördüncü kural tipi: forklift hızı (#15) | **Kapandı:** `vehicle_speed`. Ertelemenin sebebi olan şema kısıtı `backend/sema/005_arac_hizi_kurali.sql` ile güvenli biçimde aşıldı — yabancı anahtar işlem dışında kapatılıp geri açılıyor ve `PRAGMA foreign_key_check` ile olay geçmişinin sağlam kaldığı doğrulanıyor. Karar mantığı `rules/hiz.py`, davranış tanımı `03-KURAL-MOTORU.md` §4. |
-| "Kaç kişi geçti" sorusu | Kısmen: bölge bazlı canlı sayım eklendi (`rules/sayim.py`). Kalıcı kayıt ve yön bilgisi hâlâ açık — #19 ve #20. |
+| Raporlama: PDF/Excel çıktı (#3'ün ana kısmı) | **Kapandı:** Komuta → Rapor. Kamera / kural / bölge / bölüm kırılımı, saatlik ve günlük dağılım. PDF için yeni kütüphane KURULMADI: sayfa yazdırmaya hazır (`@media print`), tarayıcının "PDF olarak kaydet" adımı yeterli. Excel çıktısı noktalı virgüllü + BOM'lu CSV. Kamera başına analiz edilen süre ve yanlış alarm / saat de raporda (Faz 2e-3; yalnız incelemesi tam günlerden, `17-V2-TASARIM.md` §14). Vardiya ve eğilim kırılımı hâlâ açık - #3. |
+| Dördüncü kural tipi: forklift hızı (#15) | **Kapandı:** `vehicle_speed`. Ertelemenin sebebi olan şema kısıtı `backend/sema/005_arac_hizi_kurali.sql` ile güvenli biçimde aşıldı - yabancı anahtar işlem dışında kapatılıp geri açılıyor ve `PRAGMA foreign_key_check` ile olay geçmişinin sağlam kaldığı doğrulanıyor. Karar mantığı `rules/hiz.py`, davranış tanımı `03-KURAL-MOTORU.md` §4. |
+| "Kaç kişi geçti" sorusu | Kısmen: bölge bazlı canlı sayım eklendi (`rules/sayim.py`). Kalıcı kayıt ve yön bilgisi hâlâ açık - #19 ve #20. |
 
-## 2. Phase 3 — Alçı Stokholü
+## 2. Phase 3 - Alçı Stokholü
 
 Teklif Bölüm 11'de zaten ayrı faz olarak tanımlı. Ayrı saha analizi, ayrı ihtiyaç
 analizi, ayrı teklif gerektirir.
@@ -64,7 +64,7 @@ demek (bkz. `03-KURAL-MOTORU.md` §6). Başka dosyaya dokunulmaz.
 
 ---
 
-## 3. Phase 4 — Fabrika geneli yayılım (tasarım, kod değil)
+## 3. Phase 4 - Fabrika geneli yayılım (tasarım, kod değil)
 
 **Hedef:** Sistemin tüm fabrika bölümlerine yayılması (~30-40 kamera mertebesi).
 
@@ -82,7 +82,7 @@ kararların yarın yeniden yazım gerektirmemesini sağlamaktır.
 | ~30-40 | SSE polling ve olay hacmi | `LISTEN/NOTIFY`, olay tablosu bölümlendirme (partition) |
 | ~30-40 | Snapshot disk büyümesi | Alan bazlı retention, daha agresif süreler |
 
-### 3.2 Analizör bölümlendirmesi — bugünün hazırlığı
+### 3.2 Analizör bölümlendirmesi - bugünün hazırlığı
 
 **Bugün (ADR-008):** Analizör hangi kameralarla ilgileneceğini **tek bir fonksiyondan**
 öğrenir: `get_assigned_cameras()` → bugün "tüm aktif kameralar" döner.
@@ -92,7 +92,7 @@ kararların yarın yeniden yazım gerektirmemesini sağlamaktır.
 2. `get_assigned_cameras()` içine `WHERE analyzer_group = settings.ANALYZER_GROUP` ekle
 3. `docker-compose.yml`'e ikinci/üçüncü analizör servisi ekle, farklı env ile
 
-Toplam: ~15 satır. Broker yok, servis keşfi yok, koordinasyon yok — çünkü
+Toplam: ~15 satır. Broker yok, servis keşfi yok, koordinasyon yok - çünkü
 analizörler birbirini tanımaz, yalnızca DB'yi paylaşır.
 
 **Bugün bu alanı eklemiyoruz** çünkü tek analizör varken `analyzer_group` kullanılmayan
@@ -100,12 +100,12 @@ konfigürasyondur ve her yeni kamerada doldurulması gereken anlamsız bir aland
 
 ### 3.3 Alan (area) kavramının olgunlaşması
 
-**Bugün (ADR-007):** `cameras.area` — indeksli düz metin alanı. Olay filtresinde kullanılır.
+**Bugün (ADR-007):** `cameras.area` - indeksli düz metin alanı. Olay filtresinde kullanılır.
 
-**Fabrika genelinde gereken:** `areas` tablosu — alan adı, sorumlu İSG kişisi,
+**Fabrika genelinde gereken:** `areas` tablosu - alan adı, sorumlu İSG kişisi,
 alan bazlı retention süresi, alan bazlı yetki, alan raporu.
 
-**Geçiş:** Tek migrasyon — `areas` tablosunu oluştur, mevcut `cameras.area` metin
+**Geçiş:** Tek migrasyon - `areas` tablosunu oluştur, mevcut `cameras.area` metin
 değerlerinden satırları üret, `cameras.area_id` FK'sini doldur, eski kolonu düşür.
 Veri kaybı yok çünkü metin alanı zaten tutarlı doldurulmuş olur.
 
@@ -121,7 +121,7 @@ tozlu/temiz, aydınlık/karanlık). İki seçenek:
 
 **Karar:** Tek model. Yeni bölüm devreye alınırken o bölümün verisi ortak veri setine
 eklenir ve model yeniden eğitilir. `events.details.model_version` bu yüzden MVP'den
-itibaren yazılır — hangi olayın hangi modelle üretildiği bilinmeden bölüm ekleme
+itibaren yazılır - hangi olayın hangi modelle üretildiği bilinmeden bölüm ekleme
 sonrası "model bozuldu mu" sorusu cevaplanamaz.
 
 ### 3.5 KKD'nin fabrika genelinde yayılması
@@ -135,7 +135,7 @@ Kamera açısı ölçümü → uygun bölge belirleme → o bölümün verisiyle
 ```
 
 Bu döngü bölüm başına 2-4 hafta sürer. Fabrika geneli KKD kapsamı **tek seferlik
-bir kurulum değil, kademeli bir programdır** — planlama buna göre yapılmalıdır.
+bir kurulum değil, kademeli bir programdır** - planlama buna göre yapılmalıdır.
 
 ### 3.6 Yüksek erişilebilirlik
 
@@ -157,13 +157,13 @@ Bu, kameralar arttıkça değil, **sisteme bağımlılık arttıkça** gündeme 
 | GraphQL | İstemci tek ve sabit; REST + OpenAPI yeterli |
 | Elasticsearch | Olay hacmi PostgreSQL'in çok altında |
 | Multi-tenancy | Tek şirket, tek tesis; fabrika geneli yayılım multi-tenancy değil, alan gruplamadır |
-| Programın Bluetooth hoparlörü KENDİ eşleştirmesi | Hoparlör eşleştirmesi (A2DP) `bleak`/`pybluez` ile zaten yapılamaz; her işletim sisteminde ayrı kütüphane ve izin ister. İşletim sistemi bunu zaten yapıyor — üstelik daha iyi. Sistem eşleştirilmiş cihazı listeler ve koptuğunda uyarır (`olaylar/ses_cihazlari.py`) |
+| Programın Bluetooth hoparlörü KENDİ eşleştirmesi | Hoparlör eşleştirmesi (A2DP) `bleak`/`pybluez` ile zaten yapılamaz; her işletim sisteminde ayrı kütüphane ve izin ister. İşletim sistemi bunu zaten yapıyor - üstelik daha iyi. Sistem eşleştirilmiş cihazı listeler ve koptuğunda uyarır (`olaylar/ses_cihazlari.py`) |
 | Mac/Windows'ta ses çıkışını PROGRAMDAN seçme | `afplay` ve `winsound` cihaz seçeneği almaz; ek modül (AudioDeviceCmdlets, SwitchAudioSource) kurulum gerektirir. Ekran, çıkışın işletim sistemi ayarlarından seçileceğini söylüyor. Linux'ta (fabrika sunucusu) seçim zaten çalışıyor |
 | CSS çatısı (Tailwind, Bootstrap) | `static/vendor/` istisnası yalnız simge ve yazı tipi içindir (CLAUDE.md §4). Çatı, derleme adımı ve npm getirir |
 
 ---
 
-## 4.1 Video ile test — sonraki adımlar (2026-09)
+## 4.1 Video ile test - sonraki adımlar (2026-09)
 
 Bugün yüklenen video, `source_type='file'` olan sıradan bir kameradır ve canlı
 kameranın yolundan geçer (`web/videolar.py`). Aşağıdakiler ölçülmedi ve
@@ -171,13 +171,13 @@ uçtan uca akış için gerekli DEĞİL (CLAUDE.md §2):
 
 | Fikir | Neden bugün değil |
 |---|---|
-| Videoyu hızlandırarak analiz etme (2x, 4x) | Bugün video gerçek hızında oynuyor; on dakikalık bir kayıt on dakika sürüyor. Hızlandırmak takipçinin (ByteTrack) kare hızı varsayımını bozar ve hız kuralının ölçtüğü m/sn değerini yanlış yapar — yani sonucu hızlandırmak uğruna YANLIŞLAŞTIRIR |
+| Videoyu hızlandırarak analiz etme (2x, 4x) | Bugün video gerçek hızında oynuyor; on dakikalık bir kayıt on dakika sürüyor. Hızlandırmak takipçinin (ByteTrack) kare hızı varsayımını bozar ve hız kuralının ölçtüğü m/sn değerini yanlış yapar - yani sonucu hızlandırmak uğruna YANLIŞLAŞTIRIR |
 | Aynı videoyu iki farklı eşikle karşılaştırma | İki kamera kaydı olarak elle yapılabiliyor; ayrı bir ekran, öğrenilecek yeni bir kavram demek |
 | İlerleme çubuğu ("videonun %40'ı analiz edildi") | Kamera katmanı toplam kare sayısını bilmiyor; öğrenmesi için dosyayı baştan taraması gerekir |
 
 ---
 
-## 5. Nesne kütüphanesi — isabeti geri kazanma (2026-09'da açılan başlık)
+## 5. Nesne kütüphanesi - isabeti geri kazanma (2026-09'da açılan başlık)
 
 "Renk taşımaz" kuralı yanlış ismi sıfıra indirdi (bkz.
 `backend/app/nesneler/kutuphane.py` → `kabul_skoru`), bedeli isabette ödendi:
@@ -198,14 +198,14 @@ nesnesinden geliyor:** "Düz beyaz baret". O nesne aslında düz, ama gölgesind
 Yani doğru soru "çıtayı/oranı kaça çekelim" değil, **"bu referansın anahtar
 noktaları desen mi, gürültü mü?"**dir. Ölçülebilir biçimi: bir referansın
 noktaları kendi diğer fotoğraflarında da aynı yerlerde çıkıyor mu (teşhisin
-tutarlılık ölçüsü zaten bunu yapıyor — "Düz beyaz baret" 0,023). Bu ölçü
+tutarlılık ölçüsü zaten bunu yapıyor - "Düz beyaz baret" 0,023). Bu ölçü
 `benzerlik()` kararına girerse, gürültülü referanslar kendiliğinden elenir ve
 gerçek desenliler için kural gevşetilebilir.
 
 Yapılmadan önce ölçülmesi gerekenler: kural gevşetildiğinde yanlış isim gerçekten
 sıfır kalıyor mu (tam takım), ve isabet 8'den kaça çıkıyor.
 
-### 5.1 Düz nesnelere "ikinci kanıt" — DENENDİ, OLMADI (2026-09)
+### 5.1 Düz nesnelere "ikinci kanıt" - DENENDİ, OLMADI (2026-09)
 
 Düz/desensiz nesnelerin isabeti sıfırdır. Bunu kurtarmanın tek meşru yolu,
 renge dayanmayan **ikinci bir kanıt** bulmaktır ("renk taşımaz" kuralı
@@ -219,14 +219,14 @@ skor alıyor mu?" 0,50 yazı-turadır.
 
 | aday ikinci kanıt | adil AUC |
 |---|---|
-| A — uzamsal renk düzeni (2x2 + merkez histogramları) | 0,190 |
-| A' — baskın renk bölgesinin halka profili + doluluğu | 0,222 |
-| B — kenar/siluet haritası (8x8) | 0,000 |
-| B' — satır/sütun kenar profili | 0,000 |
-| B'' — Hu momentleri (Otsu + en büyük kontur) | elendi (aşağıda) |
-| C — kenar yönelim dağılımı 3x3x8 (HOG) | 0,381 |
-| C' — kenar yönelim dağılımı 2x2x8 | 0,508 |
-| P — parlaklık düzeni (8x8) | 0,143 |
+| A - uzamsal renk düzeni (2x2 + merkez histogramları) | 0,190 |
+| A' - baskın renk bölgesinin halka profili + doluluğu | 0,222 |
+| B - kenar/siluet haritası (8x8) | 0,000 |
+| B' - satır/sütun kenar profili | 0,000 |
+| B'' - Hu momentleri (Otsu + en büyük kontur) | elendi (aşağıda) |
+| C - kenar yönelim dağılımı 3x3x8 (HOG) | 0,381 |
+| C' - kenar yönelim dağılımı 2x2x8 | 0,508 |
+| P - parlaklık düzeni (8x8) | 0,143 |
 | A+B+C birlikte | 0,016 |
 | hepsi birlikte | 0,000 |
 | ORACLE (her sorguda en iyi aday seçilse) | 0,333 |
@@ -237,14 +237,14 @@ desensiz nesnenin temiz referans fotoğrafına o kadar benzer. Yabancı düz
 nesneler (mavi kasa, mavi örtü, gri sac levha) pürüzsüz oldukları için
 referansa, sahnede dönmüş/bulanıklaşmış/yarısı örtülmüş **gerçek** nesneden
 daha çok benziyor. Bu yüzden aynı nesnenin dört referansı birbirini, ikizini
-tanıdığından daha az tanıyor (HOG: kendi 0,827 — ikizi 0,850). Sıralaması ters
+tanıdığından daha az tanıyor (HOG: kendi 0,827 - ikizi 0,850). Sıralaması ters
 olan bir kanıt hiçbir eşik, ağırlık ya da birleşimle düzelmez.
 
 Hu momentleri ayrıca elendi: aynı nesnenin dört referansı arasındaki tutarlılık
 0,110 çıktı (nesne kendini bile tanımıyor), çünkü Otsu eşiklemesi tarama
 penceresinde nesneyi zeminden ayıramıyor.
 
-**Bugünkü durum dürüstçe yazılıdır:** Nesneler sayfasındaki rozet "Düz renkli —
+**Bugünkü durum dürüstçe yazılıdır:** Nesneler sayfasındaki rozet "Düz renkli -
 bulunamaz" der, sayfanın "Bu yöntem ne yapar, ne yapmaz" bölümü ve kılavuz da
 bu denemenin yapıldığını ve başarısız olduğunu söyler.
 

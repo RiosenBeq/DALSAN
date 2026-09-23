@@ -1,4 +1,4 @@
-# 09 — Sadeleştirme Kararları
+# 09 - Sadeleştirme Kararları
 
 > **Bu dosya, önceki dosyalardaki bazı teknik kararları DEĞİŞTİRİR.**
 > Çelişki görürsen bu dosya geçerlidir.
@@ -17,7 +17,7 @@ Bu, iyi mühendisliğin tanımını değiştirmez ama **doğru takası** değiş
 | Her bileşen kendi işine en uygun araç | **Toplam parça sayısı en az olan çözüm** |
 | Ölçeklenmeye hazır | Bugün çalışan; ölçeklenme geldiğinde değiştirilebilir |
 
-Bir kişi için **anlamadığı 5 parça, anladığı 2 parçadan daha risklidir** — çalışsalar bile.
+Bir kişi için **anlamadığı 5 parça, anladığı 2 parçadan daha risklidir** - çalışsalar bile.
 
 ---
 
@@ -40,7 +40,7 @@ Bir kişi için **anlamadığı 5 parça, anladığı 2 parçadan daha risklidir
 - Üç kural tipi: bölge ihlali, güvenli mesafe, KKD
 - KKD'de üç durumlu karar (`var` / `yok` / `belirsiz`) ve zamansal oylama
 - KKD'nin gölge modda devreye alınması
-- Git kullanımı (bkz. `10-YAPAY-ZEKA-ILE-CALISMA.md` — "geri alma düğmesi")
+- Git kullanımı (bkz. `10-YAPAY-ZEKA-ILE-CALISMA.md` - "geri alma düğmesi")
 - Testler (yapay zekanın kendi işini doğrulama aracı)
 - Tüm risk ve KVKK değerlendirmeleri
 

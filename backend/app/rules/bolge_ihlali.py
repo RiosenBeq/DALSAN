@@ -1,4 +1,4 @@
-"""Kural tipi 1 — zone_intrusion: Bölge ihlali (docs/03 §1).
+"""Kural tipi 1 - zone_intrusion: Bölge ihlali (docs/03 §1).
 
 Soru: Tanımlı sınıftan bir nesne, tanımlı bölgede (veya mode=outside ise
 bölge DIŞINDA), tanımlı süreden uzun kaldı mı?
@@ -46,7 +46,7 @@ class BolgeIhlaliDegerlendirici:
         gorulenler: set[int] = set()
         # Aynı kameranın etkin geçitleri (Baglam değişmez: bölgelerin hepsi
         # tipleriyle zaten orada). Kuralın KENDİ bölgesi geçitse istisna
-        # uygulanmaz — o kural geçidin kendisini izliyor.
+        # uygulanmaz - o kural geçidin kendisini izliyor.
         gecitler = [
             b.poligon
             for b in baglam.bolgeler.values()

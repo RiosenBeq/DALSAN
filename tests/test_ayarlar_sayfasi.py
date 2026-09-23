@@ -7,7 +7,7 @@ olmadan sahada bir eşik değiştirmenin yolu kalmazdı.
 Testlerin koruduğu iki söz:
 
 1. **Geçersiz ayar dosyaya YAZILMAZ.** Aksi halde kaydedilen tek bir yanlış
-   değer, sistemin bir daha hiç açılmamasına yol açardı — kullanıcı da onu
+   değer, sistemin bir daha hiç açılmamasına yol açardı - kullanıcı da onu
    geri almayı bilemezdi.
 2. **Açıklama satırları korunur.** Dosyanın içindeki Türkçe açıklamalar,
    ayarın ne işe yaradığını anlatan tek kaynaktır.
@@ -24,7 +24,7 @@ from app.ayarlar import env_guncelle
 from app.uygulama import uygulama_olustur
 
 ORNEK_ENV = """\
-# DALSAN İSG — Ayarlar
+# DALSAN İSG - Ayarlar
 
 # --- Saklama süreleri (gün) ---
 OLAY_SAKLAMA_GUN=180
@@ -133,7 +133,7 @@ def test_gecerli_deger_kaydediliyor(ayarli_istemci):
 
 
 def test_nesne_arama_citasi_ekrandan_degistirilebiliyor(ayarli_istemci):
-    """Nesneler sayfasındaki "Ayar notu" bu kutuyu tarif eder — kutu OLMALI.
+    """Nesneler sayfasındaki "Ayar notu" bu kutuyu tarif eder - kutu OLMALI.
 
     .env git'e girmediği için eski bir kurulum kendi çıtasıyla kalır. Not
     kullanıcıya "Ayarlar sayfasındaki Nesne arama titizliği kutusuna 0.24
@@ -178,7 +178,7 @@ def test_aciklama_satirlari_kayboluyor_MU_hayir(ayarli_istemci):
     istemci.post("/ayarlar/kaydet", data=_form(CIKARIM_CIHAZI="cuda"))
 
     metin = ayarlar.env_yolu.read_text(encoding="utf-8")
-    assert "# DALSAN İSG — Ayarlar" in metin
+    assert "# DALSAN İSG - Ayarlar" in metin
     assert "# --- Saklama süreleri (gün) ---" in metin
     assert "CIKARIM_CIHAZI=cuda          # cpu | cuda   (fabrikada: cuda)" in metin
 
@@ -190,7 +190,7 @@ def test_gecersiz_deger_dosyaya_YAZILMAZ(ayarli_istemci):
 
     yanit = istemci.post(
         "/ayarlar/kaydet",
-        data=_form(TESPIT_GUVEN_ESIGI="9"),  # izinli aralık 0.05 – 0.95
+        data=_form(TESPIT_GUVEN_ESIGI="9"),  # izinli aralık 0.05 - 0.95
         headers={"accept": "text/html"},
     )
 

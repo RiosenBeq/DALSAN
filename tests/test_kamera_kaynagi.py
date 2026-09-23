@@ -95,7 +95,7 @@ def test_bozuk_rtsp_adresi_teshisi():
 #
 # Yüklenen bir test videosunun bir SONU vardır; kameranın yoktur. Bu ayrımın
 # kod tarafındaki karşılığı `dongu` bayrağıdır ve aşağıdaki testler onun
-# gerçekten çalıştığını GERÇEK bir video dosyasıyla ölçer — sahte bir
+# gerçekten çalıştığını GERÇEK bir video dosyasıyla ölçer - sahte bir
 # VideoCapture ile değil, çünkü ölçülmek istenen tam olarak OpenCV'nin dosya
 # sonunda ne yaptığıdır.
 # ---------------------------------------------------------------------------

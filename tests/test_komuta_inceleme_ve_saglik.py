@@ -151,7 +151,7 @@ def test_kuyruk_gercek_veriden_ve_rozetler(istemci, test_ayarlari):
         assert rozet in metin
     assert "Rampa A · Sevkiyat" in metin
     # Özet cümlesi olay listesindekiyle aynı kaynaktan gelir
-    assert "Güvenli mesafe — 1,4 m" in metin
+    assert "Güvenli mesafe - 1,4 m" in metin
 
 
 def test_bekleyen_olaylar_kuyrugun_basinda(istemci, test_ayarlari):
@@ -232,7 +232,7 @@ def test_kkd_olayinda_uc_durumlu_karar_gosterilir(istemci, test_ayarlari):
 
 
 def test_kaynagi_olmayan_kutu_hic_cizilmez(istemci, test_ayarlari):
-    """Ölçüm kaydı yoksa '—' yazan boş kutu gösterilmez: ölçüm yapılmış ama
+    """Ölçüm kaydı yoksa '-' yazan boş kutu gösterilmez: ölçüm yapılmış ama
     sonuç çıkmamış izlenimi vermemeli."""
     kamera = _kamera_ekle(istemci, "Rampa A", "Sevkiyat")
     olay = _ihlal_ekle(test_ayarlari, kamera, params={}, detaylar={"mesafe_m": 2.0})
@@ -400,13 +400,13 @@ def test_son_kare_insan_diliyle(istemci, test_ayarlari):
 
     metin = istemci.get("/komuta/saglik").text
     # Saniye satırında TAM sayı aranmaz: sayfa isteği bir saniye sürerse "3 sn"
-    # "4 sn" olur ve test sebepsiz kırılırdı. Burada korunan şey BİÇİM — tam
+    # "4 sn" olur ve test sebepsiz kırılırdı. Burada korunan şey BİÇİM - tam
     # sayının doğruluğunu aşağıdaki birim testi sabit saatle çiviliyor.
     assert re.search(r"\b[1-9]\d? sn önce\b", metin), "Saniye biçimi görünmüyor"
     # 200 saniye -> "3 dk önce"; bu eşik 40 saniye pay bırakır, kararlıdır.
     assert "3 dk önce" in metin
     # Hiç kare gelmemiş kameraya uydurma bir süre yazılmaz
-    assert metin.count("—") >= 1
+    assert metin.count("-") >= 1
 
 
 def test_kalibrasyonsuz_kameraya_kalibre_et_baglantisi(istemci, test_ayarlari):

@@ -1,4 +1,4 @@
-# 15 — Uzaktan Erişim Kılavuzu
+# 15 - Uzaktan Erişim Kılavuzu
 
 Sisteme fabrika dışından (evden, telefondan) girip bir sorunu görebilmek için.
 
@@ -11,13 +11,13 @@ Sisteme fabrika dışından (evden, telefondan) girip bir sorunu görebilmek iç
 
 ---
 
-## 1. Üç seviye var — hangisi size lazım?
+## 1. Üç seviye var - hangisi size lazım?
 
 | Seviye | Nereden erişilir | Kurulum | Risk |
 |---|---|---|---|
 | **A · Yalnız sunucu** *(bugünkü hâli)* | Sistemin kurulu olduğu bilgisayardan | Yok | Yok |
-| **B · Fabrika ağı** | Fabrikadaki her bilgisayar/telefon | Tek satır ayar | Düşük — şifre şart |
-| **C · Fabrika dışı** | Evden, telefondan, her yerden | §4'teki yollardan biri | **Yüksek** — doğru yapılmazsa |
+| **B · Fabrika ağı** | Fabrikadaki her bilgisayar/telefon | Tek satır ayar | Düşük - şifre şart |
+| **C · Fabrika dışı** | Evden, telefondan, her yerden | §4'teki yollardan biri | **Yüksek** - doğru yapılmazsa |
 
 Çoğu "bir sorun olduğunda müdahale" ihtiyacı için **B yeterlidir**: fabrikada
 olduğunuz sürece telefondan bakabilirsiniz. Gerçekten fabrika dışından
@@ -25,7 +25,7 @@ gerekiyorsa C'ye geçin.
 
 ---
 
-## 2. Seviye B — fabrika ağına açma
+## 2. Seviye B - fabrika ağına açma
 
 Üç satır, üçü de `.env` dosyasında (ya da **Komuta → Ayarlar → Güvenlik**):
 
@@ -85,7 +85,7 @@ yazması başkasını engellemez.
 
 ---
 
-## 4. Seviye C — fabrika dışından erişim
+## 4. Seviye C - fabrika dışından erişim
 
 Üç yol var. **Sıralama tavsiye sırasıdır.**
 
@@ -95,7 +95,7 @@ Sistem internete **hiç açılmaz**. Siz fabrika ağının içine girersiniz; si
 açısından fabrikadaymışsınız gibi olur.
 
 **Şirketin VPN'i varsa:** DALSAN BT'ye "bu sunucuya VPN üzerinden erişmem
-gerekiyor" deyin. Yazılım tarafında **yapılacak hiçbir şey yok** — Seviye B
+gerekiyor" deyin. Yazılım tarafında **yapılacak hiçbir şey yok** - Seviye B
 ayarları yeterli.
 
 **VPN yoksa Tailscale** (ya da benzeri) en pratik yoldur:
@@ -122,14 +122,14 @@ Sunucudan **dışarı doğru** bir bağlantı kurulur; siz bir web adresinden
 girersiniz. Router'da port açmak gerekmez ve bağlantı HTTPS olur.
 
 Artıları: HTTPS hazır gelir, port açılmaz.
-Eksileri: görüntüleriniz bir üçüncü taraf hizmetin üzerinden geçer — **KVKK
+Eksileri: görüntüleriniz bir üçüncü taraf hizmetin üzerinden geçer - **KVKK
 açısından ayrıca değerlendirilmelidir** (yurt dışına veri aktarımı sorusu).
 
 Tünelin verdiği web adresini (ör. `isg.sirketiniz.com`) **İzinli sunucu
 adları**'na ekleyin; eklenmezse sayfa açılmaz ya da formlar "İstek
 reddedildi" der.
 
-### 4.3 Son çare: router'da port açma — **önerilmez**
+### 4.3 Son çare: router'da port açma - **önerilmez**
 
 Router'a "8080 portuna gelen istekleri sunucuya yönlendir" dedirtmek en kolay
 görünen yoldur ve **en tehlikelisidir**:
@@ -143,7 +143,7 @@ görünen yoldur ve **en tehlikelisidir**:
 
 Yine de zorundaysanız, **en azından** şunlar yapılmalıdır:
 
-1. Önüne HTTPS yapan bir ters vekil (nginx/Caddy) koyun — sertifika ücretsizdir.
+1. Önüne HTTPS yapan bir ters vekil (nginx/Caddy) koyun - sertifika ücretsizdir.
    Vekilin yayın yaptığı adı **İzinli sunucu adları**'na ekleyin. Tarayıcı
    formu o adla gönderir (`Origin`); vekil `Host`'u değiştirse bile köken
    denetimi o adı arar.
@@ -179,15 +179,15 @@ Arayüzün tamamı çalışır. Bir sorun anında bakılacak yerler:
 
 | Soru | Nereye bakılır |
 |---|---|
-| Sistem ayakta mı? | `http://.../saglik` — tek satır cevap verir |
+| Sistem ayakta mı? | `http://.../saglik` - tek satır cevap verir |
 | Hangi kamera düşmüş? | **Komuta → Kamera sağlığı** |
 | Ne zamandır düşük? | Aynı sayfada "ölçülen fps" ve son kare zamanı |
 | Uyarılar geliyor mu? | **Komuta → Komuta ekranı** (bugünkü sayılar) |
-| Hoparlör çalıştı mı? | **Komuta → Anons sistemi** — son anons sonucu yazar |
+| Hoparlör çalıştı mı? | **Komuta → Anons sistemi** - son anons sonucu yazar |
 | Sistem ne diyor? | **Ana sayfa → Sistem günlüğü** ve `veri/loglar/sistem.log` |
 
 **Uzaktan yapılamayan üç şey:** sistemi durdurup başlatmak, yedekten geri
-yükleme ve **güncelleme**. Üçü de Kontrol Paneli'nde, sunucunun başındadır —
+yükleme ve **güncelleme**. Üçü de Kontrol Paneli'nde, sunucunun başındadır -
 bilerek. Uzaktan "Durdur" düğmesi yanlış tıklamayla fabrikayı izlemesiz
 bırakabilirdi; web arayüzünden çalıştırılan bir güncelleme ise şifreyi ele
 geçiren birine sunucuda **kod çalıştırma** yolu açardı.
@@ -223,5 +223,5 @@ Sunucuyu uzaktan yeniden başlatmanız gerekiyorsa BT'den sunucuya uzak masaüst
 | Sistemin kendi HTTPS'i | Sertifika üretimi, yenilemesi ve saklanması sisteme üç yeni parça ekler. Bu işi ters vekiller (nginx/Caddy) zaten olgun biçimde yapıyor; VPN yolunda ise hiç gerekmiyor. |
 | Uygulamanın içine gömülü VPN/tünel | İşletim sistemi düzeyinde bir iştir; sisteme gömmek onu bir ağ ürününe çevirirdi. Kullanıcının öğrenmesi gereken parça sayısı artmadan, dışarıdan çözülüyor. |
 | Uzaktan "Durdur / Başlat" düğmesi | Yanlış bir tıklama fabrikayı izlemesiz bırakır. Bu iki düğme bilerek sunucunun başında (Kontrol Paneli'nde) kalıyor. |
-| Kullanıcı hesapları ve roller | Bugün tek yönetici şifresi var. Birden çok kişi kendi hesabıyla girmeye başladığında gerekir — `07-YOL-HARITASI.md` #5. |
+| Kullanıcı hesapları ve roller | Bugün tek yönetici şifresi var. Birden çok kişi kendi hesabıyla girmeye başladığında gerekir - `07-YOL-HARITASI.md` #5. |
 | İki adımlı doğrulama (SMS/uygulama) | Tek kullanıcılı bir sistemde VPN'in verdiği korumayı tekrar etmiş olurdu. Kullanıcı sayısı artarsa yol haritası #5 ile birlikte değerlendirilir. |

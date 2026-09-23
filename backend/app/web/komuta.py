@@ -1,7 +1,7 @@
 """Komuta kabuğu: altı ekranın ortak çerçevesi (sol raf + üst başlık).
 
 Bu aşamada YALNIZCA kabuk vardır; ekran içerikleri sonraki aşamalarda gelir.
-Kabuğun gösterdiği her sayı GERÇEK veritabanından okunur — tasarımdaki
+Kabuğun gösterdiği her sayı GERÇEK veritabanından okunur - tasarımdaki
 "24 kamera / 6 bölüm" örnek değerleri buraya taşınmaz. Veri yoksa sayı
 uydurulmaz, kullanıcıya ne yapması gerektiği söylenir.
 
@@ -61,14 +61,14 @@ EKRAN_BASLIKLARI = {
     # kurulumun ve günlük kullanımın tek sayfalık anlatımı.
     "kilavuz": "Kullanım kılavuzu",
     # Sekizinci ekran: kullanıcının kendi nesnesini fotoğrafla tanıtması.
-    # CANLI ANALİZE GİRMEZ — yalnızca yüklenen fotoğrafta arar (nesne_rotalari.py).
+    # CANLI ANALİZE GİRMEZ - yalnızca yüklenen fotoğrafta arar (nesne_rotalari.py).
     "nesneler": "Nesneler",
     # Dokuzuncu ekran: .env dosyasının ekrandaki karşılığı (ayar_rotalari.py).
     # Paketlenmiş programda ayar dosyası elle açılamaz; tek yol burasıdır.
     "ayarlar": "Sistem ayarları",
 }
 
-# Alt başlıklar da tasarımdan birebirdir — ANCAK içinde sayı geçenler
+# Alt başlıklar da tasarımdan birebirdir - ANCAK içinde sayı geçenler
 # (Komuta ve Anons) burada değil, aşağıdaki fonksiyonda gerçek veriyle
 # üretilir: "6 bölüm · 24 kamera" ve "7 bölge" bu kurulumda YANLIŞ olurdu.
 EKRAN_ALT_BASLIKLARI = {
@@ -83,7 +83,7 @@ EKRAN_ALT_BASLIKLARI = {
 
 
 def _kamera_sayilari(baglanti) -> tuple[int, int, int]:
-    """(toplam kamera, canlı kamera, bölüm sayısı) — hepsi veritabanından."""
+    """(toplam kamera, canlı kamera, bölüm sayısı) - hepsi veritabanından."""
     satir = baglanti.execute(
         "SELECT COUNT(*) AS toplam, "
         "SUM(CASE WHEN enabled = 1 AND status = 'online' THEN 1 ELSE 0 END) AS canli, "
@@ -113,7 +113,7 @@ def _kamera_hapi(toplam: int, canli: int) -> dict:
 
 def _alt_baslik(ekran: str, istek: Request, baglanti, toplam: int, bolum: int) -> str:
     if ekran == "ana":
-        # Tasarımda "Vardiya 08:00 – 16:00 · 6 bölüm · 24 kamera" yazıyor.
+        # Tasarımda "Vardiya 08:00 - 16:00 · 6 bölüm · 24 kamera" yazıyor.
         # Vardiya tanımı sistemde YOK, sayılar da bu kuruluma ait değil.
         tarih = zaman.ekranda_tarih(zaman.simdi_utc())
         if toplam == 0:
@@ -226,7 +226,7 @@ def golge_modu_degistir(
     """Zincirdeki bir satırı gölge moda alır ya da anonsu açar.
 
     Satır birden çok kuralı temsil edebilir (aynı tip + aynı eşik + aynı anons,
-    farklı kameralar); hepsi birlikte değişir — ekranda tek satır görünüp
+    farklı kameralar); hepsi birlikte değişir - ekranda tek satır görünüp
     kameraların yarısı gölge modda kalsaydı rozet yalan söylerdi.
 
     Kural motoruna DOKUNULMAZ: yalnızca rules.shadow_mode yazılır, kararı yine
@@ -333,7 +333,7 @@ ONE_CIKAN_KAMERA = 4
 # Kamera sayfasındaki tek önizleme 1 sn'de bir yenilenir. Komuta panosunda 4,
 # canlı duvarda ise TÜM kameralar aynı anda yenilenir; her istek sunucuda ayrı
 # bir JPEG kodlaması demektir. 2 sn hareketi izlemeye yeter ama istek sayısını
-# yarıya indirir — 24 kameralı bir kurulumda saniyede 24 yerine 12 kare.
+# yarıya indirir - 24 kameralı bir kurulumda saniyede 24 yerine 12 kare.
 KARE_TAZELEME_MS = 2000
 
 
@@ -455,11 +455,11 @@ def _dune_gore(bugunku: int, dunku: int) -> str:
     fark = bugunku - dunku
     if fark == 0:
         return "dünkü ile aynı"
-    return f"düne göre {'+' if fark > 0 else '−'}{abs(fark)}"
+    return f"düne göre {'+' if fark > 0 else '-'}{abs(fark)}"
 
 
 def _alan_yogunlugu(baglanti) -> list[dict]:
-    """cameras.area ile gruplanmış ihlal sayıları — çubuk listesi."""
+    """cameras.area ile gruplanmış ihlal sayıları - çubuk listesi."""
     sinir = zaman.gun_basi_utc(ALAN_PENCERESI_GUN - 1)
     satirlar = baglanti.execute(
         "SELECT c.area AS alan, COUNT(*) AS n "
@@ -485,7 +485,7 @@ def _alan_yogunlugu(baglanti) -> list[dict]:
 
 
 def _canli_akis(baglanti) -> list[dict]:
-    """Son olaylar — ihlaller ve sistem olayları birlikte (tasarımdaki gibi)."""
+    """Son olaylar - ihlaller ve sistem olayları birlikte (tasarımdaki gibi)."""
     satirlar = baglanti.execute(
         f"{OLAY_SORGUSU} ORDER BY e.occurred_at DESC, e.id DESC LIMIT ?", (AKIS_SATIRI,)
     ).fetchall()
@@ -545,7 +545,7 @@ def _saatlik_dagilim(baglanti) -> dict:
 
 
 def _one_cikan_kameralar(baglanti) -> list[dict]:
-    """En çok ihlal üreten kameralar — canlı kare + rozet."""
+    """En çok ihlal üreten kameralar - canlı kare + rozet."""
     sinir = zaman.gun_basi_utc(ALAN_PENCERESI_GUN - 1)
     satirlar = baglanti.execute(
         "SELECT c.id, c.name, c.area, c.enabled, c.status, COUNT(*) AS n "
@@ -607,7 +607,7 @@ def _kamera_durumu(satir) -> tuple[str, str]:
 
 
 def duvar_sutun_sayisi(kamera_sayisi: int) -> int:
-    """Izgara sütun sayısı — kamera SAYISINA uyar.
+    """Izgara sütun sayısı - kamera SAYISINA uyar.
 
     Tasarım 24 kamerayı 6 sütuna diziyor. Gerçek kurulumda 3-4 kamera var;
     6 sütun bırakılsaydı kutular pul boyutuna iner, ekranın üçte ikisi boş
@@ -665,7 +665,7 @@ def duvar_baglami(baglanti) -> dict:
 # =====================================================================
 #
 # Amaç tek cümle: kuyruktaki ihlalleri sırayla işaretlemek. Ekran YENİ bir
-# yazma yolu açmaz — işaretleme, olay detay sayfasının da kullandığı
+# yazma yolu açmaz - işaretleme, olay detay sayfasının da kullandığı
 # /olaylar/{id}/durum ucuna POST eder (web/olaylar_web.py). İki ayrı yazma
 # yolu olsaydı iki ekran zamanla farklı davranır ve "yanlış alarm" sayıları
 # güvenilmez olurdu.
@@ -687,7 +687,7 @@ KKD_KARARLARI = {"yes": "var", "no": "yok", "unknown": "belirsiz"}
 
 
 def _kkd_karari(ppe: dict) -> str:
-    """'baret yok · yelek var' — kuralın istediği her parça için tek tek."""
+    """'baret yok · yelek var' - kuralın istediği her parça için tek tek."""
     parcalar = []
     for anahtar in ppe.get("required", []):
         karar = ppe.get(anahtar)
@@ -699,13 +699,13 @@ def _kkd_karari(ppe: dict) -> str:
 
 
 def _olcum_sayisi(detay: dict, params: dict) -> str:
-    """'5 ölçüm' — hız kararı kaç ölçümün ortancasına dayandı."""
+    """'5 ölçüm' - hız kararı kaç ölçümün ortancasına dayandı."""
     sayi = detay.get("olcum_sayisi") or params.get("window_size")
     return "" if sayi is None else f"{sayi} ölçüm"
 
 
 def _gozlem_penceresi(params: dict) -> str:
-    """'8 / 15 gözlem' — KKD kararı kaç gözleme bakılarak verildi."""
+    """'8 / 15 gözlem' - KKD kararı kaç gözleme bakılarak verildi."""
     pencere = params.get("window_size")
     en_az = params.get("min_valid_observations")
     if pencere is None or en_az is None:
@@ -853,9 +853,9 @@ def _saglik_rozeti(satir) -> tuple[str, str]:
 
 
 def _fps_metni(deger) -> str:
-    """Ölçülen hız: '5,8'. Ölçüm yoksa '—' (kamera kapalı ya da kopuk)."""
+    """Ölçülen hız: '5,8'. Ölçüm yoksa '-' (kamera kapalı ya da kopuk)."""
     if deger is None:
-        return "—"
+        return "-"
     return f"{float(deger):.1f}".replace(".", ",")
 
 
@@ -888,7 +888,7 @@ def saglik_baglami(baglanti, ayarlar, supervizor=None) -> dict:
 
     Okunan hız veritabanından (kameranın verdiği), işlenen hız çalışan
     analizden gelir (R12: eskiden ekran "işlenen" deyip okunanı gösteriyordu).
-    Analiz çalışmıyorsa işlenen sütunu "—" kalır.
+    Analiz çalışmıyorsa işlenen sütunu "-" kalır.
     """
     ozet_al = getattr(supervizor, "kamera_saglik_ozeti", None)
     olcumler = {o["id"]: o for o in ozet_al()} if ozet_al else {}
@@ -926,13 +926,13 @@ def saglik_baglami(baglanti, ayarlar, supervizor=None) -> dict:
                 "fps": _fps_metni(satir["measured_fps"]),
                 "ayarlanan_fps": _fps_metni(satir["sample_fps"]),
                 "fps_dusuk": fps_dusuk,
-                "islenen": _fps_metni(olcum["islenen_fps"]) if olcum else "—",
+                "islenen": _fps_metni(olcum["islenen_fps"]) if olcum else "-",
                 "islenen_dusuk": islenen_dusuk,
                 "isleme_notu": _isleme_notu(olcum),
                 # last_frame_at kamera koptuğunda da KORUNUR: "en son ne zaman
                 # görüntü geldi" bilgisi asıl o zaman lazım olur.
                 "son_kare": (
-                    zaman.ne_kadar_once(satir["last_frame_at"]) if satir["last_frame_at"] else "—"
+                    zaman.ne_kadar_once(satir["last_frame_at"]) if satir["last_frame_at"] else "-"
                 ),
                 "kalibrasyon": (
                     zaman.ekranda_tarih(satir["calibrated_at"]) if satir["calibrated_at"] else ""
@@ -984,7 +984,7 @@ def saglik_baglami(baglanti, ayarlar, supervizor=None) -> dict:
 # docs/07 yol haritasına yazıldı, bildirim kanalları da ekranda dürüstçe
 # "kurulmadı" diye gösteriliyor.
 
-# Bildirim (e-posta/SMS/push) altyapısı yok — docs/07 Phase 2 #4.
+# Bildirim (e-posta/SMS/push) altyapısı yok - docs/07 Phase 2 #4.
 BILDIRIM_METNI = "kurulmadı"
 
 
@@ -1012,7 +1012,7 @@ def _zincir_rozeti(satir) -> tuple[str, str]:
     """Satırın durumu. Öncelik: kapalı > gölge mod > aktif.
 
     Kapalı bir kuralın gölge modda olması anlamsızdır; gölge moddaki kural da
-    "aktif" diye gösterilemez — kullanıcı hoparlörün çaldığını sanır.
+    "aktif" diye gösterilemez - kullanıcı hoparlörün çaldığını sanır.
     """
     if not satir["enabled"]:
         return ("kapalı", "gri")
@@ -1042,7 +1042,7 @@ def _anons_yolu(hoparlorler: list[dict], alanlar: list[str]) -> tuple[str, bool]
             if etiket not in etiketler:
                 etiketler.append(etiket)
     if not etiketler:
-        return "sesli kanal yok — yalnızca ekran uyarısı", False
+        return "sesli kanal yok - yalnızca ekran uyarısı", False
     return ", ".join(etiketler), ses_cikisi
 
 
@@ -1063,7 +1063,7 @@ def _zincir(baglanti, ayarlar, hoparlorler: list[dict]) -> list[dict]:
     Satırlar GRUPLANIR: aynı tip, aynı eşik, aynı anons ve aynı durumdaki
     kurallar tek satırda "N kamera" olarak görünür (tasarımdaki "12 kamera ·
     3 m"). Gruplamasaydık 24 kameralı kurulumda 24 satır çıkardı ve zincir
-    okunmaz olurdu. Kamera sayısı azken adlar da yazılır — 3-4 kameralı bir
+    okunmaz olurdu. Kamera sayısı azken adlar da yazılır - 3-4 kameralı bir
     kurulumda "2 kamera" tek başına hangi kameralar olduğunu söylemez.
     """
     satirlar = baglanti.execute(
@@ -1220,10 +1220,10 @@ def _anons_tetikleyen_olaylar(baglanti) -> tuple[dict[int, int], list[str]]:
 
     Sayım, olayın KURAL ANLIK GÖRÜNTÜSÜNDEN (events.rule_snapshot) okunur:
     kuralın anonsu sonradan değiştirilmişse geçmiş olaylar eski mesaja yazılı
-    kalır. Gölge moddaki kuralın olayı SAYILMAZ — o kural hoparlörü hiç
+    kalır. Gölge moddaki kuralın olayı SAYILMAZ - o kural hoparlörü hiç
     çalıştırmamıştır.
 
-    DİKKAT — bu sayı "hoparlör kaç kez bağırdı" DEĞİLDİR: aynı kamera ve mesaj
+    DİKKAT - bu sayı "hoparlör kaç kez bağırdı" DEĞİLDİR: aynı kamera ve mesaj
     için ANONS_BEKLEME_SN dolmadan tekrar çalınmaz, yani gerçek anons sayısı
     bundan azdır. Ekranda da öyle yazar; hoparlör kayıt defteri tutulmuyor.
     """
@@ -1384,7 +1384,7 @@ def _kanal_satirlari(baglanti, secim: bool, bagli_cikislar: set[str] | None) -> 
 
 
 def _anons_kartlari(ayarlar, kanallar: list[dict], bugun: int) -> list[dict]:
-    """Üstteki dört özet kutusu — hepsi veritabanından ve ayarlardan."""
+    """Üstteki dört özet kutusu - hepsi veritabanından ve ayarlardan."""
     acik = [k for k in kanallar if k["aktif"]]
     ses = sum(1 for k in acik if k["tur"] == "ses_karti")
     tum_fabrika = any(not k["alan"] for k in acik)
@@ -1452,7 +1452,7 @@ def anons_baglami(istek: Request, baglanti) -> dict:
         "ses_secimi_destekleniyor": secim,
         "kopuk_kanal_var": any(k["rozet"] == "görünmüyor" for k in kanallar),
         # Bölüm listesi kameralardan gelir: kullanıcı kanalın bölümünü elle
-        # yazıp yanlış eşleştirmesin (ADR-007 — alan düz metindir).
+        # yazıp yanlış eşleştirmesin (ADR-007 - alan düz metindir).
         "bolumler": [
             satir["area"]
             for satir in baglanti.execute(

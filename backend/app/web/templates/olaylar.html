@@ -1,6 +1,6 @@
 {% extends "temel.html" %}
 {% from "bilesen.html" import oge_rozeti, durum_hapi, onem_hapi, surec_hapi %}
-{% block baslik %}Olaylar — DALSAN İSG{% endblock %}
+{% block baslik %}Olaylar - DALSAN İSG{% endblock %}
 {% block icerik %}
   <div class="baslik-satiri">
     <h2>Olaylar</h2>
@@ -66,13 +66,13 @@
       <tr class="{% if o.event_type == 'system' %}sistem-satiri{% endif %}">
         <td class="zaman-hucresi"><a href="/olaylar/{{ o.id }}">{{ o.yerel_zaman }}</a></td>
         <td class="olay-tip">{{ onem_hapi(o) }}</td>
-        <td class="olay-kamera{% if not o.kamera_adi %} kartta-gizli{% endif %}">{{ o.kamera_adi or "—" }}</td>
+        <td class="olay-kamera{% if not o.kamera_adi %} kartta-gizli{% endif %}">{{ o.kamera_adi or "-" }}</td>
         <td class="olay-ozet"><span class="ozet-hucresi">{{ oge_rozeti(o.oge, "kucuk") }}<span>{{ o.ozet }} {{ surec_hapi(o) }}</span></span></td>
         {# Sistem olayı incelenmez; durumu renkli hapla vurgulanmaz. #}
         <td class="olay-durum">{% if o.event_type == 'violation' %}{{ durum_hapi(o.status, o.durum_adi) }}{% else %}<span class="soluk-metin">{{ o.durum_adi }}</span>{% endif %}</td>
         <td class="olay-kanit{% if not o.snapshot_path %} kartta-gizli{% endif %}">{% if o.snapshot_path %}
           <a href="/olaylar/{{ o.id }}"><img class="kucuk-resim" src="/goruntuler/{{ o.snapshot_path }}" alt="kanıt"></a>
-        {% else %}<span class="soluk-metin">—</span>{% endif %}</td>
+        {% else %}<span class="soluk-metin">-</span>{% endif %}</td>
       </tr>
       {% endfor %}
       </tbody>
@@ -92,7 +92,7 @@
     {% else %}
     <p class="bos">Henüz hiç olay kaydedilmedi.</p>
     <p class="not">Olay, kurduğunuz bir kural çiğnendiğinde yazılır. Liste boşsa ya
-      henüz ihlal olmamıştır ya da kural kurulmamıştır — Kurallar sayfasından hangi
+      henüz ihlal olmamıştır ya da kural kurulmamıştır - Kurallar sayfasından hangi
       kuralların açık olduğunu görebilirsiniz.</p>
     <p class="satir-form">
       <a class="dugme ikincil" href="/kurallar">Kuralları aç</a>
@@ -103,6 +103,6 @@
   </section>
 {% endblock %}
 {% block betikler %}
-<script src="/static/uyari.js?v=38"></script>
-<script src="/static/canli.js?v=38"></script>
+<script src="/static/uyari.js?v=39"></script>
+<script src="/static/canli.js?v=39"></script>
 {% endblock %}

@@ -29,7 +29,7 @@ ORTA_BOLGE = Bolge(
 
 
 class SahteTespitci:
-    """Her karede aynı kutuları döndürür — takip kimliği kararlı kalsın."""
+    """Her karede aynı kutuları döndürür - takip kimliği kararlı kalsın."""
 
     def __init__(self, kutular, siniflar):
         self._kutular = np.array(kutular, dtype=float)
@@ -255,7 +255,7 @@ def test_ayni_kare_ikinci_kez_kodlanmaz(kare):
 
 def test_yeni_kare_gelince_onbellek_duser(kare):
     """Eski kareyi yeni karenin yerine servis etmek, ekranda DONMUŞ görüntü
-    demektir — teşhis edilmesi en zor arızalardan biri."""
+    demektir - teşhis edilmesi en zor arızalardan biri."""
     hat = _hat()
     kkd = KkdSiniflandirici(None)
     hat.isle(kare, 0.0, SahteTespitci(np.empty((0, 4)), np.array([])), kkd)

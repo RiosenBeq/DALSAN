@@ -1,6 +1,6 @@
-"""Mac uygulaması (.app) üretimi — üretim tarifini ve paketlenmiş modu korur.
+"""Mac uygulaması (.app) üretimi - üretim tarifini ve paketlenmiş modu korur.
 
-NEDEN BU TESTLER VAR — paketlenmiş programın hataları, geliştirme kurulumunda
+NEDEN BU TESTLER VAR - paketlenmiş programın hataları, geliştirme kurulumunda
 GÖRÜNMEZ. Uygulama açılıp hemen çöktüğünde ekranda tek satır bile olmayabilir
 (bir .app'in çıktısı hiçbir yere gitmez). Bu yüzden üretim tarifinin unutulmaya
 en açık dört parçası ve paneldeki paketlenmiş mod davranışı burada kilitlenir.
@@ -53,7 +53,7 @@ def mac_tarifi():
     koşturulamıyordu çünkü OpenSSL düzeltmesi `otool` çağırıyor ve o araç
     yalnızca macOS'ta var. Düzeltme artık macOS dışında kendini atlıyor
     (tarifin kendi yorumuna bakın), bu yüzden tarif her yerde çalıştırılabilir
-    — ve bir yazım hatası KULLANICININ Mac'inde değil burada görünür.
+    - ve bir yazım hatası KULLANICININ Mac'inde değil burada görünür.
     """
     if not _pyinstaller_var_mi():
         pytest.skip(pyinstaller_gerekli.kwargs["reason"])
@@ -109,7 +109,7 @@ def test_yeni_eklenen_moduller_de_pakete_giriyor(mac_tarifi):
 def test_sablon_stil_ve_sema_pakete_konuyor(spec_metni):
     """Bunlar kod değil VERİ dosyalarıdır: PyInstaller kendiliğinden toplamaz.
 
-    Unutulursa uygulama açılır açılmaz "şablon bulunamadı" ile çöker — üstelik
+    Unutulursa uygulama açılır açılmaz "şablon bulunamadı" ile çöker - üstelik
     hata hiçbir ekrana düşmez.
     """
     for klasor in (
@@ -127,7 +127,7 @@ def test_ornek_ayar_dosyasi_pakete_konuyor(spec_metni):
 
 def test_uvicorunun_metinle_yukledigi_moduller_listeleniyor(spec_metni):
     """`http="auto"` gibi ayarlar modül adını METİN olarak taşır; PyInstaller
-    tarayarak bulamaz ve pakete koymaz — sunucu o zaman hiç açılmaz."""
+    tarayarak bulamaz ve pakete koymaz - sunucu o zaman hiç açılmaz."""
     for modul in (
         "uvicorn.lifespan.on",
         "uvicorn.loops.auto",
@@ -155,7 +155,7 @@ def test_supervisionun_zorunlu_bagimliliklari_disarida_birakilmiyor(spec_metni):
     )
     adlar = {e.value for e in disarida.elts}
     for zorunlu in ("matplotlib", "scipy", "numpy", "cv2", "onnxruntime", "supervision"):
-        assert zorunlu not in adlar, f"{zorunlu} çıkarılamaz — çalışma anında gerekiyor"
+        assert zorunlu not in adlar, f"{zorunlu} çıkarılamaz - çalışma anında gerekiyor"
 
 
 def test_openssl_cakismasi_sessizce_gecilemiyor(spec_metni):
@@ -242,7 +242,7 @@ def _baslatici_yukle(monkeypatch, meipass: Path):
     """Başlatıcıyı PAKETLENMİŞ programmış gibi yükler.
 
     PyInstaller'ın yaptığının aynısı: `sys.frozen` ve `sys._MEIPASS` kurulur.
-    Gerçek .app üretmeye gerek yok — panel kararını tam olarak bu ikisine
+    Gerçek .app üretmeye gerek yok - panel kararını tam olarak bu ikisine
     bakarak veriyor.
     """
     monkeypatch.setattr(sys, "frozen", True, raising=False)
@@ -318,7 +318,7 @@ def test_paketlenmis_modda_sunucu_ALT_SUREC_olarak_baslatilmiyor(baslatici_metni
 
 def test_alt_surec_yolu_venvin_pythonunu_kullanir(baslatici_metni):
     """Yukarıdaki testin dayanağı: alt süreç yolu `sys.executable`'ı DEĞİL,
-    .venv içindeki python'u çalıştırır — paketlenmiş programda o dosya yoktur."""
+    .venv içindeki python'u çalıştırır - paketlenmiş programda o dosya yoktur."""
     agac = ast.parse(baslatici_metni)
     alt = next(
         d
@@ -357,7 +357,7 @@ def test_panel_gunlugu_ekran_biciminden_ayrinti_sizdirmiyor(test_ayarlari):
     assert "Model yüklendi" in satir
     assert "/gizli/yol/model.onnx" not in satir, "teknik ayrıntı ekrana sızdı"
 
-    # Aynı ayrıntı DOSYADA durmalı — destek akışı ona dayanıyor.
+    # Aynı ayrıntı DOSYADA durmalı - destek akışı ona dayanıyor.
     assert "/gizli/yol/model.onnx" in test_ayarlari.log_dosyasi.read_text(encoding="utf-8")
 
 
@@ -406,7 +406,7 @@ def test_paketlenmis_baslatma_ayarlari_HER_SEFERINDE_yeniden_okur(baslatici_metn
 
 def test_uygulama_fabrikasi_main_icinde_ve_tek_kaynak():
     """Fabrika main.py'de kalmalı: ayar okuma + log kurulumu + uygulama kurulumu
-    sırası TEK yerde tarif edilsin (CLAUDE.md §4 — main.py tek giriş noktası)."""
+    sırası TEK yerde tarif edilsin (CLAUDE.md §4 - main.py tek giriş noktası)."""
     metin = (KOK / "backend" / "app" / "main.py").read_text(encoding="utf-8")
     agac = ast.parse(metin)
     fabrikalar = [

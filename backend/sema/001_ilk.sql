@@ -1,15 +1,15 @@
--- 001_ilk.sql — İlk şema: docs/02-MIMARI.md §3'teki 7 tablo, SQLite'a uyarlanmış.
+-- 001_ilk.sql - İlk şema: docs/02-MIMARI.md §3'teki 7 tablo, SQLite'a uyarlanmış.
 --
 -- PostgreSQL → SQLite uyarlamaları (docs/09 karar #2 ve #6 gereği):
 --   * JSONB yerine TEXT (JSON metni; yazılmadan önce Pydantic ile doğrulanır)
---   * timestamptz yerine ISO-8601 UTC metni (üretimi: app/zaman.py — tek kaynak)
+--   * timestamptz yerine ISO-8601 UTC metni (üretimi: app/zaman.py - tek kaynak)
 --   * boolean yerine INTEGER (0 = hayır, 1 = evet)
 --
 -- Zaman kolonlarına SQL tarafında DEFAULT verilmez: tüm zaman damgaları
 -- app/zaman.py'den gelir; iki ayrı saat kaynağı olmasın (docs/08 R7).
 --
 -- ÖNEMLİ: Betiklere BEGIN/COMMIT YAZMA. app/veritabani.py, betiği ve
--- sema_surumu kaydını TEK transaction içinde sarmalar — böylece elektrik
+-- sema_surumu kaydını TEK transaction içinde sarmalar - böylece elektrik
 -- kesintisinde ya ikisi de uygulanır ya hiçbiri.
 
 -- ---------------------------------------------------------------- kameralar

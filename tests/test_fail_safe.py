@@ -6,7 +6,7 @@ disk) anons hiç çalmıyor, hata döngüde yutuluyordu: ihlal ne kayda geçiyor
 duyuruluyordu. Şimdi:
 
 - olay satırı yazılamazsa CRITICAL günlük + /saglik "olay_yazilamadi", anons YİNE çalar;
-- kural satırı okunamazsa gölge/anons kararı bellekteki haritadan verilir —
+- kural satırı okunamazsa gölge/anons kararı bellekteki haritadan verilir -
   gölgedeki kural bellekten tanınıp susar.
 """
 
@@ -140,7 +140,7 @@ def test_kural_satiri_okunamazken_golgedeki_kural_bellekten_taninip_susar(ortam,
 
 
 def test_ikisi_birden_bozukken_de_duyurulur(ortam, monkeypatch):
-    """Veritabanı tamamen kilitli: ne kural okunur ne olay yazılır — anons çalar."""
+    """Veritabanı tamamen kilitli: ne kural okunur ne olay yazılır - anons çalar."""
     supervizor, baglanti = ortam
     monkeypatch.setattr(supervizor, "_kural_kaydi", _kilitli)
     monkeypatch.setattr(supervizor_modulu, "ihlal_yaz", _kilitli)

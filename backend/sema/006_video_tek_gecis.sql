@@ -26,6 +26,6 @@
 --                   olay listesi o videonun TEK geçişinin sonucudur.
 --
 -- Varsayılan 1'dir: kurulu sistemlerdeki mevcut kameraların davranışı
--- DEĞİŞMEZ. Gerçek kameralarda (source_type='rtsp') sütun okunmaz — bir RTSP
+-- DEĞİŞMEZ. Gerçek kameralarda (source_type='rtsp') sütun okunmaz - bir RTSP
 -- akışının "sonu" yoktur, kopması ayrı bir durumdur ve yeniden bağlanılır.
 ALTER TABLE cameras ADD COLUMN loop_video INTEGER NOT NULL DEFAULT 1;

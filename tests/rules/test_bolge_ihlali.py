@@ -41,7 +41,7 @@ def test_kisa_gecis_ihlal_uretmez():
     assert _calistir(motor, 0.0, [tespit(ayak=(0.5, 0.5))]) == []
     # kişi bölgeden çıktı, süre sıfırlanır
     assert _calistir(motor, 1.0, [tespit(ayak=(0.1, 0.1))]) == []
-    # tekrar girdi — sayaç baştan başlamalı
+    # tekrar girdi - sayaç baştan başlamalı
     assert _calistir(motor, 1.5, [tespit(ayak=(0.5, 0.5))]) == []
     assert _calistir(motor, 3.0, [tespit(ayak=(0.5, 0.5))]) == []  # 1.5 sn oldu
     assert len(_calistir(motor, 3.6, [tespit(ayak=(0.5, 0.5))])) == 1
@@ -76,7 +76,7 @@ def test_cooldown_tekrar_uyariyi_bastirir():
     icerde = [tespit(ayak=(0.5, 0.5))]
     _calistir(motor, 0.0, icerde)
     assert len(_calistir(motor, 2.5, icerde)) == 1  # ilk olay 2.5 sn'de
-    # kişi bölgede kalmaya devam ediyor — cooldown (60 sn) boyunca yeni olay YOK
+    # kişi bölgede kalmaya devam ediyor - cooldown (60 sn) boyunca yeni olay YOK
     for zaman in (3.0, 10.0, 30.0, 61.0):
         assert _calistir(motor, zaman, icerde) == []
     # cooldown dolunca (2.5 + 60 = 62.5) tekrar uyarı üretilir
@@ -98,7 +98,7 @@ def test_uzun_kayipta_sure_sifirlanir():
     # Kişi gerçekten gittiyse (uzun süre tespit yok) süre birikmeye devam etmemeli
     motor = _motor(min_dwell_s=5.0)
     _calistir(motor, 0.0, [tespit(ayak=(0.5, 0.5))])
-    for i in range(1, 10):  # 9 ardışık kayıp — tolerans (5) aşılır
+    for i in range(1, 10):  # 9 ardışık kayıp - tolerans (5) aşılır
         _calistir(motor, i * 0.5, [])
     # Kişi 'geri geldi': süre baştan başlamalı, hemen ihlal ÜRETMEMELİ
     assert _calistir(motor, 5.5, [tespit(ayak=(0.5, 0.5))]) == []

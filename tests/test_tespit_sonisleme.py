@@ -1,5 +1,5 @@
 """Tespit son-işleme testleri: sınıf farkındalıklı seçim, sınıf başına eşik,
-en küçük kutu süzgeci ve NMS. Model DOSYASI GEREKMEZ — saf matematik sınanır.
+en küçük kutu süzgeci ve NMS. Model DOSYASI GEREKMEZ - saf matematik sınanır.
 
 Neden önemli: bu katman yanlışsa sistem sessizce insan kaçırır ya da gölgeyi
 forklift sanar. Kamerasız test edilebilen tek tespit katmanı burasıdır.

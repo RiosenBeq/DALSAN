@@ -1,7 +1,7 @@
 """Kıyas takımını motora sorar ve ÜÇ SAYIYI çıkarır.
 
   isabet        → doğru nesne, doğru adıyla bulundu mu? (yüzde)
-  yanlış isim   → başka bir nesnenin adı yazıldı mı? (adet — SIFIR OLMALI)
+  yanlış isim   → başka bir nesnenin adı yazıldı mı? (adet - SIFIR OLMALI)
   eşleşme yok   → sistem "bilmiyorum" dedi mi? (adet)
 
 Yanlış isim İKİYE ayrılır, çünkü ikisi ayrı kusurdur ve ayrı ayrı sıfır olmak
@@ -13,17 +13,17 @@ zorundadır:
   KÜTÜPHANE İÇİ  → kütüphanedeki A nesnesine, kütüphanedeki B nesnesinin adı
                    yazıldı. Daha sinsidir: rapor doğru görünür, yanlış nesneyi
                    gösterir. "Gri pano A" bulanıklaşınca kardeşi "Gri pano B"
-                   olur — bu, sahada yanlış panonun önüne gitmek demektir.
+                   olur - bu, sahada yanlış panonun önüne gitmek demektir.
 
 Ayrıca her sorgu için taranan pencerelerin ORB anahtar nokta sayısı da
 kaydedilir. Sebebi: motorun en zayıf dalı ("iki taraf da desensiz", karar
 yalnız renge kalır) ancak nokta sayısı `EN_AZ_ANAHTAR_NOKTA`nın altındayken
 çalışır. Bu sayı ölçülmezse takımın o dalı gerçekten sınayıp sınamadığı
-bilinemez — ilk takımın kör noktası tam olarak buydu.
+bilinemez - ilk takımın kör noktası tam olarak buydu.
 
 Kaçırmak kötüdür ama YANLIŞ İSİM YAZMAK felakettir: docs/00-PROJE-BAGLAMI.md
 "Kaçırılan ihlal ... sistemin bilinen sınırıdır. Buna karşılık yanlış alarm
-ciddi bir kusurdur — çünkü güveni ve dolayısıyla kullanımı bitirir."
+ciddi bir kusurdur - çünkü güveni ve dolayısıyla kullanımı bitirir."
 
 Ölçüm, motorun KENDİ karar yolunu kullanır; benzerlik formülüne ya da eşik
 mantığına burada dokunulmaz. Tek kısayol şu: her sorgu bir kez taranır ve her
@@ -32,10 +32,10 @@ pencerenin skoru saklanır; eşik taraması bu kayıtların üzerinden yürür.
 Bu kısayolun EŞİKTEN BAĞIMSIZ olması ayrıca gerekçelidir. Motorda bir aday
 ancak DESEN payı çıtayı geçtiğinde isim yazdırabilir (`kutuphane.Skor`); desen
 payı çıtayı geçmeyen aday, eşiğe oranlı bir tavana sıkıştırıldığı için HER
-eşikte eşiğin ALTINDA kalır — ne işaret yazdırabilir ne de yazdırabilecek bir
+eşikte eşiğin ALTINDA kalır - ne işaret yazdırabilir ne de yazdırabilecek bir
 adayı geçebilir. Yani bir pencerenin kazananı, eşik verildiği anda iki
 eşikten-bağımsız sayıdan (ham skor, desen payı) hesaplanabilir. Kayıt bu iki
-sayıyı saklar; sonuç her eşikte baştan taramakla birebir aynıdır —
+sayıyı saklar; sonuç her eşikte baştan taramakla birebir aynıdır -
 tests/test_nesne_kiyas_kapisi.py bunu gerçek `arama.tara()` çıktısıyla
 karşılaştırarak sınar.
 """
@@ -50,7 +50,7 @@ import numpy as np
 from app.nesneler import arama
 
 # `_olcekle` ve `_tekle` motorun iç adımlarıdır; ölçüm onları BİLEREK yeniden
-# yazmaz — yeniden yazsaydık, motor değişince ölçüm sessizce başka bir şeyi
+# yazmaz - yeniden yazsaydık, motor değişince ölçüm sessizce başka bir şeyi
 # ölçmeye başlardı.
 from app.nesneler.arama import Bulgu, _olcekle, _tekle
 from app.nesneler.kutuphane import (
@@ -96,7 +96,7 @@ class PencereKaydi:
     Bir eşik verildiğinde, "desen payı ≥ eşik" koşulunu sağlayan adaylar bu
     sıranın bir ÖN EKİdir; o ön ekteki en yüksek ham skor da merdivenin o ön
     ekteki son basamağıdır. Yani merdiven, bütün adayları saklamakla aynı
-    cevabı verir — genelde 1-3 basamak uzunluğunda.
+    cevabı verir - genelde 1-3 basamak uzunluğunda.
     """
 
     kutu: tuple[int, int, int, int]
@@ -234,7 +234,7 @@ def _sorguyu_tara(sorgu: Sorgu, nesneler: list[Nesne], esik: float) -> SorguKayd
     yuksek, genis = gorsel.shape[:2]
     referans_renkleri = [izi.renk for nesne in nesneler for izi in nesne.parmakizleri]
 
-    # 1) UCUZ geçiş — motordaki renk elemesi. Ölçümde eleme tabanı 0'dır:
+    # 1) UCUZ geçiş - motordaki renk elemesi. Ölçümde eleme tabanı 0'dır:
     #    böylece kayıt, taranan HER eşik için yeterli olur (yüksek eşikte motor
     #    daha az pencereye bakar, o pencereler de zaten bu kümenin içindedir).
     adaylar = []
@@ -246,7 +246,7 @@ def _sorguyu_tara(sorgu: Sorgu, nesneler: list[Nesne], esik: float) -> SorguKayd
         adaylar.append((en_iyi_renk, kutu, kirpik, renk))
     adaylar.sort(key=lambda aday: aday[0], reverse=True)
 
-    # 2) PAHALI geçiş — desen (ORB) ve karar
+    # 2) PAHALI geçiş - desen (ORB) ve karar
     kayit = SorguKaydi(
         sorgu=sorgu,
         ideal_skor=_ideal_cerceve_skoru(sorgu, nesneler, esik),
@@ -267,7 +267,7 @@ def _sorguyu_tara(sorgu: Sorgu, nesneler: list[Nesne], esik: float) -> SorguKayd
 
 
 def _tam_kare_nokta(gorsel: np.ndarray) -> int:
-    """Sahnenin TAMAMININ anahtar nokta sayısı — 'bu fotoğraf desenli mi?'"""
+    """Sahnenin TAMAMININ anahtar nokta sayısı - 'bu fotoğraf desenli mi?'"""
     kirpik = standart_boy(gorsel)
     return nokta_sayisi(Parmakizi(renk=renk_izi(kirpik), desen=desen_izi(kirpik)))
 
@@ -297,7 +297,7 @@ def _pencere_karari(
     Motorun `en_iyi_eslesme_izinden` kararı merdivenden yeniden kurulur
     (`PencereKaydi.kazanan`); burada karar VERİLMEZ, kararın malzemesi
     toplanır. Nesne başına saklanan skorlar ise teşhis içindir ve `esik`e göre
-    okunur — kullanıcıya görünen sayı odur (`kabul_skoru`).
+    okunur - kullanıcıya görünen sayı odur (`kabul_skoru`).
     """
     adaylar: list[AdayKaydi] = []
     nesne_basina: dict[str, float] = {}
@@ -360,7 +360,7 @@ class ZorlukOzeti:
     en_dusuk_dogru_skor: float
     ortalama_ideal_skor: float
     # Bu grubun tamamı negatif mi (doğru cevabı "eşleşme yok" olan sorgular)?
-    # Öyleyse isabet sütunu anlamsızdır ve tabloda "—" basılır. Eskiden
+    # Öyleyse isabet sütunu anlamsızdır ve tabloda "-" basılır. Eskiden
     # zorluk adı "negatif"e eşit mi diye bakılıyordu; sertleştirmeyle birlikte
     # negatif grup sayısı üçe çıkınca ada değil, verinin kendisine bakılıyor.
     negatif: bool
@@ -477,7 +477,7 @@ def kacirilanlar(kayitlar: list[SorguKaydi], esik: float) -> list[tuple[str, str
 
 @dataclass(frozen=True)
 class YanlisIsim:
-    """Yazılan tek bir yanlış isim — hangi türden olduğu belli."""
+    """Yazılan tek bir yanlış isim - hangi türden olduğu belli."""
 
     sorulan: str | None  # None → kütüphanede olmayan bir şey soruldu
     yazilan: str
@@ -523,7 +523,7 @@ def _isaret_nesnede(bulgu_kutusu, nesne_kutusu) -> bool:
     `_kapsiyor` "işaret nesnenin yarısını içine alıyor mu" der; bu, doğru
     bulguları ölçmek için doğrudur ama küçük bir pencere bunu hiçbir zaman
     başaramaz. Yanlış bir isimde sorulacak soru tersidir: "bu KÜÇÜK kutunun
-    içi nesne mi?" — yani kesişim, NESNENİN değil PENCERENİN alanına oranlanır.
+    içi nesne mi?" - yani kesişim, NESNENİN değil PENCERENİN alanına oranlanır.
     Yanlış ismin nesnenin üstüne mi yoksa zemine mi düştüğünü ancak böyle
     ayırt edebiliriz; ikisi ayrı kusurdur (biri "yabancı nesneyi tanıdı
     sandı", öteki "bomboş zemine ad yazdı").
@@ -555,7 +555,7 @@ def desensiz_kaniti(
     """DESEN KANITI: (bozulma, tam kare ORB, desensiz pencere, pencere, ortanca).
 
     Bir sorgu ailesinin motorun düz-düz dalına GERÇEKTEN girip girmediğini
-    gösterir. Girmiyorsa o aile hiçbir şey ölçmüyordur — takımın eski kör
+    gösterir. Girmiyorsa o aile hiçbir şey ölçmüyordur - takımın eski kör
     noktası buydu ve bir daha sessizce geri gelmesin diye ölçülüp basılır.
     """
     return [

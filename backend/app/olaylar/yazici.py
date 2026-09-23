@@ -1,7 +1,7 @@
 """Olay kaydı: kanıt fotoğrafı ÖNCE, veritabanı kaydı SONRA (docs/02 §3).
 
 Böylece fotoğrafsız olay kaydı ("yetim kayıt") oluşmaz; fotoğraf yazılamazsa
-olay fotoğrafsız ama açıklamalı kaydedilir — olay asla kaybolmaz.
+olay fotoğrafsız ama açıklamalı kaydedilir - olay asla kaybolmaz.
 
 Şema 007'den beri her olay bir kod, bir önem ve bir bitiş taşır (docs/17
 §6.1): `resolved_at` boşsa olay SÜRÜYORDUR. Anlık olayda bitiş başlangıçla
@@ -92,7 +92,7 @@ def sistem_olayi_yaz(
     *,
     kod: str,
 ) -> int:
-    """Kamera koptu/geldi, disk azaldı gibi sistem olayları — aynı listede
+    """Kamera koptu/geldi, disk azaldı gibi sistem olayları - aynı listede
     görünür (docs/01 §3.5): kamera 3 gün kapalıysa İSG bilmeli.
 
     `kod` zorunludur (rules/olay_kodu.py). Kapatanı olan kod (CAMERA_DOWN)
@@ -101,7 +101,7 @@ def sistem_olayi_yaz(
     tanim = OLAY_KODLARI.get(kod)
     if tanim is None or not tanim.sistem_mi:
         # Yazılım hatası: testler (test_olay_kodu) bunu yakalar. Olay yine de
-        # yazılır — kodu yanlış diye kaybolan bir "kamera koptu" daha kötüdür.
+        # yazılır - kodu yanlış diye kaybolan bir "kamera koptu" daha kötüdür.
         _log.error(f"Sistem olayı tanınmayan bir kodla yazıldı: {kod!r}")
     simdi = zaman.simdi_utc()
     imlec = baglanti.execute(
@@ -188,7 +188,7 @@ def _kamera_id_dogrula(baglanti: sqlite3.Connection, kamera_id: int | None) -> i
 def _fotograf_kaydet(ayarlar: Ayarlar, kamera_id: int, zaman_utc: str, jpeg: bytes) -> str | None:
     """Kanıt fotoğrafını veri/goruntuler/YYYY-AA/ altına yazar.
 
-    Dönen yol, goruntu_klasoru köküne GÖRE tutulur — klasör taşınsa da
+    Dönen yol, goruntu_klasoru köküne GÖRE tutulur - klasör taşınsa da
     kayıtlar geçerli kalır. Dosya adındaki rastgele son ek şarttır: zaman
     damgası saniye çözünürlüklü; aynı saniyede iki ihlal aynı ada düşüp
     birbirinin KANITINI ezerdi.

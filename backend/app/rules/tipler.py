@@ -5,7 +5,7 @@ Bu dosya yalnızca stdlib kullanır. Görüntü/veritabanı katmanları bu tiple
 
 Koordinat sözleşmesi:
 - Tespit kutuları PİKSEL cinsinden (x1, y1, x2, y2), kare boyutu ayrıca verilir.
-- Bölge poligonları ve kalibrasyon noktaları NORMALİZE (0-1) koordinattır —
+- Bölge poligonları ve kalibrasyon noktaları NORMALİZE (0-1) koordinattır -
   böylece kare çözünürlüğü değişse de bölgeler geçerli kalır.
 """
 
@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-# KKD kararının üç durumu — "belirsiz" HİÇBİR ZAMAN ihlal sayılmaz (docs/04 §1)
+# KKD kararının üç durumu - "belirsiz" HİÇBİR ZAMAN ihlal sayılmaz (docs/04 §1)
 VAR = "var"
 YOK = "yok"
 BELIRSIZ = "belirsiz"
@@ -24,7 +24,7 @@ SINIF_FORKLIFT = "forklift"
 SINIF_TIR = "truck"
 
 # Sistemin TANIDIĞI sınıfların tam listesi (web/ortak.py'deki SINIFLAR
-# tablosu bunların TÜRKÇE ADLARIDIR; ikisi karıştırılmasın) — sıra ANLAMLIDIR: takip katmanı
+# tablosu bunların TÜRKÇE ADLARIDIR; ikisi karıştırılmasın) - sıra ANLAMLIDIR: takip katmanı
 # (analiz/takip.py) sınıf numarasını bu sıradan üretir.
 #
 # NEDEN TEK LİSTE: eskiden sınıf→numara eşlemesi takip.py içinde ayrı bir
@@ -65,7 +65,7 @@ class KkdGozlem:
     baret_guven: float = 0.0
     yelek_guven: float = 0.0
     # Hangi olayın hangi model sürümüyle üretildiği bilinmeden "model
-    # iyileşti mi" sorusu cevaplanamaz (docs/04 §9) — olay kaydına yazılır.
+    # iyileşti mi" sorusu cevaplanamaz (docs/04 §9) - olay kaydına yazılır.
     model_surumu: str = ""
     # Kırpığın netliği (Laplacian varyansı; analiz katmanı ölçer). Bulanık
     # gözlemi belirsiz sayan eşik kuralın `min_netlik`'idir (docs/17 §5.3).
@@ -124,7 +124,7 @@ class Ihlal:
     kamera_id: int
     takip_idler: list[int]
     bolge_id: int | None
-    olculen: float | None  # mesafe (m), kalış süresi (sn) vb. — kurala göre
+    olculen: float | None  # mesafe (m), kalış süresi (sn) vb. - kurala göre
     detaylar: dict = field(default_factory=dict)  # olay kaydının details JSON'ı
     # Olay kodu ve önemi (rules/olay_kodu.py). Değerlendirici DOLDURMAZ:
     # kural motoru, kural ve bölge tipinden atar. Boş = kodsuz (motor dışı yol).

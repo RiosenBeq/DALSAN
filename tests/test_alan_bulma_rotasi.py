@@ -2,7 +2,7 @@
 
 Sınanan sözler:
   · Ekran görüntüsü yüklenince alan önerisi döner (kamera bağlı olmasa bile).
-  · Yüklenen görüntü DİSKE YAZILMAZ (KVKK — alan_rotalari.py başlığı).
+  · Yüklenen görüntü DİSKE YAZILMAZ (KVKK - alan_rotalari.py başlığı).
   · Bulunamadığında hata değil, ne yapılacağını söyleyen Türkçe cümle döner.
 """
 

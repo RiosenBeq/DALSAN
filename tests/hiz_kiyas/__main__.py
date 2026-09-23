@@ -12,11 +12,11 @@ sınıfını kendi genel API'siyle çağırır, yani ölçülen şey sahada çal
 yolun ta kendisidir: ön işleme + çıkarım + son işleme.
 
 İKİ ÖLÇÜM:
-  1. Tek akış — bir karenin uçtan uca süresi (ortanca, p90).
-  2. Dört kamera — dört iş parçacığı TEK paylaşılan Tespitci'yi kilitle
+  1. Tek akış - bir karenin uçtan uca süresi (ortanca, p90).
+  2. Dört kamera - dört iş parçacığı TEK paylaşılan Tespitci'yi kilitle
      sırayla kullanır (sahadaki desen). docs/05 §3 bütçesi 4 × 6 fps'tir;
      ölçüm bu bütçenin yüzde kaçının karşılandığını söyler.
-  3. KKD sınıflandırıcısı (docs/17 §5.2) — karedeki kişilerin tek toplu
+  3. KKD sınıflandırıcısı (docs/17 §5.2) - karedeki kişilerin tek toplu
      çağrısı. Yalnız models/kkd.onnx varsa (ve özeti tutuyorsa) koşar; bütçe
      aşılırsa önce KKD kadansı büyütülür, sonra GPU gerekir.
 
@@ -48,8 +48,8 @@ from app.analiz.tespit import ModelHatasi, Tespitci  # noqa: E402
 # Gerçek kameraların en yaygın çözünürlüğü; ön işlemenin küçültme maliyeti
 # buna bağlıdır, o yüzden sabit 640x480 ile ölçmek yanıltıcı olurdu.
 _COZUNURLUK = (1920, 1080)
-_HEDEF_FPS = 6.0  # docs/05 §3 — kamera başına örnekleme hızı
-_KAMERA = 4  # docs/00 — MVP kamera sayısı
+_HEDEF_FPS = 6.0  # docs/05 §3 - kamera başına örnekleme hızı
+_KAMERA = 4  # docs/00 - MVP kamera sayısı
 
 
 def _sahte_kare(tohum: int = 7) -> np.ndarray:
@@ -249,7 +249,7 @@ def main(argv: list[str] | None = None) -> int:
     print(f"CUDA çalıştırıcısı: {'VAR' if cuda_var else 'YOK (CPU ölçümü)'}")
 
     if sonuc["tek_akis"]:
-        print(f"\n— Tek akış, {_COZUNURLUK[0]}x{_COZUNURLUK[1]} kare, {secenek.tur} tur —")
+        print(f"\n- Tek akış, {_COZUNURLUK[0]}x{_COZUNURLUK[1]} kare, {secenek.tur} tur -")
         print(f"{'model':18s} {'iş parç.':10s} {'ortanca':>9s} {'p90':>8s} {'fps':>7s}")
         for r in sonuc["tek_akis"]:
             print(
@@ -258,7 +258,7 @@ def main(argv: list[str] | None = None) -> int:
             )
 
     if sonuc["dort_kamera"]:
-        print(f"\n— {_KAMERA} kamera × {_HEDEF_FPS:g} fps bütçesi (docs/05 §3) —")
+        print(f"\n- {_KAMERA} kamera × {_HEDEF_FPS:g} fps bütçesi (docs/05 §3) -")
         print(f"{'model':18s} {'bütçe':>8s} {'kam/fps':>9s} {'ortanca':>9s} {'p90':>8s}")
         for r in sonuc["dort_kamera"]:
             print(
@@ -272,7 +272,7 @@ def main(argv: list[str] | None = None) -> int:
         if r is None:
             print("KKD modeli yok (models/kkd.onnx): sınıflandırıcı turu atlandı.\n")
         else:
-            print(f"— KKD sınıflandırıcı, {r['kisi']} kişilik toplu çağrı, {secenek.tur} tur —")
+            print(f"- KKD sınıflandırıcı, {r['kisi']} kişilik toplu çağrı, {secenek.tur} tur -")
             print(f"{r['model']}: ortanca {r['ortanca_ms']:.1f}ms, p90 {r['p90_ms']:.1f}ms\n")
     return 0
 

@@ -1,7 +1,7 @@
-"""Kural motoru — saf orkestrasyon (CLAUDE.md §6).
+"""Kural motoru - saf orkestrasyon (CLAUDE.md §6).
 
 Girdi: tespitler + bölgeler + kalibrasyon + kurallar. Çıktı: list[Ihlal].
-Zamanı çağıran verir (zaman_s, saniye cinsinden monoton sayaç) — testlerde
+Zamanı çağıran verir (zaman_s, saniye cinsinden monoton sayaç) - testlerde
 zaman ileri sarılabilir. Hız tahmini de burada yapılır: kalibrasyonlu
 kamerada ayak noktasının zemindeki yer değişiminden (m/sn).
 
@@ -83,14 +83,14 @@ class KuralMotoru:
         self._degerlendiriciler: list = []
         self._kural_imzasi: tuple = ()
         self._en_uzun_cooldown: float = 0.0
-        # takip_id -> (zaman_s, dünya_konumu) — hız tahmini için
+        # takip_id -> (zaman_s, dünya_konumu) - hız tahmini için
         self._son_konumlar: dict[int, tuple[float, tuple[float, float]]] = {}
 
     def kurallari_yukle(self, kurallar: list[Kural]) -> None:
         """Kural listesi değiştiyse DEĞİŞEN kuralların değerlendiricilerini kurar.
 
         Değişmeyen kuralın durumu (kalış süreleri, KKD pencereleri, açık
-        olayı) korunur — restart'sız config yayılımının gereği (docs/02 §5).
+        olayı) korunur - restart'sız config yayılımının gereği (docs/02 §5).
         Bir kuralı düzenlemek aynı kameradaki başka bir kuralın açık olayını
         bitirmemeli. İmza, davranışı etkileyen HER alanı içermelidir; eksik
         alan, değişikliğin restart'a kadar sessizce uygulanmaması demektir
@@ -111,7 +111,7 @@ class KuralMotoru:
         if imza == self._kural_imzasi:
             return
         # Tanımı değişen (veya id'si yeniden kullanılan) kuralların cooldown
-        # geçmişi eskidir — yeni kural eskisinin bastırmasını miras almamalı.
+        # geçmişi eskidir - yeni kural eskisinin bastırmasını miras almamalı.
         eski = dict(self._eski_imzalar(self._kural_imzasi))
         yeni = dict(self._eski_imzalar(imza))
         for kural_id, kural_imza in yeni.items():
@@ -200,7 +200,7 @@ class KuralMotoru:
 
     @staticmethod
     def _kodla(ihlal: Ihlal, kural: Kural, baglam: Baglam) -> None:
-        """İhlale olay kodunu ve önemini yazar (docs/17 §6.1–6.3)."""
+        """İhlale olay kodunu ve önemini yazar (docs/17 §6.1-6.3)."""
         bolge = baglam.bolgeler.get(ihlal.bolge_id) if ihlal.bolge_id is not None else None
         bolge_tipi = bolge.tip if bolge is not None else None
         ihlal.kod = ihlal_kodu(kural.tip, ihlal.detaylar, bolge_tipi)
@@ -229,7 +229,7 @@ class KuralMotoru:
             try:
                 konum = dunyaya_cevir(baglam.kalibrasyon.homografi, ayak_norm)
             except KalibrasyonHatasi:
-                continue  # ufuk çizgisine düşen nokta — bu tespit için konum yok
+                continue  # ufuk çizgisine düşen nokta - bu tespit için konum yok
             baglam.dunya_konumlari[tespit.takip_id] = konum
 
             onceki = self._son_konumlar.get(tespit.takip_id)

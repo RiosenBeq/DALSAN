@@ -167,7 +167,7 @@ def hoparlor_dene(istek: Request, hoparlor_id: int, baglanti=Depends(baglanti_al
         try:
             # Biçim .env'den GEÇİRİLİR. Geçirilmezse deneme her zaman JSON gönderir
             # ve GET bekleyen bir hoparlörde "deneme başarılı" yazarken gerçek
-            # anons sessizce başarısız olurdu — anons.http_gonder'ın uyardığı tuzak.
+            # anons sessizce başarısız olurdu - anons.http_gonder'ın uyardığı tuzak.
             http_gonder(
                 satir["address"],
                 DENEME_ANAHTARI,

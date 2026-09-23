@@ -38,7 +38,7 @@ def test_ayni_konfigurasyonda_durum_korunur():
     motor.kurallari_yukle(kurallar)
     icerde = [tespit(ayak=(0.5, 0.5))]
     motor.degerlendir(0.0, KARE, icerde, [bolge()], None)
-    # Süpervizör her konfig kontrolünde yeniden yükler — durum korunmalı
+    # Süpervizör her konfig kontrolünde yeniden yükler - durum korunmalı
     motor.kurallari_yukle(kurallar)
     ihlaller = motor.degerlendir(2.5, KARE, icerde, [bolge()], None)
     assert len(ihlaller) == 1  # kalış süresi baştan başlamadı
@@ -46,7 +46,7 @@ def test_ayni_konfigurasyonda_durum_korunur():
 
 def test_hedef_sinif_degisikligi_hemen_uygulanir():
     """Kullanıcı hedef sınıfı değiştirince (örn. insan → forklift) kural
-    RESTART BEKLEMEDEN yeni sınıfla çalışmalı — güvenlik kuralının kayıtlı
+    RESTART BEKLEMEDEN yeni sınıfla çalışmalı - güvenlik kuralının kayıtlı
     yapılandırmadan farklı çalışması kabul edilemez."""
     motor = KuralMotoru(kamera_id=1)
     motor.kurallari_yukle(
@@ -57,7 +57,7 @@ def test_hedef_sinif_degisikligi_hemen_uygulanir():
     motor.degerlendir(0.0, KARE, insan, [bolge()], None)
     assert len(motor.degerlendir(1.5, KARE, insan, [bolge()], None)) == 1
 
-    # Yalnızca hedef sınıf değişti — başka hiçbir alan değişmedi
+    # Yalnızca hedef sınıf değişti - başka hiçbir alan değişmedi
     motor.kurallari_yukle(
         [kural("zone_intrusion", hedefler=["forklift"], params={"min_dwell_s": 1.0})]
     )
@@ -84,7 +84,7 @@ def test_uzun_cooldown_kirpilmiyor():
 
 def test_kural_degisince_cooldown_mirasi_kalmaz():
     """Silinen kuralın id'sini alan YENİ kural, eskisinin bastırma geçmişini
-    devralmamalı — yoksa yeni kuralın ilk ihlali sessizce yutulur."""
+    devralmamalı - yoksa yeni kuralın ilk ihlali sessizce yutulur."""
     motor = KuralMotoru(kamera_id=1)
     motor.kurallari_yukle([kural("zone_intrusion", params={"min_dwell_s": 1.0})])
     icerde = [tespit(ayak=(0.5, 0.5))]

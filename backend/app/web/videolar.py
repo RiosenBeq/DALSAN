@@ -1,12 +1,12 @@
 """Video yükleyip kamerasız deneme: "Kameralar → Video Yükle".
 
-NE İŞE YARAR — sistemi bir fabrika kamerasına bağlamadan, elinizdeki bir
+NE İŞE YARAR - sistemi bir fabrika kamerasına bağlamadan, elinizdeki bir
 video dosyasıyla baştan sona denemek. Video yüklenir, üzerine bölgeler
 çizilir, kurallar kurulur; kural motoru, takip ve olay kaydı CANLI KAMERADAKİ
 YOLUN AYNISINI yürütür. Denenen şey gerçekten sistemin kendisidir, taklidi
 değil.
 
-NEDEN AYRI BİR SAYFA — kamera formu bugün de "Video dosyası" kabul ediyordu,
+NEDEN AYRI BİR SAYFA - kamera formu bugün de "Video dosyası" kabul ediyordu,
 ama dosyanın TAM YOLUNUN elle yazılmasını istiyordu ("Mac'te Option+Command+C,
 Windows'ta Shift + sağ tık…"). Yazılım bilmeyen bir kullanıcı için bu, işin
 başladığı yerde biten bir adımdır. Burada dosya normal bir "Gözat" kutusuyla
@@ -15,9 +15,9 @@ seçilir, sunucuya yüklenir ve gerisi kendiliğinden kurulur.
 YENİ TABLO YOKTUR (CLAUDE.md §3). Yüklenen video, `source_type='file'` olan
 SIRADAN BİR KAMERA satırıdır; bu sayfa yalnızca `veri/videolar` klasöründen
 beslenen kameraları listeler. Böylece bölge çizimi, kural kurma, önizleme,
-sayım, olay kaydı ve rapor — hepsi hiç değişmeden çalışır.
+sayım, olay kaydı ve rapor - hepsi hiç değişmeden çalışır.
 
-TEK GEÇİŞ / DÖNGÜ (şema 006) — kullanıcının iki farklı niyeti vardır ve
+TEK GEÇİŞ / DÖNGÜ (şema 006) - kullanıcının iki farklı niyeti vardır ve
 formdaki tek kutu bunları ayırır:
 
   * "Video bitince dursun" (varsayılan): videonun TEK geçişi analiz edilir.
@@ -75,7 +75,7 @@ def _sayfaya_don(hata: str = "", mesaj: str = "") -> RedirectResponse:
 
 
 # Türkçeye özgü harflerin ASCII karşılığı. NFKD bunların ÜÇÜNÜ (ı, ş, ğ)
-# düşürüp siler — 'Şırınga' dosyası klasörde 'Srnga' diye görünürdü ve
+# düşürüp siler - 'Şırınga' dosyası klasörde 'Srnga' diye görünürdü ve
 # kullanıcı kendi dosyasını tanıyamazdı.
 _TURKCE_HARFLER = str.maketrans(
     {
@@ -100,11 +100,11 @@ def dosya_adini_sadelestir(ham: str) -> str:
 
     Kullanıcının seçtiği ad diske olduğu gibi yazılamaz. İki ayrı sebep:
 
-    1. GÜVENLİK — ad istemciden gelir. '../../.env' ya da 'C:\\Windows\\x'
+    1. GÜVENLİK - ad istemciden gelir. '../../.env' ya da 'C:\\Windows\\x'
        gibi bir ad, dosyayı video klasörünün DIŞINA yazdırabilirdi. Bu
        yüzden addan yalnızca son parçanın harf/rakamları alınır; bölü, ters
        bölü, iki nokta ve nokta dizileri hiç geçemez.
-    2. TAŞINABİLİRLİK — Türkçe harf ve boşluk içeren adlar Windows ile Mac
+    2. TAŞINABİLİRLİK - Türkçe harf ve boşluk içeren adlar Windows ile Mac
        arasında kopyalanırken bozulabiliyor. Ad ASCII'ye indirgenir.
 
     Ad tamamen eleniyorsa boş döner; çağıran taraf yerine 'video' koyar. Adın
@@ -194,7 +194,7 @@ def _boyut_metni(dosya: Path) -> str:
     try:
         mb = dosya.stat().st_size / (1024 * 1024)
     except OSError:
-        return "—"
+        return "-"
     return f"{mb:.0f} MB" if mb >= 1 else "1 MB'tan küçük"
 
 
@@ -278,7 +278,7 @@ async def _diske_yaz(video: UploadFile, hedef: Path, en_buyuk_mb: int) -> None:
         raise DogrulamaHatasi(
             f"Video kaydedilemedi: {hata.strerror or 'disk hatası'}. Diskte yer "
             "olduğundan emin olun.",
-            f"video yazılamadı: {hedef} — {hata!r}",
+            f"video yazılamadı: {hedef} - {hata!r}",
         ) from hata
     except DogrulamaHatasi:
         hedef.unlink(missing_ok=True)
@@ -341,7 +341,7 @@ def videoyu_sil(istek: Request, kamera_id: int, baglanti=Depends(baglanti_al)):
         except OSError as hata:
             _log.warning(
                 "Yüklenen video dosyası silinemedi; kamera kaydı kaldırıldı.",
-                extra={"ayrinti": f"{dosya} — {hata!r}"},
+                extra={"ayrinti": f"{dosya} - {hata!r}"},
             )
     return _sayfaya_don(mesaj="Video ve kamerası silindi. Bulunan olaylar duruyor.")
 

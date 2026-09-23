@@ -39,7 +39,7 @@ def baglanti(test_ayarlari):
 
 
 def duz_gorsel(renk=(40, 40, 200)) -> np.ndarray:
-    """Desensiz, tek renk yama — motorun "düz" dalına düşer."""
+    """Desensiz, tek renk yama - motorun "düz" dalına düşer."""
     return np.full((180, 180, 3), renk, dtype=np.uint8)
 
 
@@ -107,7 +107,7 @@ def test_duz_renkli_nesnenin_bulunamayacagi_onceden_soylenir():
     """Düz renkli nesne artık BULUNAMAZ ve bu kullanıcıya önceden söylenir.
 
     Eskiden "sınırlı tanınır" deniyordu ve ölçümde böyle nesnelerin %36'sı
-    bulunuyordu — ama aynı kapıdan kütüphanede OLMAYAN nesnelere de isim
+    bulunuyordu - ama aynı kapıdan kütüphanede OLMAYAN nesnelere de isim
     yazılıyordu (aynı renkteki düz bir kasa "Düz mavi bidon" oluyordu). Kapı
     kapatıldı; düz nesnelerde ölçülen isabet artık sıfırdır. Kullanıcı bunu
     fotoğraf yüklemeden ÖNCE bilmeli, yoksa boşuna kare ekler.
@@ -136,7 +136,7 @@ def test_zor_kovasinda_dogru_sebep_soylenir():
 
     Fotoğrafları birbirini tanıyan ama deseni zayıf bir nesneye "fotoğraflarınız
     birbirini tanımıyor" demek, kullanıcıyı boşuna yeni fotoğraf çekmeye
-    gönderirdi — oysa yapması gereken, nesnenin AYRINTILI yüzünü bulmak.
+    gönderirdi - oysa yapması gereken, nesnenin AYRINTILI yüzünü bulmak.
     """
     desen_zayif = teshis.teshisi_kur(4, EN_AZ_ANAHTAR_NOKTA + 2, 0.80)
     kareler_uyumsuz = teshis.teshisi_kur(4, 150, 0.10)
@@ -259,7 +259,7 @@ def test_ayrinti_uyarisi_uc_sebebi_de_sayar():
     """Ölçülen şey AYRINTI miktarı; bu üç sebepten herhangi biriyle düşer.
 
     Yalnız "bulanık" deseydik, net ama karanlık bir fotoğrafta kullanıcı
-    yanlış şeyi düzeltmeye çalışırdı — makineyi değil, kendini suçlardı.
+    yanlış şeyi düzeltmeye çalışırdı - makineyi değil, kendini suçlardı.
     """
     karanlik = (sahne(desenli_nesne(tohum=1, boyut=120)) * 0.06).astype(np.uint8)
     eylem = teshis.tarama_eylemi(karanlik, 0.05, VARSAYILAN_ESIK)
@@ -271,7 +271,7 @@ def test_kil_payi_kacinca_cita_indirmek_degil_fotograf_eklemek_onerilir():
     """KIRMIZI ÇİZGİ: sistem hiçbir yerde "çıtayı düşür" demez.
 
     Ölçümde kaçırılanların en yakınları çıtaya 0,00-0,03 uzaklıktaydı; oradaki
-    doğru hamle o kareyi kütüphaneye eklemektir, çıtayı indirmek değil —
+    doğru hamle o kareyi kütüphaneye eklemektir, çıtayı indirmek değil -
     indirilen çıta yanlış isim getirir.
     """
     eylem = teshis.tarama_eylemi(
@@ -286,7 +286,7 @@ def test_temkinli_yuzunden_kacirilinca_onerilen_ayara_donmesi_soylenir():
     """Kullanıcı kendi seçiminin bedelini görsün.
 
     "Daha temkinli" seçiliyken kaçırılan bir nesne için doğru öğüt, çıtayı
-    gevşetmek DEĞİL, ÖNERİLEN ayara geri dönmektir — ki o ayar ölçümle bulunmuş
+    gevşetmek DEĞİL, ÖNERİLEN ayara geri dönmektir - ki o ayar ölçümle bulunmuş
     "yanlış isim sıfır" noktasıdır. Bunu söylemezsek kullanıcı "sistem
     bulamıyor" sanır; oysa bulan bir ayar bir tık ötede duruyor.
     """
@@ -303,7 +303,7 @@ def test_temkinli_yuzunden_kacirilinca_onerilen_ayara_donmesi_soylenir():
 def test_ayni_fotograf_titizlikten_bagimsiz_ayni_teshisi_alir():
     """Kullanıcı titizliği değiştirdi diye fotoğrafın TEŞHİSİ değişmemeli.
 
-    "Kıl payı kaçtı" mı yoksa "nesne küçük görünüyor" mu — bu, fotoğrafın
+    "Kıl payı kaçtı" mı yoksa "nesne küçük görünüyor" mu - bu, fotoğrafın
     kendisiyle ilgili bir yargıdır. Ölçüt hep ÖNERİLEN çıtadır; aksi hâlde aynı
     kare temkinli ayarda "nesne küçük" diye yanlış suçlanırdı.
     """
@@ -505,7 +505,7 @@ def test_okunamayan_fotograf_teshisi_cokertmez(baglanti, test_ayarlari):
 def test_sayidan_turkce_ek_uretilir(sayi, iyelik, bulunma):
     """Ek, sayının OKUNUŞUNA bağlıdır; şablona sabit yazılamaz.
 
-    Ekranda bir kez "%36'i bulundu ve %7'inde" yazdı — sayı ölçümden geldiği
+    Ekranda bir kez "%36'i bulundu ve %7'inde" yazdı - sayı ölçümden geldiği
     için değişiyor, ek ise sabit yazılmıştı. Doğrusu "%36'sı" ve "%7'sinde".
     Ek son RAKAMA da bağlı değildir: 14 "on dört"tür ("%14'ü"), 40 "kırk"tır
     ("%40'ı").
@@ -551,7 +551,7 @@ def test_ayar_notu_sayfada_gorunuyor(istemci, test_ayarlari):
 def test_teshis_yuzdeleri_dogru_ekle_yaziliyor(istemci):
     """Kart, kendi sayfasının alt paragrafıyla çelişmemeli.
 
-    Sayı <b> içinde olduğu için etiketler temizlenip düz metne bakılır —
+    Sayı <b> içinde olduğu için etiketler temizlenip düz metne bakılır -
     kullanıcının ekranda gördüğü şey odur. Kesme işareti kaynakta `&#39;`
     olarak durur (Jinja kaçırır, tarayıcı ' diye gösterir); test de öyle okur.
     """
@@ -680,7 +680,7 @@ def test_kilavuz_artik_citayi_dusurmeyi_onermiyor(istemci):
 
 
 def test_kilavuz_olculmus_sayilari_veriyor(istemci):
-    """Kılavuzdaki sayılar ölçümden gelmeli — 2026-09'da yeniden ölçüldü.
+    """Kılavuzdaki sayılar ölçümden gelmeli - 2026-09'da yeniden ölçüldü.
 
     Desenli nesnelerde %16 bulundu; düz renkli nesnelerde hiçbiri bulunmadı
     ("renk taşımaz" kuralı). Eski metin %69/%64 diyordu ve o sayılar yalnız
@@ -690,7 +690,7 @@ def test_kilavuz_olculmus_sayilari_veriyor(istemci):
     assert "%16" in metin  # desenli nesnelerde ölçülen isabet
     assert "hiçbiri" in metin  # düz renkli nesnelerde ölçülen isabet: sıfır
     # Kılavuzdaki rozet adı, ekrandaki rozetle AYNI olmalı. Bir kez ayrıştı:
-    # kod "Düz renkli — bulunamaz" derken kılavuz "sınırlı tanınır" diyordu.
+    # kod "Düz renkli - bulunamaz" derken kılavuz "sınırlı tanınır" diyordu.
     assert "sınırlı tanınır" not in metin
     assert "bulunamaz" in metin
 
@@ -728,7 +728,7 @@ def test_yeni_kutular_sabit_genislik_dayatmaz():
         blok = re.search(re.escape(sinif) + r"[^{]*\{([^}]*)\}", css)
         assert blok, f"{sinif} kuralı yok"
         assert not re.search(r"[^-]width:\s*\d+px", blok.group(1)), (
-            f"{sinif} sabit piksel genişlik dayatıyor — dar ekranda sayfa yatay kayar"
+            f"{sinif} sabit piksel genişlik dayatıyor - dar ekranda sayfa yatay kayar"
         )
 
 
@@ -767,7 +767,7 @@ def test_bulunan_metni_olculmemis_citada_sayi_uydurmaz(esik, beklenen_parca):
     Eski kod eğriyi sözlükten okuyup bulamayınca "0"a düşüyordu; yani ölçüm
     gibi görünen ama yanlış bir sayı, tam da göç notunda kullanıcıya
     gösteriliyordu (0,25'te gerçekte 6 nesne bulunuyor, 0 değil). Artık
-    ölçülmemiş çıta için iki komşu ölçümden ARALIK veriliyor — eğri azalan
+    ölçülmemiş çıta için iki komşu ölçümden ARALIK veriliyor - eğri azalan
     olduğu için bu matematiksel olarak doğrudur.
     """
     metin = teshis._bulunan_metni(esik)
@@ -778,7 +778,7 @@ def test_bulunan_metni_olculmemis_citada_sayi_uydurmaz(esik, beklenen_parca):
 
 
 def test_cita_notu_sapma_payi_simetrik():
-    """0,23 ve 0,25 aynı davranmalı — kayan nokta bunu bozuyordu.
+    """0,23 ve 0,25 aynı davranmalı - kayan nokta bunu bozuyordu.
 
     abs(0.25 - 0.24) = 0.010000000000000009 payı AŞIYOR, abs(0.23 - 0.24) ise
     aşmıyordu. Yani bir adım yukarısı "eski kurulum" diye uyarılıyor, bir adım

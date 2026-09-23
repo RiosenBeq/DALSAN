@@ -1,4 +1,4 @@
-/* Olay inceleme ekranı — klavyeyle önceki/sonraki olaya geçiş.
+/* Olay inceleme ekranı - klavyeyle önceki/sonraki olaya geçiş.
  *
  * Kısayol GİZLİ BİR ÖZELLİK DEĞİLDİR: ekranın altında "← önceki olay ·
  * → sonraki olay" ipucu her zaman yazılıdır. Aynı geçişi düğmelere basarak

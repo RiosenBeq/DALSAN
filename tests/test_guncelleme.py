@@ -2,7 +2,7 @@
 
 Kullanıcı kodu kendi bilgisayarında güncelleyip GitHub'a gönderiyor; fabrika
 sunucusunun o değişikliği alması gerekiyor. Bu, Kontrol Paneli'nde bir
-DÜĞMEDİR — kullanıcıya "terminal aç, git pull yaz" denmez (CLAUDE.md §8).
+DÜĞMEDİR - kullanıcıya "terminal aç, git pull yaz" denmez (CLAUDE.md §8).
 
 Sınanan sözler:
   · Güncelleme öncesi veritabanının yedeği alınır (şema göçleri ileri
@@ -63,7 +63,7 @@ def panel_fabrikasi(tmp_path):
 
 @pytest.fixture
 def depolar(tmp_path):
-    """(uzak, yerel) — yerel depo uzağı takip eder. Ağ YOK."""
+    """(uzak, yerel) - yerel depo uzağı takip eder. Ağ YOK."""
     uzak = tmp_path / "uzak"
     uzak.mkdir()
     _git(uzak, "init", "--quiet", "--initial-branch=main")

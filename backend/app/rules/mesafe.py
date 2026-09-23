@@ -1,9 +1,9 @@
-"""Kural tipi 2 — safe_distance: Güvenli mesafe (docs/03 §2).
+"""Kural tipi 2 - safe_distance: Güvenli mesafe (docs/03 §2).
 
 Soru: İnsan ile forklift/tır arasındaki GERÇEK DÜNYA mesafesi eşiğin
 altına düştü mü?
 
-Kalibrasyon zorunluluğu: kamera kalibre edilmemişse bu kural ÇALIŞMAZ —
+Kalibrasyon zorunluluğu: kamera kalibre edilmemişse bu kural ÇALIŞMAZ -
 sessizce yaklaşık sonuç üretmez, açıkça pasif kalır. Kalibre edilmemiş
 piksel mesafesi perspektifle kat kat değişir; üretilen sayı yanıltıcı olur.
 """
@@ -35,7 +35,7 @@ class MesafeDegerlendirici:
     def degerlendir(self, baglam) -> list[Ihlal]:
         self._aktif = set()
         if baglam.kalibrasyon is None:
-            return []  # kural pasif — arayüz 'kalibrasyon bekleniyor' gösterir
+            return []  # kural pasif - arayüz 'kalibrasyon bekleniyor' gösterir
 
         ozneler = [t for t in baglam.tespitler if t.sinif in self.params.subject_classes]
         nesneler = [t for t in baglam.tespitler if t.sinif in self.params.object_classes]
@@ -44,7 +44,7 @@ class MesafeDegerlendirici:
             return []
 
         # R21: bölgeye bağlı kural, bölgesi kapalıysa ya da yüklenemediyse
-        # ÇALIŞMAZ — diğer kurallar gibi. Eskiden kapalı bölgenin poligonu
+        # ÇALIŞMAZ - diğer kurallar gibi. Eskiden kapalı bölgenin poligonu
         # kullanılıyor, bölge hiç yoksa kural bütün kareye yayılıyordu.
         bolge = None
         if self.kural.bolge_id is not None:
@@ -75,7 +75,7 @@ class MesafeDegerlendirici:
                 if mesafe_m <= self.params.distance_m + self.params.histerezis_m:
                     self._aktif.add((self.kural.id, self.kural.kamera_id) + cift)
 
-                # Park halindeki aracın yanındaki şoför gerçek risk değildir —
+                # Park halindeki aracın yanındaki şoför gerçek risk değildir -
                 # yanlış alarmların büyük kısmını bu tek koşul keser (docs/03 §2)
                 hareketli = (
                     not self.params.require_moving_vehicle

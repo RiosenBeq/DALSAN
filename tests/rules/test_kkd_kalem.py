@@ -1,4 +1,4 @@
-"""KKD kararı, Faz 3d (docs/17 §5.3–5.6): kalem başına olay, sürücü muafiyeti,
+"""KKD kararı, Faz 3d (docs/17 §5.3-5.6): kalem başına olay, sürücü muafiyeti,
 kişi örtüşmesi ve netlik.
 
 - Baret ve yelek AYRI olay ve AYRI beklemedir: yalnız yelek eksikse yalnız

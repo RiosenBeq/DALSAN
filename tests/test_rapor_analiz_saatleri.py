@@ -124,7 +124,7 @@ def test_hic_tam_gun_yoksa_olculemedi_yazar(db):
 
     satir = _satir(db, "K1")
     assert satir["oran"] == "ölçülemedi"
-    assert satir["olculen"] == "—"
+    assert satir["olculen"] == "-"
     assert satir["kapsama"] == "%0"
     assert satir["hedef_asildi"] is False, "ölçülemeyen sayı hedefi aşmış da sayılmaz"
 

@@ -4,7 +4,7 @@ YENİ KÜTÜPHANE YOK (CLAUDE.md §3). PDF için ayrı bir üretim motoru kurmak
 yerine sayfa YAZDIRMAYA hazır tasarlandı: tarayıcının "Yazdır → PDF olarak
 kaydet" adımı Windows'ta da Mac'te de çalışır, kurulum istemez ve kullanıcıya
 öğrenmesi gereken yeni bir parça çıkarmaz. Excel çıktısı da aynı sebeple
-CSV'dir — noktalı virgül + BOM, Türkçe Excel'in beklediği biçim.
+CSV'dir - noktalı virgül + BOM, Türkçe Excel'in beklediği biçim.
 
 KOVALAMA NEDEN PYTHON'DA: veritabanındaki damgalar UTC'dir ve SQLite'ın saat
 dilimi bilgisi yoktur. GROUP BY ile gün/saat kırılımı yapılsaydı sütunlar
@@ -13,7 +13,7 @@ Türkiye saatine göre 3 saat kayardı ve gece vardiyası yanlış güne düşer
 
 KURAL TİPİ NEREDEN OKUNUR: olayın `rule_snapshot` alanından, kuralın BUGÜNKÜ
 halinden değil. Kural silinmiş ya da tipi değişmiş olsa bile geçmiş rapor
-aynı sayıyı vermeye devam eder — rapor bir kanıt belgesidir, her açılışta
+aynı sayıyı vermeye devam eder - rapor bir kanıt belgesidir, her açılışta
 farklı sayı gösteremez.
 """
 
@@ -70,7 +70,7 @@ _BOLUMSUZ = "Bölüm girilmemiş"
 
 
 def _donem(sorgu) -> tuple[str, str]:
-    """(başlangıç, bitiş) — Türkiye tarihleri, 'YYYY-AA-GG'."""
+    """(başlangıç, bitiş) - Türkiye tarihleri, 'YYYY-AA-GG'."""
     bitis = (sorgu.get("bitis") or "").strip() or zaman.yerel_tarih_iso()
     baslangic = (sorgu.get("baslangic") or "").strip()
     if not baslangic:
@@ -90,7 +90,7 @@ def _donem(sorgu) -> tuple[str, str]:
 
 
 def _olaylari_getir(baglanti, baslangic: str, bitis: str, alan: str) -> list[dict]:
-    """Dönemdeki İHLAL olayları — rapora giren tek olay tipi.
+    """Dönemdeki İHLAL olayları - rapora giren tek olay tipi.
 
     Sistem olayları (kamera koptu, disk azaldı) bilerek dışarıdadır: bunlar
     işletme değil bakım göstergesidir ve İSG performansı sayısını şişirirdi.
@@ -115,7 +115,7 @@ def _olaylari_getir(baglanti, baslangic: str, bitis: str, alan: str) -> list[dic
 
 
 def _kural_bilgisi(olay: dict, bolge_adlari: dict[int, str]) -> tuple[str, str]:
-    """(kural tipi adı, bölge adı) — olay anındaki kural görüntüsünden."""
+    """(kural tipi adı, bölge adı) - olay anındaki kural görüntüsünden."""
     try:
         kural = json.loads(olay["rule_snapshot"]) if olay["rule_snapshot"] else {}
     except json.JSONDecodeError:
@@ -140,7 +140,7 @@ def _kod_adi(olay: dict, tip: str) -> str:
 def _kirilim(sayaclar: dict[str, Counter], baslik: str, sutun: str) -> dict:
     """Bir kırılım tablosu: ad · adet · pay · yanlış alarm oranı · kapsama.
 
-    Satırlar adede göre sıralanır; eşitlikte ada göre — aynı veri her açılışta
+    Satırlar adede göre sıralanır; eşitlikte ada göre - aynı veri her açılışta
     aynı sırada çıksın, rapor iki kez alındığında "değişmiş" görünmesin.
     """
     toplam = sum(s["adet"] for s in sayaclar.values())
@@ -155,8 +155,8 @@ def _kirilim(sayaclar: dict[str, Counter], baslik: str, sutun: str) -> dict:
                 "pay": _oran_metni(sayac["adet"], toplam),
                 "genislik": cubuk_yuzdesi(sayac["adet"], en_yuksek),
                 # İşaretlenmemiş olay "doğru uyarı" DEĞİLDİR: oran yalnızca
-                # işaretlenmişler üzerinden verilir, yoksa "—" yazılır.
-                "yanlis_alarm": _oran_metni(sayac["yanlis"], isaretli) if isaretli else "—",
+                # işaretlenmişler üzerinden verilir, yoksa "-" yazılır.
+                "yanlis_alarm": _oran_metni(sayac["yanlis"], isaretli) if isaretli else "-",
                 "isaretli": isaretli,
                 # Oranın yanında inceleme kapsamı (docs/17 §5.9): düşük kapsamda
                 # oran temsil edici değildir. AŞAĞI yuvarlanır: %99,6 "%100"
@@ -169,18 +169,18 @@ def _kirilim(sayaclar: dict[str, Counter], baslik: str, sutun: str) -> dict:
 
 def _oran_metni(pay: int, payda: int) -> str:
     if payda <= 0:
-        return "—"
+        return "-"
     return f"%{round(pay / payda * 100)}"
 
 
 def _kapsama_orani(isaretli: int, adet: int) -> str:
     if adet <= 0:
-        return "—"
+        return "-"
     return f"%{isaretli * 100 // adet}"
 
 
 def _gun_sutunlari(gunler: Counter, baslangic: str, bitis: str) -> dict:
-    """Dönemin HER günü için bir çubuk — olay olmayan günler de çizilir.
+    """Dönemin HER günü için bir çubuk - olay olmayan günler de çizilir.
 
     Boş günleri atlarsak grafik yalan söyler: üç günü boş geçen bir hafta,
     yan yana üç dolu çubuk gibi görünür.
@@ -208,7 +208,7 @@ def _gun_sutunlari(gunler: Counter, baslangic: str, bitis: str) -> dict:
 
 
 def _gun_araligi(baslangic: str, bitis: str) -> list[str]:
-    """['2026-08-01', '2026-08-02', ...] — iki tarih dahil.
+    """['2026-08-01', '2026-08-02', ...] - iki tarih dahil.
 
     Gün eklemesi zaman.py üzerinden yapılır; burada elle takvim aritmetiği
     yapılsaydı ikinci bir zaman kaynağı doğardı (docs/08 R7).
@@ -277,7 +277,7 @@ def rapor_verisi(baglanti, sorgu) -> dict:
         "bitis": bitis,
         "alan": alan,
         "donem_metni": (
-            f"{zaman.ekranda_tarih(zaman.yerel_gun_baslangici_utc(baslangic))} – "
+            f"{zaman.ekranda_tarih(zaman.yerel_gun_baslangici_utc(baslangic))} - "
             f"{zaman.ekranda_tarih(zaman.yerel_gun_baslangici_utc(bitis))}"
         ),
         "uretim_zamani": zaman.ekranda_goster_kisa(zaman.simdi_utc()),
@@ -305,10 +305,10 @@ def rapor_verisi(baglanti, sorgu) -> dict:
 
 
 def _saat_metni(saniye: float) -> str:
-    """Analiz süresi, Türkçe: '12,5 sa'; hiç yoksa '—'. Birkaç dakikalık süre
+    """Analiz süresi, Türkçe: '12,5 sa'; hiç yoksa '-'. Birkaç dakikalık süre
     "0,0 sa" yazılmaz: sıfır sanılırdı."""
     if saniye <= 0:
-        return "—"
+        return "-"
     if saniye < 180:
         return "< 0,1 sa"
     return f"{saniye / 3600:.1f}".replace(".", ",") + " sa"
@@ -328,7 +328,7 @@ def _kapsama_metni(olculen_s: float, analiz_s: float) -> str:
     """Analiz edilen sürenin incelemesi tam kısmı. AŞAĞI yuvarlanır: %99,6
     "%100" görünüp eksik bir günü gizlemesin."""
     if analiz_s <= 0:
-        return "—"
+        return "-"
     return f"%{math.floor(olculen_s / analiz_s * 100)}"
 
 
@@ -345,7 +345,7 @@ def _analiz_saatleri(
     paydada kalır ve oran yapay olarak düşük (hedef "tuttu") görünürdü.
     Gölge moddaki olaylar operatöre ulaşmadığı için orana girmez, ayrı sayılır.
 
-    Olaylarını bilemediğimiz dilim TAM sayılmaz — "olaysız gün" sanılıp oranı
+    Olaylarını bilemediğimiz dilim TAM sayılmaz - "olaysız gün" sanılıp oranı
     sıfıra çekerdi: silinmiş kameranın dilimleri (olayları kamerasız kaldı,
     ON DELETE SET NULL) ve olay sınırına dayanınca eksik okunan en eski günler
     (`kesim_gunu` ve öncesi). `olaylar` _kural_bilgisi'nden geçmiştir
@@ -447,7 +447,7 @@ def _kartlar(toplam: int, gun_grafigi: dict, saatler: dict, durumlar, isaretli: 
         },
         {
             "etiket": "En yoğun gün",
-            "deger": gun_grafigi["en_yogun"].split(" · ")[0] if gun_grafigi["en_yogun"] else "—",
+            "deger": gun_grafigi["en_yogun"].split(" · ")[0] if gun_grafigi["en_yogun"] else "-",
             "alt": gun_grafigi["en_yogun"].split(" · ")[-1] if gun_grafigi["en_yogun"] else "",
             # Tarih ve saat aralığı METİNDİR: sayı kutusunun 46 px'lik rakam
             # ölçüsünde kutuya sığmaz, taşar (ölçüldü).
@@ -457,7 +457,7 @@ def _kartlar(toplam: int, gun_grafigi: dict, saatler: dict, durumlar, isaretli: 
             "etiket": "En yoğun saat",
             "deger": saatler["tepe"].split("·")[0].replace("En yoğun ", "").strip()
             if saatler["tepe"]
-            else "—",
+            else "-",
             "alt": saatler["tepe"].split("·")[-1].strip() if saatler["tepe"] else "",
             "sinif": "metin",
         },
@@ -541,13 +541,13 @@ def rapor_ekrani(istek: Request, baglanti=Depends(baglanti_al)):
 def rapor_csv(istek: Request, baglanti=Depends(baglanti_al)):
     """Ekrandaki rapor, Excel'in açabildiği biçimde.
 
-    Olay olay döküm İSTEMEZ — o zaten /olaylar/disa-aktar.csv'dedir. Buradaki
+    Olay olay döküm İSTEMEZ - o zaten /olaylar/disa-aktar.csv'dedir. Buradaki
     dosya raporun ÖZETİDİR: aynı sayılar, satır satır.
     """
     veri = rapor_verisi(baglanti, istek.query_params)
     tampon = io.StringIO()
     yazici = CsvYazici(tampon)  # formül kaçışlı, noktalı virgüllü (R31)
-    yazici.writerow(["DALSAN İSG — Dönem Raporu"])
+    yazici.writerow(["DALSAN İSG - Dönem Raporu"])
     yazici.writerow(["Dönem", veri["donem_metni"]])
     yazici.writerow(["Bölüm", veri["alan"] or "tüm fabrika"])
     yazici.writerow(["Rapor zamanı", veri["uretim_zamani"]])

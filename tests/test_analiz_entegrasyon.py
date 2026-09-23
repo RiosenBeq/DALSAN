@@ -55,7 +55,7 @@ def analizli_istemci(test_ayarlari, tmp_path):
 
 def test_video_kaynagi_cevrimici_olur_ve_onizleme_gelir(analizli_istemci, test_ayarlari):
     # Süpervizör: kamera thread'i açılır, kareler akar, durum DB'ye yazılır.
-    # (Tespit modeli tmp klasörde YOK — sistem tespitsiz ama çalışır durumda.)
+    # (Tespit modeli tmp klasörde YOK - sistem tespitsiz ama çalışır durumda.)
     son_durum = ""
     for _ in range(40):  # en fazla ~20 sn
         yanit = analizli_istemci.get("/kameralar/1/onizleme.jpg")

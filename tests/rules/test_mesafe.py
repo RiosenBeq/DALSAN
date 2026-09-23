@@ -42,7 +42,7 @@ def _hareketli_senaryo(motor, adim_sayisi: int, arac_hizli: bool = True):
 
 
 def test_kalibrasyonsuz_kamerada_kural_pasif():
-    # Yaklaşık piksel mesafesi ÜRETİLMEZ — kural açıkça çalışmaz (docs/03 §2)
+    # Yaklaşık piksel mesafesi ÜRETİLMEZ - kural açıkça çalışmaz (docs/03 §2)
     motor = _motor()
     for i in range(10):
         tespitler = [
@@ -98,5 +98,5 @@ def test_min_frames_tek_karelik_yakinligi_eler():
 def test_cift_bazli_cooldown():
     motor = _motor(cooldown_s=60.0)
     assert len(_hareketli_senaryo(motor, adim_sayisi=8)) == 1
-    # Aynı çift yakın kalmaya devam ediyor — cooldown içinde yeni olay yok
+    # Aynı çift yakın kalmaya devam ediyor - cooldown içinde yeni olay yok
     assert _hareketli_senaryo(motor, adim_sayisi=8) == []

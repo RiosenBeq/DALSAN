@@ -2,7 +2,7 @@
 ipucu balonları ve öğretici boş durumlar.
 
 Bu testlerin var oluş sebebi: sistemi yazılım bilmeyen bir kişi ilk kez
-açacak. "Ekran açıldı" yetmez — ekranın NE YAPACAĞINI SÖYLEDİĞİNİ de korumak
+açacak. "Ekran açıldı" yetmez - ekranın NE YAPACAĞINI SÖYLEDİĞİNİ de korumak
 gerekir. Buradaki testler üç şeyi kollar:
 
   1. Kurulum listesindeki her satır GERÇEK veritabanı durumundan gelir; sahte

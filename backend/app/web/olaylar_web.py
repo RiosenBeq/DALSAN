@@ -114,7 +114,7 @@ def akis_yuku(olay: dict) -> dict:
     return {
         "id": olay["id"],
         "zaman": olay["yerel_zaman"],
-        "kamera": olay["kamera_adi"] or "—",
+        "kamera": olay["kamera_adi"] or "-",
         "ozet": olay["ozet"],
         "tip": olay["event_type"],
         # Seslendirilen ad: kodun adı ("Yasak alana giriş"); kodsuz eski olayda
@@ -164,7 +164,7 @@ def kapanan_olaylar(baglanti, idler: set[int]) -> list[dict]:
 
 @router.get("/olaylar/akis")
 async def olay_akisi(istek: Request):
-    """SSE: yeni olayları ekrana anlık iter (docs/02 §4 — saniyede bir sorgu)."""
+    """SSE: yeni olayları ekrana anlık iter (docs/02 §4 - saniyede bir sorgu)."""
     ayarlar = istek.app.state.ayarlar
 
     async def uret():
@@ -273,7 +273,7 @@ def olay_detay(istek: Request, olay_id: int, baglanti=Depends(baglanti_al)):
 # İşaretlemeden sonra kullanıcının döneceği ekran. Formdan HAM YOL almak
 # yerine anahtar alınır: dışarıdan verilen bir adrese yönlendirme (açık
 # yönlendirme açığı) hiç mümkün olmasın. İnceleme ekranından işaretlenen olay
-# yine inceleme ekranında kalır — kuyruğun sırası kaybolmasın.
+# yine inceleme ekranında kalır - kuyruğun sırası kaybolmasın.
 DONUS_YOLLARI = {
     "olay": "/olaylar/{id}",
     "inceleme": "/komuta/inceleme?olay={id}",
@@ -288,7 +288,7 @@ def olay_durumu(
     donus: str = Form("olay"),
     baglanti=Depends(baglanti_al),
 ):
-    """Yeni / İncelendi / Yanlış alarm — K11 precision ölçümünün veri kaynağı.
+    """Yeni / İncelendi / Yanlış alarm - K11 precision ölçümünün veri kaynağı.
 
     Olayı işaretleyen TEK yol burasıdır: olay detay sayfası da komuta inceleme
     ekranı da bu uca yazar. İkinci bir yazma yolu açılsaydı iki ekran zamanla
@@ -330,7 +330,7 @@ def olay_durumu(
 
 @router.get("/goruntuler/{yol:path}")
 def kanit_fotografi(istek: Request, yol: str):
-    """Kanıt fotoğrafları YALNIZCA oturumla servis edilir — snapshot dizini
+    """Kanıt fotoğrafları YALNIZCA oturumla servis edilir - snapshot dizini
     dışarıdan doğrudan erişime kapalıdır (docs/00 KVKK)."""
     kok = istek.app.state.ayarlar.goruntu_klasoru.resolve()
     dosya = (kok / yol).resolve()

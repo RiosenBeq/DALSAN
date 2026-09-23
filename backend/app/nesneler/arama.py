@@ -4,7 +4,7 @@ CANLI KAMERAYI ETKİLEMEZ. Buraya yalnızca kullanıcının eliyle yüklediği
 fotoğraf gelir; kamera akışı, kural motoru ve olay kayıtları bu koddan
 habersizdir. Ekranda da aynı cümle yazar (web/nesne_rotalari.py).
 
-NASIL ÇALIŞIR — "kayan pencere":
+NASIL ÇALIŞIR - "kayan pencere":
 Yüklenen fotoğraf, farklı büyüklüklerde kare pencerelerle baştan sona gezilir;
 her pencere kütüphanedeki parmak izleriyle karşılaştırılır. Eşiği geçen
 pencereler işaretlenir, üst üste binenler tekleştirilir.
@@ -52,7 +52,7 @@ _PENCERE_ORANLARI = (1.0, 0.75, 0.55, 0.40, 0.30, 0.22, 0.16)
 # Pencereler kenarın bu oranı kadar kaydırılır (0,4 = %60 örtüşme): nesne iki
 # pencerenin arasına düşüp kaçmasın.
 _ADIM_ORANI = 0.40
-# Kenarı bundan küçük pencere üretilmez — 32 pikselin altında ne renk ne desen
+# Kenarı bundan küçük pencere üretilmez - 32 pikselin altında ne renk ne desen
 # güvenilirdir.
 _EN_KUCUK_PENCERE_PX = 32
 # Üst sınırlar: en kötü durumda bile bir fotoğrafın taraması birkaç saniyede biter.
@@ -64,7 +64,7 @@ _ORTUSME_SINIRI = 0.30
 # Tarama çıktıları klasöründe tutulan en yeni dosya sayısı
 SAKLANAN_TARAMA = 60
 
-# İşaretli sonuç görüntüsündeki renkler (BGR) — canlı görüntüdeki sınıf
+# İşaretli sonuç görüntüsündeki renkler (BGR) - canlı görüntüdeki sınıf
 # renklerinden bilerek FARKLI (mor): bu kutular kural ihlali değildir.
 _KUTU_RENGI = (200, 90, 160)
 _KUTU_KALINLIGI = 3

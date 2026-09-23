@@ -40,7 +40,7 @@ def kutu_kesisimi(a: Kutu, b: Kutu) -> float:
 
 
 def kutu_iou(a: Kutu, b: Kutu) -> float:
-    """Kesişim / birleşim (0–1)."""
+    """Kesişim / birleşim (0-1)."""
     kesisim = kutu_kesisimi(a, b)
     birlesim = kutu_alani(a) + kutu_alani(b) - kesisim
     return kesisim / birlesim if birlesim > 0 else 0.0

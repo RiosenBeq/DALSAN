@@ -39,7 +39,7 @@ def _kare(motor, zaman_s, *ayaklar, sinif="person"):
 
 
 def _oynat(motor, adimlar):
-    """adimlar: [(zaman, ayak | None)] — None: kişi bu karede görünmedi."""
+    """adimlar: [(zaman, ayak | None)] - None: kişi bu karede görünmedi."""
     gecisler = []
     for zaman_s, ayak in adimlar:
         for asama, sebep in _kare(motor, zaman_s, *([ayak] if ayak else [])):
@@ -52,7 +52,7 @@ def _oynat(motor, adimlar):
 
 def test_ihlal_olay_acar_surerken_hatirlatir_cikinca_kapanir():
     motor = _bolge_motoru(cooldown_s=10.0)
-    adimlar = [(t / 2, ICERDE) for t in range(0, 45)]  # 0–22 sn içeride
+    adimlar = [(t / 2, ICERDE) for t in range(0, 45)]  # 0-22 sn içeride
     adimlar += [(22.5 + t / 2, DISARIDA) for t in range(0, 12)]  # çıktı
     gecisler = _oynat(motor, adimlar)
     assert [(t, a) for t, a, _ in gecisler] == [
@@ -85,7 +85,7 @@ def test_kapanistan_sonra_bekleme_suresi_dolmadan_yeni_olay_acilmaz():
     motor = _bolge_motoru(cooldown_s=30.0)
     adimlar = [(0.0, ICERDE), (1.0, ICERDE)]  # açıldı (1 sn)
     adimlar += [(2.0 + t, DISARIDA) for t in range(4)]  # son aktif 1,0 → 4,0'da kapandı
-    adimlar += [(6.0 + t, ICERDE) for t in range(10)]  # hemen geri döndü: 6–15 sn
+    adimlar += [(6.0 + t, ICERDE) for t in range(10)]  # hemen geri döndü: 6-15 sn
     adimlar += [(31.0, ICERDE), (32.0, ICERDE)]  # bekleme süresi 31 sn'de doldu
     gecisler = [(t, a) for t, a, _ in _oynat(motor, adimlar)]
     assert gecisler == [(1.0, ACILDI), (4.0, KAPANDI), (31.0, ACILDI)]
@@ -98,7 +98,7 @@ def test_kayip_toleransi_icindeki_kisa_ortulmede_olay_bitmez():
     """Kişi bir süre görünmez (forklift önünden geçti): iz kayıp toleransı
     içinde olduğu sürece koşul sürüyor sayılır."""
     motor = _bolge_motoru(kayip_toleransi=12, bitis_s=1.0)
-    adimlar = [(t / 6, ICERDE) for t in range(0, 12)]  # 0–1,83 sn içeride
+    adimlar = [(t / 6, ICERDE) for t in range(0, 12)]  # 0-1,83 sn içeride
     adimlar += [(2.0 + t / 6, None) for t in range(0, 10)]  # 10 karede görünmedi
     adimlar += [(3.8 + t / 6, ICERDE) for t in range(0, 6)]
     gecisler = _oynat(motor, adimlar)

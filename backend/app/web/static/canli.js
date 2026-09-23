@@ -1,7 +1,7 @@
 // Canlı olay akışı (SSE). Sayfada #canli-liste varsa son olayları listeler;
 // her olayda Uyari.duyur() çağrılır (ihlal bandı + isteğe bağlı ses/seslendirme;
 // sistem olayında sessiz sistem bandı). Olaylar, Ana Sayfa ve bütün komuta
-// ekranları bu dosyayı kullanır — iki ayrı kopya kod olmasın.
+// ekranları bu dosyayı kullanır - iki ayrı kopya kod olmasın.
 (function () {
   var ONEMLER = ["critical", "high", "medium", "low"];
   var liste = document.getElementById("canli-liste");
@@ -30,7 +30,7 @@
   }
 
   kaynak.onopen = function () { durumYaz(acikMetni, "yesil"); };
-  kaynak.onerror = function () { durumYaz("bağlantı koptu — yeniden deneniyor", "kirmizi"); };
+  kaynak.onerror = function () { durumYaz("bağlantı koptu - yeniden deneniyor", "kirmizi"); };
 
   kaynak.onmessage = function (olay) {
     var veri;
@@ -76,7 +76,7 @@
     zaman.textContent = veri.zaman || "";
     satir.appendChild(zaman);
     satir.appendChild(
-      document.createTextNode(" · " + (veri.kamera || "—") + " · " + (veri.ozet || "") + " · ")
+      document.createTextNode(" · " + (veri.kamera || "-") + " · " + (veri.ozet || "") + " · ")
     );
     var bag = document.createElement("a");
     bag.href = "/olaylar/" + veri.id;

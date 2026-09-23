@@ -1,4 +1,4 @@
-# 03 — Kural Motoru
+# 03 - Kural Motoru
 
 Dört kural tipi tüm senaryoları karşılar. Beşincisi eklenmeden önce mevcut
 dördüyle çözülüp çözülemediği sorgulanır.
@@ -7,15 +7,15 @@ dördüyle çözülüp çözülemediği sorgulanır.
 |---|---|
 | `zone_intrusion` | 5 (yaya yolu), 6 (sevkiyat/yükleme alanı), 7 (tır konumlanma) |
 | `safe_distance` | 8 (güvenli mesafe) |
-| `ppe_violation` | **Yeni kapsam** — baret / yelek |
-| `vehicle_speed` | **Yeni kapsam** — fabrika içi hız sınırı (docs/07 #15'ten geldi) |
+| `ppe_violation` | **Yeni kapsam** - baret / yelek |
+| `vehicle_speed` | **Yeni kapsam** - fabrika içi hız sınırı (docs/07 #15'ten geldi) |
 
 Ortak çıktı: `Violation(rule_id, camera_id, track_ids, measured_value, zone_id, evidence)`.
 Ortak filtre: cooldown. Ortak ilke: **kare değil, track bazlı karar.**
 
 ---
 
-## 1. `zone_intrusion` — Bölge ihlali
+## 1. `zone_intrusion` - Bölge ihlali
 
 **Soru:** Tanımlı sınıftan bir nesne, tanımlı bölgede, tanımlı süreden uzun kaldı mı?
 
@@ -48,7 +48,7 @@ kendi bölgesi geçitse istisna uygulanmaz.
 
 ---
 
-## 2. `safe_distance` — Güvenli mesafe
+## 2. `safe_distance` - Güvenli mesafe
 
 **Soru:** İnsan ile forklift/tır arasındaki gerçek dünya mesafesi eşiğin altına düştü mü?
 
@@ -64,7 +64,7 @@ kendi bölgesi geçitse istisna uygulanmaz.
 | `cooldown_s` | 90 | Track çifti başına |
 | `histerezis_m` | 0.5 | Açılmış olay, mesafe `distance_m + histerezis_m`'yi aşınca biter (§5.3); açılışı etkilemez |
 
-**Kalibrasyon zorunluluğu:** Kamera kalibre edilmemişse bu kural **çalışmaz** —
+**Kalibrasyon zorunluluğu:** Kamera kalibre edilmemişse bu kural **çalışmaz** -
 sessizce yaklaşık bir sonuç üretmez, açıkça pasif kalır ve arayüzde "kalibrasyon
 bekleniyor" olarak görünür. Kalibre edilmemiş piksel mesafesi perspektifle
 kat kat değişir; üretilen sayı yanıltıcı olur.
@@ -78,7 +78,7 @@ sevkiyat alanındaki yanlış alarmların büyük kısmını keser.
 
 ---
 
-## 3. `ppe_violation` — KKD ihlali
+## 3. `ppe_violation` - KKD ihlali
 
 **Soru:** KKD zorunlu bölgede, yeterince görünür bir kişi, gerekli KKD'yi
 yeterince tutarlı biçimde takmıyor mu?
@@ -129,7 +129,7 @@ Karne (precision, incelenmiş olay, kapsama %, model) KKD sayfasında ve Uyarı
 zincirinde; precision ve kapsama aşağı yuvarlanır, ölçülmeyen sayı yerine
 "ölçülecek" yazar.
 
-### Üç durumlu karar — motorun en önemli kuralı
+### Üç durumlu karar - motorun en önemli kuralı
 
 ```
 yes     → uyumlu, olay yok
@@ -178,7 +178,7 @@ olarak yazılır ve testle korunur (`test_unknown_never_produces_event`).
 
 ---
 
-## 4. `vehicle_speed` — Araç hız sınırı
+## 4. `vehicle_speed` - Araç hız sınırı
 
 **Soru:** Forklift (ya da tır) fabrika içindeki hız sınırını aştı mı?
 
@@ -199,7 +199,7 @@ tek başına bir risktir.
 noktasının **zemindeki** yer değişiminden ölçülür. Kalibre edilmemiş kamerada
 kural pasif kalır ve arayüzde "kalibrasyon bekleniyor" görünür.
 
-**Neden ortanca, neden ortalama değil:** kare başına hız ölçümü gürültülüdür —
+**Neden ortanca, neden ortalama değil:** kare başına hız ölçümü gürültülüdür -
 tespit kutusunun bir karelik oynaması ayak noktasını santimetrelerce kaydırır ve
 0,2 saniyelik aralığa bölününce metre/saniyelik bir sıçrama gibi görünür. Beş
 ölçümün dördü 0,5 m/sn, biri 20 m/sn ise **ortalama** 4,4 m/sn çıkar ve duran
@@ -208,7 +208,7 @@ yazılan sayı da bu ortancadır: kullanıcı sıçrama değerini değil aracın
 hızını görür.
 
 **Birim:** ayar `m/sn` tutulur (`Tespit.hiz_mps` ile aynı olsun diye), ekranda ve
-olay kaydında `km/sa` karşılığı da yazılır — fabrika hız levhaları km/sa'dır.
+olay kaydında `km/sa` karşılığı da yazılır - fabrika hız levhaları km/sa'dır.
 
 **Hazır kural yok, bilerek:** bu kural en çok bölgesiz (tüm kare) anlamlıdır ve
 "araç sahası" bölgesinin hazır kuralı zaten güvenli mesafedir. Kurallar
@@ -216,9 +216,9 @@ sayfasından tek formla kurulur.
 
 ---
 
-## 5. Cooldown — ortak filtre
+## 5. Cooldown - ortak filtre
 
-Anahtar: `(rule_id, camera_id, track_id)` — mesafe kuralında `(rule_id, camera_id, track_id_pair)`.
+Anahtar: `(rule_id, camera_id, track_id)` - mesafe kuralında `(rule_id, camera_id, track_id_pair)`.
 
 Track kaybolup yeni ID ile döndüğünde cooldown sıfırlanır. Bu bilinen bir sınırdır:
 aynı kişi yeni track ID alırsa tekrar uyarı üretebilir. Track kalıcılığını artırmak
@@ -270,13 +270,13 @@ kodu baretinkidir; kalem başına ayrı olay Faz 3d'dedir.
 
 **Kural formunda önem.** Formdaki *Önem* seçimi ya "Varsayılan"dır (`warning`)
 ya da açık bir düzey. "Varsayılan"ın yanında kuralın üretebileceği olaylar ve
-önemleri yazar ("Baret yok: Yüksek; Yelek yok: Orta") — tip, bölge tipi, yön ve
+önemleri yazar ("Baret yok: Yüksek; Yelek yok: Orta") - tip, bölge tipi, yön ve
 hedef sınıflardan hesaplanır (`rules/olay_kodu.py` `kural_olay_kodlari`,
 tarayıcı `/kurallar/onem`'den sorar; eşlemenin ikinci kopyası yoktur). Kuralın
 EN AĞIR olayının varsayılanından (bağlamsal yükseltme dahil) **hafif** bir
 düzey seçmek sarı bir kutuda onay ister; sunucu da kaydederken denetler ve
 onaysız kaydı reddeder. Örnek: araç yolundaki yaya için "Orta" seçmek, araç
-varken yapılan Yüksek yükseltmesini kapatır — bu da varsayılanın altına inmektir.
+varken yapılan Yüksek yükseltmesini kapatır - bu da varsayılanın altına inmektir.
 Önemi yükseltmek onay istemez. Kurallar listesinin Önem sütunu, açık seçimi ya
 da "varsayılan" notuyla kodun önemini gösterir.
 
@@ -308,7 +308,7 @@ açık olayı hemen biter; başka kuralların olayları sürer), kamera görünt
 kesildi, kamera ayarı değişti, sistem durdu, sistem yeniden başladı.
 
 Kapandıktan sonra aynı kişi aynı kurala yeniden takılırsa yeni olay, ancak
-kuralın bekleme süresi dolunca açılır — bugünkü tekrar bastırma kuralı.
+kuralın bekleme süresi dolunca açılır - bugünkü tekrar bastırma kuralı.
 
 ## 5.4 Kural formu
 
@@ -320,22 +320,22 @@ kuralın bekleme süresi dolunca açılır — bugünkü tekrar bastırma kural�
   tipteki kuralın önceki değeri korunur. Boş bırakılan sayı alanı da önceki
   değerde (yeni kuralda şema varsayılanında) kalır. Tip değiştirilirse eski
   tipin parametreleri taşınmaz.
-- Cooldown yeni kuralda tipin varsayılanıyla dolar (§5) ve tip değişince —
-  elle değiştirilmediyse — yeni tipinkine geçer.
+- Cooldown yeni kuralda tipin varsayılanıyla dolar (§5) ve tip değişince -
+  elle değiştirilmediyse - yeni tipinkine geçer.
 - Şemanın her alanının formda karşılığı olduğunu `tests/test_kural_formu.py`
   denetler: karşılığı olmayan alan hiç değiştirilemezdi.
 
 ## 6. Yeni kural tipi ekleme prosedürü
 
-1. `backend/app/rules/<tip>.py` — saf değerlendirici sınıfı (`degerlendir(baglam) -> list[Ihlal]`)
-2. `backend/app/rules/parametreler.py` — `params` Pydantic modeli + `PARAM_SEMALARI` kaydı
-3. `backend/app/rules/motor.py` — `DEGERLENDIRICILER` kaydı
-3a. `backend/app/rules/olay_kodu.py` — `ihlal_kodu` içinde tipin olay kodu; kod
+1. `backend/app/rules/<tip>.py` - saf değerlendirici sınıfı (`degerlendir(baglam) -> list[Ihlal]`)
+2. `backend/app/rules/parametreler.py` - `params` Pydantic modeli + `PARAM_SEMALARI` kaydı
+3. `backend/app/rules/motor.py` - `DEGERLENDIRICILER` kaydı
+3a. `backend/app/rules/olay_kodu.py` - `ihlal_kodu` içinde tipin olay kodu; kod
     sözlükte yoksa `OLAY_KODLARI`'na adı ve varsayılan önemiyle eklenir
     (`tests/rules/test_olay_kodu.py` kodsuz kalan tipi yakalar)
-3b. Değerlendiricide `aktif_anahtarlar()` — koşulun hâlâ sürdüğü anahtarlar
+3b. Değerlendiricide `aktif_anahtarlar()` - koşulun hâlâ sürdüğü anahtarlar
     (§5.3 çıkış eşiği); şemaya ortak `bitis_s` alanı
-4. `tests/rules/test_<tip>.py` — en az: pozitif durum, negatif durum, sınır durum, eksik/ölçülemeyen veri durumu, cooldown
+4. `tests/rules/test_<tip>.py` - en az: pozitif durum, negatif durum, sınır durum, eksik/ölçülemeyen veri durumu, cooldown
 5. Arayüz: `web/ortak.py` (`KURAL_TIPLERI`, `VARSAYILAN_COOLDOWN_SN`), `web/kurallar.py`
    (`_formdan_params`), `templates/kural_form.html` (alan kümesi)
 
@@ -353,7 +353,7 @@ doğrular.
 
 ---
 
-## Ek — Hazır kurallar
+## Ek - Hazır kurallar
 
 Kamera sayfasındaki "Hazır kurallar" düğmeleri bölge tipine uyan kuralı tek
 tıkla kurar (`web/ortak.py` `HAZIR_KURALLAR`, `EK_HAZIR_KURALLAR`). Eşikler
@@ -366,7 +366,7 @@ tıkla kurar (`web/ortak.py` `HAZIR_KURALLAR`, `EK_HAZIR_KURALLAR`). Eşikler
 | Araç sahası | güvenli mesafe | kişi ↔ forklift, tır | `safe_distance` | hayır |
 | Araç sahası | **araç yolunda yaya** (ek) | kişi · içinde (kalış 1,5 sn) | `person_in_vehicle_lane` | **evet** |
 | Yasak bölge | yasak bölge kuralı | kişi · içinde | `restricted_entry` (şema 007) | hayır |
-| Yükleme alanı | yükleme alanı kuralı | kişi · içinde | — | hayır |
+| Yükleme alanı | yükleme alanı kuralı | kişi · içinde | - | hayır |
 | Tır park alanı | tır konumlanma | tır · dışında | `vehicle_position` | hayır |
 | KKD zorunlu alan | KKD (baret/yelek) | kişi | kullanıcı seçer | hayır |
 
@@ -376,11 +376,11 @@ sayfasından gölgeyi kapatır. Aynı bölgede aynı kural (tip, yön, hedef) ik
 kez kurulmaz; birincil ve ek kural yan yana durur. Yaya-araç geçidi ve KKD
 muaf alan başka kuralların istisnasıdır, hazır kuralları yoktur.
 
-## Ek — Yaya yolu (yürüyüş yolu) kuralı
+## Ek - Yaya yolu (yürüyüş yolu) kuralı
 
 Fabrikadaki çizili yürüyüş yolu, `zone_intrusion` kuralının **`mode=outside`**
 biçimiyle karşılanır: yaya yolu bölgesinin **dışında** kalan kişi ihlal üretir.
-Ayrı bir kural tipi eklenmedi — mevcut tip bu davranışı zaten kapsıyor
+Ayrı bir kural tipi eklenmedi - mevcut tip bu davranışı zaten kapsıyor
 (CLAUDE.md §3: en az parça).
 
 Arayüzde tek tıkla kurulur (kamera sayfası → "… için yaya yolu kuralı ekle").
@@ -404,7 +404,7 @@ görüş alanına yol dışında kalan çalışma istasyonları da giriyorsa, o 
 sürekli ihlal üretir. Böyle bir sahnede yolu değil, **yasak alanı** çizip
 `mode=inside` kullanmak daha doğrudur.
 
-## Ek — Uçtan uca senaryolar (regresyon takımı)
+## Ek - Uçtan uca senaryolar (regresyon takımı)
 
 `tests/fixtures/senaryolar/*.json` dosyalarının her biri bir sahneyi ve o sahnede
 beklenen olayları anlatır. `tests/test_uctan_uca_olaylar.py` her senaryo için

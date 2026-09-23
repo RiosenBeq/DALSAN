@@ -1,4 +1,4 @@
-"""JSON satır formatında log — hem ekrana hem veri/loglar/sistem.log dosyasına.
+"""JSON satır formatında log - hem ekrana hem veri/loglar/sistem.log dosyasına.
 
 Her satır tek bir JSON nesnesidir: {"ts", "level", "bilesen", "mesaj"}.
 Kontrol Paneli bu çıktıyı okuyup günlük penceresinde gösterir; kullanıcı
@@ -7,7 +7,7 @@ sorun olduğunda satırları olduğu gibi kopyalayıp Claude Code'a yapıştır�
 İKİ AKIŞ, İKİ AYRINTI SEVİYESİ (CLAUDE.md §8):
   * EKRAN (Kontrol Paneli'nin "Sistem günlüğü" penceresi): yalnızca `mesaj`.
     Kullanıcıya model dosyasının adı, mutlak dosya yolu ya da yığın izi
-    gösterilmez — bunlar korkutur ve yazılım bilmeyen kullanıcının hiçbir
+    gösterilmez - bunlar korkutur ve yazılım bilmeyen kullanıcının hiçbir
     işine yaramaz.
   * DOSYA (veri/loglar/sistem.log): aynı satır + `ayrinti` alanı. Teknik
     ayrıntı KAYBOLMAZ; destek ekibine iletilen dosya odur.
@@ -45,7 +45,7 @@ ADRES_MASKESI = "//••••@"
 
 
 def adres_maskele(metin: str) -> str:
-    """rtsp://kullanici:sifre@ip/... → rtsp://••••@ip/... — metindeki her adres.
+    """rtsp://kullanici:sifre@ip/... → rtsp://••••@ip/... - metindeki her adres.
 
     Adresin kendisi (ip, port, yol) görünür kalır; gizlenen yalnız kullanıcı
     adı ve şifredir. Hata metinleri de bundan geçer: urllib'in "unknown url
@@ -168,7 +168,7 @@ def kur(ayarlar: Ayarlar) -> None:
     ekran.setFormatter(_JsonSatirBicimi(ayrintili=False))
     kok.addHandler(ekran)
 
-    # Dosya sınırsız büyümesin diye 5 MB'ta döner, son 3 kopya saklanır —
+    # Dosya sınırsız büyümesin diye 5 MB'ta döner, son 3 kopya saklanır -
     # 7x24 çalışan sistemde log yüzünden disk dolmasın (docs/08 R8).
     dosya = RotatingFileHandler(
         ayarlar.log_dosyasi, maxBytes=5 * 1024 * 1024, backupCount=3, encoding="utf-8"

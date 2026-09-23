@@ -1,11 +1,11 @@
 {% extends "temel.html" %}
 {% from "simge.html" import simge %}
 {% from "bilesen.html" import karne_ozeti, oge_rozeti %}
-{% block baslik %}KKD Verisi — DALSAN İSG{% endblock %}
+{% block baslik %}KKD Verisi - DALSAN İSG{% endblock %}
 {% block icerik %}
   <h2>KKD (Baret / Yelek) Verisi</h2>
 
-  {# Veri toplama kapısı (docs/17 §5.8, KVKK): sayfanın EN ÜSTÜNDE — kişi
+  {# Veri toplama kapısı (docs/17 §5.8, KVKK): sayfanın EN ÜSTÜNDE - kişi
      görüntüsü toplanıp toplanmadığı bu sayfaya bakan herkesin ilk gördüğü şey. #}
   <section class="kart kkd-toplama {{ 'acik' if toplama.acik else 'kapali' }}" id="veri-toplama">
     {% if toplama.acik %}
@@ -19,7 +19,7 @@
       <button class="dugme ikincil">Veri toplamayı kapat</button>
     </form>
     {% else %}
-    <h3>Veri toplama: KAPALI — Rev.02 onayı bekleniyor</h3>
+    <h3>Veri toplama: KAPALI - Rev.02 onayı bekleniyor</h3>
     <p class="not">Kamera görüntüsünden kişi görüntüsü toplamak kişisel veri işlemektir
       (KVKK). Toplama, DALSAN İSG Rev.02 ek protokolü imzalanıp çalışanlara aydınlatma
       yapılmadan açılmamalıdır. Kapalıyken hiçbir kişi görüntüsü saklanmaz; kurallar ve
@@ -103,10 +103,10 @@
     <p class="not">Veri toplama açıkken sistem, KKD zorunlu alan bölgesi çizilmiş kameralardan otomatik örnek toplar.
       Yeterli etiketli veri birikince aşağıdaki veri setiyle model ürün dışında eğitilir
       (docs/04 §6) ve KKD kuralı gölge modda devreye alınır. <b>Şüphede kaldığınız
-      görüntüye her zaman "Belirsiz" deyin</b> — emin olmadan "Yok" demek modeli bozar.</p>
+      görüntüye her zaman "Belirsiz" deyin</b> - emin olmadan "Yok" demek modeli bozar.</p>
   </section>
 
-  {# Veri seti (docs/17 §5.8): güne göre bölme — bir günün bütün kameraları aynı
+  {# Veri seti (docs/17 §5.8): güne göre bölme - bir günün bütün kameraları aynı
      kümede, rastgele bölme yok. Sayılar indirilecek dosyanın aynısıdır. #}
   <section class="kart" id="veri-seti">
     <h3>Veri seti</h3>
@@ -140,11 +140,11 @@
       {% for o in ornekler %}
       <div class="kkd-kart" id="ornek-{{ o.id }}">
         <img src="/kkd/ornek/{{ o.id }}.jpg" alt="kişi görüntüsü">
-        <div class="kucuk-metin">{{ o.kamera_adi or "—" }} · {{ o.yerel_zaman }}</div>
+        <div class="kucuk-metin">{{ o.kamera_adi or "-" }} · {{ o.yerel_zaman }}</div>
         {# Etiketlerden ÖNCE: iki etiket verilince kart listeden düşer #}
         <label class="zor-ornek">Zor örnek
           <select data-ornek="{{ o.id }}" aria-label="Zor örnek">
-            <option value="">—</option>
+            <option value="">-</option>
             {% for kod, ad in zor_ornekler.items() %}
             <option value="{{ kod }}" {% if o.hard_case == kod %}selected{% endif %}>{{ ad }}</option>
             {% endfor %}
@@ -166,7 +166,7 @@
       {% endfor %}
     </div>
     {% else %}
-    <p class="bos">Etiketlenecek örnek yok — sistem henüz kişi görüntüsü toplamadı.</p>
+    <p class="bos">Etiketlenecek örnek yok - sistem henüz kişi görüntüsü toplamadı.</p>
     <p class="not">Örnek birikmesi için bir kameraya <b>"KKD zorunlu alan"</b>
       tipinde bölge çizin; insanlar o bölgeden geçtikçe kırpılmış görüntüler burada
       birikir ve etiketlemeye açılır.</p>

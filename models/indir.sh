@@ -1,18 +1,18 @@
 #!/bin/bash
-# DALSAN İSG — tespit modellerini indirir ve DOĞRULAR (model ağırlıkları repoya girmez).
+# DALSAN İSG - tespit modellerini indirir ve DOĞRULAR (model ağırlıkları repoya girmez).
 # Kullanım: bash models/indir.sh
-# YOLOX (Apache-2.0) resmi yayın dosyaları — ADR-002 karar gerekçesi docs/05'te.
+# YOLOX (Apache-2.0) resmi yayın dosyaları - ADR-002 karar gerekçesi docs/05'te.
 #
 # Her dosya models/SHA256SUMS'taki özetle karşılaştırılır (docs/17 §10.5 R17);
 # tutmayan dosya kullanılmaz. Aynı özetler backend/app/analiz/model_indir.py
-# içinde de durur — tests/test_model_butunlugu.py ikisinin aynı kaldığını denetler.
+# içinde de durur - tests/test_model_butunlugu.py ikisinin aynı kaldığını denetler.
 set -e
 cd "$(dirname "$0")"
 
 YAYIN="https://github.com/Megvii-BaseDetection/YOLOX/releases/download/0.1.1rc0"
 
 # Dosya, SHA256SUMS'taki kendi satırıyla tutuyor mu? (Linux: sha256sum,
-# Mac: shasum — ikisi de işletim sistemiyle gelir.) Denetlenen dosya adı
+# Mac: shasum - ikisi de işletim sistemiyle gelir.) Denetlenen dosya adı
 # ikinci argümandır: indirme .part dosyasına yapılır, satır asıl adı taşır.
 ozet_tutuyor_mu() {
   ad="$1"; dosya="$2"

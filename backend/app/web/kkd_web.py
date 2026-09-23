@@ -1,4 +1,4 @@
-"""KKD veri sayfası: toplanan kişi görüntülerini etiketleme (docs/09 karar #5 —
+"""KKD veri sayfası: toplanan kişi görüntülerini etiketleme (docs/09 karar #5 -
 ayrı etiketleme aracı YOK, üç düğme: Var / Yok / Belirsiz).
 
 Etiketleme kuralı (docs/04 §5.2): ŞÜPHE VARSA HER ZAMAN 'BELİRSİZ'.
@@ -158,7 +158,7 @@ def kkd_toplama_degistir(
     onay: str = Form(""),
     baglanti=Depends(baglanti_al),
 ):
-    """Veri toplamayı açar ya da kapatır — yeniden başlatmadan (docs/17 §5.8).
+    """Veri toplamayı açar ya da kapatır - yeniden başlatmadan (docs/17 §5.8).
 
     Açmak onay ister: kişi kırpığı toplamak kişisel veri işlemektir ve ancak
     Rev.02 ek protokolü imzalanıp çalışanlara aydınlatma yapıldıktan sonra

@@ -36,7 +36,7 @@ def _sayilar(bolme: dict[str, str]) -> tuple[int, int, int]:
 
 
 def test_docs04_ornegi_sekiz_gun():
-    """docs/04 §5.4: 1.–5. gün eğitim, 6. doğrulama, 7.–8. test."""
+    """docs/04 §5.4: 1.-5. gün eğitim, 6. doğrulama, 7.-8. test."""
     bolme = gun_bolmesi(_gunler(8))
     assert _sayilar(bolme) == (5, 1, 2)
     assert bolme["2026-09-06"] == "val"

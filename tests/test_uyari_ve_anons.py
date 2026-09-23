@@ -1,6 +1,6 @@
 """Uyarı zinciri: kural formu, anons sayfası, sağlık ucu ve silme onayı.
 
-Bu dosyanın konusu "ihlal olduğunda kullanıcı bunu gerçekten duyuyor mu" —
+Bu dosyanın konusu "ihlal olduğunda kullanıcı bunu gerçekten duyuyor mu" -
 sistemin var oluş sebebi budur (docs/01 §1).
 """
 
@@ -82,7 +82,7 @@ def test_gizli_alanlar_gonderilmesin_diye_fieldset_kapatilir(istemci, test_ayarl
 
 def test_kkd_kurali_yanlis_bolge_tipine_baglanamaz(istemci, test_ayarlari):
     """KKD kuralı 'KKD zorunlu alan' dışında bir bölgeye bağlanırsa kaydedilir
-    ama HİÇ çalışmazdı — sessiz başarısızlık."""
+    ama HİÇ çalışmazdı - sessiz başarısızlık."""
     kamera_id, bolge_id = _kamera_ve_bolge(istemci, test_ayarlari, "loading_area")
     yanit = istemci.post(
         "/kurallar/kaydet",

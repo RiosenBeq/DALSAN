@@ -92,10 +92,10 @@ OGELER: dict[str, Oge] = {
     "sistem": Oge("sistem", "Sistem", "saglik"),
 }
 
-# Öğenin İHLAL olarak adı: "Forklift" bir öğedir, "araç–yaya yakınlığı" onun
+# Öğenin İHLAL olarak adı: "Forklift" bir öğedir, "araç-yaya yakınlığı" onun
 # ürettiği ihlaldir. Komuta ekranındaki öğe dağılımı bu adları kullanır. Olay
 # koduyla aynı şeyi anlatan ad sözlükten gelir (rules/olay_kodu.py): aynı
-# ekranda akış "Araç–yaya yakınlığı", öğe kartı başka bir ad yazmasın.
+# ekranda akış "Araç-yaya yakınlığı", öğe kartı başka bir ad yazmasın.
 OGE_IHLAL_ADLARI = {
     "forklift": OLAY_KODLARI["VEHICLE_PERSON_PROXIMITY"].ad,
     "yaya-yolu": OLAY_KODLARI["PERSON_OFF_WALKWAY"].ad,
@@ -118,7 +118,7 @@ ANONS_OGELERI = {
     "vehicle_position": "park",
     "helmet": "baret",
     "vest": "yelek",
-    # Şema 007 (docs/17 §8.2) — olay_ogesi() ile aynı mantık: bölgedeki araç
+    # Şema 007 (docs/17 §8.2) - olay_ogesi() ile aynı mantık: bölgedeki araç
     # "tır", girilmemesi gereken alandaki kişi "alan".
     "vehicle_on_walkway": "tir",
     "person_in_vehicle_lane": "alan",
@@ -214,8 +214,8 @@ def sayi_metni(deger, birim: str = "", basamak: int = 1) -> str:
 
     Türkçede ondalık ayırıcı virgüldür; aynı sayı ekranın bir yerinde nokta,
     başka yerinde virgülle görünürse kullanıcı iki farklı ölçüm sanır.
-    Değer yoksa BOŞ metin döner — çağıran taraf o kutuyu hiç çizmez; boş
-    kutuya "—" yazmak "ölçüldü ama sonuç çıkmadı" izlenimi verirdi.
+    Değer yoksa BOŞ metin döner - çağıran taraf o kutuyu hiç çizmez; boş
+    kutuya "-" yazmak "ölçüldü ama sonuç çıkmadı" izlenimi verirdi.
     """
     if deger is None:
         return ""
@@ -232,7 +232,7 @@ def sayi_metni(deger, birim: str = "", basamak: int = 1) -> str:
 #
 # Komuta panosu, anons ekranı ve rapor AYNI çubukları çizer. Üç ayrı yerde
 # kovalanan bir histogram, aynı olayı üç grafikte farklı saate düşürebilirdi;
-# bu yüzden hesap tek yerde durur (kütüphane YOK — sade CSS genişliği).
+# bu yüzden hesap tek yerde durur (kütüphane YOK - sade CSS genişliği).
 
 # Renk eşiği SAYIYA değil, o listedeki EN YÜKSEK değere ORANLA verilir:
 # 4 ihlalli küçük bir kurulumda da 400 ihlalli büyük bir kurulumda da "en yoğun
@@ -254,7 +254,7 @@ def yogunluk_sinifi(deger: int, en_yuksek: int) -> str:
 
 
 def cubuk_yuzdesi(deger: int, en_yuksek: int) -> str:
-    """Çubuk genişliği/yüksekliği — en yüksek değere oranla."""
+    """Çubuk genişliği/yüksekliği - en yüksek değere oranla."""
     if en_yuksek <= 0:
         return "0%"
     return f"{round(deger / en_yuksek * 100)}%"
@@ -287,14 +287,14 @@ def saat_sutunlari(zamanlar, birim: str) -> dict:
     tepe = ""
     if toplam:
         saat = kovalar.index(en_yuksek)
-        tepe = f"En yoğun {saat:02d}:00 – {(saat + 1) % 24:02d}:00 · {en_yuksek} {birim}"
+        tepe = f"En yoğun {saat:02d}:00 - {(saat + 1) % 24:02d}:00 · {en_yuksek} {birim}"
     return {"sutunlar": sutunlar, "toplam": toplam, "tepe": tepe}
 
 
 # --------------------------------------------------------------- Türkçe ekler
 #
 # Sayıdan sonra gelen ek, sayının OKUNUŞUNA göre değişir: "%36'sı" ama "%69'u",
-# "%7'sinde" ama "%64'ünde". Şablona sabit yazılırsa er ya da geç yanlış olur —
+# "%7'sinde" ama "%64'ünde". Şablona sabit yazılırsa er ya da geç yanlış olur -
 # ve bir kez oldu: Nesneler sayfasındaki kart "%36'i bulundu ve %7'inde" diyor,
 # aynı sayfanın alt paragrafı ise doğru yazıyordu. Sayı ölçümden geldiği için
 # yarın 36 değil 69 olabilir; ek de onunla değişmelidir.
@@ -337,7 +337,7 @@ def sayi_okunusu(sayi: int) -> str:
     """Ekin bağlı olduğu son kelime: 14 → 'dört', 40 → 'kırk', 100 → 'yüz'.
 
     Yüzdeler (0-100) için yazıldı; daha büyük sayılarda son iki basamağa bakar,
-    yani 1500 doğru ("yüz"), 1000 yanlış olurdu — bu fonksiyona öyle bir sayı
+    yani 1500 doğru ("yüz"), 1000 yanlış olurdu - bu fonksiyona öyle bir sayı
     gelmez ve gelirse de ek üretmek yerine yanlış ek yazmak istemeyiz.
     """
     kalan = abs(int(sayi)) % 100
@@ -422,10 +422,10 @@ def _kod_ve_sure(olay: dict) -> None:
 
 
 def _ihlal_ozeti(olay: dict) -> str:
-    """ "Yasak alana giriş", "Araç–yaya yakınlığı — 1,85 m", "Baret ve yelek yok".
+    """ "Yasak alana giriş", "Araç-yaya yakınlığı - 1,85 m", "Baret ve yelek yok".
 
     Kodlu olayda başlık kodun adıdır; 007 öncesi olayda kural tipinin adı
-    ("KKD (baret/yelek) — baret yok") — eski olayın yazısı değişmez.
+    ("KKD (baret/yelek) - baret yok") - eski olayın yazısı değişmez.
     """
     detay = olay["detaylar"]
     ad = olay["kod_adi"] or olay["kural_tipi_adi"] or "İhlal"
@@ -436,16 +436,16 @@ def _ihlal_ozeti(olay: dict) -> str:
         metin = " ve ".join(eksik) + " yok"
         return metin[0].upper() + metin[1:]
     if eksik:
-        return f"{ad} — {', '.join(eksik)} yok"
+        return f"{ad} - {', '.join(eksik)} yok"
     if detay.get("mesafe_m") is not None:
-        return f"{ad} — {sayi_metni(detay['mesafe_m'], 'm', 2)}"
+        return f"{ad} - {sayi_metni(detay['mesafe_m'], 'm', 2)}"
     if detay.get("hiz_kmh") is not None:
         # Hız km/sa yazılır: fabrika hız levhaları da km/sa'dır. Ayarın
         # kendisi m/sn tutulur (Tespit.hiz_mps ile aynı birim).
-        return f"{ad} — {sayi_metni(detay['hiz_kmh'], 'km/sa', 1)}"
+        return f"{ad} - {sayi_metni(detay['hiz_kmh'], 'km/sa', 1)}"
     if detay.get("bolge_tipi") in BOLGE_TIPLERI:
         # Yedek kod (ZONE_INTRUSION): olayın ne olduğunu bölge tipi söyler
-        return f"{ad} — {BOLGE_TIPLERI[detay['bolge_tipi']]}"
+        return f"{ad} - {BOLGE_TIPLERI[detay['bolge_tipi']]}"
     return ad
 
 
@@ -463,7 +463,7 @@ def rtsp_maskele(url: str) -> str:
 
     Kamera adresleri için yazıldı, ama şema/protokole bakmaz: hoparlör
     bölgelerinin http adresleri de aynı desenle maskelenir. Adresin kendisi
-    (ip, port, yol) görünür kalır — kullanıcı hangi cihazı yazdığını görmeli;
+    (ip, port, yol) görünür kalır - kullanıcı hangi cihazı yazdığını görmeli;
     gizlenen yalnızca kullanıcı adı ve şifredir. Desen günlükle ortaktır
     (loglama.ADRES_KIMLIGI).
     """
@@ -491,7 +491,7 @@ def maskeyi_coz(gonderilen: str, kayitli: str) -> str:
 
 
 def guvenli_json(veri) -> str:
-    """<script> bloğuna gömülecek JSON — HTML'e özel karakterler kaçırılır.
+    """<script> bloğuna gömülecek JSON - HTML'e özel karakterler kaçırılır.
 
     json.dumps `<`, `>`, `&` karakterlerini kaçırmaz; kullanıcı verisi (örn.
     bölge adı) `</script><img onerror=...>` içerirse depolanan XSS olurdu.
@@ -509,10 +509,14 @@ def guvenli_json(veri) -> str:
 # METİN hücresinin başına tek tırnak eklenir; sayı hücreleri (negatif sayı
 # dahil) değişmez.
 _FORMUL_BASLARI = ("=", "+", "-", "@", "\t", "\r")
+# Tek başına "-" boş değer işaretidir (ekranda ve raporda "değer yok"). Ardında
+# formül olmadığı için çalışacak bir şey taşımaz; kaçışlansaydı raporda "'-"
+# görünürdü.
+BOS_DEGER = "-"
 
 
 def csv_hucresi(deger):
-    if isinstance(deger, str) and deger.startswith(_FORMUL_BASLARI):
+    if isinstance(deger, str) and deger != BOS_DEGER and deger.startswith(_FORMUL_BASLARI):
         return "'" + deger
     return deger
 
@@ -548,7 +552,7 @@ class HazirKural:
     kural_tipi: str
     hedef_siniflar: tuple[str, ...]
     params: dict
-    anons_anahtari: str | None  # announcement_messages.key — yoksa yalnız ekran uyarısı
+    anons_anahtari: str | None  # announcement_messages.key - yoksa yalnız ekran uyarısı
     cooldown_s: int | None  # None → VARSAYILAN_COOLDOWN_SN[kural_tipi]
     kisa_ad: str  # düğme metni: '"Ad" için {kisa_ad} ekle'
     aciklama: str  # {param} yer tutucuları çözülmüş params ile doldurulur
@@ -571,7 +575,7 @@ VARSAYILAN_COOLDOWN_SN = {
 }
 
 HAZIR_KURALLAR: dict[str, HazirKural] = {
-    # docs/03 Ek — yolu KULLANMAYAN kişi ihlaldir (mode=outside)
+    # docs/03 Ek - yolu KULLANMAYAN kişi ihlaldir (mode=outside)
     "pedestrian_path": HazirKural(
         kural_tipi="zone_intrusion",
         hedef_siniflar=("person",),
@@ -585,7 +589,7 @@ HAZIR_KURALLAR: dict[str, HazirKural] = {
             "«Lütfen yaya yolunu kullanınız.» anonsu geçilir."
         ),
     ),
-    # docs/03 §1 — yasak bölgede olmak ihlaldir (mode=inside, varsayılan).
+    # docs/03 §1 - yasak bölgede olmak ihlaldir (mode=inside, varsayılan).
     # Şema 007'nin "restricted_entry" mesajına bağlanır (docs/17 §8.2).
     "restricted": HazirKural(
         kural_tipi="zone_intrusion",
@@ -600,7 +604,7 @@ HAZIR_KURALLAR: dict[str, HazirKural] = {
             "sayfasından değiştirebilirsiniz."
         ),
     ),
-    # docs/03 §1 tablosu — "Yükleme alanında yaya": inside / person
+    # docs/03 §1 tablosu - "Yükleme alanında yaya": inside / person
     "loading_area": HazirKural(
         kural_tipi="zone_intrusion",
         hedef_siniflar=("person",),
@@ -610,10 +614,10 @@ HAZIR_KURALLAR: dict[str, HazirKural] = {
         kisa_ad="yükleme alanı kuralı",
         aciklama=(
             "Yükleme alanının İÇİNDE {min_dwell_s:g} saniyeden uzun kalan kişi uyarı üretir "
-            "— forklift ve tırın çalıştığı alanda yaya durmamalıdır."
+            "- forklift ve tırın çalıştığı alanda yaya durmamalıdır."
         ),
     ),
-    # docs/03 §1 tablosu — "Tır yanlış konumda": outside / truck
+    # docs/03 §1 tablosu - "Tır yanlış konumda": outside / truck
     "truck_parking": HazirKural(
         kural_tipi="zone_intrusion",
         hedef_siniflar=("truck",),
@@ -626,7 +630,7 @@ HAZIR_KURALLAR: dict[str, HazirKural] = {
             "Hoparlörden «Lütfen aracınızı belirlenen alana konumlandırınız.» anonsu geçilir."
         ),
     ),
-    # docs/03 §2 — güvenli mesafe; bölge verilince yalnız o alandaki kişiler korunur
+    # docs/03 §2 - güvenli mesafe; bölge verilince yalnız o alandaki kişiler korunur
     "vehicle_area": HazirKural(
         kural_tipi="safe_distance",
         hedef_siniflar=("person", "forklift", "truck"),
@@ -640,7 +644,7 @@ HAZIR_KURALLAR: dict[str, HazirKural] = {
             "«Lütfen iş makinelerinden güvenli mesafede durunuz.» anonsu geçilir."
         ),
     ),
-    # docs/03 §3 — KKD kuralı yalnızca bu tipte bölgede çalışır
+    # docs/03 §3 - KKD kuralı yalnızca bu tipte bölgede çalışır
     "ppe_required": HazirKural(
         kural_tipi="ppe_violation",
         hedef_siniflar=("person",),
@@ -753,10 +757,10 @@ def hazir_kural_cooldown(hazir: HazirKural) -> int:
 # /saglik ve Kontrol Paneli söyler. Kontrol Paneli'nin kendi metinleri
 # masaustu/dalsan_launcher.py'dedir (ayrı program, uygulamayı içe aktarmaz).
 SAGLIK_SORUN_METINLERI: dict[str, str] = {
-    "analiz_takildi": "Analiz takıldı — görüntü geliyor ama uyarı üretilmiyor",
-    "analiz_olu": "Analiz durdu — uyarı üretilmiyor",
-    "model_yuklenemedi": "Analiz yapılmıyor — model yüklenemedi",
-    "veritabani_acilamadi": "Veritabanı okunamıyor — olaylar kaydedilemeyebilir",
-    "olay_yazilamadi": "Son ihlal kaydedilemedi — anons yine de çaldı",
-    "kritik_kural_pasif": "Mesafe ya da hız kuralı çalışmıyor — kalibrasyon bekleniyor",
+    "analiz_takildi": "Analiz takıldı - görüntü geliyor ama uyarı üretilmiyor",
+    "analiz_olu": "Analiz durdu - uyarı üretilmiyor",
+    "model_yuklenemedi": "Analiz yapılmıyor - model yüklenemedi",
+    "veritabani_acilamadi": "Veritabanı okunamıyor - olaylar kaydedilemeyebilir",
+    "olay_yazilamadi": "Son ihlal kaydedilemedi - anons yine de çaldı",
+    "kritik_kural_pasif": "Mesafe ya da hız kuralı çalışmıyor - kalibrasyon bekleniyor",
 }

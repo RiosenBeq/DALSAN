@@ -98,7 +98,7 @@ def _dolu_kurulum(istemci, test_ayarlari) -> dict:
     finally:
         baglanti.close()
 
-    # Sevkiyat: bugün 3 ihlal (ikisi 09:30, biri 14:30) — en yoğun alan
+    # Sevkiyat: bugün 3 ihlal (ikisi 09:30, biri 14:30) - en yoğun alan
     _olay_ekle(test_ayarlari, sevkiyat, _bugun_saat(9))
     _olay_ekle(test_ayarlari, sevkiyat, _bugun_saat(9))
     _olay_ekle(
@@ -111,7 +111,7 @@ def _dolu_kurulum(istemci, test_ayarlari) -> dict:
     )
     # Depo: bugün 1 ihlal
     _olay_ekle(test_ayarlari, depo, _bugun_saat(11), kural_tipi="zone_intrusion")
-    # Dün 1 ihlal — "düne göre" karşılaştırması gerçek veriden çıksın
+    # Dün 1 ihlal - "düne göre" karşılaştırması gerçek veriden çıksın
     dun = datetime.fromisoformat(zaman.gun_basi_utc(1)) + timedelta(hours=10)
     _olay_ekle(test_ayarlari, depo, dun.isoformat(timespec="seconds"))
 
@@ -208,7 +208,7 @@ def test_canli_akis_olay_detayina_baglaniyor(istemci, test_ayarlari):
     metin = istemci.get("/komuta").text
     assert "Canlı akış" in metin
     # Özet metni olay listesindekiyle AYNI kaynaktan gelir
-    assert "KKD (baret/yelek) — baret yok" in metin
+    assert "KKD (baret/yelek) - baret yok" in metin
     assert "Sevkiyat Rampası · Sevkiyat" in metin
     baglanti = veritabani.baglanti_ac(test_ayarlari.veritabani_yolu)
     try:
@@ -244,7 +244,7 @@ def test_histogram_yerel_saate_gore_kovaliyor(istemci, test_ayarlari):
     assert "İhlallerin saate göre dağılımı" in metin
     assert 'class="komuta-histogram"' in metin
     # 09'da 2, 11'de 1, 14'te 1 → en yoğun 09:00-10:00
-    assert "En yoğun 09:00 – 10:00 · 2 ihlal" in metin
+    assert "En yoğun 09:00 - 10:00 · 2 ihlal" in metin
     assert 'class="histogram-cubuk yogun" style="height: 100%"' in metin
     # 24 sütun: gece saatleri de boş sütun olarak görünür
     assert metin.count('class="histogram-sutun"') == 24

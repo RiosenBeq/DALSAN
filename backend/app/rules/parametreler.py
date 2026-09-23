@@ -1,4 +1,4 @@
-"""Kural parametre şemaları — rules.params JSON'ı yazılmadan ÖNCE ve
+"""Kural parametre şemaları - rules.params JSON'ı yazılmadan ÖNCE ve
 yüklenirken bu modellerle doğrulanır (docs/02 §3).
 
 Varsayılanlar docs/03'teki tablolardan alınmıştır; hepsi arayüzden
@@ -30,7 +30,7 @@ def _bitis_alani():
 
 
 class BolgeIhlaliParams(BaseModel):
-    """zone_intrusion — docs/03 §1"""
+    """zone_intrusion - docs/03 §1"""
 
     mode: Literal["inside", "outside"] = "inside"
     min_dwell_s: float = Field(default=2.0, ge=0, le=600)
@@ -42,7 +42,7 @@ class BolgeIhlaliParams(BaseModel):
 
 
 class MesafeParams(BaseModel):
-    """safe_distance — docs/03 §2"""
+    """safe_distance - docs/03 §2"""
 
     subject_classes: list[str] = ["person"]
     object_classes: list[str] = ["forklift", "truck"]
@@ -58,7 +58,7 @@ class MesafeParams(BaseModel):
 
 
 class KkdParams(BaseModel):
-    """ppe_violation — docs/03 §3 ve docs/04 §7"""
+    """ppe_violation - docs/03 §3 ve docs/04 §7"""
 
     required_ppe: list[Literal["helmet", "vest"]] = ["helmet", "vest"]
     # Baret ve yelek eşikleri AYRIDIR: baret kişi boyunun ~1/8'i olduğundan
@@ -74,7 +74,7 @@ class KkdParams(BaseModel):
     bitis_s: float = _bitis_alani()
     # Sürücü muafiyeti (docs/17 §5.4, S3 varsayılanı): ayak noktası araç
     # (forklift, tır) kutusunda olan ya da kutusunun bu oranı araçla örtüşen
-    # kişinin o karedeki gözlemi BELİRSİZDİR — kabindeki sürücü için olay yok.
+    # kişinin o karedeki gözlemi BELİRSİZDİR - kabindeki sürücü için olay yok.
     surucu_muaf: bool = True
     surucu_ortusme_orani: float = Field(default=0.6, ge=0.1, le=1)
     # İki kişi kutusu bu IoU'dan fazla örtüşürse kırpık iki kişiyi karıştırır
@@ -86,7 +86,7 @@ class KkdParams(BaseModel):
 
 
 class HizParams(BaseModel):
-    """vehicle_speed — docs/03 §4
+    """vehicle_speed - docs/03 §4
 
     Birim m/sn'dir; Tespit.hiz_mps ile aynı olsun diye. Kullanıcı arayüzünde
     karşılığı km/sa olarak da yazılır (2,5 m/sn ≈ 9 km/sa).
@@ -130,5 +130,5 @@ def params_dogrula(kural_tipi: str, params: dict) -> dict:
         raise KuralParametreHatasi(f"Bilinmeyen kural tipi: {kural_tipi}")
     try:
         return sema(**params).model_dump()
-    except Exception as hata:  # pydantic.ValidationError — pydantic tipine bağımlı olmayalım
+    except Exception as hata:  # pydantic.ValidationError - pydantic tipine bağımlı olmayalım
         raise KuralParametreHatasi(f"Kural parametreleri geçersiz ({kural_tipi}): {hata}") from hata

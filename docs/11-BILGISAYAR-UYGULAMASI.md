@@ -1,4 +1,4 @@
-# 11 — Masaüstü Uygulaması (Mac & Windows)
+# 11 - Masaüstü Uygulaması (Mac & Windows)
 
 ## 1. Neyin uygulaması bu
 
@@ -7,7 +7,7 @@ Karışmaması gereken iki şey var:
 | | Nerede çalışır | Ne işe yarar |
 |---|---|---|
 | **Kontrol Paneli** (bu uygulama) | Senin Mac/Windows bilgisayarında | Sistemi başlat/durdur, durumu gör, hata günlüğünü oku |
-| **İzleme Ekranı** | Kendi uygulama penceresinde açılır | Kameralar, bölgeler, kurallar, olaylar — asıl kullanılan ekran |
+| **İzleme Ekranı** | Kendi uygulama penceresinde açılır | Kameralar, bölgeler, kurallar, olaylar - asıl kullanılan ekran |
 
 İzleme ekranı **kendi penceresinde** açılır: adres çubuğu, sekme şeridi ve yer
 imleri yoktur; görev çubuğunda (Windows) ve Dock'ta (Mac) ayrı bir uygulama
@@ -23,7 +23,7 @@ kullanıcıya görünmez.
 > Sistem yine tam olarak çalışır, yalnız görünümü bir sekmedir.
 
 Fabrikadaki bilgisayardan da, İSG müdürünün dizüstünden de aynı adres
-tarayıcıyla açılabilir — uygulama penceresi bir zorunluluk değil, kolaylıktır.
+tarayıcıyla açılabilir - uygulama penceresi bir zorunluluk değil, kolaylıktır.
 
 Kontrol Paneli'nin çözdüğü sorun ayrıdır: **terminal/komut satırı kullanmadan**
 sistemi yönetebilmek.
@@ -61,7 +61,7 @@ SmartScreen uyarısı çıkarsa: **Daha fazla bilgi → Yine de çalıştır**
 │  Python              Hazır (sürüm 3.12)              │
 │  Gerekli paketler    Kurulu                          │
 │  Sistem kodu         Hazır                           │
-│  Sistem durumu       ÇALIŞIYOR — http://127.0.0.1... │
+│  Sistem durumu       ÇALIŞIYOR - http://127.0.0.1... │
 ├──────────────────────────────────────────────────────┤
 │ [İlk Kurulumu Yap] [Sistemi Başlat] [Durdur] [Aç]    │
 ├──────────────────────────────────────────────────────┤
@@ -92,10 +92,10 @@ Pencereyi kapatmak da sistemi durdurur; ayrıca "Durdur"a basman şart değil.
 
 | Yazı | Anlamı | Ne yapmalısın |
 |---|---|---|
-| Python: **Hazır** | Tamam | — |
+| Python: **Hazır** | Tamam | - |
 | Python: **3.10 veya üstü gerekiyor** | Sürüm eski | python.org'dan 3.12 kur |
 | Paketler: **Kurulmamış** | İlk kurulum yapılmamış | "İlk Kurulumu Yap"a bas |
-| Sistem kodu: **Henüz yazılmadı** | Normal — kod Claude Code ile üretilecek | Geliştirmeye devam |
+| Sistem kodu: **Henüz yazılmadı** | Normal - kod Claude Code ile üretilecek | Geliştirmeye devam |
 | Sistem: **ÇALIŞIYOR** | Her şey yolunda | İzleme ekranını aç |
 | Sistem: **Durdu** | Kapalı | "Sistemi Başlat"a bas |
 
@@ -126,13 +126,13 @@ ayrılır:
 
 | | Bu bilgisayarda (geliştirme) | Teslim edilen uygulama |
 |---|---|---|
-| "İlk Kurulumu Yap" | Var — Python ortamı kurulur | **Yok** — her şey içinde gelir |
+| "İlk Kurulumu Yap" | Var - Python ortamı kurulur | **Yok** - her şey içinde gelir |
 | Başlama | "Sistemi Başlat"a basılır | **Kendiliğinden başlar** (pencere açıkken sistem çalışır) |
 
 Geri kalan her şey aynıdır: Durdur, İzleme Ekranını Aç, sistem günlüğü ve
 "pencereyi kapatırsanız sistem durur" kuralı değişmez.
 
-Kayıtlar da farklı yerde durur — teslim edilen uygulama kendi içine yazamaz,
+Kayıtlar da farklı yerde durur - teslim edilen uygulama kendi içine yazamaz,
 kullanıcının kendi klasörüne yazar. Bu bilgisayardaki geliştirme kurulumunun
 veri yolu **değişmedi**: o hâlâ proje klasöründeki `veri/` klasörünü kullanır.
 Yerlerin tam listesi `docs/13` §4'te.
@@ -149,4 +149,4 @@ Bugün gerekmeyen ama sonradan eklenebilecekler:
 | Tek düğmeyle yedek alma | Yedeği elle kopyalamak zahmetli gelmeye başladığında |
 
 Hiçbiri bugün gerekli değil. Uygulama, ihtiyaç doğduğunda bunların eklenmesini
-engellemeyecek şekilde yazıldı — ama bugün yazılmadılar.
+engellemeyecek şekilde yazıldı - ama bugün yazılmadılar.

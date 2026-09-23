@@ -2,7 +2,7 @@
 
 Neden bu testler var:
 
-Bölge, bir zamanlar İKİ kez çiziliyordu — biri önizleme JPEG'inin içine
+Bölge, bir zamanlar İKİ kez çiziliyordu - biri önizleme JPEG'inin içine
 (sunucu, mor), diğeri o JPEG'in üstündeki tuvale (tarayıcı, turuncu). Ekranda
 tek bölgenin iki ayrı çizgisi görünüyordu; tuval ile görüntü ölçüsü birebir
 oturmadığında çizgiler birbirinden kayıyor ve kullanıcı "sistem bölgeyi yanlış
@@ -14,7 +14,7 @@ Kural şu: bölge çizim/düzenleme sayfasında bölgeleri YALNIZCA tuval çizer
 değiştirmiş gibi görünür.
 
 İkinci konu tuvalin ölçüsü: tuvalin çizim tamponu görüntünün ekrandaki
-kutusuyla birebir aynı olmalıdır. Sabit bir bekleme süresine güvenilemez —
+kutusuyla birebir aynı olmalıdır. Sabit bir bekleme süresine güvenilemez -
 önizleme her saniye yeni bir kare yükler ve görüntü gelene kadar kutunun
 yüksekliği yanlıştır. Ölçü GÖRÜNTÜNÜN yüklenmesine ve kutunun ölçü
 değişimine bağlanır.
@@ -67,7 +67,7 @@ def _kare_isle(hat: KameraHatti) -> None:
 
 
 def test_bolgesiz_surumde_bolge_cizgisi_yok():
-    """Çizim sayfasına giden karede bölge ÇİZİLİ OLMAMALI — o sayfada bölgeyi
+    """Çizim sayfasına giden karede bölge ÇİZİLİ OLMAMALI - o sayfada bölgeyi
     tuval çiziyor; sunucu da çizerse aynı bölge ekranda iki kez görünür."""
     hat = _hat_kur()
     _kare_isle(hat)
@@ -78,7 +78,7 @@ def test_bolgesiz_surumde_bolge_cizgisi_yok():
 
     assert _renk_piksel_sayisi(bolgeli, _BOLGE_RENGI) > 100, "izleme karesinde bölge çizilmemiş"
     assert _renk_piksel_sayisi(bolgesiz, _BOLGE_RENGI) == 0, (
-        "çizim sayfasına giden karede bölge çizgisi var — bölge iki kez görünür"
+        "çizim sayfasına giden karede bölge çizgisi var - bölge iki kez görünür"
     )
 
 
@@ -94,7 +94,7 @@ def test_bolgesiz_surum_tespit_kutularini_korur():
 
 
 def test_bolge_yokken_iki_surum_ayni():
-    """Bölge yoksa ikinci bir JPEG kodlamaya gerek yok — aynı kare döner."""
+    """Bölge yoksa ikinci bir JPEG kodlamaya gerek yok - aynı kare döner."""
     hat = KameraHatti(kamera_id=1, fps=6)
     hat.yapilandir([], [], None)
     _kare_isle(hat)
@@ -107,7 +107,7 @@ def test_bolge_yokken_iki_surum_ayni():
 
 def test_cizim_sayfasi_bolgesiz_kare_ister(istemci, test_ayarlari):
     """Kamera detay (çizim) sayfası bölgesiz kare ister; kamera LİSTESİ ise
-    istemez — orada tuval yok, bölgeyi sunucu çizmeli."""
+    istemez - orada tuval yok, bölgeyi sunucu çizmeli."""
     video = test_ayarlari.kok_dizin / "v.mp4"
     video.write_bytes(b"sahte")
     yanit = istemci.post(
@@ -167,7 +167,7 @@ def test_tuvalin_bolge_rengi_sunucuyla_ayni():
 def test_tuval_olcusu_goruntuye_bagli():
     """Ölçü, görüntünün YÜKLENMESİNE ve kutunun ölçü değişimine bağlı olmalı.
     Sabit bekleme süresi (setTimeout) yeterli değildir: önizleme her saniye yeni
-    kare yükler, kare 150 ms'de gelmemiş olabilir ve tuval yanlış ölçüde kalır —
+    kare yükler, kare 150 ms'de gelmemiş olabilir ve tuval yanlış ölçüde kalır -
     o zaman tıkladığınız yer ile çizilen nokta kayar."""
     kaynak = _JS.read_text(encoding="utf-8")
     assert 'resim.addEventListener("load"' in kaynak

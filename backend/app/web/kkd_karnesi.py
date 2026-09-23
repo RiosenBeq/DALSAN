@@ -147,7 +147,7 @@ def precision_metni(sayac: KalemSayaci) -> str:
 def kapsama_metni(sayac: KalemSayaci) -> str:
     """İncelenen / üretilen, AŞAĞI yuvarlanır: %99,6 "%100" görünmesin."""
     if not sayac.olay:
-        return "—"
+        return "-"
     return f"%{sayac.incelenen * 100 // sayac.olay}"
 
 

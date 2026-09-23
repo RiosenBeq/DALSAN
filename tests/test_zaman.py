@@ -14,7 +14,7 @@ def test_simdi_utc_gecerli_iso_ve_utc():
     an = datetime.fromisoformat(metin)
     assert an.tzinfo is not None
     assert an.utcoffset().total_seconds() == 0
-    # Sabit uzunlukta metin — SQLite'ta metin olarak doğru sıralanmasının şartı
+    # Sabit uzunlukta metin - SQLite'ta metin olarak doğru sıralanmasının şartı
     assert len(metin) == len("2026-08-26T13:05:41+00:00")
 
 
@@ -24,7 +24,7 @@ def test_ekranda_goster_istanbul_kis():
 
 
 def test_ekranda_goster_istanbul_yaz():
-    # Türkiye 2016'dan beri yaz saati uygulamaz — yazın da UTC+3
+    # Türkiye 2016'dan beri yaz saati uygulamaz - yazın da UTC+3
     assert zaman.ekranda_goster("2026-07-10T12:00:00+00:00") == "10.07.2026 15:00:00"
 
 

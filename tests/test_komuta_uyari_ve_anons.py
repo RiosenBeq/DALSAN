@@ -101,7 +101,7 @@ def _ihlal_ekle(test_ayarlari, kamera_id: int, kural_kaydi: dict, *, saat_once: 
     ASLA düşülmez. Bu kelepçe olmadan testler gece yarısından sonraki ilk
     saatlerde kırılıyordu: saat 00:01'de "1 saat önce" yerel takvimde DÜNDÜR,
     dolayısıyla "Bugün anons tetikleyen ihlal" sayacı haklı olarak 0 gösterir.
-    Kırılan sistem değil, testin varsayımıydı — ekranın "bugün" penceresi
+    Kırılan sistem değil, testin varsayımıydı - ekranın "bugün" penceresi
     Türkiye gününe göre kurulur (app/zaman.py: gun_basi_utc).
     """
     istenen = datetime.now(UTC) - timedelta(hours=saat_once)
@@ -126,7 +126,7 @@ def _hoparlor_ekle(
 
 
 # =====================================================================
-# ŞEMA GÖÇÜ — 002 mevcut veriyi KORUMALI
+# ŞEMA GÖÇÜ - 002 mevcut veriyi KORUMALI
 # =====================================================================
 
 
@@ -440,7 +440,7 @@ def test_golge_modda_olay_yazilir_ama_anons_calmaz(test_ayarlari, tmp_path):
         assert baglanti.execute("SELECT COUNT(*) FROM events").fetchone()[0] == 1, "olay yazılmalı"
         assert cagrilar == [], "gölge modda anons ÇALMAMALI"
 
-        # Gölge mod kapatılınca anons çalar — ve kameranın BÖLÜMÜ iletilir
+        # Gölge mod kapatılınca anons çalar - ve kameranın BÖLÜMÜ iletilir
         baglanti.execute("UPDATE rules SET shadow_mode = 0 WHERE id = 1")
         baglanti.commit()
         supervizor._ihlali_kaydet(baglanti, _HatCasusu(), ihlal, 200.0)
@@ -548,7 +548,7 @@ def test_anons_olmayinca_ogretici_bos_durum(istemci):
     # Tasarımın örnek anons sayısı (41) sayı kutusuna sızmamalı.
     # Çıplak "41" aranamaz: başlıktaki sunucu saati günde bir kez "…:41"
     # gösterir ve test o dakikada sebepsiz kırılırdı. Sayı kutusunun kendisi
-    # aranır — sızıntı zaten oraya düşerdi.
+    # aranır - sızıntı zaten oraya düşerdi.
     assert ">41<" not in metin
 
 
@@ -583,7 +583,7 @@ def test_hoparlor_adresindeki_sifre_listede_maskeleniyor(istemci, test_ayarlari)
     """Liste satırında kullanıcı adı/şifre GÖRÜNMEZ (docs/01 §3.6).
 
     Kameranın RTSP adresiyle aynı desen: listede maskeli, düzenleme formunun
-    girdi alanında ham — kullanıcı yanlış yazdığı şifreyi düzeltebilmeli ve
+    girdi alanında ham - kullanıcı yanlış yazdığı şifreyi düzeltebilmeli ve
     o form varsayılan olarak kapalı duruyor.
     """
     _hoparlor_ekle(istemci, "Depo", adres="http://admin:gizli123@10.0.0.9/anons")

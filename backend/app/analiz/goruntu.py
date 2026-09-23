@@ -12,7 +12,7 @@ Model bu karelerde daha az nesne bulur. Burada iki şey yapılır:
    cevabı ekranda bulur; kamerayı temizlemek ya da ışık eklemek çoğu zaman
    eşik oynamaktan daha etkilidir.
 
-Not: iyileştirme yapılırsa hem tespit hem önizleme AYNI kareyi kullanır —
+Not: iyileştirme yapılırsa hem tespit hem önizleme AYNI kareyi kullanır -
 kullanıcı ekranda modelin gördüğü görüntüyü görür (docs/09: dürüstlük).
 """
 
@@ -35,7 +35,7 @@ _DUSUK_KONTRAST_ESIGI = 22.0
 
 
 def iyilestir(kare: np.ndarray) -> np.ndarray:
-    """Yerel kontrast dengeleme (CLAHE) — renk bozulmasın diye yalnız L kanalı.
+    """Yerel kontrast dengeleme (CLAHE) - renk bozulmasın diye yalnız L kanalı.
 
     LAB uzayında yapılır: RGB kanallarını ayrı ayrı dengelemek renkleri kaydırır
     ve reflektörlü yeleğin sarısı bozulurdu.

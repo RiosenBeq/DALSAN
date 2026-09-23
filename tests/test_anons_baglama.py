@@ -1,7 +1,7 @@
 """Anons sistemine bağlanma: üç HTTP biçimi, yer tutucular ve kılavuz.
 
 Sınanan söz: fabrikadaki IP hoparlör hangi biçimi bekliyorsa sistem onu
-gönderebilmeli — ve DENEME düğmesi, gerçek anonsla AYNI yoldan gitmeli.
+gönderebilmeli - ve DENEME düğmesi, gerçek anonsla AYNI yoldan gitmeli.
 İkisi ayrılırsa deneme "başarılı" derken saha sessiz kalır.
 """
 
@@ -88,7 +88,7 @@ def test_yabanci_susler_bozulmaz():
     """Anons sisteminin KENDİ süslü parantezleri anonsu susturmamalı.
 
     str.format kullanılsaydı bu adres KeyError fırlatır ve hiçbir anons
-    çalınmazdı — sahada teşhisi en zor arıza budur.
+    çalınmazdı - sahada teşhisi en zor arıza budur.
     """
     sonuc = anons.adresi_doldur("http://s/play?q={id}&f={anahtar}", "vest", "Yelek")
     assert sonuc == "http://s/play?q={id}&f=vest"

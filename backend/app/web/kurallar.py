@@ -63,7 +63,7 @@ def kural_listesi(istek: Request, baglanti=Depends(baglanti_al)):
                 (kural["camera_id"],),
             ).fetchone()
             # Kalibre edilmemiş kamerada mesafe ve hız kuralı PASİFTİR
-            # (docs/03 §2 ve §4) — rozet bunu söylemezse ekran çalışmayan
+            # (docs/03 §2 ve §4) - rozet bunu söylemezse ekran çalışmayan
             # bir kuralı "aktif" gösterirdi.
             kural["kalibrasyon_bekliyor"] = kalibre is None
         kurallar.append(kural)
@@ -240,7 +240,7 @@ def _kural_kaydet_islemi(baglanti, form):
             raise DogrulamaHatasi("Seçilen bölge bu kameraya ait değil.")
         # KKD kuralı yalnızca 'KKD zorunlu alan' bölgesinde çalışır: veri toplama
         # ve değerlendirme bu tipe bakar. Başka tipte bölge seçilirse kural
-        # kaydedilir ama HİÇBİR ZAMAN çalışmazdı — sessiz başarısızlık.
+        # kaydedilir ama HİÇBİR ZAMAN çalışmazdı - sessiz başarısızlık.
         if kural_tipi == "ppe_violation" and bolge["zone_type"] != "ppe_required":
             raise DogrulamaHatasi(
                 "KKD kuralı yalnızca 'KKD zorunlu alan' tipindeki bir bölgeye bağlanabilir. "
@@ -426,7 +426,7 @@ def _formdan_onem(form, kural_tipi: str, bolge_tipi, params: dict, hedefler) -> 
     Varsayılanın ALTINA inmek (Yüksek bir olayı Orta yazmak) onay ister: ekran
     rengi, sıra ve kuyruk önemden gelir; yanlışlıkla düşürülen önem gerçek bir
     tehlikeyi listenin gerisine iter. Onay kutusu formda sarı uyarıyla çıkar;
-    burada yeniden denetlenir — tarayıcıya güvenilmez.
+    burada yeniden denetlenir - tarayıcıya güvenilmez.
     """
     onem = form.get("severity") or KURAL_VARSAYILAN_ONEMI
     if onem == KURAL_VARSAYILAN_ONEMI:
@@ -445,7 +445,7 @@ def _formdan_onem(form, kural_tipi: str, bolge_tipi, params: dict, hedefler) -> 
 
 
 # Formun gösterdiği alanlar, tipe göre. Sayı alanı boş bırakılırsa sözlüğe
-# girmez: değeri önceki kayıttan ya da şemanın varsayılanından gelir (R25 —
+# girmez: değeri önceki kayıttan ya da şemanın varsayılanından gelir (R25 -
 # formda varsayılan sayıların ikinci bir kopyası tutulmaz). Onay kutusu
 # işaretsizse False'tur; bu yüzden her kutu formda gerçekten bulunmalı
 # (tests/test_kural_formu.py hepsini arar).

@@ -1,12 +1,12 @@
 """Çalışma ortamı denetimi: kurulu OpenCV sürümü beklenen sürüm mü?
 
-NEDEN VAR — bu GERÇEKTEN yaşandı ve bulunması saatler aldı. Bir makinede
+NEDEN VAR - bu GERÇEKTEN yaşandı ve bulunması saatler aldı. Bir makinede
 `opencv-python 5.0.0`, `backend/requirements.txt`'in sabitlediği 4.10'u
 gölgeledi. Sonuç şuydu:
 
   * Sistem AÇILDI, kameralar bağlandı, tespit çalıştı, hiçbir hata satırı yok.
   * Ama nesne kütüphanesi (ORB desen eşleştirme) 36 sorgunun HİÇBİRİNİ
-    bulamadı — yani "tanıttığım nesne neden bulunmuyor" diye bir soru, hiçbir
+    bulamadı - yani "tanıttığım nesne neden bulunmuyor" diye bir soru, hiçbir
     yerde cevabı yazmadan ortaya çıktı.
 
 Sessiz bozulma, gürültülü bozulmadan çok daha pahalıdır. Bu modül o sessizliği

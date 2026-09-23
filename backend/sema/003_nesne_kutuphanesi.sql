@@ -12,7 +12,7 @@
 -- pano, tüp, kalıp, makine…) fotoğrafla tanıtır; sonra bir fotoğraf yükleyip
 -- "bu karede o nesne var mı" diye sordurur.
 --
--- KAPSAM SINIRI — BU TABLOLAR CANLI ANALİZİ ETKİLEMEZ: burada tanıtılan nesne
+-- KAPSAM SINIRI - BU TABLOLAR CANLI ANALİZİ ETKİLEMEZ: burada tanıtılan nesne
 -- kameralarda ARANMAZ. Kural motoru (rules/) bu tabloları hiç okumaz; canlı
 -- boru hattı da okumaz. Canlıda arama ayrı bir iştir (docs/07-YOL-HARITASI.md).
 --

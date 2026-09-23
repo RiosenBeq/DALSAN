@@ -7,11 +7,11 @@ lisans atıfları aşağıdadır. Ad değişikliği, bu bileşenlerin lisanslar�
 veya atıf yükümlülüğünü ORTADAN KALDIRMAZ.
 
 Dosya adları, indirme adresleri ve `.env` içindeki ayar anahtarları özgün
-hâlleriyle kalır — sistem modeli onlarla bulur (bkz. models/indir.sh,
+hâlleriyle kalır - sistem modeli onlarla bulur (bkz. models/indir.sh,
 backend/app/analiz/model_indir.py).
 
 --------------------------------------------------------------------------
-1) YOLOX — nesne tespit modeli ve ONNX ağırlıkları
+1) YOLOX - nesne tespit modeli ve ONNX ağırlıkları
 --------------------------------------------------------------------------
 Telif hakkı: Copyright (c) 2021-2022 Megvii Inc. (Megvii-BaseDetection)
 Lisans:      Apache License 2.0
@@ -28,7 +28,7 @@ Ultralytics YOLO yerine, ticari kurulumda kısıt yaratmayan Apache-2.0
 lisanslı YOLOX tercih edilmiştir.
 
 --------------------------------------------------------------------------
-2) ONNX Runtime — modeli çalıştıran çıkarım motoru
+2) ONNX Runtime - modeli çalıştıran çıkarım motoru
 --------------------------------------------------------------------------
 Telif hakkı: Copyright (c) Microsoft Corporation
 Lisans:      MIT License
@@ -36,7 +36,7 @@ Kaynak:      https://github.com/microsoft/onnxruntime
 Lisans metni: https://github.com/microsoft/onnxruntime/blob/main/LICENSE
 
 --------------------------------------------------------------------------
-3) Lucide — arayüz simgeleri
+3) Lucide - arayüz simgeleri
 --------------------------------------------------------------------------
 Telif hakkı: Copyright (c) Lucide Icons and Contributors
 Lisans:      ISC License
@@ -50,7 +50,7 @@ Aynı dosyanın sonundaki DALSAN çizimleri (ör. yelek simgesi) Lucide'den
 alınmamıştır; Lucide'nin çizgi kuralıyla bu proje için çizilmiştir.
 
 --------------------------------------------------------------------------
-4) Inter — arayüz yazı tipi
+4) Inter - arayüz yazı tipi
 --------------------------------------------------------------------------
 Telif hakkı: Copyright 2016 The Inter Project Authors
 Lisans:      SIL Open Font License 1.1

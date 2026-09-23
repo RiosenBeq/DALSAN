@@ -43,7 +43,7 @@ def _kapi(test_ayarlari) -> int:
 
 def test_kapi_varsayilan_kapali_ve_sayfanin_ustunde(istemci, test_ayarlari):
     metin = istemci.get("/kkd").text
-    assert "Veri toplama: KAPALI — Rev.02 onayı bekleniyor" in metin
+    assert "Veri toplama: KAPALI - Rev.02 onayı bekleniyor" in metin
     assert metin.index("Veri toplama:") < metin.index("Etiketlenecek örnekler")
     assert _kapi(test_ayarlari) == 0
 

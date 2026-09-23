@@ -10,7 +10,7 @@ NEDEN GEREKLİ
 `.app` Finder'dan açıldığında da durum aynıdır. Bedeli şudur:
 
 1. `sys.stdout` ve `sys.stderr` YOKTUR (ikisi de None). Programın ekrana
-   yazdığı her satır — hata mesajları dahil — hiçbir yere gitmez.
+   yazdığı her satır - hata mesajları dahil - hiçbir yere gitmez.
 2. Program açılırken çökerse kullanıcı HİÇBİR ŞEY görmez: simgeye çift
    tıklar, bir saniye bekler, hiçbir şey olmaz. Ne söyleyeceğini bilemez,
    biz de sebebi öğrenemeyiz. (Bu gerçekten yaşandı: tkinter'ı olmayan bir
@@ -52,7 +52,7 @@ EKRAN_DOSYASI_SINIRI = 1024 * 1024
 def gunluk_klasoru(kok: Path | None = None) -> Path:
     """Kayıtların yazılacağı klasör; yoksa oluşturur.
 
-    Yer, uygulamanın geri kalanıyla AYNI kuraldan gelir (app/kaynaklar.py) —
+    Yer, uygulamanın geri kalanıyla AYNI kuraldan gelir (app/kaynaklar.py) -
     kullanıcı günlüğü, veritabanının ve kanıt fotoğraflarının yanında bulsun.
     """
     if kok is None:
@@ -133,7 +133,7 @@ def _mac_penceresi(mesaj: str) -> bool:
 
     Mesaj ARGÜMAN olarak geçirilir, betiğin içine gömülmez: tırnak, ters
     bölü ve satır sonu içeren bir metni AppleScript kaynağına yapıştırmak
-    betiği bozar ve pencere hiç açılmaz — yani tam da işe yaraması gereken
+    betiği bozar ve pencere hiç açılmaz - yani tam da işe yaraması gereken
     anda susardı.
     """
     if sys.platform != "darwin":
@@ -141,11 +141,11 @@ def _mac_penceresi(mesaj: str) -> bool:
     if not getattr(sys, "frozen", False):
         # Paketlenmemiş çalışmada (geliştirme, test) stderr GÖRÜNÜR durumdadır;
         # pencereye gerek yoktur. Dahası: modal bir pencere test çalıştırmasını
-        # kilitler ve ekranın ortasında beklemeye başlar — bu gerçekten oldu.
+        # kilitler ve ekranın ortasında beklemeye başlar - bu gerçekten oldu.
         return False
     betik = (
         "on run argv\n"
-        f'  display dialog (item 1 of argv) with title "{UYGULAMA_ADI} — hata" '
+        f'  display dialog (item 1 of argv) with title "{UYGULAMA_ADI} - hata" '
         'buttons {"Tamam"} default button 1 with icon stop\n'
         "end run"
     )
@@ -168,7 +168,7 @@ def pencerede_goster(dosya_yolu: Path | None) -> None:
 
     İşletim sisteminin KENDİ ileti penceresi kullanılır (Windows'ta ctypes,
     macOS'ta osascript). tkinter BİLEREK kullanılmaz: çökme sebebimiz tam da
-    tkinter'ın açılamaması olabilir — nitekim bir kez öyle oldu.
+    tkinter'ın açılamaması olabilir - nitekim bir kez öyle oldu.
     """
     if dosya_yolu is None:
         mesaj = (
@@ -189,7 +189,7 @@ def pencerede_goster(dosya_yolu: Path | None) -> None:
         import ctypes
 
         # MB_ICONERROR (0x10) + MB_SETFOREGROUND (0x10000): pencere öne gelsin.
-        ctypes.windll.user32.MessageBoxW(None, mesaj, f"{UYGULAMA_ADI} — hata", 0x10 | 0x10000)
+        ctypes.windll.user32.MessageBoxW(None, mesaj, f"{UYGULAMA_ADI} - hata", 0x10 | 0x10000)
     except (AttributeError, OSError, ImportError):
         # Windows dışında ya da ileti penceresi açılamıyorsa: hiç değilse yaz.
         print(mesaj, file=sys.stderr)
@@ -211,7 +211,7 @@ def kur() -> None:
 def _coklu_surec_tuzagini_kapat() -> None:
     """TUZAK: paketlenmiş programda `sys.executable` artık python değil,
     UYGULAMANIN KENDİSİDİR. Bir kütüphane arka planda ikinci bir işlem
-    başlatmaya kalkarsa Windows uygulamayı baştan açar — ekranda ikinci bir
+    başlatmaya kalkarsa Windows uygulamayı baştan açar - ekranda ikinci bir
     Kontrol Paneli belirir, o da bir üçüncüsünü açar. `freeze_support`, böyle
     bir başlatmayı tanıyıp asıl programı çalıştırmadan bitirir.
     """

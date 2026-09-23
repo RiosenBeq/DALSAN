@@ -25,7 +25,7 @@ _YAYIN_ADRESI = "https://github.com/Megvii-BaseDetection/YOLOX/releases/download
 # kullanılmaz (docs/17 §10.5 R17). Değerler 23.09.2026'da resmi yayından iki
 # ayrı indirmeyle ölçüldü ve aynı çıktı; models/indir.sh aynı değerleri taşır
 # (tests/test_model_butunlugu.py ikisini karşılaştırır). Yayın dosyası
-# değişirse (yeni sürüm) özet de buradan güncellenir — sessizce kabul edilmez.
+# değişirse (yeni sürüm) özet de buradan güncellenir - sessizce kabul edilmez.
 BILINEN_MODELLER: dict[str, str] = {
     "yolox_tiny.onnx": "427cc366d34e27ff7a03e2899b5e3671425c262ea2291f88bb942bc1cc70b0f7",
     "yolox_s.onnx": "c5c2d13e59ae883e6af3b45daea64af4833a4951c92d116ec270d9ddbe998063",
@@ -33,7 +33,7 @@ BILINEN_MODELLER: dict[str, str] = {
 
 
 class ModelIndirmeHatasi(DalsanHata):
-    """İnternet yok / adres erişilemez — sistem tespitsiz devam eder.
+    """İnternet yok / adres erişilemez - sistem tespitsiz devam eder.
 
     Kullanıcı mesajında indirme adresi YOKTUR (bkz. `_indirme_hata_metinleri`);
     tam adres `teknik_ayrinti` üzerinden sistem.log'a gider.
@@ -48,7 +48,7 @@ def resmi_yayinla_ayni_mi(model_dosyasi: Path) -> bool:
     """Dosya, hazır modellerden birinin resmi yayınıyla bayt bayt aynı mı (SHA-256)?
 
     Hazır olmayan (kendi eğitilmiş) model için karşılaştırılacak özet yoktur;
-    okunamayan dosya da "aynı" sayılmaz — ikisinde de False.
+    okunamayan dosya da "aynı" sayılmaz - ikisinde de False.
     """
     beklenen = BILINEN_MODELLER.get(model_dosyasi.name)
     if beklenen is None:
@@ -68,7 +68,7 @@ def ozel_model_hatasi(model_dosyasi: Path) -> ModelIndirmeHatasi:
 
     İki yerden çağrılır: indirme denendiğinde ve süpervizör indirmeyi
     atladığında. Böylece kendi modelini koyan kullanıcı hangi yoldan gelirse
-    gelsin aynı, markalı açıklamayı görür — ham dosya yolunu değil.
+    gelsin aynı, markalı açıklamayı görür - ham dosya yolunu değil.
     """
     # Ekranda dosya adı GEÇMEZ (kullanıcı yazılımcı değil); tam ad günlüğe gider.
     hazir_adlar = " veya ".join(gorunen_model_adi(ad) for ad in BILINEN_MODELLER)
@@ -86,7 +86,7 @@ def ozel_model_hatasi(model_dosyasi: Path) -> ModelIndirmeHatasi:
 
 
 def modeli_indir(model_dosyasi: Path, ilerleme: Callable[[int, int], None] | None = None) -> None:
-    """Modeli `.part` dosyasına indirip bitince adını değiştirir — yarım
+    """Modeli `.part` dosyasına indirip bitince adını değiştirir - yarım
     kalan indirme asla 'geçerli model' sanılmaz. Özeti bilinen değerle
     TUTMAYAN dosya da (bozuk, eksik ya da yolda değiştirilmiş) sanılmaz."""
     if not indirilebilir_mi(model_dosyasi):
@@ -133,7 +133,7 @@ def _saat_hatasi_mi(hata: Exception) -> bool:
 
     OpenSSL bu iki durumu ayrı metinlerle bildirir: sertifika henüz
     başlamamış ("is not yet valid") ya da süresi geçmiş ("has expired").
-    İkisi de bilgisayarın saatinin gerçek zamandan sapmasıyla oluşur — yeni
+    İkisi de bilgisayarın saatinin gerçek zamandan sapmasıyla oluşur - yeni
     kurulan, CMOS pili bitmiş ya da saat dilimi hiç ayarlanmamış makinelerde
     sık görülür. Metne bakılır çünkü `verify_code` sayıları OpenSSL sürümüne
     göre değişebilir; bu iki ifade değişmez.
@@ -152,10 +152,10 @@ def _indirme_hata_metinleri(adres: str, model_dosyasi: Path, hata: Exception) ->
 
     İndirme adresi EKRANA ÇIKMAZ: kullanıcı yazılımcı değil, uzun bir GitHub
     adresi ana sayfada ne yapacağını söylemez, yalnızca korkutur. Tam adres,
-    hedef dosya ve özgün hata metni veri/loglar/sistem.log'a yazılır — destek
+    hedef dosya ve özgün hata metni veri/loglar/sistem.log'a yazılır - destek
     akışı oradan kopyalandığı için hiçbir bilgi kaybolmaz.
 
-    Sebebe göre DOĞRU çözümü söyler — "internetinizi kontrol edin" her zaman
+    Sebebe göre DOĞRU çözümü söyler - "internetinizi kontrol edin" her zaman
     doğru teşhis değildir.
     """
     sebep = getattr(hata, "reason", hata)
@@ -166,7 +166,7 @@ def _indirme_hata_metinleri(adres: str, model_dosyasi: Path, hata: Exception) ->
         # Bu, sertifika DEPOSU sorunu DEĞİLDİR: sertifika sağlamdır, bilgisayarın
         # saati onun geçerlilik aralığının dışındadır. Buraya "Install
         # Certificates.command'a çift tıklayın" yazmak kullanıcıyı saatlerce
-        # yanlış yerde uğraştırır — üstelik o dosya Windows'ta hiç yoktur.
+        # yanlış yerde uğraştırır - üstelik o dosya Windows'ta hiç yoktur.
         # Doğru çözüm tek satırdır: saati düzelt.
         kullanici_mesaji = (
             f"{MARKA} indirilemedi: bu bilgisayarın tarih/saat ayarı yanlış olduğu için "

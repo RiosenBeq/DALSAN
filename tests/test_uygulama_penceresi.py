@@ -71,7 +71,7 @@ def test_windowsta_edge_ilk_sirada(pencere):
     """Windows'ta Edge HER kurulumda vardır ve kaldırılamaz.
 
     İlk sırada olması, hiçbir şey kurmamış bir kullanıcıda da uygulama
-    penceresinin açılması demektir — Chrome önde olsaydı Chrome'suz bir
+    penceresinin açılması demektir - Chrome önde olsaydı Chrome'suz bir
     bilgisayarda liste boşa dönebilirdi.
     """
     assert pencere._WINDOWS_ADAYLARI[0][-1] == "msedge.exe"

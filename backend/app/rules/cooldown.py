@@ -1,4 +1,4 @@
-"""Cooldown — tekrar uyarı bastırma, tüm kural tiplerinin ortak filtresi.
+"""Cooldown - tekrar uyarı bastırma, tüm kural tiplerinin ortak filtresi.
 
 Saf: zamanı kendisi ölçmez, çağıran verir. Böylece testte zaman ileri
 sarılabilir (docs/03 §5).

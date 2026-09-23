@@ -1,4 +1,4 @@
-"""Analiz süpervizörü — FastAPI içinde çalışan TEK arka plan iş parçacığı.
+"""Analiz süpervizörü - FastAPI içinde çalışan TEK arka plan iş parçacığı.
 
 Görevleri:
 - Aktif kameraların okuma iş parçacıklarını başlatır/durdurur
@@ -9,7 +9,7 @@ Görevleri:
 - İhlalde anonsu tetikler, KKD bölgelerinden veri örnekler
 - Günde bir kez saklama süresi (retention) temizliği ve disk kontrolü yapar
 
-Bir kameranın hatası yalnızca o kamerayı atlatır; döngü asla ölmez —
+Bir kameranın hatası yalnızca o kamerayı atlatır; döngü asla ölmez -
 7x24 çalışmanın gereği. Hatalar loglanır, sessizce yutulmaz.
 """
 
@@ -89,7 +89,7 @@ def _yuzdelik(degerler, yuzde: int) -> float | None:
 
 def _islenen_hedefi(konfig: dict, kaynak) -> float:
     """İşlenen hızın hedefi: ayarlanan örnekleme hızı ile kameranın gerçekten
-    verdiği hızın küçüğü — saniyede 3 kare veren kameradan 6 kare işlenemez."""
+    verdiği hızın küçüğü - saniyede 3 kare veren kameradan 6 kare işlenemez."""
     ayarlanan = max(float(konfig["sample_fps"]), 0.1)
     return min(ayarlanan, kaynak.olculen_fps or ayarlanan)
 
@@ -185,7 +185,7 @@ class AnalizSupervizoru:
         self.tespit_hatasi: str | None = None
         # CIKARIM_CIHAZI=cuda istenip CPU'ya düşüldüyse Türkçe uyarı (ana sayfa)
         self.cihaz_uyarisi: str = ""
-        # yukleniyor | indiriliyor | hazir | hata — ana sayfa bunu gösterir
+        # yukleniyor | indiriliyor | hazir | hata - ana sayfa bunu gösterir
         self.model_durumu: str = "yukleniyor"
         # KKD modeli analiz iş parçacığında yüklenir (_kkd_modelini_kur); o
         # zamana kadar ve dosya yoksa gözlem üretilmez
@@ -225,7 +225,7 @@ class AnalizSupervizoru:
         return dict(self._canli_sayim.get(kamera_id, {}))
 
     def toplam_canli_sayim(self) -> dict[str, int]:
-        """Tüm kameraların toplamı — ana sayfadaki özet."""
+        """Tüm kameraların toplamı - ana sayfadaki özet."""
         toplam: dict[str, int] = {}
         for sayim in self._canli_sayim.values():
             for sinif, adet in sayim.items():
@@ -245,7 +245,7 @@ class AnalizSupervizoru:
         son_hata = kaynak.son_hata
         if durum == DURUM_ONLINE:
             fps = round(kaynak.olculen_fps, 1)
-            mesaj = "Görüntü akıyor" + (f" — ölçülen {fps:g} fps" if fps else "")
+            mesaj = "Görüntü akıyor" + (f" - ölçülen {fps:g} fps" if fps else "")
         elif durum == DURUM_BAGLANIYOR:
             mesaj = "Bağlanılıyor… (ilk bağlantı 30 sn sürebilir)"
             if son_hata:
@@ -254,7 +254,7 @@ class AnalizSupervizoru:
             # Bir hata DEĞİL: "bağlantı yok, yeniden deneniyor" cümlesi burada
             # kullanıcıyı boşuna beklemeye iterdi.
             mesaj = (
-                "Video sonuna kadar izlendi — analiz tamamlandı. Bulunan ihlaller "
+                "Video sonuna kadar izlendi - analiz tamamlandı. Bulunan ihlaller "
                 "Olaylar sayfasında. Baştan çalıştırmak için Kameralar → Video Yükle "
                 'sayfasındaki "Yeniden Çalıştır" düğmesini kullanın.'
             )
@@ -292,7 +292,7 @@ class AnalizSupervizoru:
     def sayaci_sifirla(self, kamera_id: int, bolge_id: int | None = None) -> bool:
         """Kümülatif 'giren' sayacını sıfırlar (vardiya başı düğmesi).
 
-        Döner: sıfırlama gerçekten yapıldı mı. Kamera çalışmıyorsa False —
+        Döner: sıfırlama gerçekten yapıldı mı. Kamera çalışmıyorsa False -
         ekran "sıfırlandı" yazıp hiçbir şey yapmamış olmamalı.
         """
         hat = self._hatlar.get(kamera_id)
@@ -332,7 +332,7 @@ class AnalizSupervizoru:
     def _dongu(self) -> None:
         try:
             baglanti = veritabani.baglanti_ac(self.ayarlar.veritabani_yolu)
-        except Exception as hata:  # noqa: BLE001 — iş parçacığı SESSİZCE ölmesin
+        except Exception as hata:  # noqa: BLE001 - iş parçacığı SESSİZCE ölmesin
             self.model_durumu = "hata"
             # Ekranda sade Türkçe; özgün hata metni yalnızca günlüğe yazılır.
             self.tespit_hatasi = (
@@ -344,11 +344,11 @@ class AnalizSupervizoru:
             return
         try:
             self._acilis_olaylarini_yaz(baglanti)
-        except Exception as hata:  # noqa: BLE001 — olay yazılamadı diye analiz başlamamazlık etmez
+        except Exception as hata:  # noqa: BLE001 - olay yazılamadı diye analiz başlamamazlık etmez
             self._log.error(f"Açılış olayları yazılamadı: {hata}", exc_info=hata)
         try:
             self._tespitciyi_kur(baglanti)
-        except Exception as hata:  # noqa: BLE001 — model kurulamadı diye kameralar durmaz
+        except Exception as hata:  # noqa: BLE001 - model kurulamadı diye kameralar durmaz
             self.tespitci = None
             self.model_durumu = "hata"
             # Ekranda ürün adı + yapılabilir adım; ham hata metni günlüğe gider.
@@ -394,7 +394,7 @@ class AnalizSupervizoru:
                     if simdi - self._son_bakim >= _BAKIM_ARALIGI_SN:
                         self._son_bakim = simdi
                         self._bakimi_baslat()
-                except Exception as hata:  # noqa: BLE001 — 7x24 döngüsü ölmemeli;
+                except Exception as hata:  # noqa: BLE001 - 7x24 döngüsü ölmemeli;
                     # hata tam ayrıntıyla loglanır, bir sonraki turda devam edilir
                     self._log.error(f"Analiz döngüsünde hata: {hata}", exc_info=hata)
                 self._dur.wait(0.05)
@@ -402,7 +402,7 @@ class AnalizSupervizoru:
             self._analiz_saatlerini_yaz(baglanti)
             try:
                 self._kapanis_olaylarini_yaz(baglanti)
-            except Exception as hata:  # noqa: BLE001 — bağlantı yine kapanmalı
+            except Exception as hata:  # noqa: BLE001 - bağlantı yine kapanmalı
                 self._log.error(f"Kapanış olayları yazılamadı: {hata}", exc_info=hata)
             baglanti.close()
             self._log.info("Analiz süpervizörü durdu.")
@@ -456,7 +456,7 @@ class AnalizSupervizoru:
         detaylar: dict = {}
         if son is not None and son["event_code"] == "SYSTEM_STARTED":
             mesaj += (
-                " — önceki çalışma düzgün kapanmamıştı (elektrik kesintisi ya da "
+                " - önceki çalışma düzgün kapanmamıştı (elektrik kesintisi ya da "
                 "program çökmesi olabilir)"
             )
             detaylar["onceki_calisma"] = "duzgun_kapanmadi"
@@ -591,7 +591,7 @@ class AnalizSupervizoru:
             self._log.error(hata.kullanici_mesaji, extra={"ayrinti": hata.teknik_ayrinti})
             self._sistem_olayi(baglanti, hata.kullanici_mesaji, kod="MODEL_LOAD_FAILED")
             return
-        except Exception as hata:  # noqa: BLE001 — KKD modeli analizi durdurmamalı
+        except Exception as hata:  # noqa: BLE001 - KKD modeli analizi durdurmamalı
             self.kkd = KkdSiniflandirici(None)
             self.kkd_hatasi = "KKD modeli yüklenemedi; ayrıntı sistem günlüğünde."
             self._log.error(f"KKD modeli yüklenemedi: {hata}", exc_info=hata)
@@ -655,7 +655,7 @@ class AnalizSupervizoru:
         damga = damga_satiri["damga"]
         if damga == self._konfig_damgasi:
             return
-        self._log.info("Konfigürasyon değişti — yeniden yükleniyor (restart yok).")
+        self._log.info("Konfigürasyon değişti - yeniden yükleniyor (restart yok).")
 
         kameralar = self._atanmis_kameralar(baglanti)
         self._anons_mesajlari = {
@@ -692,7 +692,7 @@ class AnalizSupervizoru:
             #
             # BİTEN VİDEONUN YENİDEN ÇALIŞMASI da aynı kapıdan geçer: iş
             # parçacığı sonlandığı için kaynak yeniden kurulmadan video bir daha
-            # oynamaz. Ölçüt kameranın `updated_at` DAMGASIDIR — yani kullanıcı
+            # oynamaz. Ölçüt kameranın `updated_at` DAMGASIDIR - yani kullanıcı
             # bu kamerayı gerçekten değiştirdi mi (Yeniden Çalıştır, ad/fps
             # düzenleme). Damga yerine `status` sütununa bakılsaydı istek
             # kaybolurdu: durum yazıcı (_durumlari_yaz) konfigürasyon
@@ -871,7 +871,7 @@ class AnalizSupervizoru:
 
             kare, kare_zamani = kaynak.son_kare()
             if kare is None or kare_zamani <= self._son_islenen_kare.get(kid, 0.0):
-                continue  # yeni kare yok — aynı kareyi iki kez işleme
+                continue  # yeni kare yok - aynı kareyi iki kez işleme
             self._son_islenen_kare[kid] = kare_zamani
 
             hat = self._hatlar[kid]
@@ -882,7 +882,7 @@ class AnalizSupervizoru:
                 # kare kuyrukta beklediyse hız hesabındaki dt ve kalış süresi
                 # kayardı. İkisi de aynı monotonic saattendir.
                 tespitler, ihlaller = hat.isle(kare, kare_zamani, self.tespitci, self.kkd)
-            except Exception as hata:  # noqa: BLE001 — kamera izolasyonu:
+            except Exception as hata:  # noqa: BLE001 - kamera izolasyonu:
                 # bir kameranın işleme hatası diğerlerini durdurmamalı
                 self._log.error(f"Kare işlenemedi (kamera {kid}): {hata}", exc_info=hata)
                 self._isleme_hatasi(baglanti, kid)
@@ -920,7 +920,7 @@ class AnalizSupervizoru:
         if konfig is None:
             return
         self._log.critical(
-            f"Kamera {kid}: {sayi} kare üst üste işlenemedi — işleme hattı yeniden kuruluyor."
+            f"Kamera {kid}: {sayi} kare üst üste işlenemedi - işleme hattı yeniden kuruluyor."
         )
         # Yeni hat ÖNCE kurulur: yapılandırma başarısız olursa eski hat kalır
         yeni = self._yeni_hat(kid, konfig)
@@ -1051,7 +1051,7 @@ class AnalizSupervizoru:
             self._olayi_kapat(baglanti, gecis)
         elif gecis.asama == HATIRLATMA and gecis.anahtar in self._acik_olaylar:
             olay_id = self._acik_olaylar[gecis.anahtar]
-            self._log.info(f"İhlal sürüyor (olay {olay_id}) — anons tekrarlanıyor.")
+            self._log.info(f"İhlal sürüyor (olay {olay_id}) - anons tekrarlanıyor.")
             self._duyur(gecis.ihlal, self._kural_kaydini_al(baglanti, gecis.ihlal.kural_id), simdi)
         elif gecis.asama in (ACILDI, HATIRLATMA):
             # Hatırlatma ama satır yok: açılış yazılamamıştı; olay şimdi yazılır
@@ -1092,7 +1092,7 @@ class AnalizSupervizoru:
         (kilitli veritabanı, dolu disk) istisna anonsa hiç ulaşmadan döngüde
         yutuluyordu: ihlal ne kayda geçiyor ne duyuruluyordu. Şimdi kural satırı
         okunamazsa gölge/anons kararı bellekteki haritadan verilir; olay satırı
-        yazılamazsa CRITICAL günlük ve /saglik "olay_yazilamadi" — ama anons yine
+        yazılamazsa CRITICAL günlük ve /saglik "olay_yazilamadi" - ama anons yine
         çalar. Dönen değer olay id'si; yazılamadıysa None.
         """
         kural_kaydi = self._kural_kaydini_al(baglanti, ihlal.kural_id)
@@ -1107,7 +1107,7 @@ class AnalizSupervizoru:
                 hat.son_islenmis_jpeg(),
                 suruyor=suruyor,
             )
-        except Exception as hata:  # noqa: BLE001 — kayıt hatası uyarıyı susturmamalı
+        except Exception as hata:  # noqa: BLE001 - kayıt hatası uyarıyı susturmamalı
             self.olay_yazma_hatasi = f"{type(hata).__name__}: {hata}"
             self._log.critical(
                 f"İhlal olayı KAYDEDİLEMEDİ (kamera {ihlal.kamera_id}, kural "
@@ -1135,7 +1135,7 @@ class AnalizSupervizoru:
         """
         try:
             return self._kural_kaydi(baglanti, kural_id)
-        except Exception as hata:  # noqa: BLE001 — kural okunamadı diye uyarı susmamalı
+        except Exception as hata:  # noqa: BLE001 - kural okunamadı diye uyarı susmamalı
             self._log.critical(
                 f"Kural {kural_id} satırı okunamadı; gölge ve anons kararı bellekten "
                 f"veriliyor: {hata}",
@@ -1201,7 +1201,7 @@ class AnalizSupervizoru:
         # açılır). Kural motoruna DOKUNULMAZ: karar yine kural motorundan gelir,
         # burada yalnızca duyurma adımı atlanır. Hatırlatma da aynı kapıdan geçer.
         if kural_kaydi.get("shadow_mode"):
-            self._log.info(f"Kural {ihlal.kural_id} gölge modda — anons çalınmadı.")
+            self._log.info(f"Kural {ihlal.kural_id} gölge modda - anons çalınmadı.")
             return
         anons_id = kural_kaydi.get("announcement_id")
         if anons_id:
@@ -1224,7 +1224,7 @@ class AnalizSupervizoru:
             try:
                 kayit[alan] = json.loads(kayit[alan])
             except (json.JSONDecodeError, TypeError):
-                pass  # ham metin kalsın — olay kaydı yine de anlamlı
+                pass  # ham metin kalsın - olay kaydı yine de anlamlı
         return kayit
 
     def _kkd_ornekle(
@@ -1233,7 +1233,7 @@ class AnalizSupervizoru:
         """KKD bölgesindeki kişilerden saatlik limitle veri örnekler (docs/04 §4.3).
 
         KVKK tabanı (docs/17 §5.8): örnek yalnız veri toplama kapısı AÇIKKEN
-        alınır ve kapı örnek yazılmadan HEMEN önce okunur — kapatma gecikmesizdir,
+        alınır ve kapı örnek yazılmadan HEMEN önce okunur - kapatma gecikmesizdir,
         yeniden başlatma gerekmez. Muaf alandaki kişiden (kabin) ve KKD kuralının
         en küçük kişi boyundan kısa kişiden örnek alınmaz: küçük görüntü eğitimde
         işe yaramaz, yalnız kişisel veri biriktirirdi.
@@ -1303,7 +1303,7 @@ class AnalizSupervizoru:
                 extra={"ayrinti": f"dosya: {tam_yol}"},
             )
             return
-        # Kamera bu arada silinmiş olabilir (konfig penceresi) — FK hatası yerine
+        # Kamera bu arada silinmiş olabilir (konfig penceresi) - FK hatası yerine
         # örnek kamerasız kaydedilir; eğitim verisi yine de değerlidir.
         kamera_var = baglanti.execute("SELECT 1 FROM cameras WHERE id = ?", (kamera_id,)).fetchone()
         # Boy ve netlik veri setinde kırılım olur (şema 008): hangi boydaki
@@ -1349,7 +1349,7 @@ class AnalizSupervizoru:
                 ad = self._kamera_konfig.get(kid, {}).get("name", kid)
                 if durum != DURUM_OFFLINE:
                     # "Kamera çevrimdışı" SÜREN bir olaydır (docs/17 §6.1): görüntü
-                    # geri geldiği an biter — fark edildiği an değil, kararlılık
+                    # geri geldiği an biter - fark edildiği an değil, kararlılık
                     # süresi kadar önce. Video bittiyse de kopukluk sona ermiştir.
                     self._kopuklugu_kapat(
                         baglanti,
@@ -1360,7 +1360,7 @@ class AnalizSupervizoru:
                 if durum == DURUM_BITTI:
                     # "Çevrimdışı" DEĞİL: video planlandığı gibi bitti. Aynı
                     # cümle kullanılsaydı kullanıcı bozulduğunu sanıp aramaya
-                    # koyulurdu (docs/12 — dürüst geri bildirim).
+                    # koyulurdu (docs/12 - dürüst geri bildirim).
                     self._log.info(f"Video analizi tamamlandı: {ad}")
                     self._sistem_olayi(
                         baglanti,
@@ -1369,7 +1369,7 @@ class AnalizSupervizoru:
                         kamera_id=kid,
                     )
                 elif durum == DURUM_OFFLINE:
-                    sebep = f" — {kaynak.son_hata}" if kaynak.son_hata else ""
+                    sebep = f" - {kaynak.son_hata}" if kaynak.son_hata else ""
                     self._log.warning(f"Kamera çevrimdışı: {ad}{sebep}")
                     olay_id = self._sistem_olayi(
                         baglanti,
@@ -1426,7 +1426,7 @@ class AnalizSupervizoru:
             try:
                 bakim_baglantisi = veritabani.baglanti_ac(self.ayarlar.veritabani_yolu)
                 self._bakim_yap(bakim_baglantisi)
-            except Exception as hata:  # noqa: BLE001 — bakım hatası sistemi durdurmaz
+            except Exception as hata:  # noqa: BLE001 - bakım hatası sistemi durdurmaz
                 self._log.error(f"Bakım hatası: {hata}", exc_info=hata)
             finally:
                 if bakim_baglantisi is not None:

@@ -2,13 +2,13 @@
 
 ## Faz 4 uyarı kanalları (23.09.2026)
 
-Plan: `docs/17-V2-TASARIM.md` §7 ve §13 (4a–4e satırları), operatörün kabul ettiği
+Plan: `docs/17-V2-TASARIM.md` §7 ve §13 (4a-4e satırları), operatörün kabul ettiği
 varsayılanlarla: webhook (S4), dakika sınırı ve birleştirme (S23), Bluetooth
 yeniden bağlanma bekçisi (S9) ve uygulama içi eşleştirme (S8) kodlanmaz;
 kapsayıcıda ses yolu (A) (S29); tek sesli kanal Bluetooth ise çalar ve kırmızı
 uyarır (S32).
 
-**4a-1 — hoparlör adresinde SSRF reddi (R30).** IP hoparlör adresi bu bilgisayarı
+**4a-1 - hoparlör adresinde SSRF reddi (R30).** IP hoparlör adresi bu bilgisayarı
 (`127.x`, `localhost`, `::1`, `0.0.0.0`) ya da bağlantı-yerel ağı (`169.254.x.x`,
 `fe80::`) gösteremez. Hoparlör formu kaydetmez; her anons gönderimi de yeniden
 denetler, istek hiç çıkmaz. Adres ad ise çözülür ve her sonuç denetlenir
@@ -46,10 +46,10 @@ Bluetooth hoparlör, `kind='ses_karti'`, `device`) ya da bir IP hoparlör
 
 ## Faz 3 KKD (23.09.2026)
 
-Plan: `docs/17-V2-TASARIM.md` §5 ve §13 (3a–3e satırları). Operatör Faz 3 ve Faz 4
+Plan: `docs/17-V2-TASARIM.md` §5 ve §13 (3a-3e satırları). Operatör Faz 3 ve Faz 4
 sorularının varsayılanlarını kabul etti; karar kaydı docs/17 §16'da.
 
-**3a — politika belgesi.** `docs/kkd-politika.md` şablonu İSG ile doldurulmayı
+**3a - politika belgesi.** `docs/kkd-politika.md` şablonu İSG ile doldurulmayı
 bekliyor. Belgede şunlar var:
 - Rev.02 imza satırları;
 - kapsam soruları (S3);
@@ -57,7 +57,7 @@ bekliyor. Belgede şunlar var:
   bölge çizimi ya da kural ayarı) ve cevap gelene kadarki sistem varsayılanı;
 - zor örnek kodları.
 
-**3b — KKD verisi.** Şema 008 örneklere üç sütun ekliyor: kişi boyu, netlik
+**3b - KKD verisi.** Şema 008 örneklere üç sütun ekliyor: kişi boyu, netlik
 (kırpığın Laplacian varyansı) ve zor örnek kodu. Kurallara da onaylı model
 sürümü sütunu geliyor (3d kullanacak). Otomatik örnekleme boyu ve netliği
 kaydediyor.
@@ -73,8 +73,8 @@ kırpıklar, etiket CSV'si, bölme ve her dosyanın sha256'sı var. Testler iki 
 denetliyor: aynı kamera ve gün iki kümede olamıyor, manifest dosyalarla tutarlı.
 Biçim docs/04 §5.4'te. Statik damga `?v=34`.
 
-**3c — KKD sınıflandırıcısı.** `models/kkd.onnx` konunca ONNX Runtime ile
-çalışıyor. Sözleşme docs/04 §6.6'da: girdi RGB 0–1 128×256; normalizasyon modelin
+**3c - KKD sınıflandırıcısı.** `models/kkd.onnx` konunca ONNX Runtime ile
+çalışıyor. Sözleşme docs/04 §6.6'da: girdi RGB 0-1 128×256; normalizasyon modelin
 içinde; `baret` ve `yelek` çıktıları olasılık, sıra var / yok / görünmüyor.
 Yüklemede sırayla dört şey denetleniyor:
 - `models/SHA256SUMS`'ta özet satırı var mı;
@@ -99,7 +99,7 @@ Renk her 5. karedeki gözlemle titremesin diye son gözlem yalnız çizim için 
 Hız kıyasına `--kkd` turu eklendi; model yoksa tur atlanıyor, sayı uydurulmuyor.
 Gerçek model olmadığı için testler sahte ORT oturumuyla koşuyor. Statik damga `?v=35`.
 
-**3d — KKD kararı.** Baret ve yelek artık ayrı karar, ayrı olay ve ayrı bekleme:
+**3d - KKD kararı.** Baret ve yelek artık ayrı karar, ayrı olay ve ayrı bekleme:
 - yalnız yelek eksikse yalnız "Yelek yok" (orta) açılıyor;
 - ikisi eksikse "Baret yok" (yüksek) ve "Yelek yok" iki ayrı olay oluyor;
 - bir kalem belirsize dönerse yalnız onun olayı kapanıyor.
@@ -120,7 +120,7 @@ model sürümünü onaylı olarak yazıyor. Süpervizör yüklü modeli onaylı 
 karşılaştırıyor. Farklıysa ya da hiç onaylanmamışsa kuralı gölgeye alıyor ve
 "KKD modeli değişti" yazıyor. Pencere ve bekleme süreleri sıfırlanmıyor.
 
-**3e-1 — anons kapısı ve gölge karnesi.** KKD anonsu artık bir kapıdan geçiyor.
+**3e-1 - anons kapısı ve gölge karnesi.** KKD anonsu artık bir kapıdan geçiyor.
 Kapı baret ve yelek için ayrı, yüklü model sürümü başına ve kameralar arasında
 toplu. Dört şart:
 - precision (incelendi ÷ incelendi + yanlış alarm) en az 0,90;
@@ -138,7 +138,7 @@ yazılıyor. KKD sayfasında "Gölge karnesi ve anons kapısı" bölümü dört 
 işaretleriyle gösteriyor. Precision ve kapsama aşağı yuvarlanıyor; ölçülmeyen
 sayının yerinde "ölçülecek" yazıyor. Statik damga `?v=36`.
 
-**3e-2 — raporda olay koduna göre yanlış alarm.** Dönem raporunda yeni
+**3e-2 - raporda olay koduna göre yanlış alarm.** Dönem raporunda yeni
 "Olay koduna göre" tablosu var. Baret yok ve Yelek yok ayrı satırda, yanlış
 alarm oranları da ayrı. Kodu olmayan eski olaylar kural tipinin adıyla "(eski
 kayıt)" diye görünüyor. Bütün kırılım tablolarında oranın yanında artık
@@ -147,7 +147,7 @@ işaretli sayısı hücrenin ipucunda ve CSV'de. CSV'ye "Kapsama" sütunu eklend
 Dar ekranda kırılım tablolarının başlığı bir sütun kayıktı ("İhlal" başlığı
 Pay sütununun üstündeydi); düzeldi. Statik damga `?v=37`.
 
-**3e-3 — değerlendirme raporu.** `app/egitim/degerlendirme.py` veri seti zip'ini
+**3e-3 - değerlendirme raporu.** `app/egitim/degerlendirme.py` veri seti zip'ini
 ve modeli alıp tek HTML dosyası yazıyor (docs/04 §6.7). Model sahadaki yoldan
 yükleniyor (özet ve sözleşme denetimi), veri setindeki her dosya manifest'le
 doğrulanıyor, düşük güven kuraldaki gibi belirsiz sayılıyor. Raporda şunlar var:
@@ -167,13 +167,13 @@ model anlaşılır hatayla duruyor.
 Plan: `docs/17-V2-TASARIM.md` §10.5 (R16, R18, R31, R32) ve §13 (5d satırı).
 Faz 3 operatörün cevaplarını beklediği için soru bağlamayan bu adım öne alındı.
 
-**R31 — CSV formül enjeksiyonu.** Olay listesi ve rapor CSV'leri artık tek bir
+**R31 - CSV formül enjeksiyonu.** Olay listesi ve rapor CSV'leri artık tek bir
 yazıcıdan geçiyor (`web/ortak.CsvYazici`). `=`, `+`, `-`, `@`, sekme ya da satır
 başıyla başlayan metin hücresinin başına tek tırnak ekleniyor: adı
 `=HYPERLINK(...)` olan bir kamera Excel'de formüle dönüşmüyor. Sayı hücreleri
 değişmiyor. Web katmanında kaçışsız `csv.writer` kalmadığını bir test denetliyor.
 
-**R18 — adresteki şifre.** Üç form adresi artık •••• ile basıyor:
+**R18 - adresteki şifre.** Üç form adresi artık •••• ile basıyor:
 - kamera düzenleme;
 - hoparlör bölgesi;
 - Ayarlar'daki IP hoparlör adresi.
@@ -188,7 +188,7 @@ birlikte ham çıkıyordu; o da düzeldi. Günlük biçimleyicisi de son savunma
 olarak her satırı maskeliyor. Maske deseni tek yerde (`loglama.ADRES_KIMLIGI`);
 şifrede ham `@` olsa da tamamı gizleniyor.
 
-**R16 — çerez anahtarı.** Oturum çerezinin imza anahtarı şifreyle birlikte
+**R16 - çerez anahtarı.** Oturum çerezinin imza anahtarı şifreyle birlikte
 kuruluma özgü rastgele bir sırdan türüyor: `veri/oturum.anahtar`. Dosya ilk
 girişte üretiliyor ve yalnız sahibi okuyabiliyor. Ele geçen bir çerezle şifre
 artık çevrimdışı denenemiyor; şifre değişince oturumlar yine düşüyor. Dosya
@@ -207,8 +207,8 @@ kalkacak (docs/17).
 
 Plan: `docs/17-V2-TASARIM.md` §5.5, §5.8, §10.2, §14 ve §13 (2e satırı).
 
-**2e-1 — KKD veri toplama kapısı.** KKD sayfasının en üstünde **"Veri toplama:
-KAPALI — Rev.02 onayı bekleniyor"** kartı var. Kapı varsayılan olarak kapalı
+**2e-1 - KKD veri toplama kapısı.** KKD sayfasının en üstünde **"Veri toplama:
+KAPALI - Rev.02 onayı bekleniyor"** kartı var. Kapı varsayılan olarak kapalı
 (S10); kapalıyken hiçbir kişi görüntüsü saklanmıyor. Açmak için "Rev.02 ek
 protokolü imzalandı ve çalışanlara aydınlatma yapıldı" kutusu işaretleniyor;
 onaysız açma reddediliyor. Açılış ve kapanış Olaylar'a **"KKD veri toplama
@@ -224,7 +224,7 @@ Muaf alan KKD kuralının kararından da oyuldu (docs/03 §3). Bu tipin kuralı
 yüz, gömme, isim/sicil ya da iz→personel eşlemesi taşıyabilecek bir sütun
 olmadığını bir test denetliyor (docs/17 §10.2). Statik damga `?v=32`.
 
-**2e-2 — uçtan uca senaryo takımı.** `tests/fixtures/senaryolar/*.json` +
+**2e-2 - uçtan uca senaryo takımı.** `tests/fixtures/senaryolar/*.json` +
 `tests/test_uctan_uca_olaylar.py`. Her senaryo için sentetik bir mp4 yazılıyor,
 kareler gerçek hattan geçiyor ve olaylar veritabanına kadar izleniyor:
 takip → kural → yaşam döngüsü → olay satırı. Dedektör yerine senaryoyu okuyan
@@ -239,7 +239,7 @@ bitiş ve bitiş sebebi ±0,5 sn ile karşılaştırılıyor. İlk beş sahne:
 Beklenen zamanlar elle hesaplandı, ölçüm geometriyle birebir tuttu. Biçim ve
 "sahadan gelen yanlış alarm buraya eklenir" yöntemi docs/03'ün ekinde.
 
-**2e-3 — rapor: analiz edilen süre ve yanlış alarm / saat.** Komuta → Rapor'da
+**2e-3 - rapor: analiz edilen süre ve yanlış alarm / saat.** Komuta → Rapor'da
 yeni bir tablo var. Her kamera için dört sayı gösteriyor:
 - analiz edilen süre;
 - incelemesi tam süre, kapsama yüzdesiyle;
@@ -269,7 +269,7 @@ telefonda taşma yok (ölçüldü). Statik damga `?v=33`.
 Plan: `docs/17-V2-TASARIM.md` §3.5, §3.6, §9 ve §13 (2d satırı). Alt adımlar
 ayrı commit'lerdir; her birinden sonra tam paket ve `tests/rules` yeşil.
 
-**2d-1 — fail-safe sırası.** Kayıt yapılamasa da uyarı duyuruluyor. Eskiden
+**2d-1 - fail-safe sırası.** Kayıt yapılamasa da uyarı duyuruluyor. Eskiden
 ihlalin kural satırı okunamazsa ya da olay satırı yazılamazsa (kilitli
 veritabanı, dolu disk) istisna anonsa hiç ulaşmadan döngüde yutuluyordu: ihlal
 ne kayda geçiyor ne duyuruluyordu. Şimdi olay yazılamazsa günlüğe CRITICAL
@@ -281,7 +281,7 @@ tanınıp susuyor. Okunabildiğinde yine satırın kendisi kullanılıyor: gölg
 açıp kapatmak bir sonraki ihlalde hemen etkili. Açılışı yazılamayan olay "açık"
 sayılmıyor; hatırlatma geldiğinde satırı yazılıyor.
 
-**2d-2 — bekçi, yavaşlama, analiz saatleri.** Analiz döngüsü her turda nabız
+**2d-2 - bekçi, yavaşlama, analiz saatleri.** Analiz döngüsü her turda nabız
 bırakıyor; `analiz/bekci.py` 10 sn'de bir bakıyor. Görüntü gelirken nabız
 `BEKCI_ESIGI_SN`'den (90) eskiyse ya da analiz iş parçacığı ölmüşse Olaylar'a
 **"Analiz takıldı / Analiz durdu"** düşüyor (bekçinin kendi bağlantısıyla),
@@ -302,7 +302,7 @@ boşluk sayılmaz), işlenen ve başarısız kare sayısı dakikada bir yazılı
 yazılamazsa birikim kaybolmuyor. Dört yeni ayar Ayarlar → **Analiz sağlığı**
 grubunda.
 
-**2d-3a — `/saglik` ve sağlık ekranı.** `/saglik` artık `hazir` veriyor: analiz
+**2d-3a - `/saglik` ve sağlık ekranı.** `/saglik` artık `hazir` veriyor: analiz
 çalışıyor, model hazır ve hizmeti bozan bir sorun yoksa true. Her durumda 200 ve
 `"calisiyor"` dönüyor (Kontrol Paneli'nin sözleşmesi). `?hazirlik=1` ise hazır
 olmayan sistemde 503 dönüyor; Docker healthcheck buna geçti. Kimliksiz gövde
@@ -319,7 +319,7 @@ hedefin altındaysa ▼ ve açıklama çıkıyor; hücrenin ipucunda hedef ve i�
 süresi (p90) var. `uyari_garantisi` alanı ses kanalı sağlığıyla birlikte 4b'de
 gelecek; bugün hesaplanamıyor. Statik damga `?v=30`.
 
-**2d-3b — Kontrol Paneli satırı ve uvicorn günlüğü.** Kontrol Paneli'nde yeni
+**2d-3b - Kontrol Paneli satırı ve uvicorn günlüğü.** Kontrol Paneli'nde yeni
 bir **Analiz** satırı var. Kırmızı olduğu durumlar: sistem hazır değil (model
 yüklenemedi, analiz takıldı ya da durdu, olaylar kaydedilemiyor) ya da sesli
 uyarı hiçbir kanala ulaşmıyor. Gri olduğu durumlar: model yükleniyor ya da
@@ -334,7 +334,7 @@ günlüğüne yalnız değiştiren istekler ve 4xx/5xx yanıtlar yazılıyor. Ba
 GET'ler yazılmıyor: paneldeki 1,5 sn'lik yoklama dönen günlüğü iki günde
 doldururdu.
 
-**2d-4 — komuta ekranlarında canlı uyarı ve sistem şeridi.** Eskiden ihlal
+**2d-4 - komuta ekranlarında canlı uyarı ve sistem şeridi.** Eskiden ihlal
 bandı yalnız Olaylar ve Ana Sayfa'da çıkıyordu. Operatörün başında durduğu
 komuta ekranları uyarı betiklerini hiç yüklemiyordu. Artık bütün komuta
 ekranlarında **ihlal bandı** ve ekran sesi var. Başlıkta bir **"uyarı akışı
@@ -343,7 +343,7 @@ açık"** hapı duruyor; akış koparsa kırmızıya dönüyor.
 Üstte bir **sistem şeridi** var ve 5 sn'de bir `/saglik?ayrinti=1`'e bakıyor.
 Kırmızı olduğu durumlar:
 - uyarı üretilmiyor ya da kaydedilmiyor (analiz takıldı, durdu ya da
-  çalışmıyor; "Analiz yapılmıyor — model yüklenemedi"; olay yazılamadı);
+  çalışmıyor; "Analiz yapılmıyor - model yüklenemedi"; olay yazılamadı);
 - kritik bir kural kalibrasyon bekliyor;
 - bir kameradan görüntü gelmiyor.
 
@@ -356,8 +356,8 @@ SAGLIK_SORUN_METINLERI`). Yapılandırma notu (kalibrasyon) analizin hiç
 Sistem olayları (kamera koptu, analiz takıldı…) ayrı, sessiz bir bantta 8 sn
 görünüyor ve kritik ihlal bandını ezmiyor. R41: ekran sesinin boş `catch`'leri
 kalktı. Sağ altta bir ses çipi çıkıyor:
-- "Bu ekranda sesli uyarı KAPALI — açmak için tıklayın";
-- "beklemede — etkinleştirmek için tıklayın" (tarayıcı sesi ilk tıklamaya kadar
+- "Bu ekranda sesli uyarı KAPALI - açmak için tıklayın";
+- "beklemede - etkinleştirmek için tıklayın" (tarayıcı sesi ilk tıklamaya kadar
   bekletir);
 - "çalışmıyor".
 
@@ -371,7 +371,7 @@ dosyası yokken çalıştırıldı:
   `?hazirlik=1` 503 döndü; gövdenin `durum`'u yine `calisiyor`'du, yani Kontrol
   Paneli satırı "ÇALIŞIYOR" kalıyor.
 - Olaylar'a "Tespit modeli yüklenemedi" düştü.
-- Komuta, Duvar ve Sağlık ekranlarında kırmızı "Analiz yapılmıyor — model
+- Komuta, Duvar ve Sağlık ekranlarında kırmızı "Analiz yapılmıyor - model
   yüklenemedi" şeridi çıktı.
 - `?ayrinti=1` her kamera için okunan ve işlenen hızı, p50/p90 alanlarını verdi.
 - uvicorn satırları `sistem.log`'da JSON olarak duruyordu.
@@ -383,10 +383,10 @@ Tarayıcı JS hatası yok.
 Plan: `docs/17-V2-TASARIM.md` §6, §8.2, §8.4 ve §13 (2c satırı). Alt adımlar
 ayrı commit'lerdir; her birinden sonra tam paket ve `tests/rules` yeşil.
 
-**2c-1 — şema 007 ve göç yedeği.** `zones.zone_type` üzerindeki CHECK kalktı
+**2c-1 - şema 007 ve göç yedeği.** `zones.zone_type` üzerindeki CHECK kalktı
 (tipin tek kaynağı `rules/tipler.py BOLGE_TIPI_KODLARI`; süpervizör bilinmeyen
 tipi atlıyor). Yeni bölge tipleri: **Yaya-araç geçidi** (`crossing`) ve **KKD
-muaf alan** (`ppe_exempt`) — kendi renk, simge ve çipleriyle; kuralları 2c-4'te.
+muaf alan** (`ppe_exempt`) - kendi renk, simge ve çipleriyle; kuralları 2c-4'te.
 `events`'e olay kodu, önem ve bitiş sütunları; eski olayların bitişi
 başlangıcına eşitlendi (hiçbiri "sürüyor" görünmez). `analysis_hours`,
 kapalı doğan KKD veri toplama kapısı ve üç taslak anons mesajı (yaya yolunda
@@ -395,7 +395,7 @@ araç, araç yolunda yaya, yasak alana giriş). Kurulu bir veritabanında bu gö
 alınamazsa göç yapılmıyor. Anons mesajı değişince yeni metin yeniden
 başlatmadan çalıyor (R19).
 
-**2c-2 — olay kodları ve önem.** Sözlük `rules/olay_kodu.py`'de: 26 kod, her
+**2c-2 - olay kodları ve önem.** Sözlük `rules/olay_kodu.py`'de: 26 kod, her
 birinin Türkçe adı ve varsayılan önemi (Kritik / Yüksek / Orta / Düşük /
 Sistem). Kural motoru her ihlale kodunu ve önemini değerlendirmeden sonra
 atıyor; değerlendiricilere ve 85 eski kural testine dokunulmadı (33 yeni kural
@@ -413,7 +413,7 @@ durmuyor, model atılmıyor; hata günlüğe düşüyor.
 
 **Kapanış gerçekten çalışıyor.** Ölçerken bulundu: tarayıcıda Olaylar ya da
 bir komuta ekranı açıkken (canlı akış, SSE) uvicorn kapanışta bu bağlantıyı
-sonsuza kadar bekliyordu — 30 sn sonra hâlâ kapanmamıştı. Kontrol Paneli
+sonsuza kadar bekliyordu - 30 sn sonra hâlâ kapanmamıştı. Kontrol Paneli
 8 sn sonra süreci zorla kapattığı için kapanış kodu fabrikada neredeyse hiç
 çalışmıyordu: kameralar düzgün durmuyor, "Sistem durdu" yazılamıyordu. Bütün
 başlatma yollarına (panelin iki kipi, Dockerfile, systemd birimi) 3 sn'lik
@@ -423,11 +423,11 @@ bekliyor (port hemen kapanıyordu, pencere o arada kapatılırsa kapanış yarı
 kalırdı). Testi gerçek bir sunucu ve açık bir akışla koşuyor; süre
 verilmediğinde aynı testin takıldığı karşı deneyle doğrulandı.
 
-**2c-2b — olay ekranları.** Olaylar listesinde "Tip" sütunu **önem hapı**
+**2c-2b - olay ekranları.** Olaylar listesinde "Tip" sütunu **önem hapı**
 oldu: Kritik (dolu kırmızı), Yüksek (kırmızı), Orta (kehribar), Düşük ve
 Sistem (gri); 007 öncesi olaylar "İhlal" yazar ve eski başlıklarını korur.
 Kodlu olayın başlığı kodun adı ("Yasak alana giriş", "Baret ve yelek yok",
-"Araç–yaya yakınlığı — 1,42 m"). Süren olayda nefes alan noktalı
+"Araç-yaya yakınlığı - 1,42 m"). Süren olayda nefes alan noktalı
 "sürüyor · 4 dk", biten olayda "bitti · 12 sn". Yeni süzgeçler: önem ve
 "Yalnız sürenler". Olay sayfasında bitiş, süre, "Neden bitti" ve olay kodu.
 CSV'ye dört sütun **sona** eklendi (Önem, Olay kodu, Bitiş, Süre); eski
@@ -435,12 +435,12 @@ sütunların yeri değişmedi. Komuta ekranında satır rengi artık önemden:
 kritik kalın şeritli kırmızı, yüksek kırmızı, orta sarı, düşük ve sistem
 nötr; incelenen olay rengini korur, yanlış alarm griye döner. Canlı akış
 önemi taşıyor: uyarı bandı ve canlı liste önemin rengini alıyor,
-seslendirme kodun adını okuyor. Öğe kartındaki "Forklift–insan yakınlığı"
-adı sözlükten gelen "Araç–yaya yakınlığı" oldu (aynı olay aynı ekranda iki
+seslendirme kodun adını okuyor. Öğe kartındaki "Forklift-insan yakınlığı"
+adı sözlükten gelen "Araç-yaya yakınlığı" oldu (aynı olay aynı ekranda iki
 adla görünüyordu). Kılavuza "Önem: uyarı ne kadar ciddi?" bölümü eklendi.
 Statik dosya damgası `?v=27`.
 
-**2c-3 — olay yaşam döngüsü.** İhlal artık başı ve sonu olan bir olay
+**2c-3 - olay yaşam döngüsü.** İhlal artık başı ve sonu olan bir olay
 (`rules/olay_durumu.py`, docs/03 §5.3): açılışta satır "sürüyor" doğar, kişi
 içeride kaldıkça kuralın bekleme süresi dolunca **yeni satır açılmadan** anons
 tekrarlanır, koşul `bitis_s` (yeni kural parametresi, varsayılan 3 sn) boyunca
@@ -457,14 +457,14 @@ işareti süreye dönüyor, **kritik uyarı bandı kendiliğinden kaybolmuyor**,
 bitince ya da tıklanınca kapanıyor. Önem (`severity`) artık kural imzasında;
 önem değişikliği yeniden başlatmadan uygulanıyor. Statik damga `?v=28`.
 
-**2c-4 — geçit, histerezis, ek hazır kurallar.** Yaya-araç geçidindeki
+**2c-4 - geçit, histerezis, ek hazır kurallar.** Yaya-araç geçidindeki
 (crossing) ayak noktası bölge ihlali sayılmıyor (`gecit_haric`, varsayılan
 açık): geçitten karşıya geçen yaya ya da forklift uyarı üretmez. Açılmış
 mesafe olayı, mesafe `distance_m + histerezis_m` (varsayılan 0,5 m) aşılınca
 bitiyor; eşiğin hemen üstünde gidip gelen çift tek olay. R21: bölgeye bağlı
 mesafe kuralı, bölgesi kapalıyken kapalı bölgenin poligonunu kullanıyor,
 bölge yüklenemezse bütün kareye yayılıyordu; artık çalışmıyor. Kamera
-sayfasına iki **ek hazır kural** geldi — **yaya yolunda araç** ve **araç
+sayfasına iki **ek hazır kural** geldi - **yaya yolunda araç** ve **araç
 yolunda yaya**; birincil kuralın yanına kurulur, **gölge modda** doğar ve
 şema 007'nin mesajlarına bağlanır. Yasak bölgenin hazır kuralı artık
 «Bu alana giriş yasaktır.» anonsuna bağlı (eskiden anonssuzdu; mevcut
@@ -472,7 +472,7 @@ kurallar değişmedi). Kalibrasyonsuz kamerada etkin bir güvenli mesafe ya da
 hız kuralı varsa kurulum listesinde kırmızı **"Kalibrasyon bekleniyor"**
 maddesi çıkıyor ve `/saglik` `"sorunlar": ["kritik_kural_pasif"]` veriyor.
 
-**2c-4c — kural formu.** Formda **Önem** seçimi var: "Varsayılan (Yüksek)" gibi,
+**2c-4c - kural formu.** Formda **Önem** seçimi var: "Varsayılan (Yüksek)" gibi,
 kuralın olay türünden hesaplanan önemi ve hangi olaylardan geldiğini söylüyor
 ("Baret yok: Yüksek; Yelek yok: Orta"). Varsayılanın altına inmek sarı kutuda
 onay istiyor ve sunucu da denetliyor; yükseltmek serbest. Kurallar listesinde
@@ -503,7 +503,7 @@ sıfırlanırdı. Verilmediğinde her iki taraf eski değerinde: `tests/rules`
 85 test değişmeden yeşil.
 
 **Kamera bağlantısı.** Tek bir 60 sn eşiği ikiye ayrıldı: ilk bağlantıya 60 sn
-tolerans (iç sabit), akan görüntünün kesilmesine `KAMERA_KOPUK_ESIGI_SN` (10 sn) —
+tolerans (iç sabit), akan görüntünün kesilmesine `KAMERA_KOPUK_ESIGI_SN` (10 sn) -
 kopan bir kamera bir dakika boyunca "çevrimiçi" görünüyordu. "Tekrar çevrimiçi"
 olayı görüntü `KAMERA_UP_KARARLILIK_SN` (5 sn) kesintisiz akınca yazılıyor; gidip
 gelen bağlantı olay seli üretmiyor (ekrandaki durum anlık kalıyor). RTSP açılış
@@ -533,7 +533,7 @@ katman. İzinsiz `Host` → 421 (DNS yeniden bağlama: saldırganın adı bu mak
 çözülünce tarayıcı yanıtları okuyabiliyordu). Durum değiştiren istekte
 `Origin`/`Referer` izinli değilse, `Origin: null` ise ya da `Sec-Fetch-Site`
 `cross-site`/`same-site` ise 403 (CSRF); üç başlık da yoksa geçer (tarayıcı
-dışı istemci). Plandan bir adım sıkı: `same-site` de reddediliyor — port
+dışı istemci). Plandan bir adım sıkı: `same-site` de reddediliyor - port
 karşılaştırılmadığı için aynı makinenin başka portundaki bir sayfa
 (127.0.0.1:8100) izinli Origin taşıyordu; tarayıcı o isteğe `same-site` der,
 sistemin kendi sayfası her zaman `same-origin`. Gerçek Chromium'da denendi:
@@ -551,12 +551,12 @@ kapatıldı (bütün rotaları girişsiz listeliyordu).
 **Anons, ayar dosyası, model (R14, R17, R26, winsound).** Windows'ta ses artık
 stdlib `winsound` ile çalınıyor; yol PowerShell komut metnine gömülmüyor ve
 `SND_NODEFAULT` sayesinde bozuk dosya "bip" çalıp başarılı dönmüyor. `.env`'e
-yazılan değerde satır sonu ve kontrol karakteri reddediliyor — önce
+yazılan değerde satır sonu ve kontrol karakteri reddediliyor - önce
 çalıştırılarak doğrulandı: `hdmi\nYONETICI_SIFRESI=` ses çıkışı adı şifreyi
 siliyordu. Model indirmesi SHA-256 ile doğrulanıyor (özetler resmi yayından iki
 ayrı indirmeyle ölçüldü; `models/SHA256SUMS`, `indir.sh`, Dockerfile ve kod aynı
 değerleri taşıyor, test eşitliği denetliyor). docs/06'daki systemd birimi var
-olmayan `app.main:uygulama`'yı gösteriyordu; `app.main:app` — iki komut da
+olmayan `app.main:uygulama`'yı gösteriyordu; `app.main:app` - iki komut da
 çalıştırılarak denendi.
 
 **Python, Docker, ONNX Runtime (R10, R13, R27, S19).** Kontrol Paneli yalnız
@@ -601,7 +601,7 @@ ve tüm olay geçmişinin kural bağlantısı sessizce siliniyor.
 Çözüm, göç betiğine konan bir işaret satırı: `app/veritabani.py` onu görünce
 yabancı anahtarı **işlem dışında** kapatıyor, sonra geri açıyor ve
 `PRAGMA foreign_key_check` ile bağlantıların sağlam kaldığını doğruluyor.
-Atomiklik bozulmuyor. Test bu veri kaybını kalıcı olarak bekliyor — mekanizma
+Atomiklik bozulmuyor. Test bu veri kaybını kalıcı olarak bekliyor - mekanizma
 kapatılınca kırmızı oluyor, denendi.
 
 Karar mantığı (`rules/hiz.py`) tek kareye bakmıyor: aynı takibin son N
@@ -609,7 +609,7 @@ Karar mantığı (`rules/hiz.py`) tek kareye bakmıyor: aynı takibin son N
 ölçümün dördü 0,5 m/sn biri 20 m/sn ise ortalama 4,4 m/sn çıkar ve duran
 forklift ceza yerdi, ortanca 0,5 m/sn kalıyor. Ekrana yazılan sayı da bu
 ortanca. Ayar m/sn tutuluyor (`hiz_mps` ile aynı birim), formda km/sa
-karşılığı anında yazılıyor — fabrika hız levhaları km/sa'dır.
+karşılığı anında yazılıyor - fabrika hız levhaları km/sa'dır.
 
 **Dönem raporu (yol haritası #3'ün ana kısmı kapandı).** Komuta → Rapor:
 kural / kamera / bölüm / bölge kırılımı, saatlik ve günlük dağılım, özet
@@ -627,14 +627,14 @@ vardiyası yanlış güne düşerdi.
 
 **Paketleme doğrulaması.** `.app`/`.exe` bu depoda üretilemez, ama üretimin
 sınanabilir her parçası artık testte. En büyük boşluk şuydu: Windows tarifi
-sahte bir PyInstaller ile koşturuluyordu, **Mac tarifi koşturulamıyordu** —
+sahte bir PyInstaller ile koşturuluyordu, **Mac tarifi koşturulamıyordu** -
 OpenSSL düzeltmesi `otool` çağırıyor ve o araç yalnız macOS'ta var. Düzeltme
 artık macOS dışında kendini atlıyor, tarif her yerde çalıştırılabiliyor;
 tarifteki bir yazım hatası artık kullanıcının Mac'inde değil burada görünüyor.
 
 İki gerçek hata daha çıktı: `otool` yoksa üretim ham İngilizce traceback ile
 ölüyordu (artık Türkçe duruyor ve `xcode-select --install` diyor), ve `_ssl`
-bağımlılığı çözülemezse kod uyarı yazıp **devam ediyordu** — üretilen uygulama
+bağımlılığı çözülemezse kod uyarı yazıp **devam ediyordu** - üretilen uygulama
 açılmazdı; artık duruyor.
 
 Yeni uçtan uca test, tarifin dosya listesini geçici bir klasöre kopyalayıp
@@ -659,7 +659,7 @@ kalabilmeli" başlığının altında.
 **Giriş şifresi (yol haritası #0 kapandı).** `.env` → `YONETICI_SIFRESI`.
 BOŞKEN giriş sorulmaz; tek makinede çalışan bugünkü kurulum birebir aynı
 kalır ve geliştirme sırasında her açılışta şifre yazmak gerekmez. Doluyken her
-sayfa giriş ister. Şifresizken kurulum listesi ve Ayarlar sayfası uyarır —
+sayfa giriş ister. Şifresizken kurulum listesi ve Ayarlar sayfası uyarır -
 sessiz bir güvenlik açığı, olmayan güvenlikten kötüdür.
 
 **Yedekten geri yükleme (K7 kapandı).** Kontrol Paneli'nde düğme; web
@@ -673,7 +673,7 @@ vardı; eksik olan provasıydı. Reboot provası ve Docker'sız kurulum için
 systemd birimi `06-OPERASYON.md` §1.2.1'e yazıldı.
 
 **Uzaktan erişim.** `.env` → `SUNUCU_ADRESI` ile sistem ağa açılabiliyor.
-Emniyet kilidi: ağa açık + şifresiz kurulum **açılışta reddedilir** — o haliyle
+Emniyet kilidi: ağa açık + şifresiz kurulum **açılışta reddedilir** - o haliyle
 ağdaki herkes kamera silebilirdi, uyarıyla geçiştirilecek bir durum değil.
 
 Şifre eklemek tek başına yetmiyordu: sınırsız deneme şifreyi fiilen yok sayar.
@@ -684,7 +684,7 @@ oturum çerezi `secure` işaretleniyor ve gerçek istemci adresi
 
 Yeni belge `15-UZAKTAN-ERISIM.md`: üç seviye (yalnız sunucu / fabrika ağı /
 fabrika dışı), fabrika dışı için sıralı öneri (VPN veya Tailscale → tünel →
-port açma, sonuncusu **önerilmez**) ve KVKK uyarısı — fabrika içindeki
+port açma, sonuncusu **önerilmez**) ve KVKK uyarısı - fabrika içindeki
 insanların görüntüsünü dışarı taşımak DALSAN'ın hukuk biriminin kararıdır.
 
 **GitHub'dan güncelleme.** Kontrol Paneli'nde "Güncelle" düğmesi: Durdur →
@@ -703,7 +703,7 @@ kipte de denendi: JavaScript hatası 0, konsol hatası 0.
 Bölge çiziminde üç eksik kapatıldı; hepsi "hangi alanı seçtim, sistem neyi
 görüyor" sorusunun cevabını ekranda vermeye yönelik.
 
-**Taralı alan.** Bölgeler artık çapraz taramayla dolu çiziliyor — hem tarayıcı
+**Taralı alan.** Bölgeler artık çapraz taramayla dolu çiziliyor - hem tarayıcı
 tuvalinde hem **videonun üstünde**. Yalnız çerçeve çizmek yetmiyordu: alanın içi
 neresi belli olmuyor, yan yana iki bölgede hangi çizginin hangisine ait olduğu
 anlaşılmıyordu. İki taraf aynı deseni kullanıyor, böylece ekran ile video aynı
@@ -720,7 +720,7 @@ oranlı (sabit piksel 480p'de seyrek, 1080p'de saç teli gibi çıkıyordu).
 
 **Bölgeye tıklayıp seçme.** Görüntüde bir bölgenin içine tıklamak onu seçiyor:
 taralı görünüyor, adı ve tipi yazıyor, yanında Düzenle / Kapat / Sil çıkıyor.
-Üst üste binen bölgelerde küçük olan seçiliyor — büyük bir bölgenin içindeki
+Üst üste binen bölgelerde küçük olan seçiliyor - büyük bir bölgenin içindeki
 küçüğe başka türlü tıklanamazdı.
 
 **Çizim arka planı ayrıldı.** Ekran görüntüsü yükleme, "otomatik alan bul"
@@ -731,7 +731,7 @@ yazılmıyor.
 
 **Giderilen hata.** Tarayıcı, HTML olmayan yanıtlarda (ör. `/saglik` JSON'u)
 `<link rel="icon">` etiketini göremediği için kök dizinden `/favicon.ico`
-istiyor ve her seferinde konsola 404 düşüyordu — sistemde arıza varmış izlenimi
+istiyor ve her seferinde konsola 404 düşüyordu - sistemde arıza varmış izlenimi
 veren, aslında olmayan bir hata. Rota eklendi.
 
 **Gerçek tarayıcıda doğrulandı** (Chromium): 19 sayfanın hepsi 200; bölge
@@ -747,11 +747,11 @@ ve köşe sürükleme tek tek denendi. **JavaScript hatası 0, konsol hatası 0,
 Üç konu birden ele alındı: fabrika alanının tanınması, videoda sayım ve anons
 sistemine bağlanma.
 
-**Fabrika alanını tanıma (`analiz/alan_bulucu.py` — yeni).** Fabrika zemininde
+**Fabrika alanını tanıma (`analiz/alan_bulucu.py` - yeni).** Fabrika zemininde
 alan zaten boyalıdır; sistem artık o boyayı bulup hazır bir bölge çizimi
 **önerir**. İki geçiş vardır: kapama geçişi dolu alanları (beyaz çerçeveli
 yükleme sahası) bulur, kümeleme geçişi ise iki paralel çizgiyle işaretli yaya
-yolunu bulur — aradaki yol da alana dahil edilir; ilk geçiş iki çizgiyi ayrı
+yolunu bulur - aradaki yol da alana dahil edilir; ilk geçiş iki çizgiyi ayrı
 ayrı "çok ince" diye eliyordu. Öneri karar DEĞİLDİR: veritabanına hiçbir şey
 yazılmaz, kullanıcı kartına tıklayıp köşeleri düzelterek kendisi kaydeder.
 Ölçüldü: iki paralel kesikli sarı çizgi 4 köşeyle ~24 ms'de bulunuyor, boyasız
@@ -760,21 +760,21 @@ betonda hiçbir öneri üretilmiyor (yanlış öneri yok).
 **Ekran görüntüsünden alan tanıma.** Kamera henüz takılmamışken de bölge
 hazırlanabilsin diye NVR'dan alınmış bir kare yüklenebiliyor; görüntü hem
 taranıyor hem çizim tuvalinin arka planı oluyor. **Yüklenen görüntü diske
-yazılmaz** (KVKK + en az parça) — kalıcı olan tek şey kaydedilen bölge.
+yazılmaz** (KVKK + en az parça) - kalıcı olan tek şey kaydedilen bölge.
 Alan bulunamadığında sistemin "boya" saydığı yerleri işaretleyen bir **teşhis
 görüntüsü** dönüyor; boş bir maske, eşik oynamaktan daha açık bir yanıttır.
 
 **Çizim kolaylıkları.** Dikdörtgen kipi (bir köşeden karşı köşeye sürükle) ve
-**köşe sürükleme** eklendi — eskiden tek yanlış köşe için tüm çizim baştan
+**köşe sürükleme** eklendi - eskiden tek yanlış köşe için tüm çizim baştan
 yapılıyordu.
 
-**Bölge sayımı (`rules/sayim.py` — yeni, SAF).** Bölge çizilen her kamerada
+**Bölge sayımı (`rules/sayim.py` - yeni, SAF).** Bölge çizilen her kamerada
 kural gerektirmeden çalışır. Üç sayı üç ayrı soruyu cevaplar: içeride kaç var,
 sayaç sıfırlandığından beri kaç ayrı nesne girdi, aynı anda en çok kaç görüldü.
 Sayım **takip bazlıdır**: bölgede on dakika duran kişi bir kez sayılır (kare
 bazlı sayım 6 kare/sn ile on dakikada 3600 "kişi" üretirdi). Sayılar canlı
 görüntünün üstünde, bölgenin köşesinde de yazıyor. Sayım kural DEĞİLDİR: ihlal
-üretmez, anons tetiklemez — yanlış sayım kimseyi yanlış uyarmaz.
+üretmez, anons tetiklemez - yanlış sayım kimseyi yanlış uyarmaz.
 
 **Anons sistemine bağlanma (R3 kapandı).** Eskiden tek bir JSON gövdesi
 gönderiliyordu ve sahadaki IP hoparlörlerin çoğu bunu anlamazdı. Artık üç biçim
@@ -782,10 +782,10 @@ var (`json` / `form` / `get`) ve adreste `{anahtar}` / `{metin}` yer tutucuları
 dolduruluyor. `str.format` bilerek kullanılmadı: anons sisteminin kendi süslü
 parantezleri (`?q={id}`) `KeyError` fırlatıp anonsu tamamen susturur ve bu
 sahada teşhisi en zor arızadır. **Bulunan hata:** "Bu hoparlörü dene" düğmesi
-biçimi geçirmiyordu — GET bekleyen bir cihazda deneme "başarılı" derken gerçek
+biçimi geçirmiyordu - GET bekleyen bir cihazda deneme "başarılı" derken gerçek
 anons sessizce başarısız olacaktı.
 
-**Yeni belge: `docs/14-ANONS-SISTEMI-BAGLAMA.md`** — hangi altyapıda hangi yol,
+**Yeni belge: `docs/14-ANONS-SISTEMI-BAGLAMA.md`** - hangi altyapıda hangi yol,
 kablo uyarıları (hat girişi, hoparlör çıkışı değil), ses dosyası hazırlama, üç
 biçimin örnekleri, bölüm bölüm anons, devreye alma sırası, sorun giderme tablosu
 ve **anons firmanıza soracaklarınızın listesi**. Kılavuz sayfasına da iki yeni
@@ -800,7 +800,7 @@ sınıf çökme yerine atlanıp bir kez günlüğe yazılıyor.
 786 test yeşil (öncesi 718), ruff temiz.
 
 
-## Mac / Windows uyumu — baştan aşağı denetim (02.09.2026)
+## Mac / Windows uyumu - baştan aşağı denetim (02.09.2026)
 
 Bağımsız bir denetimle bulunan ve giderilenler (en kritikten):
 
@@ -808,7 +808,7 @@ Bağımsız bir denetimle bulunan ve giderilenler (en kritikten):
   Windows 10/11'de Python KURULU OLMASA BİLE başarılıdır: PATH'te sıfır baytlık
   bir "python.exe" takma adı vardır. Yardım mesajı hiç görünmüyordu. Artık
   `py -3` denenip adayın gerçekten Python olduğu doğrulanıyor.
-- **Hata anında pencere kapanıyordu** — kullanıcının kopyalayacak satırı
+- **Hata anında pencere kapanıyordu** - kullanıcının kopyalayacak satırı
   kalmıyordu (destek akışının tamamı buna dayanır). `pause` eklendi.
 - **Kontrol Paneli günlüğü Türkçe büyük harfte donuyordu.** Alt süreç UTF-8
   yazarken panel cp1254 çözüyordu; Ş ve Ğ (0x9E) cp1254'te tanımsız olduğu için
@@ -833,7 +833,7 @@ Bağımsız bir denetimle bulunan ve giderilenler (en kritikten):
   Anons kapalıyken (ANONS=null) bunu açıkça söylüyor. Ses dosyası **.wav**
   olmak zorunda (Windows yalnız WAV çalar) ve yol POSIX biçiminde saklanıyor.
 - **PowerShell tırnak kaçışı:** yolda kesme işareti varsa ("Ali'nin Sesleri")
-  komut bozuluyordu — hem hata hem enjeksiyon yüzeyi.
+  komut bozuluyordu - hem hata hem enjeksiyon yüzeyi.
 - **Mac başlatıcısı** artık `/usr/bin/python3` yer tutucusunu en sona bırakıyor
   ("geliştirici araçları gerekiyor" penceresi iki kez açılıyordu) ve ZIP'ten
   gelen dosyanın çalıştırma iznini kendisi tazeliyor.
@@ -865,7 +865,7 @@ Bağımsız bir denetimle bulunan ve giderilenler (en kritikten):
   atan kişi uyarı üretmiyor. Gerçek görüntüyle doğrulandı: yolun üstündeki
   kişiler uyarı üretmedi, yolun dışındaki üç kişi tam 5 saniyede uyarı üretti.
 - **Görüntü kalitesi:** Sistem kareyi ölçüyor ve kamera sayfasında Türkçe uyarı
-  veriyor — çok karanlık / aşırı parlak / bulanık / düşük kontrast, her biri için
+  veriyor - çok karanlık / aşırı parlak / bulanık / düşük kontrast, her biri için
   ne yapılacağıyla birlikte. `.env` → `GORUNTU_IYILESTIRME=otomatik` yerel
   kontrast dengeleme (CLAHE) uyguluyor; yalnız parlaklık kanalında çalıştığı için
   reflektörlü yeleğin sarısını bozmuyor. Tespit ve önizleme aynı kareyi
@@ -873,7 +873,7 @@ Bağımsız bir denetimle bulunan ve giderilenler (en kritikten):
 - **Windows konsol kodlaması:** Türkçe karakter içeren bir log satırı Windows'un
   cp1254 konsolunda `UnicodeEncodeError` verip log sistemini çökertebiliyordu;
   akışlar UTF-8'e alındı, ayar hatası mesajı da güvenli yazılıyor.
-- **Yeni doküman:** `docs/12-KAMERA-VE-GORUNTU-KALITESI.md` — kamera yerleşimi,
+- **Yeni doküman:** `docs/12-KAMERA-VE-GORUNTU-KALITESI.md` - kamera yerleşimi,
   sistemin tanıdığı nesneler ve renkleri, kalite sorunları ve çözümleri,
   hassasiyet ayarının sırası, forklift hakkında dürüst not, yaya yolu kurulumu.
   `docs/03` yaya yolu bölümüyle, README ve CLAUDE.md haritası güncellendi.
@@ -888,7 +888,7 @@ Bağımsız bir denetimle bulunan ve giderilenler (en kritikten):
   düşüyordu. Artık yalnızca ilgilendiğimiz sınıflara bakılıyor.
 - **İnsan için ayrı, daha düşük eşik** (kaçırılan insan, kaçırılan araçtan risklidir).
 - **NMS sınıf farkındalıklı**: forkliftin yanındaki insan artık aracın kutusu
-  tarafından yutulmuyor — tam da uyarı üretmesi gereken durum.
+  tarafından yutulmuyor - tam da uyarı üretmesi gereken durum.
 - Çok küçük kutular eleniyor (uzaktaki gürültü yanlış alarm üretmesin).
 - Tüm eşikler `.env`'e taşındı (CLAUDE.md §7: koda gömülü eşik yasak):
   `TESPIT_GUVEN_ESIGI`, `TESPIT_INSAN_GUVEN_ESIGI`, `TESPIT_NMS_ESIGI`,
@@ -905,7 +905,7 @@ isteğe bağlı **sesli uyarı** ve **Türkçe seslendirme**. Ses, tarayıcı ku
 gereği ilk tıklamada uyandırılıyor (eskiden her uyarıda yeni ses bağlamı açan kod
 sessizce çalışmazdı). Yeni **Anons sayfası**: mesaj metinleri düzenlenir, ses
 dosyası bağlanır ve **"Anonsu Dene"** ile saha kurulumu sistemi kurmadan denenir.
-Anons artık analiz iş parçacığını **bloklamıyor** — anons sunucusu kapalıyken tüm
+Anons artık analiz iş parçacığını **bloklamıyor** - anons sunucusu kapalıyken tüm
 kameralar 5 saniye kör kalıyordu.
 
 **Derin tarama (36 ajanlı çapraz doğrulama) ile bulunup giderilen hatalar:**
@@ -924,19 +924,19 @@ kameralar 5 saniye kör kalıyordu.
 - **Adında kesme işareti olan kamera onay sorulmadan siliniyordu** (onay metni JS
   içine gömülüydü). Onay artık tek merkezden, veri özniteliğiyle kuruluyor.
 - Kamera adresi değişince eski kameranın karesi önizlemede kalıyordu; örnekleme
-  hızı değişince takip hafızası yanlış kalıyordu — ikisi de düzeltildi.
+  hızı değişince takip hafızası yanlış kalıyordu - ikisi de düzeltildi.
 - Konfigürasyon damgası uygulamadan önce yazılıyordu: yarıda kalan yenileme
   değişikliği kalıcı olarak yutuyordu.
-- Çevrimdışı kamerada "son kare" zamanı siliniyordu — en çok gereken bilgi.
+- Çevrimdışı kamerada "son kare" zamanı siliniyordu - en çok gereken bilgi.
 - Saklama süresi fotoğrafı siliyor ama kaydı temizlemiyordu (kırık resim).
 - KKD kuralı yanlış tipte bir bölgeye bağlanabiliyor ve sessizce hiç çalışmıyordu.
-- Anons adresi şemasız yazılırsa her ihlalde hata veriyordu — açılışta engellendi.
+- Anons adresi şemasız yazılırsa her ihlalde hata veriyordu - açılışta engellendi.
 - Canlı uyarı listesi kamera adını HTML olarak yorumluyordu.
 - Olay filtresinde sayısal olmayan değer 500 veriyordu.
 - Docker sağlık kontrolü ana sayfayı çağırıyor, 30 saniyede bir tüm `veri/`
   klasörünü tarıyordu → hafif `/saglik` ucu eklendi.
 - `docs/06-OPERASYON.md` terk edilmiş PostgreSQL + Alembic + 3 servis mimarisini
-  anlatıyordu; içindeki her komut hatalıydı — baştan yazıldı.
+  anlatıyordu; içindeki her komut hatalıydı - baştan yazıldı.
 
 141 test yeşil (29 yeni), ruff temiz. Gerçek görüntüyle uçtan uca doğrulandı:
 3 insan + 1 araç tespiti, canlı sayım, kutulu önizleme, anons denemesi.
@@ -951,7 +951,7 @@ kameralar 5 saniye kör kalıyordu.
   yalnızca gerçek geçişlerde üretilir. Sistem her açılışta tüm kameralar için
   "çevrimdışı → tekrar çevrimiçi" olay çifti üretmiyor artık.
 - **Bağlanamama SEBEBİ kamera sayfasında:** "Video dosyası bulunamadı: …",
-  "Kameraya ağ üzerinden ulaşılamıyor (IP:port)", "ulaşıldı ama akış açılamadı —
+  "Kameraya ağ üzerinden ulaşılamıyor (IP:port)", "ulaşıldı ama akış açılamadı -
   kullanıcı adı/şifre veya yol yanlış olabilir". Ulaşılamayan adreste OpenCV'nin
   uzun beklemesi yerine 3 sn'lik ağ ön kontrolü.
 - **Form hataları tarayıcıda ham JSON yerine Türkçe hata sayfası** ("Geri dön ve
@@ -969,17 +969,17 @@ kameralar 5 saniye kör kalıyordu.
 
 ## Platform uyumu + Docker (26.08.2026)
 
-- **Windows uyumu düzeltildi:** anons sesi (PowerShell SoundPlayer — `afplay`/`aplay` Windows'ta yok), kamera arka ucu (DirectShow), saat dilimi veritabanı (`tzdata` bağımlılığı).
+- **Windows uyumu düzeltildi:** anons sesi (PowerShell SoundPlayer - `afplay`/`aplay` Windows'ta yok), kamera arka ucu (DirectShow), saat dilimi veritabanı (`tzdata` bağımlılığı).
 - **Docker desteği:** üç proje için de Dockerfile + docker-compose. Veri ve ayarlar container dışında (silinse de kaybolmaz), sağlık kontrolü ve otomatik yeniden başlatma var; GPU ve ses kartı blokları Linux için hazır ve yorumlu.
-- Model dosyası yoksa imaj derlemesi **anlaşılır bir mesajla durur** — modelsiz, hiçbir şey tespit etmeyen sessiz container tuzağı kapatıldı.
+- Model dosyası yoksa imaj derlemesi **anlaşılır bir mesajla durur** - modelsiz, hiçbir şey tespit etmeyen sessiz container tuzağı kapatıldı.
 - **NASIL-CALISIR.md** yazıldı: sistemin işleyişi, Mac/Windows/Docker kurulumu, hangi ortamda neyin çalıştığını gösteren dürüst tablo, sorun giderme ve yedekleme.
 - Docker bu makinede kurulu olmadığı için imaj derlemesi **denenemedi**; Dockerfile'lar statik olarak doğrulandı.
 
-## Adım 2-7 + altyapılar — Sistem uçtan uca çalışır durumda (26.08.2026)
+## Adım 2-7 + altyapılar - Sistem uçtan uca çalışır durumda (26.08.2026)
 
 - **Kamera katmanı:** RTSP (TCP) / video dosyası kaynağı, "son kare" deseni, üstel beklemeli otomatik yeniden bağlanma, çevrimiçi/çevrimdışı takibi ve sistem olayları. Kamera CRUD + 1 sn'de yenilenen canlı önizleme (tespit kutuları çizili).
-- **Tespit + takip:** YOLOX (Apache-2.0, ADR-002) ONNX Runtime ile — torch gerekmez; `models/indir.sh` modelleri indirir. ByteTrack (supervision) ile kalıcı takip ID. Forklift, saha verisiyle ince ayara kadar araç sınıfı üzerinden görünür (R1).
-- **Kural motoru (`rules/`, saf):** üç kural tipi eksiksiz — bölge ihlali (inside/outside + kalış), güvenli mesafe (homografi + hareket koşulu + ardışık kare; kalibrasyonsuz kamerada bilerek pasif), KKD (üç durum + zamansal oylama; **belirsiz asla olay üretmez**). Cooldown ortak filtre; restart'sız konfig yayılımı durumu korur.
+- **Tespit + takip:** YOLOX (Apache-2.0, ADR-002) ONNX Runtime ile - torch gerekmez; `models/indir.sh` modelleri indirir. ByteTrack (supervision) ile kalıcı takip ID. Forklift, saha verisiyle ince ayara kadar araç sınıfı üzerinden görünür (R1).
+- **Kural motoru (`rules/`, saf):** üç kural tipi eksiksiz - bölge ihlali (inside/outside + kalış), güvenli mesafe (homografi + hareket koşulu + ardışık kare; kalibrasyonsuz kamerada bilerek pasif), KKD (üç durum + zamansal oylama; **belirsiz asla olay üretmez**). Cooldown ortak filtre; restart'sız konfig yayılımı durumu korur.
 - **Olaylar:** kanıt fotoğrafı önce/DB sonra, rule_snapshot, SSE canlı uyarı paneli, filtreli liste, olay durumu (Yeni/İncelendi/Yanlış alarm + not), CSV dışa aktarma, korumalı fotoğraf servisi.
 - **Kalibrasyon:** görüntüde 4 nokta tıkla + metre gir → homografi (saf numpy); arayüzde "kalibrasyon bekleniyor" rozetleri.
 - **Anons:** Null / ses kartı (afplay-aplay) / HTTP adaptörleri + ekrandan bağımsız, daha uzun anons cooldown'u. Somut sistem bilgisi bekleniyor (R3).
@@ -989,10 +989,10 @@ kameralar 5 saniye kör kalıyordu.
 - Ayrıca: Kontrol Paneli'nin Mac'te açılmama sorunu çözüldü (çalıştırma izni + karantina + Python 3.12/tkinter).
 
 
-## Adım 1 — Proje iskeleti + veritabanı + ana sayfa (26.08.2026)
+## Adım 1 - Proje iskeleti + veritabanı + ana sayfa (26.08.2026)
 
 - backend/ iskeleti kuruldu: .env'den okunan tek ayar kaynağı (ayarlar.py), SQLite bağlantısı (yabancı anahtar + WAL + busy_timeout) ve sürümlü şema düzeni (sema/001_ilk.sql → 7 tablo + 5 anons mesajı seed).
 - Zaman yönetimi tek yerde (zaman.py: UTC sakla, İstanbul göster), JSON satır log (loglama.py → ekran + veri/loglar/sistem.log), tiplenmiş hatalar ve merkezi hata yakalayıcı (hatalar.py) eklendi.
 - Teşhis ana sayfası hazır: şema sürümü, tablo listesi, maskeli aktif ayarlar, disk durumu ve "Henüz kamera eklenmedi".
 - rules/ klasörü boş açıldı; saflık kuralı tests/rules/test_saflik.py ile korunuyor (doğrudan, dinamik ve dolaylı yasaklı import'lar testi kırmızı yapar).
-- 30 test yeşil, ruff temiz; sıradaki iş: Adım 2 — kamera ekleme + görüntü alma.
+- 30 test yeşil, ruff temiz; sıradaki iş: Adım 2 - kamera ekleme + görüntü alma.

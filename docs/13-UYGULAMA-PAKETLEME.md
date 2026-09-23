@@ -1,4 +1,4 @@
-# 13 — Uygulama Paketleme (teslim edilecek dosyayı üretme)
+# 13 - Uygulama Paketleme (teslim edilecek dosyayı üretme)
 
 Bu belge tek bir soruyu cevaplar: **sistemi başka birine nasıl teslim ederim?**
 
@@ -23,7 +23,7 @@ uygulaması üretilemez.
 
 Yani Windows uygulamasını üretmek için proje klasörünün bir Windows
 bilgisayarda da bulunması gerekir (USB bellek, ağ paylaşımı ya da depodan
-klonlama — hangisi kolaysa).
+klonlama - hangisi kolaysa).
 
 ---
 
@@ -31,7 +31,7 @@ klonlama — hangisi kolaysa).
 
 > **Önce bir kez:** Mac'te uygulama üretmek Apple'ın komut satırı araçlarını
 > ister (`otool`). Kurulu değilse üretim durur ve ekranda ne yapılacağı yazar.
-> Kurmak için Terminal'e tek satır: `xcode-select --install` — açılan
+> Kurmak için Terminal'e tek satır: `xcode-select --install` - açılan
 > pencerede "Yükle" deyip bitmesini bekleyin, sonra aşağıdan devam edin.
 > Daha önce Xcode kurduysanız bu adım gerekmez.
 
@@ -63,7 +63,7 @@ kurulum ekranındaki **"Add Python to PATH"** kutusunu mutlaka işaretleyin.
 **Adımlar**
 
 1. Proje klasörünün tamamını Windows bilgisayara kopyalayın.
-   Klasörü **kısa bir yola** koyun — örneğin `C:\NextGen`. (Sebebi §6'da.)
+   Klasörü **kısa bir yola** koyun - örneğin `C:\NextGen`. (Sebebi §6'da.)
 2. `paketleme\Windows-Uygulama-Uret.bat` dosyasına **çift tıklayın**.
 3. Siyah bir pencere açılır ve altı adım sırayla akar. İlk seferde
    **5-15 dakika** sürer (paketler indirilir).
@@ -87,17 +87,17 @@ gönderebilirsiniz.
 
 Çift tıklayınca **iki pencere** vardır ve ikisi de uygulama penceresidir:
 
-1. **Kontrol Paneli** — başlat/durdur ve sistem günlüğü. Windows'ta görev
+1. **Kontrol Paneli** - başlat/durdur ve sistem günlüğü. Windows'ta görev
    çubuğunda kendi simgesiyle, ayrı bir uygulama olarak durur (Python'un
    jenerik simgesi değil); Mac'te Dock'ta `.app` simgesiyle görünür.
-2. **İzleme Ekranı** — asıl kullanılan ekran. Adres çubuğu, sekme şeridi ve
+2. **İzleme Ekranı** - asıl kullanılan ekran. Adres çubuğu, sekme şeridi ve
    yer imleri **yoktur**; sistem başlar başlamaz kendiliğinden açılır.
 
 İzleme penceresi, bilgisayarda zaten kurulu olan **Chrome / Edge / Brave**'in
 uygulama kipiyle açılır. Bu, pakete başka bir şey eklemeden uygulama penceresi
 elde etmenin en az parçalı yoludur:
 
-* Windows'ta **Edge her kurulumda vardır ve kaldırılamaz** — yani karşı taraf
+* Windows'ta **Edge her kurulumda vardır ve kaldırılamaz** - yani karşı taraf
   hiçbir şey indirmeden uygulama penceresini görür.
 * Üçünden hiçbiri yoksa (yalnız Safari'nin bulunduğu bir Mac) ekran olağan
   tarayıcıda açılır, Kontrol Paneli günlüğüne tek satır not düşer ve sistem
@@ -119,7 +119,7 @@ kanıt fotoğrafları, günlük ve ayarlar kullanıcının kendi klasörüne yaz
 | | Yer |
 |---|---|
 | Mac | `~/Library/Application Support/NextGen Detector/` |
-| Windows | `%LOCALAPPDATA%\NextGen Detector\` — açılışı kolay yolu: Başlat'a `%LOCALAPPDATA%` yazıp Enter, sonra `NextGen Detector` klasörü |
+| Windows | `%LOCALAPPDATA%\NextGen Detector\` - açılışı kolay yolu: Başlat'a `%LOCALAPPDATA%` yazıp Enter, sonra `NextGen Detector` klasörü |
 
 İçinde aynı düzen vardır:
 
@@ -144,13 +144,13 @@ klasöründeki `veri/` klasörünü kullanır. İkisi birbirine karışmaz.
 
 ---
 
-## 5. Güncelleme — sistemde bir şey değişince ne yapılır
+## 5. Güncelleme - sistemde bir şey değişince ne yapılır
 
 **İki farklı kurulum, iki farklı yol var.** Hangisinde olduğunuzu Kontrol
 Paneli söyler: **"Güncelle" düğmesi varsa** git kurulumundasınız (§5.1),
 yoksa paketlenmiş uygulamadasınız (§5.2).
 
-### 5.1 Git kurulumu — "Güncelle" düğmesi
+### 5.1 Git kurulumu - "Güncelle" düğmesi
 
 Kodu kendi bilgisayarınızda değiştirip GitHub'a gönderdiniz; fabrika
 sunucusunun (ya da ikinci bilgisayarın) onu alması gerekiyor:
@@ -166,9 +166,9 @@ Düğmenin yaptıkları, günlükte satır satır görünür:
 | Sistem çalışıyor mu diye bakar | Çalışan bir program kendi kodunu değiştiremez |
 | GitHub'da yeni sürüm var mı sorar | Yoksa hiçbir şey yapmaz, "Sistem güncel" der |
 | **Veritabanının yedeğini alır** | Güncelleme yeni bir şema göçü getirmiş olabilir ve şemalar ileri yönlüdür; yedeksiz "güncelledim, bozuldu" geri alınamaz |
-| Kaydedilmemiş kod değişikliği var mı bakar | Sunucuda elle düzeltilmiş bir dosya sessizce kaybolmamalı — varsa durur ve hangi dosya olduğunu yazar |
+| Kaydedilmemiş kod değişikliği var mı bakar | Sunucuda elle düzeltilmiş bir dosya sessizce kaybolmamalı - varsa durur ve hangi dosya olduğunu yazar |
 | Kodu çeker | `git pull --ff-only` |
-| Paket listesi değiştiyse paketleri kurar | `requirements.txt` değişmediyse **kurulum yapılmaz** — her güncellemede pip çalıştırmak dakikalar alır ve gereksizdir |
+| Paket listesi değiştiyse paketleri kurar | `requirements.txt` değişmediyse **kurulum yapılmaz** - her güncellemede pip çalıştırmak dakikalar alır ve gereksizdir |
 
 > **Kayıtlarınız silinmez.** `veri/` klasörü git'e girmez; güncelleme
 > kameralara, bölgelere, kurallara ve olay geçmişine dokunmaz. `.env` de öyle.
@@ -179,7 +179,7 @@ kullanın (`15-UZAKTAN-ERISIM.md`). Güncelleme web arayüzüne **bilerek
 konmadı**: oradan çalıştırılan bir `git pull`, şifreyi ele geçiren birine
 sunucuda kod çalıştırma yolu açardı.
 
-### 5.2 Paketlenmiş uygulama — yeni sürümü üstüne kopyalama
+### 5.2 Paketlenmiş uygulama - yeni sürümü üstüne kopyalama
 
 Paketlenmiş programda git deposu yoktur; "Güncelle" düğmesi de konmaz.
 Yol şudur:
@@ -194,7 +194,7 @@ Yol şudur:
 
 **Kayıtlar silinmez.** Veri kullanıcı klasöründedir (§4), uygulamanın içinde
 değil; uygulamayı değiştirmek kayıtlara dokunmaz. Ayarlar (`.env`) da orada
-kalır — yani daha önce girdiğiniz kameralar ve eşikler durmaya devam eder.
+kalır - yani daha önce girdiğiniz kameralar ve eşikler durmaya devam eder.
 
 Emin olmak isterseniz güncellemeden önce §4'teki klasörün bir kopyasını alın.
 
@@ -219,7 +219,7 @@ klasörünün altında uzun adlar oluşur; klasör zaten derindeyse üretim
 **Karşılandı:** betik ilk adımda yolun uzunluğunu ölçer, 80 karakteri
 geçiyorsa uyarır ve klasörü `C:\NextGen` altına taşımanızı önerir.
 
-### 6.3 SmartScreen — "bilinmeyen yayıncı"
+### 6.3 SmartScreen - "bilinmeyen yayıncı"
 Uygulama imzalı değildir. İlk çalıştırmada mavi bir pencere çıkar:
 *"Windows bilgisayarınızı korudu"*.
 **Yapılacak:** **"Daha fazla bilgi"** yazısına tıklayın, sonra beliren
@@ -230,7 +230,7 @@ olabilir: `.exe` dosyasına sağ tıklayın → **Özellikler** → alttaki
 **"Engellemeyi kaldır"** kutusunu işaretleyin → Tamam.
 
 ### 6.4 Windows Defender'ın yeni `.exe`'yi karantinaya alması
-Yeni üretilmiş, imzasız, büyük bir `.exe` — Defender bunu bazen sessizce
+Yeni üretilmiş, imzasız, büyük bir `.exe` - Defender bunu bazen sessizce
 siler. Belirtisi: üretim başarıyla bitiyor ama klasörde `.exe` yok.
 **Karşılandı:** betik üretim sonunda dosyanın gerçekten orada olup olmadığına
 bakar; yoksa ne yapılacağını yazar:
@@ -289,7 +289,7 @@ terminale de yazılır:
 |---|---|
 | `paketleme/Mac-Uygulama-Uret.command` | Mac'te çift tıklanır, `.app` üretir |
 | `paketleme/Windows-Uygulama-Uret.bat` | Windows'ta çift tıklanır, `.exe` üretir |
-| `paketleme/paketleme_ortak.py` | **İki tarifin ortak bölümü** — pakete ne konacağı burada yazılıdır |
+| `paketleme/paketleme_ortak.py` | **İki tarifin ortak bölümü** - pakete ne konacağı burada yazılıdır |
 | `paketleme/NextGenDetector-mac.spec` | macOS'a özel olanlar (`.app` kabuğu, kamera izni, OpenSSL düzeltmesi) |
 | `paketleme/NextGenDetector-windows.spec` | Windows'a özel olanlar (`.ico` simge, gizli konsol, açılış kancası) |
 | `paketleme/acilis_kancasi.py` | Gizli konsolun yuttuğu hataları görünür kılar (§7) |
@@ -297,7 +297,7 @@ terminale de yazılır:
 
 Ortak bölümün ayrı bir dosyada olması bilinçlidir: iki tarif aynı listeleri
 kopyala-yapıştır taşısaydı zamanla ayrışır, biri güncellenip diğeri
-unutulurdu — ve hata yalnızca o platformda, üstelik ancak uygulama
+unutulurdu - ve hata yalnızca o platformda, üstelik ancak uygulama
 açılmayınca görülürdü.
 
 ### 8.1 Üretimin ne kadarı önceden sınanıyor

@@ -54,7 +54,7 @@ def test_serit_metinleri_sunucudan_gelir(istemci):
 
 def test_hazirligi_bozan_her_sorunun_serit_metni_var():
     assert HAZIRLIGI_BOZAN_SORUNLAR | {"kritik_kural_pasif"} <= set(SAGLIK_SORUN_METINLERI)
-    assert SAGLIK_SORUN_METINLERI["model_yuklenemedi"] == "Analiz yapılmıyor — model yüklenemedi"
+    assert SAGLIK_SORUN_METINLERI["model_yuklenemedi"] == "Analiz yapılmıyor - model yüklenemedi"
 
 
 def _islev_govdesi(kaynak: str, ad: str) -> str:
@@ -78,9 +78,9 @@ def test_ses_hatasi_bos_catch_ile_yutulmaz(islev, degisken):
 def test_ses_cipinin_uc_durumu_da_yazili():
     kaynak = (STATIK / "uyari.js").read_text(encoding="utf-8")
     for parca in (
-        "sesli uyarı KAPALI — açmak için tıklayın",
+        "sesli uyarı KAPALI - açmak için tıklayın",
         "Sesli uyarı çalışmıyor",
-        "Sesli uyarı beklemede — etkinleştirmek için tıklayın",
+        "Sesli uyarı beklemede - etkinleştirmek için tıklayın",
     ):
         assert parca in kaynak
 

@@ -41,7 +41,7 @@ DINLEME_ADRESI_VARSAYILAN = "127.0.0.1"
 # Kapanista acik baglantilar icin bekleme (sn). Olaylar ve komuta ekranlarinin
 # canli akisi (SSE) kendiliginden bitmez: sure verilmezse uvicorn kapanirken
 # onu SONSUZA kadar bekler (olculdu: 30 sn sonra hala bekliyordu), panel 8 sn
-# sonra sureci zorla kapatir ve kapanis kodu hic calismazdi — kameralar
+# sonra sureci zorla kapatir ve kapanis kodu hic calismazdi - kameralar
 # durmaz, "Sistem durdu" olayi yazilmazdi. Sure dolunca akis kesilir, tarayici
 # kendiliginden yeniden baglanir. Dockerfile ve docs/06 ayni sayiyi kullanir
 # (tests/test_platform_uyumu.py denetler).
@@ -54,7 +54,7 @@ IS_WINDOWS = os.name == "nt"
 # calistirmasinda bu ozellik YOKTUR.
 #
 # Paketlenmis programda IKI sey degisir:
-#   1. Kurulum adimi YOKTUR — Python ortami ve paketler uygulamanin icinde
+#   1. Kurulum adimi YOKTUR - Python ortami ve paketler uygulamanin icinde
 #      gelir; "Ilk Kurulumu Yap" dugmesi gosterilmez.
 #   2. Sunucu ALT SUREC OLARAK BASLATILAMAZ. Paketlenmis programda
 #      sys.executable artik python degil, UYGULAMANIN KENDISIDIR; onu
@@ -64,7 +64,7 @@ IS_WINDOWS = os.name == "nt"
 PAKETLENMIS = bool(getattr(sys, "frozen", False))
 
 APP_TITLE = (
-    "NextGen Detector — Kontrol Paneli" if PAKETLENMIS else "DALSAN İSG — Kontrol Paneli"
+    "NextGen Detector - Kontrol Paneli" if PAKETLENMIS else "DALSAN İSG - Kontrol Paneli"
 )
 
 
@@ -146,7 +146,7 @@ def windows_uygulama_kimligini_kur() -> None:
     try:
         import ctypes
 
-        # Bosluksuz, nokta ayrili kimlik — Microsoft'un istedigi bicim.
+        # Bosluksuz, nokta ayrili kimlik - Microsoft'un istedigi bicim.
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(
             "NextGen.Detector.KontrolPaneli"
         )
@@ -164,7 +164,7 @@ def pencere_simgesini_ata(kok, log=None) -> None:
             kok.iconbitmap(str(simge))
         # macOS'ta pencere simgesi .app kabugundan (.icns) gelir; iconbitmap
         # orada ya hicbir sey yapmaz ya da hata verir, cagrilmaz.
-    except Exception as hata:  # noqa: BLE001 — simge yuzunden pencere acilmazlik etmesin
+    except Exception as hata:  # noqa: BLE001 - simge yuzunden pencere acilmazlik etmesin
         if log is not None:
             log(f"[i] Pencere simgesi yuklenemedi: {hata}")
 
@@ -217,7 +217,7 @@ def venv_python() -> Path:
 # surume dusuruyor ve tespit sessizce bozuluyordu. Ust sinir: 3.13+ icin
 # tam paket henuz yesil kosmadi; pip orada ya hic kurulmayan ya da
 # denenmemis surumler secerdi. Sinir, tam test paketi yeni surumde
-# gectiginde genisler — tek yer burasi ve baslatma betikleri.
+# gectiginde genisler - tek yer burasi ve baslatma betikleri.
 PYTHON_ALT = (3, 12)
 PYTHON_UST = (3, 13)  # dahil degil
 _SURUM_DENETIMI = (
@@ -259,7 +259,7 @@ def venv_hazir() -> bool:
 
 
 def paketler_hazir() -> bool:
-    """FastAPI kurulu mu diye bakar — kurulumun bittiginin isareti."""
+    """FastAPI kurulu mu diye bakar - kurulumun bittiginin isareti."""
     if PAKETLENMIS:
         # Paketler uygulamanin icinde gelir; kurulacak bir sey yoktur.
         return True
@@ -291,7 +291,7 @@ BASKASINDA = "baskasinda"
 
 
 def sunucu_ayakta() -> bool:
-    """Port dinleniyor mu? (ucuz kontrol — kim dinliyor, onu SOYLEMEZ)"""
+    """Port dinleniyor mu? (ucuz kontrol - kim dinliyor, onu SOYLEMEZ)"""
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.settimeout(0.4)
         return s.connect_ex(("127.0.0.1", PORT)) == 0
@@ -307,7 +307,7 @@ def saglik_govdesi() -> dict | None:
         with urllib.request.urlopen(f"{URL}/saglik", timeout=2) as yanit:
             govde = json.loads(yanit.read(16384))
     except (urllib.error.URLError, OSError, ValueError):
-        # Baglanti yok, HTTP hatasi, JSON degil — hicbiri bizim sunucumuz
+        # Baglanti yok, HTTP hatasi, JSON degil - hicbiri bizim sunucumuz
         # demek degildir.
         return None
     return govde if isinstance(govde, dict) else None
@@ -322,7 +322,7 @@ def bizim_sunucumuz_mu() -> bool:
 
 
 def sunucu_durumu_ve_saglik() -> tuple[str, dict | None]:
-    """(durdu | calisiyor | baskasinda, /saglik govdesi) — tek istekle."""
+    """(durdu | calisiyor | baskasinda, /saglik govdesi) - tek istekle."""
     if not sunucu_ayakta():
         return DURDU, None
     govde = saglik_govdesi()
@@ -333,9 +333,9 @@ def sunucu_durumu_ve_saglik() -> tuple[str, dict | None]:
 
 # /saglik "sorunlar" kodlarinin paneldeki karsiliklari (docs/06 §2 tablosu).
 SAGLIK_SORUN_METINLERI = {
-    "analiz_takildi": "Analiz takıldı — uyarı üretilmiyor",
-    "analiz_olu": "Analiz durdu — uyarı üretilmiyor",
-    "model_yuklenemedi": "Tespit modeli yüklenemedi — uyarı üretilmiyor",
+    "analiz_takildi": "Analiz takıldı - uyarı üretilmiyor",
+    "analiz_olu": "Analiz durdu - uyarı üretilmiyor",
+    "model_yuklenemedi": "Tespit modeli yüklenemedi - uyarı üretilmiyor",
     "veritabani_acilamadi": "Veritabanı okunamıyor",
     "olay_yazilamadi": "Olaylar kaydedilemiyor (anons yine çalıyor)",
     "kritik_kural_pasif": "Mesafe/hız kuralı kalibrasyon bekliyor",
@@ -352,29 +352,29 @@ def analiz_satiri(govde: dict | None) -> tuple[str, str]:
     ulastigi dogrulanamiyorsa gri (uyari_garantisi, Faz 4).
     """
     if not govde:
-        return "—", "gri"
+        return "-", "gri"
     sorunlar = [k for k in govde.get("sorunlar") or [] if isinstance(k, str)]
     metin = "; ".join(SAGLIK_SORUN_METINLERI.get(k, k) for k in sorunlar)
     if govde.get("hazir") is False:
         if govde.get("model") in ("yukleniyor", "indiriliyor"):
-            return "Hazırlanıyor — tespit modeli yükleniyor…", "gri"
+            return "Hazırlanıyor - tespit modeli yükleniyor…", "gri"
         if not govde.get("analiz"):
-            return "Analiz çalışmıyor — uyarı üretilmiyor", "hata"
-        return metin or "Hazır değil — uyarı üretilemiyor", "hata"
+            return "Analiz çalışmıyor - uyarı üretilmiyor", "hata"
+        return metin or "Hazır değil - uyarı üretilemiyor", "hata"
     garanti = govde.get("uyari_garantisi", "yok")  # alan Faz 4'te gelir
     if garanti is False:
         return "Sesli uyarı hiçbir kanala ulaşmıyor", "hata"
     if metin:
         return metin, "uyari"
     if garanti is None:
-        return "Hazır — sesli uyarının ulaştığı doğrulanamıyor", "gri"
-    return "Hazır — uyarılar üretiliyor", "ok"
+        return "Hazır - sesli uyarının ulaştığı doğrulanamıyor", "gri"
+    return "Hazır - uyarılar üretiliyor", "ok"
 
 
 def sunucu_durumu() -> str:
     """durdu | calisiyor | baskasinda
 
-    NEDEN GEREKLI — 8080 cok yaygin bir porttur (XAMPP/MAMP, Tomcat, Jenkins,
+    NEDEN GEREKLI - 8080 cok yaygin bir porttur (XAMPP/MAMP, Tomcat, Jenkins,
     baska bir gelistirme sunucusu). Yalnizca "port dolu mu" diye bakan panel,
     baskasinin sunucusunu BIZIM sunucumuz sanir ve kullanici su kilide girer:
     durum satiri "CALISIYOR" der, "Sistemi Baslat" dugmesi kapali kalir,
@@ -448,7 +448,7 @@ def _sahipsiz_sureci_durdur(log) -> bool:
 #
 # NEDEN KONTROL PANELINDE: kullaniciya "terminal ac, git pull yaz" demek
 # CLAUDE.md §8'e aykiri. Ayrica guncellemenin ardindan sistemin YENIDEN
-# BASLATILMASI gerekir ve bunu yalnizca panel yapabilir — calisan surec kendi
+# BASLATILMASI gerekir ve bunu yalnizca panel yapabilir - calisan surec kendi
 # kodunu degistiremez.
 #
 # NEDEN WEB ARAYUZUNDE DEGIL: web arayuzunden calistirilan bir "git pull",
@@ -487,7 +487,7 @@ def guncelleme_durumu():
 
     durum: "guncel" | "var" | "hata" | "depo-degil"
     Ag erisimi gerekir; internetsiz fabrikada "hata" doner ve sistem bundan
-    etkilenmez — guncelleme istege bagli bir istektir, arka planda calismaz.
+    etkilenmez - guncelleme istege bagli bir istektir, arka planda calismaz.
     """
     if not git_deposu_mu():
         return "depo-degil", "Bu kurulum bir git deposu degil; guncelleme paket kopyalayarak yapilir."
@@ -528,7 +528,7 @@ def guncelle(yedek_al=True):
     # YALNIZ IZLENEN dosyalara bakilir (--untracked-files=no): sunucuda birakilan
     # bir not dosyasi ya da gecici bir cikti guncellemeyi bloke etmemeli. Git
     # bunlarin ustune zaten yazmaz. Bizi ilgilendiren, DEPODAKI bir dosyanin
-    # elle degistirilmis olmasidir — onun ustune yazmak sessiz veri kaybidir.
+    # elle degistirilmis olmasidir - onun ustune yazmak sessiz veri kaybidir.
     basarili, kirli = _git("status", "--porcelain", "--untracked-files=no", zaman_asimi=30)
     if basarili and kirli.strip():
         return False, [
@@ -684,7 +684,7 @@ def _ic_surecte_baslat(log, gunluk_yaz=None):
     from app.hatalar import AyarHatasi
 
     # On kontrol: app.main ayni dogrulamayi yapar ama hatasini stderr'e
-    # yazar — .app olarak acildiginda stderr hicbir yere gitmez ve kullanici
+    # yazar - .app olarak acildiginda stderr hicbir yere gitmez ve kullanici
     # sebebi HIC goremezdi.
     try:
         ayarlari_yukle()
@@ -801,7 +801,7 @@ def arayuzu_baslat():
     durum_cerceve.pack(fill="x", padx=24, pady=10)
 
     # Paketlenmis programda kurulum satirlari GOSTERILMEZ: Python, paketler ve
-    # kod uygulamanin icinde gelir — kullanicinin bakacagi tek satir sistemin
+    # kod uygulamanin icinde gelir - kullanicinin bakacagi tek satir sistemin
     # calisip calismadigidir.
     # "Analiz" satiri calisan sistemin uyari uretip uretemedigini soyler
     # (/saglik hazir; docs/17 §9.1): "CALISIYOR" yazan bir sistem de analiz
@@ -918,9 +918,9 @@ def arayuzu_baslat():
         elif paket_hazir:
             ayarla("paket", "Kurulu", OK)
         elif venv_hazir():
-            ayarla("paket", "Eksik — 'İlk Kurulumu Yap'a basın", WARN)
+            ayarla("paket", "Eksik - 'İlk Kurulumu Yap'a basın", WARN)
         else:
-            ayarla("paket", "Kurulmamış — 'İlk Kurulumu Yap'a basın", WARN)
+            ayarla("paket", "Kurulmamış - 'İlk Kurulumu Yap'a basın", WARN)
 
         if kod_hazir():
             ayarla("kod", "Hazır", OK)
@@ -932,17 +932,17 @@ def arayuzu_baslat():
         ayakta = sunucu_hali == CALISIYOR
         durum["calisiyor"] = ayakta
         if ayakta:
-            ayarla("sunucu", f"ÇALIŞIYOR — {URL}", OK)
+            ayarla("sunucu", f"ÇALIŞIYOR - {URL}", OK)
             metin, renk = analiz_satiri(sunucu_bilgisi["saglik"])
             ayarla("analiz", metin, {"ok": OK, "uyari": WARN, "hata": ERR}.get(renk, MUTED))
         elif sunucu_hali == BASKASINDA:
             # "Durdu" demek yanlis olurdu: kullanici Baslat'a basacak ve
             # sebebini anlamadan basarisiz olacakti. Sebep burada yazar.
             ayarla("sunucu", f"{PORT} portunu başka bir program tutuyor", ERR)
-            ayarla("analiz", "—", MUTED)
+            ayarla("analiz", "-", MUTED)
         else:
             ayarla("sunucu", "Durdu", MUTED)
-            ayarla("analiz", "—", MUTED)
+            ayarla("analiz", "-", MUTED)
 
         baslat_btn.configure(state="normal" if (paket_hazir and kod_hazir() and not ayakta) else "disabled")
         durdur_btn.configure(state="normal" if ayakta else "disabled")
@@ -990,7 +990,7 @@ def arayuzu_baslat():
             gecen = 0
             while not bitti.wait(20):
                 gecen += 20
-                log(f"   … sürüyor ({gecen} sn geçti) — indirme devam ediyor, pencereyi kapatmayın.")
+                log(f"   … sürüyor ({gecen} sn geçti) - indirme devam ediyor, pencereyi kapatmayın.")
 
         threading.Thread(target=yasam_isareti, daemon=True).start()
         try:
@@ -1011,7 +1011,7 @@ def arayuzu_baslat():
             log("       sonra bu paneli kapatıp yeniden açın.")
             return
         log("=" * 60)
-        log("İLK KURULUM BAŞLIYOR — internet hızına göre 2-10 dakika sürer.")
+        log("İLK KURULUM BAŞLIYOR - internet hızına göre 2-10 dakika sürer.")
         log("Aşağıya indirme satırları düşecek; ekran arada sessiz kalsa da")
         log("kurulum sürüyor demektir. PENCEREYİ KAPATMAYIN.")
         klasorleri_hazirla()
@@ -1034,7 +1034,7 @@ def arayuzu_baslat():
                             "--progress-bar", "off"],
                            "Gerekli paketler kuruluyor (en uzun adım bu)")
         else:
-            log("[!] backend/requirements.txt bulunamadı — bu dosya Claude Code ile üretilecek.")
+            log("[!] backend/requirements.txt bulunamadı - bu dosya Claude Code ile üretilecek.")
 
         paketleri_arkada_kontrol_et()
         log("\n✓ KURULUM TAMAMLANDI")
@@ -1095,7 +1095,7 @@ def arayuzu_baslat():
             alt_surecte_baslat()
 
         # ILK acilis uzun surer: tanima modeli bir kez indirilir (~20-35 MB) ve
-        # gecici onbellekler kurulur. 20 saniye yetmiyordu — sistem aslinda
+        # gecici onbellekler kurulur. 20 saniye yetmiyordu - sistem aslinda
         # sorunsuz acilirken ekranda "acilmadi" yaziyor, kullanici korkuyordu.
         for adim in range(360):      # en fazla 3 dakika
             if sunucu_ayakta():
@@ -1104,7 +1104,7 @@ def arayuzu_baslat():
                 kok.after(400, lambda: izleme_ekranini_ac(log))
                 return
             if adim and adim % 30 == 0:
-                log(f"   … hazırlanıyor ({adim // 2} sn geçti) — pencereyi kapatmayın.")
+                log(f"   … hazırlanıyor ({adim // 2} sn geçti) - pencereyi kapatmayın.")
             time.sleep(0.5)
         log("[!] Sistem 3 dakikada açılmadı. Yukarıdaki hata satırlarına bakın.")
 
@@ -1137,7 +1137,7 @@ def arayuzu_baslat():
 
         Guncelleme kodu degistirir; calisan surec kendi kodunu degistiremez,
         bu yuzden once durdurulmasi gerekir. Ardindan "Sistemi Baslat"a
-        basmak yeter — panel bunu ekranda soyler.
+        basmak yeter - panel bunu ekranda soyler.
         """
         if sunucu_ayakta():
             log("[!] Güncelleme için sistemin durmuş olması gerekir.")
@@ -1176,7 +1176,7 @@ def arayuzu_baslat():
         durumu_yenile()
 
     def yedekten_don():
-        """Yedekten geri yukleme — SISTEM DURMUSKEN.
+        """Yedekten geri yukleme - SISTEM DURMUSKEN.
 
         Uc kapi vardir ve ucu de bilerek konmustur:
           1. Sistem calisiyorsa reddedilir (acik veritabani dosyasinin altindan
@@ -1306,7 +1306,7 @@ def arayuzu_baslat():
     if PAKETLENMIS:
         # Cift tiklanan bir uygulamada ikinci bir "baslat" tiklamasi
         # gereksizdir: pencerenin kendisi zaten "kapatirsaniz sistem durur"
-        # diyor — yani pencere acikken sistem calisiyor demektir. Kurulum
+        # diyor - yani pencere acikken sistem calisiyor demektir. Kurulum
         # adimi da olmadigi icin kullanicinin yapabilecegi baska bir sey yok.
         # Baslatma basarisiz olursa "Sistemi Baslat" dugmesi yerinde durur;
         # kullanici sebebini gunlukte gorup tekrar deneyebilir.

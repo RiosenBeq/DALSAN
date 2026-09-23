@@ -1,27 +1,27 @@
 """İzleme ekranını TARAYICI SEKMESİ yerine kendi penceresinde açar.
 
-SORUN — Kontrol Paneli "İzleme Ekranını Aç" dediğinde `webbrowser.open()`
+SORUN - Kontrol Paneli "İzleme Ekranını Aç" dediğinde `webbrowser.open()`
 çağırıyordu. Sonuç, kullanıcının gördüğü haliyle şuydu: adres çubuğu, sekmeler,
 yer imleri, arama kutusu, eklenti simgeleri. Yani bir UYGULAMA değil, bir web
 sayfası. Görev çubuğunda/Dock'ta da programın değil TARAYICININ simgesi
 görünüyordu; kullanıcı iki pencere arasında hangisinin "sistem" olduğunu
 ayırt edemiyordu.
 
-ÇÖZÜM — Chromium tabanlı tarayıcıların "uygulama kipi" (`--app=ADRES`).
+ÇÖZÜM - Chromium tabanlı tarayıcıların "uygulama kipi" (`--app=ADRES`).
 Açılan pencerede adres çubuğu, sekme şeridi ve yer imleri YOKTUR; görev
 çubuğunda AYRI bir giriş olarak, kendi başlığıyla durur. Kullanıcı açısından
 bu bir uygulama penceresidir.
 
-NEDEN pywebview / Qt / Electron DEĞİL (CLAUDE.md §3 — en az parça):
+NEDEN pywebview / Qt / Electron DEĞİL (CLAUDE.md §3 - en az parça):
 
   * Windows'ta Microsoft Edge her kurulumda VARDIR ve kaldırılamaz. Yani
     ek bir şey indirmeden, kurmadan, paketlemeden uygulama penceresi elde
     edilir.
   * pywebview Windows'ta pythonnet + WebView2 çalışma zamanı ister; ikisi de
     paketin boyutunu ve "çalışmama" ihtimalini büyütür.
-  * Qt/Electron zaten açıkça yasaklı (CLAUDE.md §4 — Node.js YOK).
+  * Qt/Electron zaten açıkça yasaklı (CLAUDE.md §4 - Node.js YOK).
 
-DÜRÜST GERİ ÇEKİLME — uygun bir tarayıcı bulunamazsa (çıplak bir Mac'te
+DÜRÜST GERİ ÇEKİLME - uygun bir tarayıcı bulunamazsa (çıplak bir Mac'te
 yalnız Safari varsa) sistem SESSİZCE olağan tarayıcıyı açar ve Kontrol Paneli
 günlüğüne tek satır not düşer. "Uygulama gibi açılamadı" diye işi durdurmak,
 çalışan bir ekranı hiç açmamaktan iyi değildir.
@@ -46,7 +46,7 @@ PENCERE_GENISLIGI = 1440
 PENCERE_YUKSEKLIGI = 900
 
 # Aday tarayıcılar, TERCİH SIRASINA göre. Sıra rastgele değil:
-#   Windows'ta Edge her kurulumda vardır — ilk sırada olması, hiçbir şey
+#   Windows'ta Edge her kurulumda vardır - ilk sırada olması, hiçbir şey
 #   kurmamış bir kullanıcıda da uygulama penceresinin açılması demektir.
 #   macOS'ta Edge genelde yoktur; Chrome ve Brave yaygındır.
 # Safari ve Firefox BİLEREK YOK: ikisinin de uygulama kipi (çerçevesiz,
@@ -55,7 +55,7 @@ PENCERE_YUKSEKLIGI = 900
 # Yollar TERS BÖLÜLÜ METİN DEĞİL, parça listesi olarak yazılır: `Path` onları
 # çalışılan işletim sisteminin ayracıyla birleştirir. Metin olsalardı bu
 # arama yalnız Windows'ta anlamlı olur, dolayısıyla yalnız Windows'ta
-# sınanabilirdi — yani hiç sınanmazdı (geliştirme Mac'te yapılıyor).
+# sınanabilirdi - yani hiç sınanmazdı (geliştirme Mac'te yapılıyor).
 _WINDOWS_ADAYLARI = (
     ("Microsoft", "Edge", "Application", "msedge.exe"),
     ("Google", "Chrome", "Application", "chrome.exe"),
@@ -162,7 +162,7 @@ def ac(adres: str, profil_klasoru: Path | None = None, log=None) -> bool:
                 # veren tarayıcı hiç açılmaz. Profilsiz pencere yine iş görür.
                 profil_klasoru = None
         try:
-            subprocess.Popen(  # noqa: S603 — yol bizim listemizden, kullanıcı girdisi değil
+            subprocess.Popen(  # noqa: S603 - yol bizim listemizden, kullanıcı girdisi değil
                 komut(tarayici, adres, profil_klasoru),
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
@@ -172,7 +172,7 @@ def ac(adres: str, profil_klasoru: Path | None = None, log=None) -> bool:
         except OSError as hata:
             # Tarayıcı dosyası duruyor ama çalıştırılamıyor (izin, bozuk
             # kurulum, virüs korumasının kilidi). Sebep günlüğe yazılır ve
-            # olağan tarayıcıya düşülür — kullanıcı ekransız kalmaz.
+            # olağan tarayıcıya düşülür - kullanıcı ekransız kalmaz.
             yaz(f"[!] Uygulama penceresi açılamadı ({hata}); tarayıcıda açılıyor.")
     else:
         yaz(

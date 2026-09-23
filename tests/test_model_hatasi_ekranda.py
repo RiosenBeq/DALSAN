@@ -3,14 +3,14 @@
 Neden ayrı bir dosya gerekti (bu testlerin var oluş sebebi):
 
 `tests/test_gorunen_model_adi.py` kaynak koddaki metin SABİTLERİNİ tarar.
-Sızıntı ise sabitte değil, f-string ile ÇALIŞMA ANINDA kuruluyordu — dosya
+Sızıntı ise sabitte değil, f-string ile ÇALIŞMA ANINDA kuruluyordu - dosya
 yolu ve dosya adı koda yazılı olmadığı için tarama onları göremezdi. Yani
 "sabitte 'yolox' geçmiyor" demek, "ekranda 'yolox' görünmüyor" demek DEĞİLDİR.
 
 Buradaki testler sabite hiç bakmaz. Uygulamayı gerçekten ayağa kaldırır,
 modeli bilerek eksiltir/bozar, süpervizörün GERÇEK hata yolunu çalıştırır ve
-tarayıcıya giden HTML'i okur. Sızıntı hangi yoldan gelirse gelsin — f-string,
-şablon, istisna metni — bu testler görür.
+tarayıcıya giden HTML'i okur. Sızıntı hangi yoldan gelirse gelsin - f-string,
+şablon, istisna metni - bu testler görür.
 
 İki yönlü kontrol yapılır, çünkü tek yön yetmez:
   1) Yasaklı parçalar HTML'de GEÇMEMELİ (sızıntı yok).
@@ -18,7 +18,7 @@ tarayıcıya giden HTML'i okur. Sızıntı hangi yoldan gelirse gelsin — f-str
 Sadece (1) olsaydı, boş bir sayfa da testi geçerdi.
 
 Teknik ayrıntı kaybolmuyor: aynı testler tam dosya yolunun günlük metninde
-(`teknik_ayrinti`) DURDUĞUNU da doğrular — destek akışı oradan kopyalanıyor.
+(`teknik_ayrinti`) DURDUĞUNU da doğrular - destek akışı oradan kopyalanıyor.
 """
 
 from __future__ import annotations
@@ -77,7 +77,7 @@ def _hatali_model_ile_ac(ayarlar):
     """Uygulamayı ayağa kaldırır, tespitçiyi GERÇEK kod yoluyla kurmayı dener.
 
     Süpervizör iş parçacığı başlatılmaz (kameralar açılmasın); onun yerine
-    hatayı üreten adım — `_tespitciyi_kur` — doğrudan çağrılır. Böylece ekrana
+    hatayı üreten adım - `_tespitciyi_kur` - doğrudan çağrılır. Böylece ekrana
     basılan metin, sahada basılacak metnin ta kendisidir; test için elle
     yazılmış bir taklidi değil.
     """
@@ -103,7 +103,7 @@ def _hata_sayfalari(istemci) -> dict[str, str]:
 
     Ana sayfa "Tespit modeli" satırında mesajı basar; süpervizör aynı mesajı
     sistem olayı olarak da yazdığı için olay listesi ve olay ayrıntısı da
-    kontrol edilir — sızıntı bu üç yerden herhangi birinde çıkabilir.
+    kontrol edilir - sızıntı bu üç yerden herhangi birinde çıkabilir.
 
     Komuta ekranı da listeye eklendi: ilk kurulum kontrol listesinin ilk satırı
     aynı hata metnini gösteriyor, yani sızıntı için DÖRDÜNCÜ bir yol açıldı.
@@ -123,12 +123,12 @@ def _hata_sayfalari(istemci) -> dict[str, str]:
 def _markali_dogrula(sayfalar: dict[str, str], beklenen_ad: str) -> None:
     """Mesaj gerçekten basılmış mı? (Boş sayfa testi geçmesin.)"""
     ana = sayfalar["/"]
-    assert MARKA in ana, "Ana sayfada marka adı yok — hata mesajı hiç basılmamış olabilir"
+    assert MARKA in ana, "Ana sayfada marka adı yok - hata mesajı hiç basılmamış olabilir"
     assert beklenen_ad in ana, f"Ana sayfada beklenen ürün adı yok: {beklenen_ad}"
     assert "Kontrol Paneli" in ana, "Kullanıcıya ne yapacağı söylenmemiş"
 
     olaylar = sayfalar["/olaylar"]
-    assert MARKA in olaylar, "Olay listesinde marka adı yok — sistem olayı yazılmamış olabilir"
+    assert MARKA in olaylar, "Olay listesinde marka adı yok - sistem olayı yazılmamış olabilir"
 
 
 # ---- 1. dal: model dosyası hiç yok (kullanıcının kendi modeli) ----
@@ -160,7 +160,7 @@ def test_model_dosyasi_yokken_ekranda_teknik_ayrinti_cikmaz(test_ayarlari):
 def test_hazir_model_inmediyse_ekranda_teknik_ayrinti_cikmaz(test_ayarlari, monkeypatch):
     """Hazır model seçili ama dosya yerine ulaşmamış (indirme yarıda kalmış,
     disk dolmuş vb.). İndirme adımı testte ağa çıkmasın diye devre dışı
-    bırakılır — mesajı üreten kod yolu bundan sonrası, tamamen gerçektir.
+    bırakılır - mesajı üreten kod yolu bundan sonrası, tamamen gerçektir.
     """
     import app.analiz.supervizor as supervizor_modulu
 
@@ -228,5 +228,5 @@ def test_tam_dosya_yolu_gunluk_metninde_duruyor(test_ayarlari, monkeypatch, bozu
         Tespitci(ayarlar.model_dosyasi, "cpu")
 
     assert str(ayarlar.model_dosyasi) in hata.value.teknik_ayrinti, (
-        "Tam dosya yolu günlük metninden de silinmiş — destek akışı kör kalır"
+        "Tam dosya yolu günlük metninden de silinmiş - destek akışı kör kalır"
     )

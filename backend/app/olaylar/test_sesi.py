@@ -1,6 +1,6 @@
 """Hoparlörü denemek için kısa bir test sesi üretir ve çalar.
 
-NEDEN AYRI BİR SES — "Anonsu Dene" düğmesi bir MESAJA ve ona bağlı bir .wav
+NEDEN AYRI BİR SES - "Anonsu Dene" düğmesi bir MESAJA ve ona bağlı bir .wav
 dosyasına ihtiyaç duyar. Hoparlörünü ilk kez bağlayan kullanıcının elinde
 henüz ikisi de yoktur. Ona "önce bir ses dosyası hazırlayın" demek, kurulumun
 daha ilk adımında duvara toslatmaktır; oysa o anda sorduğu soru çok basit:
@@ -31,7 +31,7 @@ from app.olaylar.anons import AnonsHatasi, SesKartiAnonscu
 
 _log = log_al("ses")
 
-ORNEKLEME_HIZI = 22050  # Hz — konuşma/bip için fazlasıyla yeterli, dosya küçük
+ORNEKLEME_HIZI = 22050  # Hz - konuşma/bip için fazlasıyla yeterli, dosya küçük
 TON_HZ = 880.0  # yüksek la; fabrika uğultusunun üstünde kalır
 BIP_SN = 0.18
 SESSIZLIK_SN = 0.12
@@ -88,7 +88,7 @@ def cal(cihaz: str = "") -> str:
         return f"Test sesi üretilemedi: {hata}"
     try:
         # Gerçek anonsun çaldığı YOLUN AYNISI kullanılır. Ayrı bir çalma kodu
-        # yazılsaydı test çalar, gerçek anons sessizce çalmayabilirdi — yani
+        # yazılsaydı test çalar, gerçek anons sessizce çalmayabilirdi - yani
         # düğme tam da güvenilmesi gereken yerde yalan söylerdi.
         SesKartiAnonscu(cihaz).cal("test", "Test sesi", str(gecici))
     except AnonsHatasi as hata:

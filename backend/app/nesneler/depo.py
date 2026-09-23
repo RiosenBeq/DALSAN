@@ -3,7 +3,7 @@
 Fotoğraflar `veri/nesneler/` altına yazılır (.env → NESNE_KLASORU). Bu klasör
 GÖRÜNTÜ KLASÖRÜNÜN DIŞINDADIR: bakım döngüsü (supervizor.py) saklama süresi
 dolan kanıt fotoğraflarını siler, ama kullanıcının elle tanıttığı nesne
-fotoğrafları bir kanıt değildir ve kendiliğinden silinmez — tıpkı etiketlenmiş
+fotoğrafları bir kanıt değildir ve kendiliğinden silinmez - tıpkı etiketlenmiş
 KKD örneklerinin korunduğu gibi (docs/06 §5).
 
 Parmak izleri veritabanında TUTULMAZ; her ihtiyaçta fotoğraflardan yeniden
@@ -86,7 +86,7 @@ def fotograf_ekle(
     except OSError as hata:
         raise DogrulamaHatasi(
             f"'{dosya_adi}' kaydedilemedi: {hata.strerror or 'disk hatası'}.",
-            f"nesne fotoğrafı yazılamadı: {hedef} — {hata!r}",
+            f"nesne fotoğrafı yazılamadı: {hedef} - {hata!r}",
         ) from hata
 
     # Gerçekten okunabilir bir görüntü mü? (bozuk dosya kütüphaneyi kirletmesin)
@@ -132,7 +132,7 @@ def _dosya_sil(dosya: Path) -> None:
     except OSError:
         # Windows'ta başka bir işlem (Defender, yedekleme) dosyayı açık tutabilir.
         # Sessizce geçmiyoruz: dosya bir sonraki silmede ya da elle temizlenir,
-        # veritabanı kaydı ise şimdi gidiyor — ekranda kırık resim kalmaz.
+        # veritabanı kaydı ise şimdi gidiyor - ekranda kırık resim kalmaz.
         return
 
 
@@ -168,7 +168,7 @@ def teshisleri_al(baglanti: sqlite3.Connection, klasor: Path) -> dict[int, teshi
 
     BAYATLAMAYA KARŞI: satırda ölçümün dayandığı fotoğraf id'leri de yazar.
     Fotoğraf eklenir/silinirse anahtar tutmaz ve teşhis kendiliğinden yeniden
-    hesaplanır — elle "geçersiz kıl" adımı yoktur, unutulacak adım da yoktur.
+    hesaplanır - elle "geçersiz kıl" adımı yoktur, unutulacak adım da yoktur.
     """
     onbellek = {
         satir["object_id"]: satir
@@ -224,7 +224,7 @@ def nesneleri_yukle(baglanti: sqlite3.Connection, klasor: Path) -> list[Nesne]:
 
     Dosyası silinmiş ya da okunamayan fotoğraf ATLANIR: tek bozuk dosya yüzünden
     kütüphanenin tamamı çalışmaz duruma düşmemeli. Hiç parmak izi çıkmayan nesne
-    listeye girmez — adı var, izi yok bir nesne taramada hiçbir işe yaramaz.
+    listeye girmez - adı var, izi yok bir nesne taramada hiçbir işe yaramaz.
     """
     nesneler: list[Nesne] = []
     for satir in baglanti.execute("SELECT * FROM library_objects ORDER BY id"):

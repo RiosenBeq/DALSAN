@@ -1,4 +1,4 @@
-# DALSAN İSG — fabrika sunucusu için tek container (CLAUDE.md §4).
+# DALSAN İSG - fabrika sunucusu için tek container (CLAUDE.md §4).
 # Geliştirmede Docker KULLANILMAZ; bu dosya yalnızca fabrika kurulumu içindir.
 FROM python:3.12-slim
 
@@ -53,7 +53,7 @@ WORKDIR /uygulama/backend
 ENV PYTHONUNBUFFERED=1
 EXPOSE 8080
 
-# Kontrol Paneli'nin kullandığı komutun aynısı — davranış birebir aynı olsun.
+# Kontrol Paneli'nin kullandığı komutun aynısı - davranış birebir aynı olsun.
 # --timeout-graceful-shutdown: açık canlı akış (SSE) bağlantısı kapanışı
 # sonsuza kadar bekletmesin; `docker stop` 10 sn sonra SIGKILL gönderir ve
 # kapanış kodu ("Sistem durdu", kameraların durması) hiç çalışmazdı.

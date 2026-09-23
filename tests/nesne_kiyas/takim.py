@@ -6,7 +6,7 @@ Kurgu, sahadaki kullanımın birebir karşılığıdır:
 
 Sorgular referanslardan BİLEREK farklıdır; gerçek hayatta ne değişiyorsa o
 değişir: açı, ölçek, aydınlatma, bulanıklık, JPEG bozulması, kısmi örtülme ve
-arka plan. Her bozulma iki şiddette sorulur (hafif / sert) — motorun nerede
+arka plan. Her bozulma iki şiddette sorulur (hafif / sert) - motorun nerede
 dayandığı, nerede koptuğu böyle görünür.
 
 Zeminler önemlidir: her nesnenin bir "evi" vardır (durduğu yerin zemini) ve
@@ -19,7 +19,7 @@ Ayrıca kütüphanede HİÇ OLMAYAN nesneler ve boş zeminler de sorulur; bunlar
 isim yazılması kaçırmaktan çok daha ağır bir kusurdur.
 
 SERTLEŞTİRME (bu takımın sonradan kapatılmış KÖR NOKTASI). İlk takım motorun
-en zayıf dalını — kararı YALNIZ renge bırakan "iki taraf da desensiz" dalını —
+en zayıf dalını - kararı YALNIZ renge bırakan "iki taraf da desensiz" dalını -
 hiç sınamıyordu. Üç eksik vardı ve üçü de kapatıldı:
 
   1. Yabancı nesnelerin hepsi kütüphanedekilerden BAŞKA renkteydi. Şimdi
@@ -28,7 +28,7 @@ hiç sınamıyordu. Üç eksik vardı ve üçü de kapatıldı:
      beyaz çuval/levha), 24 sorgu. Hepsi negatiftir.
   2. Boş zemin sorgularının hiçbiri gerçekten desensiz değildi (tam karede
      14-111 ORB noktası). Şimdi `cizim.DESENSIZ_ZEMIN_TURLERI` var: bulanık,
-     karanlık ve tek renge boyanmış yüzeyler — ölçülen ORB nokta sayısı
+     karanlık ve tek renge boyanmış yüzeyler - ölçülen ORB nokta sayısı
      SIFIR, yani düz-düz dalına gerçekten giriyorlar.
   3. En sert bulanıklık k=9'du, yani kütüphanedeki bir nesnenin deseni hiç
      tamamen silinmiyordu. Şimdi k=13/15/17 kademeleri de var: deseni silinen
@@ -174,17 +174,17 @@ YABANCILAR: tuple[NesneTanimi, ...] = _zeminli(
     )
 )
 
-# SERTLEŞTİRME 1 — kütüphanedekiyle AYNI RENKTE, düz, YABANCI nesneler.
+# SERTLEŞTİRME 1 - kütüphanedekiyle AYNI RENKTE, düz, YABANCI nesneler.
 #
 # Bunlar `YABANCILAR`dan ayrı durur çünkü ölçtükleri şey başkadır: oradakiler
 # "başka renkte bir şeye isim yazılıyor mu" diye sorar (motorun kolay işi),
-# buradakiler "renk aynıysa, desen yokken ne oluyor" diye sorar — motorun
+# buradakiler "renk aynıysa, desen yokken ne oluyor" diye sorar - motorun
 # kararı YALNIZ renge bıraktığı dal. Doğru cevap hepsinde "eşleşme yok"tur.
 #
 # Her biri, ikizinin DURDUĞU zemine konur. Bu bilerek yapılmıştır: fabrikada
 # yabancı nesne de aynı zeminin üstündedir, ve zemin farklı olsaydı sorgu
 # kolaylaşır, delik görünmezdi. "arka plan (sert)" bozulması ise nesneyi
-# bambaşka bir zemine taşır — böylece "adı nesne mi yazdırıyor, zemin mi"
+# bambaşka bir zemine taşır - böylece "adı nesne mi yazdırıyor, zemin mi"
 # sorusu da ölçülmüş olur.
 DUZ_YABANCILAR: tuple[NesneTanimi, ...] = (
     NesneTanimi(
@@ -260,12 +260,12 @@ _REFERANS_VARYASYONLARI = (
 
 # Sorgu bozulmaları: yedi tür, her biri en az iki şiddette.
 #
-# SERTLEŞTİRME 3 — bulanıklık beş kademelidir. Parantezdeki sayı Gauss
+# SERTLEŞTİRME 3 - bulanıklık beş kademelidir. Parantezdeki sayı Gauss
 # çekirdeğidir. k=5 ve k=9 nesneyi yalnız yumuşatır; k=13/15/17 ise deseni
 # GERÇEKTEN siler ve nesneyi motorun gözünde desensiz bir renk yamasına
 # çevirir. Kritik olan kademeler bunlardır: deseni silinen bir kütüphane
 # nesnesi, kendi adını değil KARDEŞİNİN adını alabilir (kütüphane içi yanlış
-# isim). Ölçüldü — bugün "Gri pano A" k=13/15/17'de her seferinde "Gri pano B"
+# isim). Ölçüldü - bugün "Gri pano A" k=13/15/17'de her seferinde "Gri pano B"
 # adayını en tepeye çıkarıyor, skor 0,20-0,24 ile çıtanın hemen altında
 # duruyor. Bu üç kademe olmasaydı o rakam hiç görünmezdi.
 _SORGU_TARIFLERI: tuple[Bozulma, ...] = (
@@ -289,14 +289,14 @@ _SORGU_TARIFLERI: tuple[Bozulma, ...] = (
 )
 
 # Küçük takım: pytest kapısı tam takımı çalıştıracak kadar hızlı değildir.
-# Seçim rastgele değil — her zorluk kademesinden bir nesne ve YANLIŞ İSİM
+# Seçim rastgele değil - her zorluk kademesinden bir nesne ve YANLIŞ İSİM
 # tuzağının iki yarısı da içeride kalır.
 _KUCUK_ADLAR = (
     "Uyarı panosu (yazılı)",  # yüksek desenli
     "Halkalı gaz tüpü",  # orta desenli
-    "Düz mavi bidon",  # düz renkli — mavi yabancıların ikizi
-    "Düz beyaz baret",  # düz renkli — beyaz yabancıların ikizi
-    "Gri boru",  # düz renkli — gri sac levhanın ikizi
+    "Düz mavi bidon",  # düz renkli - mavi yabancıların ikizi
+    "Düz beyaz baret",  # düz renkli - beyaz yabancıların ikizi
+    "Gri boru",  # düz renkli - gri sac levhanın ikizi
     "Gri pano A (kareli)",  # tuzak 1'in iki yarısı
     "Gri pano B (çapraz)",
     "Sarı çizgili kasa",  # tuzak 2'nin iki yarısı
@@ -308,7 +308,7 @@ _KUCUK_ADLAR = (
 _KUCUK_BOZULMALAR = (
     "açı (hafif)",
     "bulanıklık (sert)",
-    "bulanıklık (17)",  # deseni SİLİNEN kütüphane nesnesi — kardeş adı tuzağı
+    "bulanıklık (17)",  # deseni SİLİNEN kütüphane nesnesi - kardeş adı tuzağı
     "arka plan (sert)",
 )
 
@@ -338,7 +338,7 @@ def referans_gorselleri(tanim: NesneTanimi) -> list[np.ndarray]:
     """Kütüphaneye yüklenecek 4 fotoğraf: nesne yakın plan, kendi zemininde.
 
     Çerçeve nesneye YAKIN tutulur (kenarda %15 pay) ve nesnenin kendi en boy
-    oranını korur — insan da öyle fotoğraf çeker: yatık bir boruyu enine,
+    oranını korur - insan da öyle fotoğraf çeker: yatık bir boruyu enine,
     dikey bir tüpü boyuna çerçeveler. Kareye tamamlamak, çerçevenin yarısını
     zemine ayırırdı; o zaman ölçtüğümüz şey nesne değil, altındaki zemin
     olurdu.
@@ -376,7 +376,7 @@ def _parmakizleri(tanim: NesneTanimi) -> list[Parmakizi]:
     for gorsel in referans_gorselleri(tanim):
         izi = parmakizi_cikar(gorsel)
         if izi is None:
-            raise ValueError(f"'{tanim.ad}' referansından parmak izi çıkmadı — çizim bozuk.")
+            raise ValueError(f"'{tanim.ad}' referansından parmak izi çıkmadı - çizim bozuk.")
         izler.append(izi)
     return izler
 
@@ -525,7 +525,7 @@ def _tohum(ad: str, ek: int) -> int:
 
 
 def gorselleri_yaz(takim: Takim, klasor: Path) -> int:
-    """Takımı diske döker — kullanıcı neyin ölçüldüğünü GÖZÜYLE görebilsin diye."""
+    """Takımı diske döker - kullanıcı neyin ölçüldüğünü GÖZÜYLE görebilsin diye."""
     klasor.mkdir(parents=True, exist_ok=True)
     yazilan = 0
     for tanim in KUTUPHANE:  # DUZ_YABANCILAR'ın referansı YOKTUR (kütüphaneye girmez)

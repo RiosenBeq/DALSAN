@@ -1,4 +1,4 @@
-"""Kural tipi 4 — vehicle_speed: Araç hız sınırı (docs/03 §4).
+"""Kural tipi 4 - vehicle_speed: Araç hız sınırı (docs/03 §4).
 
 Soru: Forklift (ya da tır) fabrika içindeki hız sınırını aştı mı?
 
@@ -9,7 +9,7 @@ istatistiklerinde hız tek başına bir risktir.
 
 Kalibrasyon zorunluluğu: hız, ayak noktasının ZEMİNDEKİ yer değişiminden
 hesaplanır (rules/motor.py). Kamera kalibre edilmemişse `Tespit.hiz_mps`
-hiç üretilmez; kural sessizce yaklaşık sonuç uydurmaz, açıkça pasif kalır —
+hiç üretilmez; kural sessizce yaklaşık sonuç uydurmaz, açıkça pasif kalır -
 güvenli mesafe kuralıyla aynı davranış (docs/03 §2).
 
 TEK KARE KARARI YOKTUR (CLAUDE.md §7). Kare başına hız ölçümü gürültülüdür:
@@ -17,7 +17,7 @@ tespit kutusunun bir karelik oynaması ayak noktasını santimetrelerce kaydır�
 ve 0,2 saniyelik aralığa bölününce metre/saniyelik bir sıçrama gibi görünür.
 Karar, aynı takibin son N ölçümünün ORTANCASINA bakılarak verilir. Ortanca
 seçildi çünkü tek bir sıçrama ortalamayı yukarı çeker ama ortancayı
-etkilemez — ve ekrana yazılan sayı da bu ortancadır, yani kullanıcı olay
+etkilemez - ve ekrana yazılan sayı da bu ortancadır, yani kullanıcı olay
 kaydında sıçrama değeri değil aracın gerçek hızını görür.
 """
 
@@ -59,7 +59,7 @@ class HizDegerlendirici:
     def degerlendir(self, baglam) -> list[Ihlal]:
         if baglam.kalibrasyon is None:
             self._asan.clear()
-            return []  # kural pasif — arayüz 'kalibrasyon bekleniyor' gösterir
+            return []  # kural pasif - arayüz 'kalibrasyon bekleniyor' gösterir
 
         bolge = baglam.bolgeler.get(self.kural.bolge_id) if self.kural.bolge_id else None
         if self.kural.bolge_id is not None and (bolge is None or not bolge.aktif):

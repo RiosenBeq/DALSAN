@@ -1,11 +1,11 @@
-<!-- Simge sprite'ı — vendor/LISANSLAR.md.
+<!-- Simge sprite'ı - vendor/LISANSLAR.md.
 
      İKİ KAYNAK VAR, İKİSİ DE AYNI ÇİZGİ DİLİNDE:
-       1. Lucide (ISC) — github.com/lucide-icons/lucide, icons/AD.svg.
+       1. Lucide (ISC) - github.com/lucide-icons/lucide, icons/AD.svg.
           Kök etiketin İÇİ olduğu gibi bir sembole konur: kimliği "s-" ile
           başlayan bizim ad, görüntü kutusu 0 0 24 24. Renk, kalınlık ve uç
           biçimi dosyaya YAZILMAZ; kullanan taraftan (stil.css, .simge) gelir.
-       2. DALSAN çizimleri — Lucide'de karşılığı olmayan öğeler (şimdilik
+       2. DALSAN çizimleri - Lucide'de karşılığı olmayan öğeler (şimdilik
           yalnız yelek). Lucide kuralıyla çizilir: 24x24 ızgara, 2 birim
           çizgi, yuvarlak uç ve köşe, dolgu yok. Dosyanın sonunda, ayrı
           bölümdedir.

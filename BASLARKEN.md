@@ -1,4 +1,4 @@
-# Başlarken — 10 Dakikalık Rehber
+# Başlarken - 10 Dakikalık Rehber
 
 ## 0. Klasörü nereye koymalı
 
@@ -31,7 +31,7 @@ https://www.python.org/downloads/ → **Python 3.12** (en az 3.11 gerekir)
 
 Birkaç dakika sürer. Pencereyi kapatma. Bitince "KURULUM TAMAMLANDI" yazar.
 
-## 4. Sistem kodu henüz yok — normal
+## 4. Sistem kodu henüz yok - normal
 
 "Sistem kodu: Henüz yazılmadı" yazısını göreceksin. Doğru olan bu.
 Kod, Claude Code ile adım adım üretilecek.
@@ -83,7 +83,7 @@ Haftada bir yap.
 
 | Önce oku | Neden |
 |---|---|
-| `docs/10-YAPAY-ZEKA-ILE-CALISMA.md` | Çalışma yöntemi — **en önemlisi** |
+| `docs/10-YAPAY-ZEKA-ILE-CALISMA.md` | Çalışma yöntemi - **en önemlisi** |
 | `docs/11-BILGISAYAR-UYGULAMASI.md` | Kontrol Paneli detayları |
 | `docs/08-RISKLER-VE-ACIK-KARARLAR.md` §2 | 1. haftada DALSAN'a sorulacaklar |
-| `docs/04-KKD-BARET-YELEK.md` §5.3 | KKD politika soruları — etiketlemeden önce |
+| `docs/04-KKD-BARET-YELEK.md` §5.3 | KKD politika soruları - etiketlemeden önce |

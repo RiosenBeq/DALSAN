@@ -1,11 +1,11 @@
 # -*- mode: python ; coding: utf-8 -*-
-"""Mac uygulaması (.app) üretim tarifi — PyInstaller.
+"""Mac uygulaması (.app) üretim tarifi - PyInstaller.
 
     Üretmek için:  paketleme/Mac-Uygulama-Uret.command dosyasına çift tıklayın.
     Elle:          .venv/bin/python -m PyInstaller --noconfirm --clean \
                        paketleme/NextGenDetector-mac.spec
 
-Sonuç: dist/NextGen Detector.app  — kullanıcı buna çift tıklar, Kontrol Paneli
+Sonuç: dist/NextGen Detector.app  - kullanıcı buna çift tıklar, Kontrol Paneli
 açılır, "Sistemi Başlat" der. Python kurmasına, pip çalıştırmasına gerek yoktur.
 
 Windows karşılığı: paketleme/NextGenDetector-windows.spec. İki tarifin ORTAK
@@ -19,7 +19,7 @@ MACOS'A ÖZEL İKİ TUZAK VE ÇÖZÜMLERİ (buraya not düşülmezse tekrar yaş
    kullanıcıya HİÇ sormadan reddeder; ekranda yalnızca "görüntü yok" görünür.
    → BUNDLE(info_plist=...).
 
-2. AYNI ADLI İKİ KÜTÜPHANE — biri diğerini eziyordu. opencv-python kendi
+2. AYNI ADLI İKİ KÜTÜPHANE - biri diğerini eziyordu. opencv-python kendi
    OpenSSL kopyasını (libcrypto.3.dylib, sürüm 3.0) yanında getirir;
    Python'un `_ssl` modülü ise sistemdeki YENİ OpenSSL'e (3.6) bağlıdır.
    PyInstaller ikisini aynı adla görüp tekine bağladığı için `_ssl`
@@ -31,7 +31,7 @@ MACOS'A ÖZEL İKİ TUZAK VE ÇÖZÜMLERİ (buraya not düşülmezse tekrar yaş
    Bu düzeltme Windows tarifine TAŞINMAZ: orada opencv OpenSSL getirmez.
 
 (Şablon/şema dosyalarının ve uvicorn'un metinle yüklediği modüllerin tuzağı
-ortak bölümde anlatılıyor — paketleme_ortak.py.)
+ortak bölümde anlatılıyor - paketleme_ortak.py.)
 
 Simge: backend/app/web/static/logo.svg dosyasından bir kez üretilmiştir
 (paketleme/NextGenDetector.icns). Yeniden üretmek gerekirse:
@@ -56,7 +56,7 @@ from pathlib import Path
 DEPO = Path(SPECPATH).resolve().parent          # noqa: F821  (SPECPATH: PyInstaller)
 BACKEND = DEPO / "backend"
 
-# Ortak bölüm — iki tarif de buradan okur, kopyala-yapıştır yoktur.
+# Ortak bölüm - iki tarif de buradan okur, kopyala-yapıştır yoktur.
 sys.path.insert(0, SPECPATH)                    # noqa: F821
 import paketleme_ortak as ortak                 # noqa: E402
 
@@ -100,7 +100,7 @@ def _openssl_cakismasini_gider(analiz_nesnesi) -> None:
     """Kök klasördeki OpenSSL kısayolunu gerçek dosyayla değiştirir (tuzak 2).
 
     PyInstaller aynı adlı iki kütüphaneden birini seçer, diğerinin yerine
-    kısayol (SYMLINK) koyar ve o kısayolu `datas` listesine yazar — `binaries`
+    kısayol (SYMLINK) koyar ve o kısayolu `datas` listesine yazar - `binaries`
     listesine DEĞİL. Burada kısayol silinip `_ssl`'in ihtiyacı olan sürüm
     gerçek dosya olarak konur; opencv'nin kendi kopyası cv2/.dylibs altında
     el değmeden kalır, yani iki tüketici de doğru sürümü kullanır.
@@ -153,7 +153,7 @@ analiz = Analysis(                                          # noqa: F821
     hooksconfig={},
     # Açılış kancası: `.app` Finder'dan açıldığında stdout/stderr HİÇBİR YERE
     # gitmez. Kanca olmadan, açılışta çöken uygulama sessizce hiç açılmıyor
-    # gibi görünür — kullanıcı "uygulamayı göremedim" der, sebep hiçbir yerde
+    # gibi görünür - kullanıcı "uygulamayı göremedim" der, sebep hiçbir yerde
     # yazmaz. Kanca hatayı dosyaya yazar ve macOS uyarı penceresi gösterir.
     runtime_hooks=[str(DEPO / "paketleme" / "acilis_kancasi.py")],
     excludes=ortak.disarida,

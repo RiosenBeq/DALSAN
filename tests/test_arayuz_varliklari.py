@@ -2,7 +2,7 @@
 
 `static/vendor/` klasörü, CLAUDE.md §4'teki "yeni kütüphane ekleme" yasağının
 BİLİNÇLİ ve SINIRLI bir istisnasıdır. Buradaki testler istisnanın sınırlarını
-korur — yani bir dahaki sefere "madem vendor klasörü var" diye bir CSS
+korur - yani bir dahaki sefere "madem vendor klasörü var" diye bir CSS
 çatısının içeri sızmasını engeller.
 
 Korunan üç şey:
@@ -76,7 +76,7 @@ def test_yazi_tipi_yerel_dosyadan_geliyor(stil):
     ["simgeler.svg", "inter-latin.woff2", "inter-latin-ext.woff2", "LISANSLAR.md"],
 )
 def test_vendor_dosyalari_depoda(dosya):
-    assert (VENDOR / dosya).is_file(), f"{dosya} eksik — arayüz onsuz yarım çizilir"
+    assert (VENDOR / dosya).is_file(), f"{dosya} eksik - arayüz onsuz yarım çizilir"
 
 
 def test_vendor_klasoru_sismiyor():
@@ -109,7 +109,7 @@ def test_yazi_tipleri_git_tarafindan_ikili_sayiliyor():
     """Satır sonu dönüşümü uygulanırsa woff2 dosyalarının İÇİ BOZULUR.
 
     Sonuç sinsidir: arayüzdeki her yazı sistem yazı tipine düşer ve bu
-    YALNIZCA depoyu Windows'ta klonlayan kişide olur — Mac'te geliştiren
+    YALNIZCA depoyu Windows'ta klonlayan kişide olur - Mac'te geliştiren
     hiç göremez. Simge dosyaları için aynı koruma zaten vardı (.ico/.icns).
     """
     import subprocess

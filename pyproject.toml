@@ -1,4 +1,4 @@
-# Test ve lint ayarları. Paketleme yok — program uvicorn ile backend/ içinden çalışır.
+# Test ve lint ayarları. Paketleme yok - program uvicorn ile backend/ içinden çalışır.
 
 [tool.pytest.ini_options]
 pythonpath = ["backend"]

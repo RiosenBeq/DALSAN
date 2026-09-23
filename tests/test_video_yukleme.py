@@ -63,9 +63,9 @@ def test_ad_verilmezse_dosya_adi_kullanilir(istemci):
 
 
 def test_verilen_ad_dosya_adini_ezer(istemci):
-    _yukle(istemci, "IMG_0042.mp4", name="Rampa önü — sabah")
+    _yukle(istemci, "IMG_0042.mp4", name="Rampa önü - sabah")
     sayfa = istemci.get("/videolar").text
-    assert "Rampa önü — sabah" in sayfa
+    assert "Rampa önü - sabah" in sayfa
 
 
 def test_yuklenen_video_kameralar_listesinde_de_gorunur(istemci):
@@ -206,7 +206,7 @@ def test_isaret_kaldirilirsa_video_donguye_girer(istemci, test_ayarlari):
 def test_yeniden_calistir_damgayi_tazeler(istemci, test_ayarlari):
     """Damga tazelenmezse süpervizör biten videoyu yeniden kurmaz.
 
-    Bu, düğmenin hiçbir şey yapmadığı ama hata da vermediği bir durumdur —
+    Bu, düğmenin hiçbir şey yapmadığı ama hata da vermediği bir durumdur -
     kullanıcı basar, bekler ve sebebini asla öğrenemez.
     """
     from app import veritabani

@@ -12,8 +12,8 @@
 -- "zor tanınır"). Bu yargı uydurma değildir; nesnenin KENDİ fotoğraflarından
 -- ölçülür (app/nesneler/teshis.py):
 --
---   nokta       — fotoğraflardaki desen (ORB) anahtar noktası sayısının ortancası
---   tutarlilik  — her fotoğrafın DİĞER fotoğraflara benzerliği (0-1)
+--   nokta       - fotoğraflardaki desen (ORB) anahtar noktası sayısının ortancası
+--   tutarlilik  - her fotoğrafın DİĞER fotoğraflara benzerliği (0-1)
 --
 -- NEDEN SAKLANIYOR: ölçüm fotoğrafları diskten okuyup yeniden parmak izi
 -- çıkarmayı gerektirir (ölçüldü: fotoğraf başına ~19 ms). 10 nesne × 8 fotoğraf
@@ -24,7 +24,7 @@
 -- BAYATLAMA: `photo_key`, ölçümün HANGİ fotoğraflardan çıktığını yazar
 -- (fotoğraf id'leri, sıralı, virgülle). Nesneye fotoğraf eklenir ya da
 -- silinirse anahtar tutmaz ve teşhis kendiliğinden yeniden hesaplanır. Ayrı
--- bir "geçersiz kıl" adımı yoktur — unutulabilecek bir adım da yoktur.
+-- bir "geçersiz kıl" adımı yoktur - unutulabilecek bir adım da yoktur.
 --
 -- KAPSAM SINIRI: bu tablo da 003 gibi CANLI ANALİZİ ETKİLEMEZ. Kural motoru
 -- (rules/) ve canlı boru hattı bu tabloyu hiç okumaz.

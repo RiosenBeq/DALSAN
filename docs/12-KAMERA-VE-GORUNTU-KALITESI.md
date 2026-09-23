@@ -1,4 +1,4 @@
-# 12 — Kamera Yerleşimi ve Görüntü Kalitesi
+# 12 - Kamera Yerleşimi ve Görüntü Kalitesi
 
 > **Bu dokümanın tek iddiası:** Sistemin isabetini en çok belirleyen şey model
 > değil, **kameranın gördüğü görüntüdür.** Eşik ayarlamak, kirli bir lensi
@@ -12,21 +12,21 @@
 |---|---|---|
 | **İnsan** | Hazır model (COCO `person`) | Yeşil |
 | **Tır / araç** | Hazır model (`truck`, `bus`, `car`) | Mavi |
-| **Forklift** | **Şimdilik araç olarak** görünür — hazır modelde forklift sınıfı yoktur (docs/08 R1). Saha görüntüsüyle ince ayar yapılınca ayrı sınıf olur | Turuncu (ayrı sınıf geldiğinde) |
-| **Baret** | KKD sınıflandırıcısı — **henüz eğitilmedi**, veri toplanıyor (docs/04) | Kişi kutusunda **B** rozeti |
+| **Forklift** | **Şimdilik araç olarak** görünür - hazır modelde forklift sınıfı yoktur (docs/08 R1). Saha görüntüsüyle ince ayar yapılınca ayrı sınıf olur | Turuncu (ayrı sınıf geldiğinde) |
+| **Baret** | KKD sınıflandırıcısı - **henüz eğitilmedi**, veri toplanıyor (docs/04) | Kişi kutusunda **B** rozeti |
 | **Reflektörlü yelek** | Aynı sınıflandırıcı | Kişi kutusunda **Y** rozeti, **sarı** |
 | **Kural ihlali** | Kural motoru | Kutu **kırmızıya** döner ve kalınlaşır |
-| **Çizdiğiniz bölge** | — | Mavi çerçeve |
+| **Çizdiğiniz bölge** | - | Mavi çerçeve |
 
 Rozetlerin üç durumu vardır: **dolu = var**, **kırmızı çarpı = yok**,
 **gri soru işareti = belirsiz**. **Belirsiz asla ihlal sayılmaz** (docs/04 §1).
-KKD modeli eğitilene kadar tüm kişiler belirsiz görünür — bu normaldir, arıza değil.
+KKD modeli eğitilene kadar tüm kişiler belirsiz görünür - bu normaldir, arıza değil.
 
 Aynı tablo arayüzde de vardır: kamera sayfasındaki **Renk anahtarı**.
 
 ---
 
-## 2. Kamera yerleşimi — en çok fark yaratan beş şey
+## 2. Kamera yerleşimi - en çok fark yaratan beş şey
 
 1. **Yükseklik ve açı.** 3-4 metre yükseklik, yere doğru ~30° eğim. Çok tepeden
    bakan kamera insanları "yukarıdan daire" gibi gösterir; model bunu zor tanır.
@@ -58,7 +58,7 @@ uyarı satırı** çıkar ve ne yapılacağını yazar. Ölçülen dört durum:
 
 Her karede **yerel kontrast dengeleme** (CLAHE) uygular: karanlık köşedeki insanı
 görünür kılar, aşırı parlak bölgeyi bastırır. Yalnızca parlaklık kanalında
-çalışır, **renkleri bozmaz** — reflektörlü yeleğin sarısı sarı kalır.
+çalışır, **renkleri bozmaz** - reflektörlü yeleğin sarısı sarı kalır.
 
 Bedeli: kare başına birkaç milisaniye işlemci. Görüntü zaten iyiyse belirgin
 fayda sağlamaz; **önce uyarı satırına bakın**, gerek yoksa kapalı bırakın.
@@ -68,7 +68,7 @@ görürsünüz. Sistem size, kendi kararını verdiğinden farklı bir görünt�
 
 ---
 
-## 4. Hassasiyet ayarı — sırasıyla deneyin
+## 4. Hassasiyet ayarı - sırasıyla deneyin
 
 Eşikler `.env` dosyasındadır ve değiştirdikten sonra sistem yeniden başlatılır.
 
@@ -80,10 +80,10 @@ TESPIT_EN_KUCUK_KENAR_PX=12      # bundan küçük kutular atılır
 ```
 
 **Nesne kaçıyorsa** (kutu çıkmıyor):
-1. Önce kamera sayfasındaki kalite uyarısına bakın — sorun genelde oradadır.
+1. Önce kamera sayfasındaki kalite uyarısına bakın - sorun genelde oradadır.
 2. `TESPIT_INSAN_GUVEN_ESIGI` değerini **0,05'lik adımlarla** düşürün (0,28 → 0,23 → 0,18).
 3. Uzaktaki küçük nesne için `TESPIT_EN_KUCUK_KENAR_PX` değerini düşürün (12 → 8).
-4. Hâlâ olmuyorsa daha isabetli modele geçin — **NextGen AI İsabetli**:
+4. Hâlâ olmuyorsa daha isabetli modele geçin - **NextGen AI İsabetli**:
    `MODEL_DOSYASI=models/yolox_s.onnx`
    (daha yavaş ama küçük nesnelerde belirgin daha iyi; ilk açılışta kendisi iner).
 
@@ -102,7 +102,7 @@ TESPIT_EN_KUCUK_KENAR_PX=12      # bundan küçük kutular atılır
 ## 5. Forklift hakkında dürüst not
 
 Hazır COCO modelinde **forklift sınıfı yoktur.** Forklift bugün çoğu zaman
-`truck` (tır/araç) olarak görünür ve güvenli mesafe kuralı onu araç sayar —
+`truck` (tır/araç) olarak görünür ve güvenli mesafe kuralı onu araç sayar -
 yani kural **çalışır**, ama ekranda "forklift" yerine "tır" yazar.
 
 Gerçek forklift sınıfı, sahadan toplanan görüntülerle ince ayar yapıldığında
@@ -117,7 +117,7 @@ gelir (3-4. hafta işi, docs/08 R1). O gün değişecek tek yer
 |---|---|
 | "Kameraya ağ üzerinden ulaşılamıyor" | IP veya port yanlış; kamera kapalı; ağ kablosu takılı değil |
 | "Ulaşıldı ama görüntü akışı açılamadı" | Kullanıcı adı/şifre veya akış yolu yanlış. Şifrede `@ : / #` varsa `%40 %3A %2F %23` yazın |
-| "Kameraya bağlanıldı ama görüntü gelmedi" | NVR'ın eşzamanlı bağlantı sınırı dolmuş olabilir; ya da akış H.265 ve çözülemiyor — kamerada H.264 seçin |
+| "Kameraya bağlanıldı ama görüntü gelmedi" | NVR'ın eşzamanlı bağlantı sınırı dolmuş olabilir; ya da akış H.265 ve çözülemiyor - kamerada H.264 seçin |
 | "Video dosyası bulunamadı" | Tam yol gerekir. Mac: dosyayı Finder'da seçip **Option+Command+C**. Windows: dosyaya **Shift + sağ tık → "Yol olarak kopyala"** |
 | Kamera "bağlanıyor"da kalıyor | İlk bağlantı 30 saniye sürebilir; 60 saniye içinde görüntü gelmezse "çevrimdışı" olur ve sebebi yazar. Çalışırken kopan kamera ise ~10 saniyede "çevrimdışı" görünür (Ayarlar → Takip ve kamera bağlantısı) |
 
@@ -142,7 +142,7 @@ Kural şunu yapar: yaya yolunun **dışında** 5 saniyeden uzun kalan **kişi** 
 Uyarı, "Lütfen yaya yolunu kullanınız." anonsuna bağlanır.
 
 **Bölgeyi çizerken:** karar kişinin **ayaklarının** bulunduğu noktaya göre
-verilir. Yolu, üzerine basılan zemin alanı olarak çizin — havada duran bir
+verilir. Yolu, üzerine basılan zemin alanı olarak çizin - havada duran bir
 dikdörtgen değil.
 
 Aynı kuralı elle kurmak isterseniz: Kurallar → Yeni Kural → Bölge ihlali →
@@ -162,12 +162,12 @@ düzeltirsiniz. **Sistem hiçbir bölgeyi kendiliğinden kaydetmez.**
 
 | Zemin | Sonuç |
 |---|---|
-| İki paralel sarı çizgiyle işaretli yaya yolu (kesikli de olur) | Bulunur — aradaki yol da alana dahil edilir |
+| İki paralel sarı çizgiyle işaretli yaya yolu (kesikli de olur) | Bulunur - aradaki yol da alana dahil edilir |
 | Beyaz çerçeveyle işaretli yükleme sahası | Bulunur |
 | Sarı-siyah taramalı yasak bölge | Çoğu zaman bulunur (sarı baskınsa) |
-| Boyasız beton | **Bulunamaz** — elle çizmeniz gerekir |
+| Boyasız beton | **Bulunamaz** - elle çizmeniz gerekir |
 | Solmuş, tozla kaplanmış boya | Bulunamayabilir |
-| Karanlık ya da aşırı parlak görüntü | Bulunamaz — önce görüntü kalitesi düzeltilmeli |
+| Karanlık ya da aşırı parlak görüntü | Bulunamaz - önce görüntü kalitesi düzeltilmeli |
 
 "Bulunamadı" bir arıza değildir; her fabrika zemininde boya yoktur.
 
@@ -207,20 +207,20 @@ listesinde satır aramanıza gerek kalmaz.
 
 Tarama yalnızca tarayıcıdaki çizim tuvalinde değil, **canlı görüntünün kendisinde
 de** vardır: analiz, bölgeleri videoya taralı çizer. Böylece ekranda gördüğünüz
-alanla sistemin değerlendirdiği alan aynıdır — "acaba bölge doğru yere mi oturdu"
+alanla sistemin değerlendirdiği alan aynıdır - "acaba bölge doğru yere mi oturdu"
 sorusu görüntüye bakarak cevaplanır.
 
 Tarama bir **vurgu**, örtü değildir: çizgiler alanın ancak %8'ini kaplar, altındaki
 insan ve araç kutuları okunur kalır.
 
-Üst üste binen iki bölgeye tıklarsanız **küçük olan** seçilir — büyük bir bölgenin
+Üst üste binen iki bölgeye tıklarsanız **küçük olan** seçilir - büyük bir bölgenin
 içindeki küçük bölgeye başka türlü tıklanamazdı.
 
 ### Kamera henüz takılmadıysa
 
 **"Ekran görüntüsü yükle"** ile NVR'dan aldığınız bir kareyi ya da telefonla
 çektiğiniz bir fotoğrafı verebilirsiniz. Sistem alanları o görüntüde arar ve
-görüntü, çizim yaparken arka plan olur — böylece **kamera bağlanmadan önce**
+görüntü, çizim yaparken arka plan olur - böylece **kamera bağlanmadan önce**
 bölgeler ve kurallar hazırlanabilir.
 
 Yüklediğiniz görüntü **sunucuya kaydedilmez**: yalnız o an incelenir. Kalıcı olan
@@ -233,14 +233,14 @@ takip yoktur, dolayısıyla ihlal de çıkmaz. Gerçek bir denemeye ihtiyacını
 varsa **Kameralar → Video Yükle** sayfasını kullanın.
 
 1. **Gözat** ile bilgisayarınızdaki bir video dosyasını seçin (MP4, MOV, AVI,
-   MKV, M4V — en fazla 1 GB). Dosyanın tam yolunu yazmanız gerekmez.
+   MKV, M4V - en fazla 1 GB). Dosyanın tam yolunu yazmanız gerekmez.
 2. **Videoyu Yükle**'ye basın. Sistem videoyu bir kamera gibi izlemeye başlar
    ve sizi doğrudan o kameranın sayfasına götürür.
 3. Görüntünün üstüne **bölgeleri çizin**, yanlarındaki **hazır kural**
    düğmelerine basın.
 4. **Olaylar** sayfasında bulunan ihlalleri kanıt fotoğraflarıyla görün.
 
-Kural motoru, takip ve olay kaydı canlı kameradakinin **aynısıdır** — taklidi
+Kural motoru, takip ve olay kaydı canlı kameradakinin **aynısıdır** - taklidi
 değil. Yani burada gördüğünüz sonuç, aynı kamera gerçekten bağlandığında da
 göreceğiniz sonuçtur.
 
@@ -262,7 +262,7 @@ videoyu ve bulunan olayları saklar. **Sil** hem kamerayı hem yüklenen dosyay�
 kaldırır; bulunan olaylar geçmişte kalır.
 
 Yüklenen videolar `veri/videolar` klasöründe durur ve **kendiliğinden
-silinmez** — kanıt fotoğraflarının aksine saklama süresi bakımı onlara
+silinmez** - kanıt fotoğraflarının aksine saklama süresi bakımı onlara
 dokunmaz. Yeriniz daralırsa bu sayfadan **Sil** deyin.
 
 ### Alan çizimini kolaylaştıran diğer davranışlar
@@ -279,7 +279,7 @@ dokunmaz. Yeriniz daralırsa bu sayfadan **Sil** deyin.
 
 ## Bölgedeki nesneleri sayma
 
-Bölge çizdiğiniz anda sayım başlar — **kural kurmanız gerekmez.** Sayılar hem
+Bölge çizdiğiniz anda sayım başlar - **kural kurmanız gerekmez.** Sayılar hem
 kamera sayfasındaki *Bölge sayımı* bölümünde hem de canlı görüntünün üstünde,
 bölgenin köşesinde görünür.
 
@@ -297,4 +297,4 @@ bağlamanız gerekir.
 
 Sayının doğruluğu doğrudan tespit doğruluğuna bağlıdır: bu sayfadaki görüntü
 kalitesi adımları sayımı da iyileştirir. Kişiler kutulanmıyorsa sayı da düşük
-çıkar — önce canlı görüntüde kutulara bakın.
+çıkar - önce canlı görüntüde kutulara bakın.

@@ -3,7 +3,7 @@
 Bu GERÇEKTEN yaşandı ve bulunması saatler aldı: bir makinede
 `opencv-python 5.0.0`, requirements.txt'in sabitlediği 4.10'u gölgeledi.
 Sistem açıldı, kameralar bağlandı, tespit çalıştı, tek bir hata satırı çıkmadı
-— ama nesne kütüphanesi 36 sorgunun hiçbirini bulamadı. Yani "tanıttığım nesne
+- ama nesne kütüphanesi 36 sorgunun hiçbirini bulamadı. Yani "tanıttığım nesne
 neden bulunmuyor" sorusunun cevabı hiçbir yerde yazmıyordu.
 
 Burada korunan şey uyarının KENDİSİ değil, sessizliğin bir daha olmaması.
@@ -60,7 +60,7 @@ def test_beklenen_surum_requirements_ile_ayni():
     """İkisi birlikte değişmeli.
 
     requirements.txt 5.x'e çıkarılıp bu sabit 4'te kalsaydı, DOĞRU kurulumda
-    her açılışta yanlış bir uyarı görünürdü — ve bir süre sonra kimse
+    her açılışta yanlış bir uyarı görünürdü - ve bir süre sonra kimse
     uyarılara bakmaz olurdu.
     """
     metin = GEREKSINIMLER.read_text(encoding="utf-8")
