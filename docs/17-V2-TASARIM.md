@@ -676,6 +676,9 @@ karar belirsize dönerse olayın kapandığını (süresinin ihlal olarak uzamad
   bakarak karar verir.
 - Saha precision'ı gölge moddaki inceleme işaretlerinden (§5.7). Rapor sayfasına olay kodu
   başına "yanlış alarm oranı" kırılımı eklenir; yanında inceleme kapsamı %.
+  **Uygulandı (F3e-2):** "Olay koduna göre" kırılımı; baret ve yelek ayrı satırdır. Kodsuz
+  (007 öncesi) olay kural tipinin adıyla "(eski kayıt)" diye görünür. Kapsama (işaretli ÷ olay,
+  aşağı yuvarlanır) bütün kırılımlarda oranın yanında ve CSV'de ayrı sütundur.
 - KKD uyum oranı (vardiya/gün/hafta) bu turda yok; S34 "evet" ise Ç40'taki biçimle eklenir.
 - Ölçülmeyen hiçbir KKD metriği belgeye ya da ekrana yazılmaz; yerinde "ölçülecek" yazar.
 

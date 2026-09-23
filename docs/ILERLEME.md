@@ -94,6 +94,15 @@ yazılıyor. KKD sayfasında "Gölge karnesi ve anons kapısı" bölümü dört 
 işaretleriyle gösteriyor. Precision ve kapsama aşağı yuvarlanıyor; ölçülmeyen
 sayının yerinde "ölçülecek" yazıyor. Statik damga `?v=36`.
 
+**3e-2 — raporda olay koduna göre yanlış alarm.** Dönem raporunda yeni
+"Olay koduna göre" tablosu var. Baret yok ve Yelek yok ayrı satırda, yanlış
+alarm oranları da ayrı. Kodu olmayan eski olaylar kural tipinin adıyla "(eski
+kayıt)" diye görünüyor. Bütün kırılım tablolarında oranın yanında artık
+inceleme kapsamı yazıyor: "%20 (kapsama %78)". Kapsama aşağı yuvarlanıyor;
+işaretli sayısı hücrenin ipucunda ve CSV'de. CSV'ye "Kapsama" sütunu eklendi.
+Dar ekranda kırılım tablolarının başlığı bir sütun kayıktı ("İhlal" başlığı
+Pay sütununun üstündeydi); düzeldi. Statik damga `?v=37`.
+
 ## Faz 5d kalan güvenlik (23.09.2026)
 
 Plan: `docs/17-V2-TASARIM.md` §10.5 (R16, R18, R31, R32) ve §13 (5d satırı).
