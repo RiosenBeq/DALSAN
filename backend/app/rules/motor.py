@@ -132,6 +132,17 @@ class KuralMotoru:
         # Cooldown temizliği, en uzun kuralın cooldown'unu asla kırpmamalı
         self._en_uzun_cooldown = max([k.cooldown_s for k in kurallar], default=0.0)
 
+    def kayip_toleransi_guncelle(self, kayip_toleransi: int | None) -> None:
+        """Örnekleme hızı değişti (R34): kayıp toleransı yeni hızın karşılığına
+        güncellenir; değerlendiricilerin durumu (kalış süreleri, açık olaylar,
+        cooldown) korunur. None: değerlendiricilerin kendi varsayılanı kalır."""
+        self._kayip_toleransi = kayip_toleransi
+        if kayip_toleransi is None:
+            return
+        for degerlendirici in self._degerlendiriciler:
+            if degerlendirici.kural.tip in KAYIP_TOLERANSLI_TIPLER:
+                degerlendirici.kayip_toleransi_guncelle(kayip_toleransi)
+
     def _kur(self, kural: Kural):
         sinif = DEGERLENDIRICILER[kural.tip]
         if self._kayip_toleransi is not None and kural.tip in KAYIP_TOLERANSLI_TIPLER:

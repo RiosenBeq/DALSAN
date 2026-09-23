@@ -128,10 +128,11 @@ class KameraHatti:
         takip_hafiza_sn: float | None = None,
     ) -> None:
         self.kamera_id = kamera_id
-        # Süpervizör, örnekleme hızı değişince hattı yeniden kurmak için okur:
-        # ByteTrack'in kare hızı yanlış kalırsa takip hafızası saniye cinsinden
-        # kayar ve aynı kişiye ikinci kez uyarı üretilir.
+        # Süpervizör, örnekleme hızı değişince fps_guncelle'yi çağırmak için
+        # okur: ByteTrack'in kare hızı yanlış kalırsa takip hafızası saniye
+        # cinsinden kayar ve aynı kişiye ikinci kez uyarı üretilir.
         self.fps = fps
+        self._takip_hafiza_sn = takip_hafiza_sn
         # Düşük kaliteli kamerada kontrast dengeleme (.env → GORUNTU_IYILESTIRME)
         self.iyilestir = iyilestir
         self._kalite: dict = {"sorun": "yok", "mesaj": ""}
@@ -195,6 +196,26 @@ class KameraHatti:
         # Kare sayacı, JPEG önbelleğinin hangi kareye ait olduğunu söyler.
         self._kare_sayaci = 0
         self._jpeg_onbellek: dict[bool, tuple[int, bytes]] = {}
+
+    def fps_guncelle(self, fps: int) -> None:
+        """Örnekleme hızı değişti (R34): hat YENİDEN KURULMAZ.
+
+        Eskiden süpervizör hattı atıp yenisini kuruyordu: izler, kalış
+        sayaçları, cooldown'lar, bölge sayımları ve açık olaylar ("kamera
+        değişti" diye kapanarak) gidiyordu; aynı kişiye yeniden uyarı
+        üretiliyordu. Artık yalnız saniyeden kareye çevrilen iki sayı yeni hıza
+        göre güncellenir: takipçinin kayıp iz hafızası ve kural/sayaç kayıp
+        toleransı (ikisi aynı süreden türer, docs/17 §6.3).
+        """
+        if fps == self.fps:
+            return
+        self.fps = fps
+        self._takipci.kare_hizi_guncelle(fps)
+        if self._takip_hafiza_sn is None:
+            return  # tolerans hiç verilmedi: değerlendiricilerin varsayılanı kalır
+        self.kayip_toleransi = math.ceil(self._takip_hafiza_sn * max(fps, 1))
+        self._motor.kayip_toleransi_guncelle(self.kayip_toleransi)
+        self._sayac.kayip_toleransi_guncelle(self.kayip_toleransi)
 
     def yapilandir(
         self, bolgeler: list[Bolge], kurallar: list[Kural], kalibrasyon: Kalibrasyon | None

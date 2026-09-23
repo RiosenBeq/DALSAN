@@ -43,9 +43,20 @@ class Takipci:
         # önünden geçti, kolon arkası) iz aynı kimlikle devam etsin; yoksa aynı
         # kişi yeni bir kimlikle "yeniden" görünür ve kalış sayacı sıfırlanır,
         # uyarı tekrarlar (docs/03 §5). Varsayılan 1 sn eski davranıştır.
+        self._hafiza_sn = hafiza_sn
         self._izleyici = sv.ByteTrack(
             frame_rate=max(fps, 1), lost_track_buffer=kayip_iz_tamponu(hafiza_sn)
         )
+
+    def kare_hizi_guncelle(self, fps: int) -> None:
+        """Örnekleme hızı değişti: izler KORUNUR, yalnız kayıp iz hafızası yeni
+        hızda aynı saniyeye denk gelecek biçimde yeniden hesaplanır (R34).
+
+        ByteTrack kare hızını yalnız `max_time_lost` için kullanır (supervision
+        0.25.1, byte_tracker/core.py); takipçiyi yeniden kurmak bütün izleri,
+        dolayısıyla kalış sayaçlarını ve açık olayları silerdi.
+        """
+        self._izleyici.max_time_lost = int(max(fps, 1) / 30.0 * kayip_iz_tamponu(self._hafiza_sn))
 
     def _bilinmeyeni_bildir(self, adlar) -> None:
         yeniler = {str(a) for a in adlar} - self._bildirilen_bilinmeyenler

@@ -748,10 +748,10 @@ class AnalizSupervizoru:
                 self._son_durumlar.pop(kid, None)
 
             hat = self._hatlar.get(kid)
-            # Örnekleme hızı değiştiyse takipçinin kare hızı da değişmeli
-            if hat is not None and hat.fps != int(kamera["sample_fps"]):
-                hat = None
-                self._hatti_birak(baglanti, kid, "kamera_degisti")
+            # Örnekleme hızı değiştiyse takipçinin kare hızı da değişmeli; hat
+            # yeniden KURULMAZ: izler, sayaçlar ve açık olaylar korunur (R34)
+            if hat is not None:
+                hat.fps_guncelle(int(kamera["sample_fps"]))
             if hat is None:
                 hat = self._yeni_hat(kid, kamera)
                 self._hatlar[kid] = hat

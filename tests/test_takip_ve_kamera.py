@@ -64,6 +64,71 @@ def test_hafiza_verilmezse_eski_tolerans_kalir():
     assert hat._motor._degerlendiriciler[0]._kayip_toleransi == 5
 
 
+def test_ornekleme_hizi_degisince_hat_korunur_tolerans_guncellenir():
+    """R34: örnekleme hızı değişince hat yeniden KURULMAZ (izler, kalış
+    sayaçları, cooldown ve açık olaylar giderdi); yalnız saniyeden kareye
+    çevrilen iki sayı yeni hıza göre değişir: 2 sn hafıza 10 fps'te 20 kare."""
+    hat = KameraHatti(1, 6, takip_hafiza_sn=2.0)
+    hat.yapilandir([], [_bolge_kurali()], None)
+    degerlendirici, takipci, sayac = hat._motor._degerlendiriciler[0], hat._takipci, hat._sayac
+    hat.fps_guncelle(10)
+    assert (hat.fps, hat.kayip_toleransi) == (10, 20)
+    assert hat._takipci is takipci and takipci._izleyici.max_time_lost == 20
+    assert hat._motor._degerlendiriciler[0] is degerlendirici
+    assert degerlendirici._kayip_toleransi == 20
+    assert hat._sayac is sayac and sayac._kayip_toleransi == 20
+    # Sonradan yeniden kurulan değerlendirici de yeni toleransı alır
+    hat.yapilandir([], [dataclasses.replace(_bolge_kurali(), cooldown_s=30.0)], None)
+    assert hat._motor._degerlendiriciler[0]._kayip_toleransi == 20
+
+
+def test_hiz_degisince_takip_kimligi_korunur():
+    """Takipçi yeniden kurulsaydı aynı kişi yeni bir kimlikle görünür, kalış
+    sayacı sıfırlanır ve uyarı tekrarlardı."""
+    takipci = Takipci(6, 2.0)
+    kutu, guven, sinif = (
+        np.array([[100.0, 100.0, 150.0, 260.0]]),
+        np.array([0.9]),
+        np.array(["person"]),
+    )
+    kimlikler = {t.takip_id for _ in range(3) for t in takipci.guncelle(kutu, guven, sinif)}
+    takipci.kare_hizi_guncelle(10)
+    sonra = {t.takip_id for _ in range(2) for t in takipci.guncelle(kutu, guven, sinif)}
+    assert len(kimlikler) == 1 and sonra == kimlikler
+
+
+def test_supervizor_hiz_degisince_hatti_atmaz(test_ayarlari, monkeypatch):
+    """Süpervizör yapılandırma yenilemesinde aynı hat nesnesini korur ve
+    açık olayları "kamera değişti" diye kapatmaz."""
+    supervizor = AnalizSupervizoru(test_ayarlari)
+    hat = KameraHatti(1, 6, takip_hafiza_sn=2.0)
+    supervizor._hatlar[1] = hat
+    birakilanlar = []
+    monkeypatch.setattr(supervizor, "_hatti_birak", lambda *a: birakilanlar.append(a))
+    baglanti = veritabani.baglanti_ac(test_ayarlari.veritabani_yolu)
+    try:
+        veritabani.semayi_uygula(baglanti)
+        baglanti.execute(
+            "INSERT INTO cameras (id, name, source_type, source_url, enabled, sample_fps, "
+            "created_at, updated_at) VALUES (1, 'Rampa', 'rtsp', 'rtsp://10.0.0.5/1', 1, 10, "
+            "?, ?)",
+            (zaman.simdi_utc(), zaman.simdi_utc()),
+        )
+        baglanti.commit()
+        monkeypatch.setattr(
+            supervizor,
+            "_atanmis_kameralar",
+            lambda b: [dict(r) for r in b.execute("SELECT * FROM cameras")],
+        )
+        monkeypatch.setattr(kamera_modulu.KameraKaynagi, "baslat", lambda self: None)
+        supervizor._konfigurasyonu_yenile(baglanti)
+    finally:
+        baglanti.close()
+        supervizor._anons.kapat(1.0)
+    assert supervizor._hatlar[1] is hat and hat.fps == 10 and hat.kayip_toleransi == 20
+    assert birakilanlar == []
+
+
 # ------------------------------------------------------------- RTSP zaman aşımı
 
 

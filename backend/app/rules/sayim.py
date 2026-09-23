@@ -92,6 +92,10 @@ class BolgeSayaci:
         # bolge_id -> sinif -> görülen en yüksek anlık değer
         self._zirve: dict[int, dict[str, int]] = {}
 
+    def kayip_toleransi_guncelle(self, kayip_toleransi: int) -> None:
+        """Örnekleme hızı değişince (R34); sayımlar ve giriş sayaçları korunur."""
+        self._kayip_toleransi = kayip_toleransi
+
     # ---- ana giriş ----
 
     def guncelle(

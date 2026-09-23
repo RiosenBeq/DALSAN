@@ -30,6 +30,10 @@ class BolgeIhlaliDegerlendirici:
         self._kayip_sayaci: dict[int, int] = {}  # takip_id -> ardışık görülmeme
         self._aktif: set[tuple] = set()
 
+    def kayip_toleransi_guncelle(self, kayip_toleransi: int) -> None:
+        """Örnekleme hızı değişince (R34); izlerin sayaçları korunur."""
+        self._kayip_toleransi = kayip_toleransi
+
     def aktif_anahtarlar(self) -> set[tuple]:
         """Son değerlendirmede koşulu süren anahtarlar (olay_durumu çıkış eşiği):
         kişi bölgede (kalış süresinden bağımsız) ya da izi kayıp toleransı

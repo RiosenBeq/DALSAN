@@ -51,6 +51,10 @@ class HizDegerlendirici:
         self._kayip_sayaci: dict[int, int] = {}
         self._asan: set[int] = set()  # son ortancası sınırın üstündeki izler
 
+    def kayip_toleransi_guncelle(self, kayip_toleransi: int) -> None:
+        """Örnekleme hızı değişince (R34); izlerin geçmişi korunur."""
+        self._kayip_toleransi = kayip_toleransi
+
     def aktif_anahtarlar(self) -> set[tuple]:
         """Son ortancası hâlâ sınırın üstünde olan izler (olay_durumu çıkış
         eşiği). Hızı bu karede ölçülemeyen iz son kararını korur."""
