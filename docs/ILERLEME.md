@@ -24,6 +24,22 @@ bırakmadığını sınıyor. NTP bir belge maddesidir: docs/06 §1.2.3
 (timedatectl/timesyncd, chrony, kameralar ve NVR aynı saatte) ve kabul
 listesinde bir madde.
 
+**5c - KVKK tabanı (docs/17 §10, şema 010).** Olay dondurma: olay sayfasında
+sebepli "Dondur"; bakım dondurulan olayı, kanıt fotoğrafını ve teslim kaydını
+süre dolsa da silmez; listede "dondurulmuş" rozeti. İmha kaydı: her bakım
+koşusu `purge_log`'a sayıları ve o günkü gün sayılarını yazar. Erişim izi
+(`web/erisim_izi.py`): kanıt fotoğrafı ve KKD kırpığı görüntüleme, olay ve rapor
+CSV'si, KKD veri seti, gerçekten değişen ayarların adları, kural kaydı / hazır
+kural / silme / gölge-anons, dondurma ve KKD kapısı; istemci adresiyle, şifre,
+çerez, değer ve adres olmadan; aynı kaydın dakika içindeki tekrar görüntülenmesi
+bir kez. Ayarlar → KVKK iki kaydı ve dondurulan olay sayısını gösterir.
+Mahremiyet kontrolü: kamera sayfasında elle onay (`cameras.privacy_checked_at`,
+010'a bu yüzden eklendi), adres değişince kalkar; kurulum listesinde zorunlu,
+kırmızı olmayan adım 9. Belgeler: docs/18-KVKK.md (uyum kartı, avukat teyidi
+bekler), docs/06 §1.4 ağ bölümlendirmesi, §5 dondurma ve imha kaydı, §8 kabul
+maddeleri. Yapılmayanlar: yüz bulanıklaştırma (S27), roller (S5), çalışan
+temsilcisi maddesi (avukata sorulacak).
+
 ## Faz 4 uyarı kanalları (23.09.2026)
 
 Plan: `docs/17-V2-TASARIM.md` §7 ve §13 (4a-4e satırları), operatörün kabul ettiği

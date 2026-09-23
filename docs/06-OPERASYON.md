@@ -209,6 +209,26 @@ Paketlenmiş programda `.env` dosyası ilk açılışta `.env.example`'dan **bir
 sırdır. İlk girişte üretilir ve yalnız sahibi okuyabilir. Kimseyle paylaşmayın.
 Silinirse yenisi üretilir ve açık oturumlar bir kez düşer; başka zararı yoktur.
 
+### 1.4 Ağ bölümlendirmesi (KVKK m.12 teknik tedbir)
+
+Kod değil, belgedir; fabrikanın ağ ekibiyle birlikte doldurulur (docs/17 §10.1,
+docs/18 §1). İlke: kamera görüntüsü yalnız gerektiği yere gider.
+
+- **Kameralar ayrı bir ağda (VLAN)** durur; ofis ağındaki bir bilgisayar kameraya
+  doğrudan bağlanamaz.
+- **Sunucu yalnız şunlara erişir:** kamera ağı (RTSP), yönetim ağı (ekranlar ve
+  Kontrol Paneli, `IZINLI_SUNUCU_ADLARI`), anons cihazları (IP hoparlör).
+- **Dışarıya tek çıkış model indirmedir** (`models/indir.sh`, ilk kurulum). Analiz
+  internet istemez; kurulumdan sonra bu çıkış kapatılabilir.
+- **Uzaktan erişim** yalnız docs/15'teki yolla (VPN); sunucu internete açılmaz.
+
+| Ağ | Alt ağ / VLAN | Sunucunun erişimi | Not |
+|---|---|---|---|
+| Kamera ağı | (doldurun) | RTSP 554 | Kameralar ve NVR |
+| Yönetim ağı | (doldurun) | 8080 (yalnız izinli adresler) | İSG ekranları |
+| Anons | (doldurun) | IP hoparlörün HTTP portu | Yalnız IP hoparlör kullanılıyorsa |
+| İnternet | - | Kapalı (kurulumdan sonra) | Model indirme için geçici açılır |
+
 ---
 
 ## 2. Servis
@@ -334,6 +354,16 @@ de değiştirilebilir: soldaki raftan **Sistem ayarları** (`/ayarlar`). Sayfa
 Fotoğrafı silinen olayın kaydı korunur, yalnızca fotoğraf bağlantısı temizlenir
 (olay ekranında kırık resim çıkmaz).
 
+**Dondurulan olay silinmez.** Hukuki süreçte gereken olay, olay sayfasındaki
+**Dondur** ile (sebep zorunlu) saklama temizliğinden çıkarılır: olay, kanıt
+fotoğrafı ve uyarı teslim kaydı kalır; dondurma kaldırılınca bir sonraki bakımda
+süresi dolmuşsa silinir (docs/18 §3).
+
+**Her bakım koşusu imha kaydı yazar** (silinen olay, fotoğraf, KKD örneği,
+dondurulduğu için atlanan olay ve o günkü gün sayıları). Kayıt ve erişim izi
+Ayarlar sayfasının en altındaki "KVKK: erişim ve imha kayıtları" bölümündedir;
+ikisi de silinmez (docs/18 §2, §4).
+
 Boş disk `DISK_UYARI_GB` altına inince Olaylar listesine `Sistem` tipi bir uyarı
 düşer. **DALSAN'ın KVKK saklama politikasıyla uyum 1. haftada teyit edilir** -
 sistem politikayı teknik olarak zorlar, politikayı belirlemez.
@@ -432,6 +462,9 @@ görünmelidir.
 - [ ] Bakım (retention) çalıştığı günlükten doğrulandı, KVKK süreleriyle uyumlu
 - [ ] **Giriş şifresi geri eklendi** (`docs/07` #0) - ağa açık kurulumda zorunlu
 - [ ] Kullanım dokümanı teslim edildi, kullanıcı eğitimi yapıldı (K9)
+- [ ] Her açık kameranın görüş alanında mahremiyet alanı olmadığı kamera sayfasında onaylandı (kurulum listesi adım 9)
+- [ ] Ağ bölümlendirmesi tablosu ağ ekibiyle dolduruldu (§1.4)
+- [ ] KVKK uyum kartı (docs/18) avukatla gözden geçirildi; aydınlatma metni ve levha asıldı
 - [ ] Kabul tutanağı: K1-K11 madde madde işaretlendi
 
 ### 8.1 Uyarı gecikmesini ölçmek (telefon videosu)

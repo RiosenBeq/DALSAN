@@ -1330,6 +1330,9 @@ CREATE TABLE access_log (         -- KVKK m.12 denetim izi
     target TEXT                   -- ör. 'event:123'; FK YOK: olay silinse de iz kalır
 );
 CREATE INDEX idx_access_log_at ON access_log (at);
+-- F5c uygulamasında eklendi: kurulum listesinin mahremiyet maddesi (§10.1, §11)
+-- kamera başına elle onaylanır; NULL = henüz onaylanmadı, adres değişince silinir.
+ALTER TABLE cameras ADD COLUMN privacy_checked_at TEXT;
 ```
 
 Kullanılmayacak sütun bugünden açılmaz (CLAUDE.md §7): her göç, onu kullanan fazla birlikte gelir.

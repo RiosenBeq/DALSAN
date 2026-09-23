@@ -182,5 +182,6 @@ ruff check . && ruff format .
 | `13-UYGULAMA-PAKETLEME.md` | Teslim edilecek uygulamayı üretme (Mac `.app` / Windows `.exe`), veri yeri, güncelleme, Windows tuzakları |
 | `15-UZAKTAN-ERISIM.md` | Fabrika ağına ve fabrika dışına açma: üç seviye, VPN/Tailscale önerisi, kaba kuvvet koruması, KVKK uyarısı |
 | `14-ANONS-SISTEMI-BAGLAMA.md` | Anons altyapısına bağlanma: ses kartı / IP hoparlör, üç HTTP biçimi, devreye alma sırası, anons firmanıza soracaklarınız |
+| `18-KVKK.md` | KVKK uyum kartı: yükümlülük → üründeki karşılığı, erişim izi, dondurma, imha kaydı, açık sorular (avukat teyidi bekler) |
 
 Bir karar bu dosyalarda yoksa **uydurma - sor.**
