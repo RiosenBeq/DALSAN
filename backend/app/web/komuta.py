@@ -21,6 +21,11 @@ from app import zaman
 from app.hatalar import DogrulamaHatasi
 from app.olaylar.anons import bolge_sec
 from app.rules.motor import KALIBRASYON_GEREKTIREN
+
+# Ses çıkışı bölümünün verisi TEK yerde üretilir (web/anons_web.py). İki ayrı
+# yerde üretilseydi bu ekran hoparlörü bağlı, öbürü kopmuş gösterebilirdi.
+# Ters yönde bağımlılık YOKTUR (anons_web komuta'yı import etmez).
+from app.web import anons_web
 from app.web.kilavuz import EKRAN_ACIKLAMALARI, kurulum_durumu
 from app.web.ortak import (
     ANONS_KISA_ADLARI,
@@ -1232,7 +1237,17 @@ def anons_baglami(istek: Request, baglanti) -> dict:
         "anons_yolu": ANONS_KISA_ADLARI.get(ayarlar.anons, ayarlar.anons),
         "anons_kapali": ayarlar.anons == "null",
         "anons_http": ayarlar.anons == "http",
+        # Şablon `anons_yolu` ile karşılaştırma YAPMAMALI: o alan ekranda
+        # görünen Türkçe addır ("ses kartı") ve bir gün "Bilgisayarın ses
+        # kartı" diye güzelleştirilirse ses çıkışı paneli sessizce kaybolurdu.
+        "anons_ses_karti": ayarlar.anons == "ses_karti",
         "anons_bekleme_sn": ayarlar.anons_bekleme_sn,
         "analiz_calisiyor": supervizor is not None,
         "son_sonuc": getattr(supervizor, "_anons", None) and supervizor._anons.son_sonuc,
+        # Ses çıkışı (hangi hoparlör, bağlı mı) AYNI fonksiyondan gelir.
+        # Komuta kabuğu kullanıcının asıl durduğu ekrandır; Bluetooth
+        # hoparlörün koptuğu yalnızca eski kabuktaki /anons sayfasında
+        # yazsaydı, uyarıyı görmesi için oraya gitmesi gerekirdi — oysa
+        # oraya gitmesinin sebebi tam da bir sorun olduğunu bilmek olurdu.
+        **anons_web.ses_cikisi_baglami(ayarlar),
     }

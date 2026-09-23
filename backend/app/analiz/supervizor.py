@@ -21,6 +21,7 @@ import time
 from pathlib import Path
 
 from app import veritabani, zaman
+from app.analiz import ortam
 from app.analiz.boru_hatti import KameraHatti
 from app.analiz.kamera import (
     DURUM_BAGLANIYOR,
@@ -234,6 +235,11 @@ class AnalizSupervizoru:
         # Bakım açılıştan hemen sonra bir kez, sonra her 24 saatlik UYGULAMA
         # çalışma süresinde bir çalışsın (makinenin uptime'ından bağımsız).
         self._son_bakim = time.monotonic() - _BAKIM_ARALIGI_SN
+        # Yanlış OpenCV sürümü nesne tanımayı SESSİZCE bozar (analiz/ortam.py).
+        # Günlüğe düşmesi şart: kullanıcı destek için günlüğü kopyalıyor.
+        uyari = ortam.opencv_uyarisi()
+        if uyari:
+            self._log.warning(uyari, extra={"ayrinti": f"cv2 {ortam.opencv_surumu()}"})
         self._log.info("Analiz süpervizörü başladı.")
         try:
             while not self._dur.is_set():

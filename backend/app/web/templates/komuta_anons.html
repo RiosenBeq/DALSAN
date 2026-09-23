@@ -26,6 +26,50 @@
   {% endfor %}
 </div>
 
+{# --- ses çıkışı ------------------------------------------------------- #}
+{# Yalnız "ses kartı" yolunda anlamlı: IP hoparlörde ses bilgisayardan hiç
+   çıkmaz, adrese HTTP isteği gider.
+
+   Bu panel /anons sayfasında da var ve verisi AYNI fonksiyondan geliyor
+   (anons_web.ses_cikisi_baglami). Burada da durmasının sebebi: kullanıcının
+   asıl durduğu ekran burası. Bluetooth hoparlörün koptuğu yalnızca eski
+   kabuktaki sayfada yazsaydı, uyarıyı görmek için oraya gitmesi gerekirdi —
+   oysa oraya gitmesinin sebebi tam da bir sorun olduğunu bilmek olurdu. #}
+{% if anons_ses_karti %}
+<section class="komuta-panel">
+  <div class="panel-basligi">
+    <h2>Ses çıkışı</h2>
+    <span class="panel-notu">anons hangi hoparlörden çalıyor</span>
+    <a class="panel-sag" href="/anons">çıkışı değiştir ve test sesi çal →</a>
+  </div>
+
+  {% if ses_cihazi_bagli is false %}
+  <div class="komuta-bos uyari-tonu">
+    <h3>Seçili hoparlör bağlı değil</h3>
+    <p><b>{{ secili_ses_cihazi }}</b> şu anda görünmüyor — Bluetooth hoparlörse
+      kapanmış ya da menzilden çıkmış olabilir.
+      <b>Bu haldeyken anonslar duyulmaz;</b> ekran uyarıları çalışmaya devam eder.</p>
+  </div>
+  {% else %}
+  <div class="hoparlor-listesi">
+    <div class="hoparlor-satiri">
+      <span class="zincir-hucre">
+        <span class="satir-adi">
+          {{ secili_ses_cihazi or "İşletim sisteminin varsayılan çıkışı" }}</span>
+        <span class="panel-notu">
+          {% if not ses_secimi_destekleniyor %}çıkış, işletim sisteminin ses
+            ayarlarından seçilir{% elif ses_cihazlari %}{{ ses_cihazlari | length }}
+            çıkış bulundu{% else %}çıkış listesi okunamadı — anons yine
+            varsayılana çalar{% endif %}</span>
+      </span>
+      <span class="rozet {{ 'yesil' if secili_ses_cihazi else 'gri' }}">
+        {{ "seçili" if secili_ses_cihazi else "varsayılan" }}</span>
+    </div>
+  </div>
+  {% endif %}
+</section>
+{% endif %}
+
 {# --- anons mesajları -------------------------------------------------- #}
 <section class="komuta-panel">
   <div class="panel-basligi">

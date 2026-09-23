@@ -89,6 +89,9 @@ def ana_sayfa(istek: Request, yedek: str = "", baglanti=Depends(baglanti_al)):
             "veritabani_yolu": _kokten_yol(ayarlar.veritabani_yolu, ayarlar.kok_dizin),
             "kamera_sayisi": kamera_sayisi,
             "ayar_satirlari": _ayar_satirlari(ayarlar),
+            # Sessiz bozulmayı görünür kılar (analiz/ortam.py). Olağan
+            # kurulumda boştur ve ekranda hiçbir şey çizilmez.
+            "ortam_uyarisi": _ortam_uyarisi(),
             "veri_boyutu": _okunur_boyut(_klasor_boyutu(ayarlar.veri_dizini)),
             "disk_bos": _okunur_boyut(disk.free),
             "disk_toplam": _okunur_boyut(disk.total),
@@ -186,6 +189,17 @@ def _ayar_satirlari(ayarlar) -> list[tuple[str, str]]:
         ("Tespit modeli", gorunen_model_adi(ayarlar.model_dosyasi.name)),
         ("Anons", ayarlar.anons),
     ]
+
+
+def _ortam_uyarisi() -> str:
+    """Kurulu OpenCV sürümü beklenenden farklıysa tek satırlık uyarı.
+
+    Import BİLEREK fonksiyonun içinde: bu modül testlerde OpenCV kurulu
+    olmadan da import edilebilmeli (analiz=False kurulumu).
+    """
+    from app.analiz.ortam import opencv_uyarisi
+
+    return opencv_uyarisi()
 
 
 def _kokten_yol(yol: Path, kok: Path) -> str:

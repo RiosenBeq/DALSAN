@@ -157,6 +157,23 @@ Bu, kameralar arttıkça değil, **sisteme bağımlılık arttıkça** gündeme 
 | GraphQL | İstemci tek ve sabit; REST + OpenAPI yeterli |
 | Elasticsearch | Olay hacmi PostgreSQL'in çok altında |
 | Multi-tenancy | Tek şirket, tek tesis; fabrika geneli yayılım multi-tenancy değil, alan gruplamadır |
+| Programın Bluetooth hoparlörü KENDİ eşleştirmesi | Hoparlör eşleştirmesi (A2DP) `bleak`/`pybluez` ile zaten yapılamaz; her işletim sisteminde ayrı kütüphane ve izin ister. İşletim sistemi bunu zaten yapıyor — üstelik daha iyi. Sistem eşleştirilmiş cihazı listeler ve koptuğunda uyarır (`olaylar/ses_cihazlari.py`) |
+| Mac/Windows'ta ses çıkışını PROGRAMDAN seçme | `afplay` ve PowerShell SoundPlayer cihaz seçeneği almaz; ek modül (AudioDeviceCmdlets, SwitchAudioSource) kurulum gerektirir. Ekran, çıkışın işletim sistemi ayarlarından seçileceğini söylüyor. Linux'ta (fabrika sunucusu) seçim zaten çalışıyor |
+| CSS çatısı (Tailwind, Bootstrap) | `static/vendor/` istisnası yalnız simge ve yazı tipi içindir (CLAUDE.md §4). Çatı, derleme adımı ve npm getirir |
+
+---
+
+## 4.1 Video ile test — sonraki adımlar (2026-09)
+
+Bugün yüklenen video, `source_type='file'` olan sıradan bir kameradır ve canlı
+kameranın yolundan geçer (`web/videolar.py`). Aşağıdakiler ölçülmedi ve
+uçtan uca akış için gerekli DEĞİL (CLAUDE.md §2):
+
+| Fikir | Neden bugün değil |
+|---|---|
+| Videoyu hızlandırarak analiz etme (2x, 4x) | Bugün video gerçek hızında oynuyor; on dakikalık bir kayıt on dakika sürüyor. Hızlandırmak takipçinin (ByteTrack) kare hızı varsayımını bozar ve hız kuralının ölçtüğü m/sn değerini yanlış yapar — yani sonucu hızlandırmak uğruna YANLIŞLAŞTIRIR |
+| Aynı videoyu iki farklı eşikle karşılaştırma | İki kamera kaydı olarak elle yapılabiliyor; ayrı bir ekran, öğrenilecek yeni bir kavram demek |
+| İlerleme çubuğu ("videonun %40'ı analiz edildi") | Kamera katmanı toplam kare sayısını bilmiyor; öğrenmesi için dosyayı baştan taraması gerekir |
 
 ---
 

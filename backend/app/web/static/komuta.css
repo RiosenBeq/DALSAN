@@ -376,6 +376,16 @@
 .komuta-bos { display: grid; gap: 10px; justify-items: start; padding: 8px 2px; }
 .komuta-bos h3 { margin: 0; font-size: 15px; font-weight: 680; letter-spacing: -0.02em; }
 .komuta-bos p { margin: 0; max-width: 60ch; font-size: 13px; color: var(--metin-2); }
+/* Boş durum, "yapılacak bir şey yok" değil BİR ARIZA anlatıyorsa (kopmuş
+   hoparlör) nötr griyle gösterilemez: kullanıcı panelde gezinirken onu
+   olağan bir bilgi satırı sanıp geçer. */
+.komuta-bos.uyari-tonu {
+  background: var(--tehlike-zemin);
+  border: 1px solid var(--tehlike-cizgi);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+}
+.komuta-bos.uyari-tonu h3 { color: var(--tehlike-metin); }
 
 /* --------------------------------------------- eski tarayıcı (cam yoksa) */
 /* stil.css'teki aynı yedek cam DEĞİŞKENLERİNİ opak yapar; burada komuta

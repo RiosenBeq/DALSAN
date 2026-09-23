@@ -1,4 +1,5 @@
 {% extends "temel.html" %}
+{% from "simge.html" import simge %}
 {% block baslik %}DALSAN İSG — Sistem Durumu{% endblock %}
 {% block icerik %}
   <p class="alt-baslik">Teşhis ekranı · Sunucu saati: {{ sunucu_saati }} (Türkiye)</p>
@@ -101,6 +102,13 @@
       <tr><th>{{ ad }}</th><td>{{ deger }}</td></tr>
       {% endfor %}
     </table>
+    {# Kurulu görüntü kütüphanesinin sürümü beklenenden farklıysa. Olağan
+       kurulumda BOŞTUR ve buraya hiçbir şey çizilmez. Sessiz kalması,
+       "tanıttığım nesne neden bulunmuyor" sorusunun cevabının hiçbir yerde
+       yazmaması demekti (analiz/ortam.py). #}
+    {% if ortam_uyarisi %}
+    <p class="hata-mesaji simgeli">{{ simge("uyari") }} {{ ortam_uyarisi }}</p>
+    {% endif %}
     <p class="not">RTSP bağlantı bilgileri güvenlik gereği maskeli gösterilir.
       Bu ayarları değiştirmek için kök klasördeki .env dosyasını düzenleyip sistemi yeniden başlatın.</p>
   </section>
