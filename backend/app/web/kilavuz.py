@@ -141,6 +141,23 @@ DURUM_ROZETLERI = {
 }
 
 
+def _forklift_notu(supervizor) -> str:
+    """Forklift ayrı sınıf mı (docs/17 §4.2, §12.3; docs/08 R1)?
+
+    Hazır model (COCO) forklifti tanımaz; çoğu zaman "tır" (araç) görür ve
+    kurallar onu araç olarak işler, hiç göremediği de olur. Forklift sınıflı
+    bir model yüklenince (sınıf listesi dosyanın içinde) bu not değişir.
+    """
+    if getattr(getattr(supervizor, "tespitci", None), "forklift_taniyor", False):
+        return "Forklift ayrı sınıf olarak tanınıyor."
+    return (
+        "Forklift ayrı bir sınıf değil: hazır model forklifti çoğu zaman araç (tır) "
+        "olarak görür ve kurallar onu araç olarak işler, ama hiç görmediği de olur. "
+        "Forkliftin kendisini tanıması için sahadan etiketli karelerle eğitilmiş "
+        "model gerekir; destek ekibinden isteyin."
+    )
+
+
 def _model_adimi(supervizor, ayarlar) -> dict:
     """1. adım - tespit motoru.
 
@@ -160,7 +177,8 @@ def _model_adimi(supervizor, ayarlar) -> dict:
     durum = getattr(supervizor, "model_durumu", None) if supervizor is not None else None
 
     if durum == "hazir":
-        return {**ortak, "tamam": True, "hal": "", "aciklama": f"{ad} çalışıyor."}
+        aciklama = f"{ad} çalışıyor. {_forklift_notu(supervizor)}"
+        return {**ortak, "tamam": True, "hal": "", "aciklama": aciklama}
     if durum in ("indiriliyor", "yukleniyor"):
         return {
             **ortak,

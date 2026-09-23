@@ -12,6 +12,7 @@ tablosu bu yüzden tek yerdedir: model değişince yalnızca burası güncelleni
 
 from __future__ import annotations
 
+import json
 import threading
 from importlib import metadata
 from pathlib import Path
@@ -22,7 +23,7 @@ import numpy as np
 from app.analiz.model_adi import MARKA, gorunen_model_adi
 from app.hatalar import DalsanHata
 from app.loglama import log_al
-from app.rules.tipler import SINIF_INSAN, SINIF_TIR
+from app.rules.tipler import SINIF_FORKLIFT, SINIF_INSAN, SINIF_TIR, TANINAN_SINIFLAR
 
 # COCO sınıf indeksi → bizim sınıf adımız. Listede olmayan sınıflar atılır.
 # 5=bus ve 7=truck birlikte "truck" sayılır: sahada ağır araç ayrımı için yeterli.
@@ -36,8 +37,57 @@ MODEL_SINIF_ESLEME: dict[int, str] = {
     7: SINIF_TIR,
 }
 
-# İnsan sınıfının model içindeki indeksi - ayrı eşik ve NMS bandı için
-_INSAN_MODEL_ID = 0
+# Kendi eğittiğimiz modelde (forklift sınıfıyla) sınıf listesi dosyanın
+# İÇİNDEDİR (docs/17 §4.2): eğitim betiği ONNX `custom_metadata_map`'e bu
+# anahtarla çıkış indeksi → katalog kodu yazar. Hazır YOLOX'ta üst veri boştur
+# ve yukarıdaki COCO eşlemesi kullanılır.
+UST_VERI_SINIF_ANAHTARI = "dalsan_classes"
+
+
+def sinif_eslemesi(ust_veri: dict[str, str]) -> tuple[dict[int, str], list[str]]:
+    """Model çıkış indeksi → katalog kodu ve katalogda olmayan kodlar.
+
+    Üst veride JSON liste (sıra = çıkış indeksi) ya da {"indeks": "kod"}
+    sözlüğü kabul edilir; birden çok indeks aynı koda gidebilir (car ve truck
+    → truck). Katalogda (TANINAN_SINIFLAR) olmayan kod atlanır ve bildirilir.
+    Okunamayan liste ModelHatasi'dır: yanlış sırayla okunan bir model forklifti
+    insan, insanı forklift sanabilirdi.
+    """
+    ham = ust_veri.get(UST_VERI_SINIF_ANAHTARI)
+    if not ham:
+        return dict(MODEL_SINIF_ESLEME), []
+    try:
+        veri = json.loads(ham)
+        if isinstance(veri, list):
+            ciftler = list(enumerate(veri))
+        elif isinstance(veri, dict):
+            ciftler = [(int(indeks), kod) for indeks, kod in veri.items()]
+        else:
+            raise ValueError("liste ya da sözlük değil")
+    except (ValueError, TypeError) as hata:
+        raise ModelHatasi(
+            "Tespit modelinin sınıf listesi okunamadı. Kendi eğittiğiniz modeli "
+            "kullanıyorsanız program klasöründeki veri/loglar/sistem.log dosyasını "
+            "destek ekibine iletin; hazır modele dönmek için .env'deki MODEL_DOSYASI "
+            "satırını .env.example'daki gibi düzeltin.",
+            f"ONNX üst verisi {UST_VERI_SINIF_ANAHTARI} çözülemedi: {ham!r} ({hata})",
+        ) from hata
+    esleme: dict[int, str] = {}
+    bilinmeyen: list[str] = []
+    for indeks, kod in ciftler:
+        if kod in TANINAN_SINIFLAR:
+            esleme[int(indeks)] = kod
+        else:
+            bilinmeyen.append(str(kod))
+    if not esleme:
+        raise ModelHatasi(
+            "Tespit modeli insan, forklift ya da tır sınıflarından hiçbirini tanımıyor; "
+            "bu modelle güvenlik kuralları çalışamaz. Hazır modele dönmek için .env'deki "
+            "MODEL_DOSYASI satırını .env.example'daki gibi düzeltin.",
+            f"ONNX üst verisi {UST_VERI_SINIF_ANAHTARI}: {ham!r}",
+        )
+    return esleme, bilinmeyen
+
 
 # Kullanıcıya görünen Türkçe adlar (arayüz bu tabloyu kullanır)
 SINIF_TR = {"person": "insan", "truck": "tır", "forklift": "forklift"}
@@ -106,6 +156,12 @@ def _acilamadi(model_dosyasi: Path, hata: Exception) -> ModelHatasi:
 class Tespitci:
     """YOLOX ONNX modeli. Tek örnek, tüm kameralar paylaşır; oturum çağrısı
     kilitle sıralanır (CPU'da paralel çıkarım zaten hız kazandırmaz)."""
+
+    # Hazır YOLOX'un (COCO) eşlemesi; özel model __init__'te üst veriden kurar
+    _sinif_esleme: dict[int, str] = MODEL_SINIF_ESLEME
+    _insan_model_id = 0
+    siniflar: tuple[str, ...] = (SINIF_INSAN, SINIF_TIR)
+    forklift_taniyor = False
 
     def __init__(
         self,
@@ -209,6 +265,23 @@ class Tespitci:
             ek = {"extra": {"ayrinti": f"GPU oturum hatası: {gpu_hatasi!r}"}} if gpu_hatasi else {}
             log_al("tespit").warning(self.cihaz_uyarisi, **ek)
 
+        # Sınıf listesi: özel modelde dosyanın üst verisinden, hazırda COCO
+        try:
+            ust_veri = dict(self._oturum.get_modelmeta().custom_metadata_map or {})
+        except AttributeError:  # üst verisi okunamayan oturum: hazır model gibi
+            ust_veri = {}
+        self._sinif_esleme, bilinmeyen = sinif_eslemesi(ust_veri)
+        if bilinmeyen:
+            log_al("tespit").warning(
+                "Modelin şu sınıfları sistemde tanımlı değil ve atlanıyor: " + ", ".join(bilinmeyen)
+            )
+        insan_idleri = sorted(i for i, kod in self._sinif_esleme.items() if kod == SINIF_INSAN)
+        # İnsan yoksa -1: hiçbir çıkış indeksi insan eşiğine ve bandına düşmez
+        self._insan_model_id = insan_idleri[0] if insan_idleri else -1
+        # Modelin ürettiği katalog sınıfları; kurulum listesi forklifti buradan söyler
+        self.siniflar = tuple(k for k in TANINAN_SINIFLAR if k in self._sinif_esleme.values())
+        self.forklift_taniyor = SINIF_FORKLIFT in self.siniflar
+
         girdi = self._oturum.get_inputs()[0]
         self._girdi_adi = girdi.name
         # Model girdisinden boyutu oku (tiny: 416, s: 640) - sabit kodlama yok.
@@ -247,7 +320,7 @@ class Tespitci:
     def tespit_et(self, kare: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         """BGR kare → (kutular_xyxy[piksel], guvenler, sinif_adlari).
 
-        Yalnızca MODEL_SINIF_ESLEME'deki sınıflar döner.
+        Yalnızca modelin sınıf eşlemesindeki (üst veri ya da COCO) sınıflar döner.
         """
         girdi, oran = self._on_isle(kare)
         with self._kilit:
@@ -292,14 +365,16 @@ class Tespitci:
         # 0.31 ile 'sırt çantası' bulduğunda insanı tamamen düşürürdü - sahada
         # kaçırılan insan demektir. Sınıf-farkındalıklı seçim, YOLOX'un kendi
         # class-aware yolu ve tespit isabetindeki en büyük kazanç (docs/08 R1).
-        ilgi_idler = np.array(sorted(MODEL_SINIF_ESLEME.keys()))
+        ilgi_idler = np.array(sorted(self._sinif_esleme.keys()))
         ilgi_skorlari = skorlar[:, ilgi_idler]
         yerel = ilgi_skorlari.argmax(1)
         sinif_idler = ilgi_idler[yerel]
         guvenler = ilgi_skorlari[np.arange(len(ilgi_skorlari)), yerel]
 
         # Sınıf başına eşik: insan için daha cömert
-        esikler = np.where(sinif_idler == _INSAN_MODEL_ID, self.insan_guven_esigi, self.guven_esigi)
+        esikler = np.where(
+            sinif_idler == self._insan_model_id, self.insan_guven_esigi, self.guven_esigi
+        )
         maske = guvenler >= esikler
         if not maske.any():
             bos = np.empty((0,))
@@ -330,7 +405,7 @@ class Tespitci:
         # birbirini bastırmasın diye sınıflar ayrı koordinat bandına kaydırılır
         # (forklift'in yanındaki insan tam da uyarı üretmesi gereken durumdur).
         kayma = (max(kare_g, kare_y) + 1) * np.array(
-            [0 if s == _INSAN_MODEL_ID else 1 for s in sinif_idler], dtype=float
+            [0 if s == self._insan_model_id else 1 for s in sinif_idler], dtype=float
         )
         nms_kutulari = [
             (x1 + k, y1 + k, x2 - x1, y2 - y1)
@@ -349,5 +424,5 @@ class Tespitci:
             return np.empty((0, 4)), bos, bos.astype(str)
         secilenler = np.array(secilenler).reshape(-1)
 
-        adlar = np.array([MODEL_SINIF_ESLEME[int(s)] for s in sinif_idler[secilenler]])
+        adlar = np.array([self._sinif_esleme[int(s)] for s in sinif_idler[secilenler]])
         return kutular[secilenler], guvenler[secilenler], adlar

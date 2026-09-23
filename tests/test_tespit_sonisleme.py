@@ -138,3 +138,40 @@ def test_sinif_eslemesi_yalnizca_bilinen_siniflari_uretir():
     from app.rules.tipler import SINIF_INSAN, SINIF_TIR
 
     assert set(MODEL_SINIF_ESLEME.values()) <= {SINIF_INSAN, SINIF_TIR}
+
+
+# ------------------------------------------------ özel model (docs/17 §4.2)
+
+
+def _ozel_cikti(sinif_sayisi: int, sinif: int, skor: float, kutu=(100, 100, 60, 50)):
+    """Özel modelin ham çıktısı: 5 + sınıf sayısı sütun, tek dolu satır."""
+    toplam = sum((416 // adim) ** 2 for adim in (8, 16, 32))
+    cikti = np.zeros((toplam, 5 + sinif_sayisi), dtype=np.float32)
+    cx, cy, w, h = kutu
+    cikti[0, :5] = (cx / 8.0, cy / 8.0, np.log(w / 8.0), np.log(h / 8.0), 1.0)
+    cikti[0, 5 + sinif] = skor
+    return cikti
+
+
+def test_ozel_modelin_forklift_sinifi_uretilir():
+    """Forklift, üst verisinde forklift sınıfı olan modelde "tır" değil
+    "forklift" olarak çıkar; kurallar (mesafe, hız, yaya yolunda araç) onu
+    zaten hedefler."""
+    t = _tespitci()
+    t._sinif_esleme = {0: "person", 1: "forklift", 2: "truck"}
+    t._insan_model_id = 0
+    _, guvenler, adlar = t._son_isle(_ozel_cikti(3, 1, 0.9), 1.0, 640, 480)
+    assert list(adlar) == ["forklift"]
+    assert 0.89 < guvenler[0] < 0.91
+
+
+def test_ozel_modelde_insan_esigi_dogru_indekse_uygulanir():
+    """İnsan 0. sırada olmayabilir: cömert insan eşiği ve NMS bandı üst
+    verideki insan indeksine uygulanır, forkliftinkine değil."""
+    t = _tespitci(guven=0.35, insan_guven=0.28)
+    t._sinif_esleme = {0: "forklift", 1: "person"}
+    t._insan_model_id = 1
+    _, _, adlar = t._son_isle(_ozel_cikti(2, 1, 0.30), 1.0, 640, 480)
+    assert list(adlar) == ["person"]
+    _, _, adlar = t._son_isle(_ozel_cikti(2, 0, 0.30), 1.0, 640, 480)
+    assert list(adlar) == [], "forklift genel eşiğin (0,35) altında"

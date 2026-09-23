@@ -435,6 +435,11 @@ Arayüz, model ayırana kadar "Tır/Araç" demeye devam eder.
   (`tespit.py:26-36`) kullanılır.
 - Metadata'daki bir kod katalogda yoksa tespit atlanır ve bir kez günlüğe yazılır (bugünkü
   `takip.py` `_bilinmeyeni_bildir` deseni).
+- **Uygulandı (23.09.2026, operatörün forklift isteği üzerine):** `tespit.sinif_eslemesi`
+  JSON liste ya da `{"indeks": "kod"}` sözlüğü okur; okunamayan ya da katalogdan hiç sınıf
+  içermeyen liste `ModelHatasi`'dır (yanlış sırayla okunan model forklifti insan sanabilirdi).
+  İnsan eşiği ve NMS bandı üst verideki insan indeksine uygulanır. `Tespitci.siniflar` ve
+  `forklift_taniyor` kurulum listesinin ilk adımında görünür.
 
 ### 4.3 Bölge tipleri
 

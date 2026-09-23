@@ -14,6 +14,7 @@ gerekir. Buradaki testler üç şeyi kollar:
 from __future__ import annotations
 
 import re
+from types import SimpleNamespace
 
 import pytest
 
@@ -53,9 +54,12 @@ class SahteSupervizor:
     burada yalnızca o iki alan taklit edilir.
     """
 
-    def __init__(self, model_durumu: str = "hazir", tespit_hatasi: str = "") -> None:
+    def __init__(
+        self, model_durumu: str = "hazir", tespit_hatasi: str = "", forklift: bool = False
+    ) -> None:
         self.model_durumu = model_durumu
         self.tespit_hatasi = tespit_hatasi
+        self.tespitci = SimpleNamespace(forklift_taniyor=forklift)
 
 
 def _motoru_hazirla(istemci, durum: str = "hazir", hata: str = "") -> None:
@@ -343,6 +347,19 @@ def test_model_hazirlanirken_kamera_adimi_yine_de_acik(istemci):
     metin = istemci.get("/komuta").text
     assert _adim_durumu(metin, "Tespit motoru hazır mı?") == "calisiyor"
     assert _adim_durumu(metin, "En az bir kamera eklendi mi?") == "sira"
+
+
+def test_motor_adimi_forkliftin_ayri_sinif_olup_olmadigini_soyler(istemci):
+    """Operatör sorusu (23.09.2026): forklift tanıtıldı mı? Hazır modelde
+    hayır: ekran bunu ve ne gerektiğini söyler; forklift sınıflı model
+    yüklenince "tanınıyor" der (docs/17 §4.2)."""
+    _motoru_hazirla(istemci, "hazir")
+    metin = istemci.get("/komuta").text
+    assert "Forklift ayrı bir sınıf değil" in metin
+    istemci.app.state.supervizor = SahteSupervizor("hazir", forklift=True)
+    metin = istemci.get("/komuta").text
+    assert "Forklift ayrı sınıf olarak tanınıyor." in metin
+    assert "Forklift ayrı bir sınıf değil" not in metin
 
 
 def test_model_hatasi_adimda_gorunuyor(istemci):

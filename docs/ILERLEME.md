@@ -31,6 +31,23 @@ yüksek ve uzun); teslim kaydı "sözlü anons yerine uyarı tonu çalındı" de
 Sahada yapılacak: her mesaja sözlü kayıt bağlamak ve "Anonsu Dene" ile
 dinlemek (docs/06 §8'de madde).
 
+**Forklift.** Bugünkü tespit modeli (hazır YOLOX, COCO) forklift sınıfı
+içermez: forklift çoğu zaman araç (car/truck, ekranda "tır") olarak görülür ve
+güvenli mesafe, hız ve yaya yolunda araç kuralları onu araç olarak işler; hiç
+görülmediği de olur (docs/08 R1). Forkliftin kendisini tanıması eğitim ister
+ve bu ortamda yapılamaz: sahadan KVKK dayanaklı etiketli kareler (S11: İSG +
+NextGen), GPU'lu ayrı bir makine (eğitim ürün dışı, S31) ve kamu veri seti
+(LOCO) ya da yeni ön eğitimli ağırlık kullanılacaksa hukuk görüşü (S20,
+operatöre hiç gösterilmedi). Ürün tarafında eksik olan tek parça yazıldı:
+docs/17 §4.2'deki sınıf listesi artık modelin ONNX üst verisinden
+(`dalsan_classes`) okunuyor. Forklift sınıflı bir model konunca sistem
+forklifti ayrı sınıf olarak üretir, insan eşiği doğru indekse uygulanır,
+katalogda olmayan sınıf atlanıp günlüğe yazılır, okunamayan liste modeli
+açmaz. Kurulum listesinin ilk adımı forkliftin ayrı sınıf olarak tanınıp
+tanınmadığını söyler. Model gelince doğruluk `tests/dogruluk_kiyas` ile ölçülür
+(forklift AP50 ≥ 0,90; docs/06 §8) ve car/truck ayrımı ancak ondan sonra açılır
+(docs/17 §12.3-5).
+
 **Uyarı kayıtları: 15 günde bir önce masaüstüne, sonra temizlik.** "Uyarı
 logu" teslim kaydıdır (`alert_deliveries`: hangi uyarı, hangi kanal, sonuç,
 gecikme); olaylar ve kanıt fotoğrafları bu kararın dışındadır (süreleri S5'te).

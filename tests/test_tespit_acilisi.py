@@ -91,3 +91,58 @@ def test_iki_calisma_zamani_paketi_birlikteyse_sebep_soylenir(model, monkeypatch
 
 def test_kurulu_paket_listesi_gercek_ortami_okur():
     assert "onnxruntime" in tespit._ort_paketleri()
+
+
+# ------------------------------------------------ sınıf listesi (docs/17 §4.2)
+
+
+def test_ust_veri_yoksa_hazir_coco_eslemesi():
+    esleme, bilinmeyen = tespit.sinif_eslemesi({})
+    assert esleme == tespit.MODEL_SINIF_ESLEME and bilinmeyen == []
+    assert "forklift" not in esleme.values(), "hazır modelde forklift sınıfı yok (docs/08 R1)"
+
+
+@pytest.mark.parametrize(
+    "ham",
+    ['["person", "forklift", "truck"]', '{"0": "person", "1": "forklift", "2": "truck"}'],
+)
+def test_ust_verideki_sinif_listesi_okunur(ham):
+    esleme, bilinmeyen = tespit.sinif_eslemesi({"dalsan_classes": ham})
+    assert esleme == {0: "person", 1: "forklift", 2: "truck"} and bilinmeyen == []
+
+
+def test_katalogda_olmayan_sinif_atlanir_ve_bildirilir():
+    ham = '["person", "forklift", "pallet_truck", "truck", "truck"]'
+    esleme, bilinmeyen = tespit.sinif_eslemesi({"dalsan_classes": ham})
+    assert esleme == {0: "person", 1: "forklift", 3: "truck", 4: "truck"}
+    assert bilinmeyen == ["pallet_truck"]
+
+
+@pytest.mark.parametrize("ham", ["{bozuk", '"person"', '["pallet_truck"]'])
+def test_okunamayan_ya_da_bos_liste_modeli_acmaz(ham):
+    with pytest.raises(ModelHatasi):
+        tespit.sinif_eslemesi({"dalsan_classes": ham})
+
+
+class _UstVeriliOturum(_SahteOturum):
+    def get_modelmeta(self):
+        return SimpleNamespace(
+            custom_metadata_map={"dalsan_classes": '["person", "forklift", "truck"]'}
+        )
+
+
+def test_forklift_sinifli_model_yuklenince_sistem_bunu_bilir(model, monkeypatch):
+    monkeypatch.setattr(onnxruntime, "InferenceSession", _UstVeriliOturum)
+    monkeypatch.setattr(tespit, "_ort_paketleri", lambda: ["onnxruntime"])
+    tespitci = Tespitci(model, "cpu")
+    assert tespitci.forklift_taniyor
+    assert tespitci.siniflar == ("person", "truck", "forklift")
+    assert tespitci._insan_model_id == 0
+
+
+def test_hazir_modelde_forklift_ayri_sinif_degil(model, monkeypatch):
+    monkeypatch.setattr(onnxruntime, "InferenceSession", _SahteOturum)
+    monkeypatch.setattr(tespit, "_ort_paketleri", lambda: ["onnxruntime"])
+    tespitci = Tespitci(model, "cpu")
+    assert not tespitci.forklift_taniyor
+    assert tespitci.siniflar == ("person", "truck")
