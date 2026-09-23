@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import csv
 import dataclasses
+import importlib.util
 from pathlib import Path
 
 import pytest
@@ -19,6 +20,8 @@ import pytest
 from app import veritabani, zaman
 from app.ayarlar import AyarHatasi, ayarlari_coz
 from app.olaylar import uyari_arsivi
+
+KOK = Path(__file__).resolve().parents[1]
 
 
 @pytest.fixture
@@ -267,6 +270,39 @@ def test_macos_masaustu(tmp_path):
     assert uyari_arsivi.masaustu_klasoru("darwin", tmp_path, {}) is None
     (tmp_path / "Desktop").mkdir()
     assert uyari_arsivi.masaustu_klasoru("darwin", tmp_path, {}) == tmp_path / "Desktop"
+
+
+def _masaustu_sinamasi():
+    tanim = importlib.util.spec_from_file_location(
+        "masaustu_sinamasi_test", KOK / "paketleme" / "masaustu_sinamasi.py"
+    )
+    modul = importlib.util.module_from_spec(tanim)
+    tanim.loader.exec_module(modul)
+    return modul
+
+
+def test_gercek_isletim_sistemi_sinamasi_api_dususunu_yakalar(tmp_path):
+    """Üretim hattı masaüstünü gerçek Windows'un cevabıyla karşılaştırır
+    (paketleme/masaustu_sinamasi.py). Bilinen klasör API'si düşerse program
+    yedeğe (USERPROFILE\\Desktop) geçer ve cevap yine tutabilir; sınama bunu
+    kaçırmamalı. Mac'te API yoktur: aynı cevap geçer, klasör yazılıp silinir.
+    """
+    sinama = _masaustu_sinamasi()
+    masaustu = tmp_path / "Desktop"
+    masaustu.mkdir()
+    cevap = {
+        "api": None,
+        "masaustu": str(masaustu),
+        "arsiv": str(masaustu / uyari_arsivi.KLASOR_ADI),
+        "metin": f"Masaüstü › {uyari_arsivi.KLASOR_ADI}",
+        "klasor_adi": uyari_arsivi.KLASOR_ADI,
+    }
+    with pytest.raises(sinama.SinamaHatasi, match="API"):
+        sinama.cevabi_denetle(masaustu, cevap, windows=True)
+    sinama.cevabi_denetle(masaustu, cevap, windows=False)
+    assert list(masaustu.iterdir()) == []
+    with pytest.raises(sinama.SinamaHatasi, match="program"):
+        sinama.cevabi_denetle(masaustu, dict(cevap, masaustu=str(tmp_path)), windows=False)
 
 
 # ------------------------------------------------------------ ayar

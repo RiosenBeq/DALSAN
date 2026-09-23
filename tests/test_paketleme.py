@@ -684,7 +684,11 @@ def test_uretim_isi_paketi_acip_sinar():
     assert 'python-version: "3.12"' in is_, "desteklenen tek sürüm (docs/17 R10)"
     assert "paketleme/pencere_sinamasi.py pencere" in is_
     assert "paketleme/pencere_sinamasi.py tam" in is_
+    # Uyarı arşivinin masaüstü gerçek Windows ve Mac'e sorulur
+    # (paketleme/masaustu_sinamasi.py; OneDrive yönlendirmesi dahil).
+    assert "python paketleme/masaustu_sinamasi.py" in is_
     # Sınama adımları paketi yükleyen adımdan ÖNCE gelir.
     assert is_.index("pencere_sinamasi.py tam") < is_.index("actions/upload-artifact")
+    assert is_.index("masaustu_sinamasi.py") < is_.index("actions/upload-artifact")
     # Mac paketi kısayolları ve çalıştırma izinlerini korumalı.
     assert "ditto -c -k" in is_ and "archive: false" in is_

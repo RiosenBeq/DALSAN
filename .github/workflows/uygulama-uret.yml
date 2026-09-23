@@ -84,6 +84,13 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r backend/requirements.txt -r paketleme/requirements-paketleme.txt
 
+      # Uyarı kayıtları temizlenmeden önce masaüstüne yazılır
+      # (olaylar/uyari_arsivi.py). Windows'ta masaüstü OneDrive'a yönlendirilmiş
+      # olabilir: programın bulduğu yer gerçek Windows'un ve Mac'in cevabıyla
+      # karşılaştırılır, yönlendirme de taklit edilir.
+      - name: Uyarı arşivi masaüstünü doğru buluyor mu
+        run: python paketleme/masaustu_sinamasi.py
+
       - name: Uygulamayı üret
         run: python -m PyInstaller --noconfirm --clean paketleme/${{ matrix.tarif }}
 
