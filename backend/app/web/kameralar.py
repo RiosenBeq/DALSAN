@@ -14,6 +14,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from app import zaman
 from app.hatalar import DogrulamaHatasi
 from app.rules.kalibrasyon import homografi_hesapla
+from app.rules.tipler import BOLGE_TIPI_KODLARI
 from app.web.ortak import (
     BOLGE_TIPLERI,
     HAZIR_KURALLAR,
@@ -573,7 +574,9 @@ def _bolge_adi_dogrula(name: str) -> str:
 
 
 def _bolge_tipi_dogrula(zone_type: str) -> None:
-    if zone_type not in BOLGE_TIPLERI:
+    # Veritabanında CHECK yok (şema 007): geçerli tiplerin tek süzgeci burası,
+    # kaynağı rules/tipler.py.
+    if zone_type not in BOLGE_TIPI_KODLARI:
         raise DogrulamaHatasi(f"Geçersiz bölge tipi: {zone_type}")
 
 

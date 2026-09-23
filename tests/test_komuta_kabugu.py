@@ -102,8 +102,10 @@ def test_baslik_gercek_kamera_sayisini_gosteriyor(istemci):
 def test_anons_alt_basligi_gercek_ayardan_geliyor(istemci):
     """Tasarımdaki 'IP hoparlör · 7 bölge' yerine .env'deki gerçek anons yolu."""
     metin = istemci.get("/komuta/anons").text
-    # test ayarlarında ANONS = null → "kapalı"; 5 hazır mesaj şemadan gelir
-    assert "Anons yolu: kapalı · 5 hazır mesaj" in metin
+    # test ayarlarında ANONS = null → "kapalı"; mesaj sayısı şemadan gelir
+    # (elle yazılmaz: her göç yeni mesaj tohumlayabilir, docs/17 §4.6)
+    sayi = _veritabani_satir_sayisi(istemci, "announcement_messages")
+    assert f"Anons yolu: kapalı · {sayi} hazır mesaj" in metin
 
 
 def test_saat_saniyesiz_gosteriliyor():
@@ -116,3 +118,13 @@ def test_ana_sayfa_eski_kabukta_kaldi(istemci):
     metin = istemci.get("/").text
     assert "Aktif ayarlar" in metin
     assert 'class="komuta-raf"' not in metin
+
+
+def _veritabani_satir_sayisi(istemci, tablo: str) -> int:
+    from app import veritabani
+
+    baglanti = veritabani.baglanti_ac(istemci.app.state.ayarlar.veritabani_yolu)
+    try:
+        return baglanti.execute(f"SELECT COUNT(*) FROM {tablo}").fetchone()[0]
+    finally:
+        baglanti.close()

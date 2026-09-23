@@ -50,7 +50,9 @@
     truck_parking: "--bolge-tir-park",
     vehicle_area: "--bolge-arac",
     ppe_required: "--bolge-kkd",
-    restricted: "--bolge-yasak"
+    restricted: "--bolge-yasak",
+    crossing: "--bolge-gecit",
+    ppe_exempt: "--bolge-muaf"
   };
 
   var resim = document.getElementById("onizleme");

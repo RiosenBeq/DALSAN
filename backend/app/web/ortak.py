@@ -21,6 +21,8 @@ BOLGE_TIPLERI = {
     "vehicle_area": "Araç sahası",
     "ppe_required": "KKD zorunlu alan",
     "restricted": "Yasak bölge",
+    "crossing": "Yaya-araç geçidi",
+    "ppe_exempt": "KKD muaf alan",
 }
 
 KURAL_TIPLERI = {
@@ -110,6 +112,11 @@ ANONS_OGELERI = {
     "vehicle_position": "park",
     "helmet": "baret",
     "vest": "yelek",
+    # Şema 007 (docs/17 §8.2) — olay_ogesi() ile aynı mantık: bölgedeki araç
+    # "tır", girilmemesi gereken alandaki kişi "alan".
+    "vehicle_on_walkway": "tir",
+    "person_in_vehicle_lane": "alan",
+    "restricted_entry": "alan",
 }
 
 # Bölge tipi → simge. Renk stil.css'teki --bolge-* değişkenlerinden gelir
@@ -121,6 +128,8 @@ BOLGE_SIMGELERI = {
     "vehicle_area": "arac-yolu",
     "ppe_required": "kkd",
     "restricted": "yasak",
+    "crossing": "gecit",
+    "ppe_exempt": "muaf",
 }
 
 

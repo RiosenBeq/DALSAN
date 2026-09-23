@@ -19,7 +19,7 @@ bu dosyalar için ayrı bir adım yoktur.
 
 | Dosya | Kaynak | Lisans |
 |---|---|---|
-| `simgeler.svg` | [Lucide](https://lucide.dev) — seçili 46 simgeden üretilmiş sprite, artı Lucide kuralıyla çizilmiş 1 DALSAN simgesi (yelek) | ISC (Lucide) · DALSAN çizimi projenin kendisinindir |
+| `simgeler.svg` | [Lucide](https://lucide.dev) — seçili 48 simgeden üretilmiş sprite, artı Lucide kuralıyla çizilmiş 1 DALSAN simgesi (yelek) | ISC (Lucide) · DALSAN çizimi projenin kendisinindir |
 | `inter-latin.woff2` | [Inter](https://rsms.me/inter/) (fontsource, latin altkümesi) | SIL OFL 1.1 |
 | `inter-latin-ext.woff2` | Inter (latin-ext altkümesi) | SIL OFL 1.1 |
 

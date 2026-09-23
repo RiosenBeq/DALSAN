@@ -97,6 +97,8 @@
   --bolge-arac: #7c3aed;        /* araç sahası — mor-mavi */
   --bolge-kkd: #db2777;         /* KKD zorunlu alan — pembe */
   --bolge-yasak: #dc2626;       /* yasak bölge — kırmızı */
+  --bolge-gecit: #65a30d;       /* yaya-araç geçidi — limon yeşili ("geçiş serbest") */
+  --bolge-muaf: #64748b;        /* KKD muaf alan — arduvaz (kapsam dışı, oyulan alan) */
 
   /* --- cam katmanlar --- */
   --cam: rgba(255, 255, 255, 0.58);
@@ -998,6 +1000,8 @@ nav a.simgeli, .komuta-menu a.simgeli { gap: 6px; }
 .bolge-vehicle-area { --cip-renk: var(--bolge-arac); }
 .bolge-ppe-required { --cip-renk: var(--bolge-kkd); }
 .bolge-restricted { --cip-renk: var(--bolge-yasak); }
+.bolge-crossing { --cip-renk: var(--bolge-gecit); }
+.bolge-ppe-exempt { --cip-renk: var(--bolge-muaf); }
 
 /* Olay tablosu: özetin solunda öğe rozeti. Rozet satırın ilk satırına
    hizalanır; uzun özet iki satıra kırılırsa rozet yukarıda kalır. */

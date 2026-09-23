@@ -43,7 +43,7 @@ Lisans:      ISC License
 Kaynak:      https://lucide.dev
 Lisans metni: https://github.com/lucide-icons/lucide/blob/main/LICENSE
 
-Kullanım: seçili 46 simge tek bir SVG sprite dosyasına çıkarılıp depoya
+Kullanım: seçili 48 simge tek bir SVG sprite dosyasına çıkarılıp depoya
 KOPYALANMIŞTIR (backend/app/web/static/vendor/simgeler.svg). CDN'den
 çekilmez; gerekçesi aynı klasördeki LISANSLAR.md dosyasındadır.
 Aynı dosyanın sonundaki DALSAN çizimleri (ör. yelek simgesi) Lucide'den

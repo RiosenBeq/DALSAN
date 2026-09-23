@@ -79,10 +79,14 @@ def _sorgu(test_ayarlari, sorgu: str, parametreler: tuple = ()):
 # ---- 1. tablo: her bölge tipinin karşılığı var ve docs/03 ile aynı ----
 
 
-def test_her_bolge_tipinin_hazir_kurali_var():
-    """Altı bölge tipinin altısı da bir kurala bağlanabilmeli; biri eksik
-    kalırsa o tipi çizen kullanıcı yine 'hiçbir şey olmuyor' der."""
-    assert set(HAZIR_KURALLAR) == set(BOLGE_TIPLERI)
+def test_istisna_disindaki_her_bolge_tipinin_hazir_kurali_var():
+    """Kural bölgesi tiplerinin hepsi bir kurala bağlanabilmeli; biri eksik
+    kalırsa o tipi çizen kullanıcı yine 'hiçbir şey olmuyor' der. Geçit ve
+    KKD muaf alan kural değil İSTİSNADIR (docs/17 §4.3): hazır kuralları yoktur."""
+    from app.rules.tipler import ISTISNA_BOLGE_TIPLERI
+
+    assert set(HAZIR_KURALLAR) == set(BOLGE_TIPLERI) - ISTISNA_BOLGE_TIPLERI
+    assert ISTISNA_BOLGE_TIPLERI <= set(BOLGE_TIPLERI)
 
 
 @pytest.mark.parametrize("tip", sorted(DOKUMAN_ESLEMESI))

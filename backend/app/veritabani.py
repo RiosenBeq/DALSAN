@@ -107,9 +107,19 @@ def semayi_uygula(baglanti: sqlite3.Connection, sema_dizini: Path = SEMA_DIZINI)
             f"Şema betiği bulunamadı: {sema_dizini} klasörü boş.",
         )
 
-    for betik in betikler:
-        if betik.name in uygulananlar:
-            continue
+    bekleyenler = [betik for betik in betikler if betik.name not in uygulananlar]
+    # GÖÇ ÖNCESİ YEDEK (docs/17 §8.4): yabancı anahtarı kapatan (tablo yeniden
+    # kuran) bir betik uygulanacaksa önce veritabanının kopyası alınır. Neden:
+    # bütünlük denetimi COMMIT'ten SONRA koşar; bozukluk bulunduğunda açılış
+    # durur ama veritabanı yazılmıştır — tek kurtarma yolu bu yedektir.
+    # YALNIZ KURULU veritabanında: yeni kurulumda ve testlerde her çağrı boş
+    # bir yedek bırakır, "Yedekten Geri Yükle" listesini kirletirdi.
+    if uygulananlar and any(
+        YABANCI_ANAHTAR_KAPALI in betik.read_text(encoding="utf-8") for betik in bekleyenler
+    ):
+        _goc_oncesi_yedek(baglanti, bekleyenler[0].stem)
+
+    for betik in bekleyenler:
         if "'" in betik.name:
             raise VeritabaniHatasi(f"Şema betiği adında tek tırnak olamaz: {betik.name}")
         sql = betik.read_text(encoding="utf-8")
@@ -159,6 +169,40 @@ def semayi_uygula(baglanti: sqlite3.Connection, sema_dizini: Path = SEMA_DIZINI)
             # bu, bozulmayı fark edilmeden büyütürdü.
             if fk_kapatilacak:
                 baglanti.execute("PRAGMA foreign_keys = ON")
+
+
+def _goc_oncesi_yedek(baglanti: sqlite3.Connection, betik_koku: str) -> Path | None:
+    """Veritabanını SQLite backup API'siyle <db klasörü>/yedekler/ içine kopyalar.
+
+    Hedef klasör veritabanı dosyasının yolundan türetilir (semayi_uygula veri
+    klasörünü bilmez). Bellek içi veritabanında yedek alınmaz. Kopya
+    alınamazsa göç YAPILMAZ: yedeksiz tablo yeniden kurmak, geri dönüşü
+    olmayan bir risktir.
+    """
+    ana = next((s for s in baglanti.execute("PRAGMA database_list") if s["name"] == "main"), None)
+    dosya = ana["file"] if ana is not None else ""
+    if not dosya:
+        return None
+    hedef_dizin = Path(dosya).parent / "yedekler"
+    damga = zaman.simdi_utc().replace(":", "-").replace("+", "Z")
+    # Kontrol Paneli yedek listesinin adlandırmasıyla aynı düzen
+    # (guncelleme-oncesi-…, geri-yukleme-oncesi-…).
+    hedef = hedef_dizin / f"goc-oncesi-{betik_koku}-{damga}.db"
+    try:
+        hedef_dizin.mkdir(parents=True, exist_ok=True)
+        yedek = sqlite3.connect(str(hedef))
+        try:
+            baglanti.backup(yedek)
+        finally:
+            yedek.close()
+    except (OSError, sqlite3.Error) as hata:
+        raise VeritabaniHatasi(
+            "Veritabanı güncellemesinden önce yedek alınamadı; güncelleme YAPILMADI ve "
+            "kayıtlarınız olduğu gibi duruyor. Diskte yer olduğundan emin olup Kontrol "
+            "Paneli'nde Durdur'a, sonra Sistemi Başlat'a basın.",
+            f"Göç öncesi yedek alınamadı: {hedef} — {hata!r}",
+        ) from hata
+    return hedef
 
 
 def mevcut_surum(baglanti: sqlite3.Connection) -> str | None:

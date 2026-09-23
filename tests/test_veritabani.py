@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import sqlite3
 
 import pytest
@@ -25,7 +26,24 @@ BEKLENEN_TABLOLAR = {
     "library_object_photos",
     # 004 — nesne teşhisi: "bu nesne ne kadar tanınabilir" ölçümünün önbelleği
     "library_object_diagnosis",
+    # 007 — analiz edilen süre (yanlış alarm / saat paydası) ve KKD toplama kapısı
+    "analysis_hours",
+    "ppe_collection_gate",
 }
+
+
+def _tohum_mesaj_anahtarlari() -> set[str]:
+    """Şema betiklerindeki anons mesajı tohumları (elle sayı yazılmaz, §4.6)."""
+    from tests.sema_bilgisi import SEMA_DIZINI
+
+    anahtarlar: set[str] = set()
+    for betik in sorted(SEMA_DIZINI.glob("*.sql")):
+        metin = betik.read_text(encoding="utf-8")
+        for blok in re.findall(
+            r"INSERT (?:OR IGNORE )?INTO announcement_messages[^;]*;", metin, re.S
+        ):
+            anahtarlar |= set(re.findall(r"\(\s*'([a-z_]+)'\s*,", blok))
+    return anahtarlar
 
 
 @pytest.fixture
@@ -53,14 +71,25 @@ def test_sema_iki_kez_uygulanabiliyor(baglanti):
     surumler = baglanti.execute("SELECT COUNT(*) FROM sema_surumu").fetchone()[0]
     assert surumler == SEMA_BETIK_SAYISI
     mesajlar = baglanti.execute("SELECT COUNT(*) FROM announcement_messages").fetchone()[0]
-    assert mesajlar == 5
+    assert mesajlar == len(_tohum_mesaj_anahtarlari())
 
 
 def test_anons_mesajlari_seed_edilmis(baglanti):
     anahtarlar = {
         satir["key"] for satir in baglanti.execute("SELECT key FROM announcement_messages")
     }
-    assert anahtarlar == {"safe_distance", "pedestrian_path", "vehicle_position", "helmet", "vest"}
+    assert anahtarlar == {
+        "safe_distance",
+        "pedestrian_path",
+        "vehicle_position",
+        "helmet",
+        "vest",
+        # 007 — ek hazır kuralların ve yasak alanın mesajları (metinler taslak, S21)
+        "vehicle_on_walkway",
+        "person_in_vehicle_lane",
+        "restricted_entry",
+    }
+    assert anahtarlar == _tohum_mesaj_anahtarlari()
 
 
 def test_yabanci_anahtar_zorlaniyor(baglanti):
@@ -130,12 +159,18 @@ def test_kamera_silinince_bolge_de_siliniyor(baglanti):
 
 
 def _eski_kurulum(tmp_path, betik_adi_baslangici: str = "005"):
-    """Verilen betikten ÖNCEKİ hâliyle kurulmuş bir veritabanı üretir."""
+    """Verilen betikten ÖNCEKİ hâliyle kurulmuş bir veritabanı üretir.
+
+    Yalnız sıralı listede verilen betikten ÖNCE gelenler kopyalanır (docs/17
+    §8.4). Eskiden yalnız o betik atlanıyordu: "005 öncesi" veritabanı 006 ve
+    007 ile kuruluyor, 005 en son uygulanıyordu — gerçek bir güncellemenin
+    sırası değil.
+    """
     eski_sema = tmp_path / "sema_eski"
     eski_sema.mkdir()
     for yol in sorted(veritabani.SEMA_DIZINI.glob("*.sql")):
-        if yol.name.startswith(betik_adi_baslangici):
-            continue
+        if yol.name >= betik_adi_baslangici:
+            break
         (eski_sema / yol.name).write_text(yol.read_text(encoding="utf-8"), encoding="utf-8")
 
     yol = tmp_path / "eski.db"
@@ -238,3 +273,126 @@ def test_yeni_kural_tipi_kabul_ediliyor_uydurma_tip_reddediliyor(baglanti):
             "VALUES (1, 'uydurma_tip', '[]', '{}', ?)",
             (simdi,),
         )
+
+
+# ------------------------------------------------- 007: olay yaşam döngüsü göçü
+
+
+def _006_verisi_ekle(yol) -> None:
+    """006 hâlindeki veritabanına docs/17 §8.2'deki denemenin verisini ekler."""
+    baglanti = veritabani.baglanti_ac(yol)
+    simdi = zaman.simdi_utc()
+    try:
+        for bolge_id, tip in ((2, "pedestrian_path"), (3, "restricted")):
+            baglanti.execute(
+                "INSERT INTO zones (id, camera_id, name, zone_type, polygon, updated_at) "
+                "VALUES (?, 1, ?, ?, '[[0,0],[1,0],[1,1]]', ?)",
+                (bolge_id, f"B{bolge_id}", tip, simdi),
+            )
+        for kural_id, bolge_id in ((2, 2), (3, 3), (4, None)):
+            baglanti.execute(
+                "INSERT INTO rules (id, camera_id, rule_type, zone_id, target_classes, "
+                "params, updated_at) VALUES (?, 1, ?, ?, '[\"person\"]', '{}', ?)",
+                (kural_id, "zone_intrusion" if bolge_id else "safe_distance", bolge_id, simdi),
+            )
+        for olay_id in range(2, 11):
+            baglanti.execute(
+                "INSERT INTO events (id, occurred_at, event_type, camera_id, rule_id, "
+                "rule_snapshot, details) VALUES (?, ?, 'violation', 1, ?, '{}', '{}')",
+                (olay_id, simdi, 1 + olay_id % 4),
+            )
+        baglanti.commit()
+    finally:
+        baglanti.close()
+
+
+def _bag_fotografi(baglanti) -> dict[str, list[tuple]]:
+    sorgular = {
+        "bolgeler": "SELECT id, zone_type FROM zones ORDER BY id",
+        "kurallar": "SELECT id, zone_id FROM rules ORDER BY id",
+        "olaylar": "SELECT id, rule_id FROM events ORDER BY id",
+    }
+    return {ad: [tuple(s) for s in baglanti.execute(sql)] for ad, sql in sorgular.items()}
+
+
+def test_007_goc_bolge_kural_ve_olay_baglarini_korur(tmp_path):
+    """zones yeniden kurulurken `rules.zone_id … ON DELETE CASCADE` tuzağı
+    açıktır: yabancı anahtar açık kalsaydı bütün bölge kuralları silinirdi."""
+    yol = _eski_kurulum(tmp_path, "007")
+    _006_verisi_ekle(yol)
+    baglanti = veritabani.baglanti_ac(yol)
+    try:
+        once = {
+            ad: [tuple(s) for s in satirlar] for ad, satirlar in _bag_fotografi(baglanti).items()
+        }
+        veritabani.semayi_uygula(baglanti)
+        sonra = {
+            ad: [tuple(s) for s in satirlar] for ad, satirlar in _bag_fotografi(baglanti).items()
+        }
+        assert sonra == once
+        assert len(once["bolgeler"]) == 3 and len(once["kurallar"]) == 4
+        assert baglanti.execute("PRAGMA foreign_key_check").fetchall() == []
+        # 007 öncesi olayların hepsi anlıktı: "sürüyor" görünmezler
+        acik_ya_da_farkli = baglanti.execute(
+            "SELECT COUNT(*) FROM events WHERE resolved_at IS NULL OR resolved_at != occurred_at"
+        ).fetchone()[0]
+        assert acik_ya_da_farkli == 0
+        # CHECK kalktı: yeni tipler yazılabilir (süzgeç artık kodda)
+        baglanti.execute(
+            "INSERT INTO zones (camera_id, name, zone_type, polygon, updated_at) "
+            "VALUES (1, 'Geçit', 'crossing', '[[0,0],[1,0],[1,1]]', ?)",
+            (zaman.simdi_utc(),),
+        )
+        # KKD toplama kapısı kapalı doğar (docs/17 S10)
+        kapi = [tuple(s) for s in baglanti.execute("SELECT id, enabled FROM ppe_collection_gate")]
+        assert kapi == [(1, 0)]
+        # CASCADE yerinde: bölge silinince ona bağlı kural da gider
+        baglanti.execute("DELETE FROM zones WHERE id = 2")
+        assert baglanti.execute("SELECT COUNT(*) FROM rules WHERE id = 2").fetchone()[0] == 0
+    finally:
+        baglanti.close()
+
+
+def test_bos_veritabaninda_goc_yedegi_olusmaz(tmp_path):
+    """Yeni kurulumda (ve testlerde) her çağrı boş bir yedek bırakırdı."""
+    baglanti = veritabani.baglanti_ac(tmp_path / "yeni.db")
+    try:
+        veritabani.semayi_uygula(baglanti)
+    finally:
+        baglanti.close()
+    assert not (tmp_path / "yedekler").exists()
+
+
+def test_kurulu_veritabaninda_isaretli_betikten_once_yedek_alinir(tmp_path):
+    """Bütünlük denetimi COMMIT'ten sonra koşar: bozukluk bulunursa tek
+    kurtarma yolu göçten ÖNCEKİ kopyadır."""
+    yol = _eski_kurulum(tmp_path, "007")
+    baglanti = veritabani.baglanti_ac(yol)
+    try:
+        veritabani.semayi_uygula(baglanti)
+    finally:
+        baglanti.close()
+    yedekler = sorted((tmp_path / "yedekler").glob("goc-oncesi-007_*.db"))
+    assert len(yedekler) == 1
+    kopya = sqlite3.connect(yedekler[0])
+    try:
+        surumler = {satir[0] for satir in kopya.execute("SELECT surum FROM sema_surumu")}
+        assert kopya.execute("SELECT COUNT(*) FROM rules").fetchone()[0] == 1
+    finally:
+        kopya.close()
+    assert "006_video_tek_gecis.sql" in surumler
+    assert "007_olay_yasam_dongusu.sql" not in surumler
+
+
+def test_yedek_alinamazsa_goc_yapilmaz(tmp_path):
+    yol = _eski_kurulum(tmp_path, "007")
+    (tmp_path / "yedekler").write_text("klasör değil, dosya", encoding="utf-8")
+    baglanti = veritabani.baglanti_ac(yol)
+    try:
+        with pytest.raises(VeritabaniHatasi) as hata:
+            veritabani.semayi_uygula(baglanti)
+        assert "güncelleme YAPILMADI" in hata.value.kullanici_mesaji
+        surumler = {s["surum"] for s in baglanti.execute("SELECT surum FROM sema_surumu")}
+        assert "007_olay_yasam_dongusu.sql" not in surumler
+    finally:
+        baglanti.close()

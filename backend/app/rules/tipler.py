@@ -34,6 +34,26 @@ SINIF_TIR = "truck"
 # kalıcı olarak körleşirdi. Artık iki taraf da bu listeyi okur.
 TANINAN_SINIFLAR: tuple[str, ...] = (SINIF_INSAN, SINIF_TIR, SINIF_FORKLIFT)
 
+# Bölge tipleri: kodların TEK kaynağı (docs/17 §4.5). Şema 007'den sonra
+# veritabanında CHECK kısıtı yoktur (her yeni tip için tabloyu yeniden kurmak
+# rules.zone_id … ON DELETE CASCADE tuzağını tekrar tekrar açardı); süzgeç
+# yazımda web/kameralar.py, yüklemede süpervizördür ve ikisi de bu kümeyi
+# kullanır. Türkçe adlar web/ortak.BOLGE_TIPLERI'ndedir (test eşitliği korur).
+# rules/ app.web'i import edemez (test_saflik), bu yüzden kodlar burada durur.
+BOLGE_TIPI_KODLARI: tuple[str, ...] = (
+    "pedestrian_path",
+    "loading_area",
+    "truck_parking",
+    "vehicle_area",
+    "ppe_required",
+    "restricted",
+    "crossing",  # yaya-araç geçidi: ayak noktası buradaysa bölge ihlali sayılmaz
+    "ppe_exempt",  # KKD muaf alan: KKD bölgesinden oyulur (kabin, ofis köşesi)
+)
+# Kendileri kural değil, başka kuralların İSTİSNASI olan tipler: hazır kuralları
+# yoktur (docs/17 §4.3).
+ISTISNA_BOLGE_TIPLERI: frozenset[str] = frozenset({"crossing", "ppe_exempt"})
+
 
 @dataclass
 class KkdGozlem:

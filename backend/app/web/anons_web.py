@@ -14,6 +14,7 @@ from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from app import ayarlar as ayarlar_modulu
+from app import zaman
 from app.hatalar import AyarHatasi, DogrulamaHatasi
 from app.olaylar import ses_cihazlari, test_sesi
 from app.web.ortak import baglanti_al
@@ -165,9 +166,13 @@ def mesaj_kaydet(
         # POSIX biçiminde saklanır: Windows'ta kaydedilen 'veri\\sesler\\a.wav'
         # Linux fabrika sunucusunda tek bir dosya adı sanılır ve bulunamazdı.
         ses = PurePosixPath(Path(ses).as_posix()).as_posix()
+    # updated_at süpervizörün yapılandırma damgasına girer (AUDIT R19): damgasız
+    # değişiklik çalışan sisteme inmiyor, yeni metin ya da WAV ancak yeniden
+    # başlatınca çalınıyordu.
     baglanti.execute(
-        "UPDATE announcement_messages SET text = ?, audio_file = ?, enabled = ? WHERE id = ?",
-        (metin, ses or None, 1 if enabled == "1" else 0, mesaj_id),
+        "UPDATE announcement_messages SET text = ?, audio_file = ?, enabled = ?, "
+        "updated_at = ? WHERE id = ?",
+        (metin, ses or None, 1 if enabled == "1" else 0, zaman.simdi_utc(), mesaj_id),
     )
     baglanti.commit()
     return RedirectResponse("/anons?sonuc=kaydedildi", status_code=303)

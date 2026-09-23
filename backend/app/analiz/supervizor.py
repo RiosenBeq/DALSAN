@@ -46,7 +46,7 @@ from app.loglama import log_al
 from app.olaylar.anons import AnonsYoneticisi
 from app.olaylar.yazici import ihlal_yaz, sistem_olayi_yaz
 from app.rules.parametreler import KuralParametreHatasi, params_dogrula
-from app.rules.tipler import SINIF_INSAN, Bolge, Kalibrasyon, Kural
+from app.rules.tipler import BOLGE_TIPI_KODLARI, SINIF_INSAN, Bolge, Kalibrasyon, Kural
 
 
 class _KameraOlcumu:
@@ -388,7 +388,10 @@ class AnalizSupervizoru:
             # Hoparlör bölgesi eklenince/değişince anons hemen doğru adrese
             # gitsin; kullanıcıdan sistemi yeniden başlatması istenmesin.
             "(SELECT COALESCE(MAX(updated_at), '') FROM speaker_zones) || '|' || "
-            "(SELECT COALESCE(COUNT(*), 0) FROM speaker_zones) AS damga"
+            "(SELECT COALESCE(COUNT(*), 0) FROM speaker_zones) || '|' || "
+            # Anons mesajı metni ya da WAV'ı değişince (şema 007, AUDIT R19) yeni
+            # metin yeniden başlatmadan çalınsın.
+            "(SELECT COALESCE(MAX(updated_at), '') FROM announcement_messages) AS damga"
         ).fetchone()
         damga = damga_satiri["damga"]
         if damga == self._konfig_damgasi:
@@ -509,6 +512,14 @@ class AnalizSupervizoru:
     def _bolgeleri_yukle(self, baglanti, kamera_id: int) -> list[Bolge]:
         bolgeler = []
         for satir in baglanti.execute("SELECT * FROM zones WHERE camera_id = ?", (kamera_id,)):
+            # Şema 007'den sonra veritabanında tip denetimi (CHECK) yoktur; elle
+            # ya da eski bir sürümle yazılmış bilinmeyen tip burada ayıklanır.
+            # Atlanır, kamera durmaz: bilinmeyen tip hiçbir kurala girmemeli.
+            if satir["zone_type"] not in BOLGE_TIPI_KODLARI:
+                self._log.warning(
+                    f"Bilinmeyen bölge tipi atlandı (bölge {satir['id']}): {satir['zone_type']!r}"
+                )
+                continue
             try:
                 poligon = [tuple(nokta) for nokta in json.loads(satir["polygon"])]
             except (json.JSONDecodeError, TypeError) as hata:
