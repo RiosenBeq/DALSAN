@@ -153,6 +153,29 @@ def _acilamadi(model_dosyasi: Path, hata: Exception) -> ModelHatasi:
     )
 
 
+def _uyumsuz_model(model_dosyasi: Path, teknik: str) -> ModelHatasi:
+    """Model açıldı ama uygulamanın beklediği biçimde değil: hazır modele dönüş yolu."""
+    return ModelHatasi(
+        f"{gorunen_model_adi(model_dosyasi.name)} bu sistemle uyumlu değil. Hazır "
+        "modele dönmek için: program klasöründeki .env dosyasını bir metin "
+        "düzenleyiciyle açın, MODEL_DOSYASI ile başlayan satırı yanındaki "
+        ".env.example dosyasında yazdığı gibi düzeltip kaydedin, sonra Kontrol "
+        "Paneli'nde Durdur'a ve Sistemi Başlat'a basın. Kendi eğittiğiniz modeli "
+        "kullanmak istiyorsanız program klasöründeki veri/loglar/sistem.log "
+        "dosyasını destek ekibine iletin.",
+        teknik,
+    )
+
+
+# YOLOX çıktısının ızgara adımları: çıktının satır sayısı bunlardan hesaplanır.
+IZGARA_ADIMLARI = (8, 16, 32)
+# Ham kutu sütunlarının üst sınırı. Ham çıktıda merkez, hücre içi kaymadır
+# (resmi modellerde gri karede -2.7 ile 4.5 arası, 23.09.2026 ölçümü); ızgara
+# çözümü modelin İÇİNDE yapılmışsa merkezler piksel olur (yüzlerce) ve
+# uygulama ikinci kez çözerek anlamsız kutular üretirdi.
+_HAM_KUTU_SINIRI = 32.0
+
+
 class Tespitci:
     """YOLOX ONNX modeli. Tek örnek, tüm kameralar paylaşır; oturum çağrısı
     kilitle sıralanır (CPU'da paralel çıkarım zaten hız kazandırmaz)."""
@@ -297,16 +320,13 @@ class Tespitci:
         try:
             self._girdi_boyu = int(girdi.shape[2])
         except (TypeError, ValueError) as hata:
-            raise ModelHatasi(
-                f"{gorunen_model_adi(model_dosyasi.name)} bu sistemle uyumlu değil. Hazır "
-                "modele dönmek için: program klasöründeki .env dosyasını bir metin "
-                "düzenleyiciyle açın, MODEL_DOSYASI ile başlayan satırı yanındaki "
-                ".env.example dosyasında yazdığı gibi düzeltip kaydedin, sonra Kontrol "
-                "Paneli'nde Durdur'a ve Sistemi Başlat'a basın. Kendi eğittiğiniz modeli "
-                "kullanmak istiyorsanız program klasöründeki veri/loglar/sistem.log "
-                "dosyasını destek ekibine iletin.",
+            raise _uyumsuz_model(
+                model_dosyasi,
                 f"Model girdi boyutu okunamadı ({model_dosyasi}: girdi biçimi {girdi.shape}).",
             ) from hata
+        self._sozlesmeyi_dogrula(
+            model_dosyasi, girdi, ozel=bool(ust_veri.get(UST_VERI_SINIF_ANAHTARI))
+        )
         self.guven_esigi = guven_esigi
         # İnsan için ayrı (daha düşük) eşik; verilmezse genel eşik kullanılır
         self.insan_guven_esigi = (
@@ -323,6 +343,70 @@ class Tespitci:
             f"eşik {self.guven_esigi:g}/insan {self.insan_guven_esigi:g})",
             extra={"ayrinti": f"model dosyası: {model_dosyasi}"},
         )
+
+    def _sozlesmeyi_dogrula(self, model_dosyasi: Path, girdi, ozel: bool) -> None:
+        """Model uygulamanın beklediği biçimde mi? Açılışta tek deneme çalıştırması.
+
+        Kendi eğitilmiş bir modelin (forklift modeli, docs/17 §12.3) dışa
+        aktarımı yanlışsa hata eskiden her karede ayrı ayrı çıkıyordu: ana
+        sayfa modeli "hazır" gösterirken analiz ANALYSIS_DEGRADED döngüsüne
+        düşüyordu. Şimdi model açılırken reddedilir:
+        - girdi tek, kare ve 32'nin katı;
+        - çıktı [1, A, 5 + N]; A üç ızgara adımının hücre sayılarının toplamı;
+        - sınıf listesindeki indeksler N'den küçük; üst verisiz model 80
+          sınıflıdır (hazır COCO eşlemesi);
+        - kutular ham (ızgara çözümü modelin içinde değil) ve sonlu;
+        - nesne ve sınıf puanları 0-1 arasında;
+        - insan sınıfı var: yoksa insanla ilgili bütün kurallar sessizce susardı.
+        """
+        boy = self._girdi_boyu
+        girdiler = self._oturum.get_inputs()
+        bicim = list(girdi.shape)
+        if len(girdiler) != 1:
+            raise _uyumsuz_model(model_dosyasi, f"{len(girdiler)} girdi var, 1 olmalı")
+        # Adı olan (dinamik) eksen sayı değildir; uygulama zaten boy x boy verir.
+        beklenen = {1: 3, 3: boy}
+        if (
+            len(bicim) != 4
+            or any(isinstance(bicim[i], int) and bicim[i] != d for i, d in beklenen.items())
+            or boy % 32
+        ):
+            raise _uyumsuz_model(
+                model_dosyasi, f"girdi biçimi {bicim}: [1, 3, S, S] ve S 32'nin katı olmalı"
+            )
+        if self._insan_model_id < 0:
+            raise _uyumsuz_model(model_dosyasi, "sınıf listesinde insan (person) yok")
+        gri = np.full((1, 3, boy, boy), 114, dtype=np.float32)
+        try:
+            cikti = np.asarray(self._oturum.run(None, {girdi.name: gri})[0])
+        except Exception as hata:  # onnxruntime kendi hata tipini garanti etmiyor
+            raise _uyumsuz_model(model_dosyasi, f"deneme çalıştırması: {hata!r}") from hata
+        satir = sum((boy // adim) ** 2 for adim in IZGARA_ADIMLARI)
+        if cikti.ndim != 3 or cikti.shape[0] != 1 or cikti.shape[1] != satir:
+            raise _uyumsuz_model(
+                model_dosyasi, f"çıktı biçimi {cikti.shape}: [1, {satir}, 5 + sınıf] olmalı"
+            )
+        sinif_sayisi = cikti.shape[2] - 5
+        if not ozel and sinif_sayisi != 80:
+            raise _uyumsuz_model(
+                model_dosyasi,
+                f"sınıf listesi (dalsan_classes) yok ama çıktıda {sinif_sayisi} sınıf var; "
+                "üst verisiz model 80 sınıflı COCO modeli olmalı",
+            )
+        if sinif_sayisi < 1 or max(self._sinif_esleme) >= sinif_sayisi:
+            raise _uyumsuz_model(
+                model_dosyasi,
+                f"çıktıda {sinif_sayisi} sınıf var, sınıf listesi {sorted(self._sinif_esleme)}",
+            )
+        if not np.all(np.isfinite(cikti)):
+            raise _uyumsuz_model(model_dosyasi, "deneme çıktısında sonlu olmayan değer var")
+        if float(np.abs(cikti[0, :, :4]).max()) > _HAM_KUTU_SINIRI:
+            raise _uyumsuz_model(
+                model_dosyasi, "kutular ham değil: ızgara çözümü modelin içinde yapılmış"
+            )
+        puanlar = cikti[0, :, 4:]
+        if float(puanlar.min()) < 0.0 or float(puanlar.max()) > 1.0 + 1e-4:
+            raise _uyumsuz_model(model_dosyasi, "puanlar 0-1 arasında değil (sigmoid eksik)")
 
     def tespit_et(self, kare: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         """BGR kare → (kutular_xyxy[piksel], guvenler, sinif_adlari).

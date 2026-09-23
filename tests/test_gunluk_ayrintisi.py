@@ -27,6 +27,7 @@ import sys
 import types
 from pathlib import Path
 
+import numpy as np
 import pytest
 
 from app import loglama
@@ -139,6 +140,10 @@ class _SahteOturum:
 
     def get_inputs(self) -> list[_SahteGirdi]:
         return [_SahteGirdi()]
+
+    def run(self, _adlar, _besleme):
+        """Açılıştaki deneme çalıştırması: 416 girdi, 80 sınıflı COCO çıktısı."""
+        return [np.zeros((1, 3549, 85), dtype=np.float32)]
 
 
 class _SahteSecenekler:
