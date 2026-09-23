@@ -29,6 +29,8 @@ BEKLENEN_TABLOLAR = {
     # 007 — analiz edilen süre (yanlış alarm / saat paydası) ve KKD toplama kapısı
     "analysis_hours",
     "ppe_collection_gate",
+    # 009 — uyarı teslim kaydı (docs/17 §7.3-10)
+    "alert_deliveries",
 }
 
 
@@ -379,6 +381,30 @@ def test_008_goc_kkd_orneklerini_ve_kurallari_korur(tmp_path):
     finally:
         baglanti.close()
     assert not list(tmp_path.glob("yedekler/goc-oncesi-008*"))
+
+
+def test_009_goc_hoparlor_satirlarini_http_kanali_yapar(tmp_path):
+    """009 yalnız sütun ekler: eski hoparlör bölgeleri (002, hepsi HTTP) aynen
+    kalır ve `http` kanalı olarak sınıflanır; sağlık henüz yoklanmadı (NULL)."""
+    yol = _eski_kurulum(tmp_path, "009")
+    baglanti = veritabani.baglanti_ac(yol)
+    try:
+        simdi = zaman.simdi_utc()
+        baglanti.execute(
+            "INSERT INTO speaker_zones (id, name, area, address, enabled, created_at, "
+            "updated_at) VALUES (3, 'Sevkiyat', 'Sevkiyat', 'http://10.0.0.9/anons', 1, ?, ?)",
+            (simdi, simdi),
+        )
+        baglanti.commit()
+        once = tuple(baglanti.execute("SELECT * FROM speaker_zones WHERE id = 3").fetchone())
+        veritabani.semayi_uygula(baglanti)
+        satir = dict(baglanti.execute("SELECT * FROM speaker_zones WHERE id = 3").fetchone())
+        assert tuple(satir[k] for k in list(satir)[: len(once)]) == once
+        assert (satir["kind"], satir["device"], satir["health"]) == ("http", "", None)
+        assert baglanti.execute("SELECT COUNT(*) FROM alert_deliveries").fetchone()[0] == 0
+    finally:
+        baglanti.close()
+    assert not list(tmp_path.glob("yedekler/goc-oncesi-009*"))
 
 
 def test_bos_veritabaninda_goc_yedegi_olusmaz(tmp_path):

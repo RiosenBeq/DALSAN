@@ -8,6 +8,7 @@ Bu yüzden yan etkisiz fabrika burada, yan etkili giriş noktası main.py'de.
 
 from __future__ import annotations
 
+import sqlite3
 from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI
@@ -16,6 +17,7 @@ from fastapi.staticfiles import StaticFiles
 from app import kaynaklar, loglama, veritabani
 from app.ayarlar import Ayarlar, geri_donus_adi_mi, sunucu_adi
 from app.hatalar import VeritabaniHatasi, hata_yakalayicilari_kur
+from app.olaylar import kanallar
 from app.web import (
     alan_rotalari,
     anons_web,
@@ -37,6 +39,21 @@ from app.web.kaynak_denetimi import KaynakDenetimi
 # Stil/betik dosyalarının yeri app/kaynaklar.py'den çözülür (paketlenmiş
 # programda dosyalar depoda değil, paketin açıldığı geçici klasördedir).
 STATIK_DIZINI = kaynaklar.kaynak_yolu("backend", "app", "web", "static")
+
+
+def _anons_kanalini_aktar(baglanti, ayarlar: Ayarlar, log) -> None:
+    """009'dan sonraki ilk açılışta .env'deki anons kanalını "Tüm fabrika"
+    satırına bir kez aktarır (docs/17 K22). Başarısızlık açılışı durdurmaz:
+    adım kaydedilmediği için bir sonraki açılışta yeniden denenir."""
+    try:
+        for mesaj in kanallar.env_anonsunu_aktar(baglanti, ayarlar.env_yolu):
+            log.info(mesaj)
+    except sqlite3.Error as hata:
+        log.error(
+            "Anons kanalı .env'den aktarılamadı; bir sonraki açılışta yeniden denenecek. "
+            "O zamana kadar Anons sayfasından kanal ekleyebilirsiniz.",
+            extra={"ayrinti": repr(hata)},
+        )
 
 
 def uygulama_olustur(ayarlar: Ayarlar, analiz: bool = True) -> FastAPI:
@@ -62,6 +79,7 @@ def uygulama_olustur(ayarlar: Ayarlar, analiz: bool = True) -> FastAPI:
             try:
                 veritabani.semayi_uygula(baglanti)
                 surum = veritabani.mevcut_surum(baglanti)
+                _anons_kanalini_aktar(baglanti, ayarlar, log)
             finally:
                 baglanti.close()
         except VeritabaniHatasi as hata:
