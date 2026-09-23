@@ -313,6 +313,67 @@ AYAR_GRUPLARI: tuple[AyarGrubu, ...] = (
         ),
     ),
     AyarGrubu(
+        baslik="Analiz sağlığı",
+        aciklama=(
+            "Analizin takılması ya da yavaşlaması sessiz kalmasın: bu eşikler aşılınca "
+            "Olaylar'a sistem olayı düşer ve komuta ekranlarında şerit çıkar."
+        ),
+        alanlar=(
+            AyarAlani(
+                anahtar="BEKCI_ESIGI_SN",
+                alan="bekci_esigi_sn",
+                etiket="Takılma süresi (sn)",
+                tur="ondalik",
+                en_az="20",
+                en_cok="3600",
+                adim="5",
+                aciklama=(
+                    "Görüntü gelirken analiz bu kadar saniye ilerlemezse “Analiz takıldı” "
+                    "olayı yazılır; o sürede hiçbir uyarı üretilmiyordur."
+                ),
+            ),
+            AyarAlani(
+                anahtar="BEKCI_TEPKISI",
+                alan="bekci_tepkisi",
+                etiket="Takılınca ne yapılsın",
+                tur="secim",
+                secenekler=(
+                    ("uyar", "Yalnız uyar"),
+                    ("yeniden_baslat", "Programı yeniden başlat (Docker / systemd)"),
+                ),
+                aciklama=(
+                    "Yeniden başlatma yalnız sunucu kurulumunda anlamlıdır: program kendini "
+                    "kapatır, Docker ya da systemd yeniden açar. Masaüstü programı Kontrol "
+                    "Paneli'yle birlikte kapanmasın diye her zaman yalnız uyarır."
+                ),
+            ),
+            AyarAlani(
+                anahtar="ANALIZ_YAVAS_SURE_SN",
+                alan="analiz_yavas_sure_sn",
+                etiket="Yavaşlama süresi (sn)",
+                tur="ondalik",
+                en_az="10",
+                en_cok="3600",
+                adim="5",
+                aciklama=(
+                    "Bir kameranın işlenen görüntü hızı hedefin altında (FPS uyarı oranı) "
+                    "bu kadar saniye kalırsa “Analiz yavaşladı” olayı yazılır."
+                ),
+            ),
+            AyarAlani(
+                anahtar="ANALIZ_HATA_ESIGI",
+                alan="analiz_hata_esigi",
+                etiket="Üst üste işleme hatası",
+                en_az="3",
+                en_cok="10000",
+                aciklama=(
+                    "Bir kamerada bu kadar görüntü üst üste işlenemezse o kameranın işleme "
+                    "hattı yeniden kurulur ve “Analiz yavaşladı” olayı yazılır."
+                ),
+            ),
+        ),
+    ),
+    AyarGrubu(
         baslik="Nesne arama (Nesneler sayfası)",
         aciklama=(
             "Yalnızca Nesneler sayfasında, sizin yüklediğiniz fotoğraflarda yapılan "

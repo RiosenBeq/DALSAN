@@ -119,6 +119,7 @@ KAPANIS_SEBEPLERI = {
     "kural_degisti": "Kural değiştirildi ya da kapatıldı",
     "kamera_degisti": "Kamera ayarı değişti ya da kamera kapatıldı",
     "kamera_koptu": "Kamera görüntüsü kesildi; durum izlenemedi",
+    "hat_yenilendi": "Kamera işleme hattı hatalar yüzünden yeniden kuruldu",
     "kapanis": "Sistem durduruldu",
     "yeniden_baslama": "Sistem yeniden başladı; olay açık kalmıştı",
 }

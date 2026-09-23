@@ -105,6 +105,19 @@ sudo systemctl status dalsan      # "active (running)" olmalı
 `Restart=always`, sistem bir hata yüzünden kapanırsa da 10 saniye içinde
 yeniden başlatır — 7x24 çalışmanın gereği.
 
+**Takılan analiz de yeniden başlasın.** Analiz takılırsa (görüntü geliyor ama
+90 sn'dir hiçbir kare işlenmiyor) bekçi "Analiz takıldı" olayı yazar ve komuta
+ekranlarında kırmızı şerit çıkar. Takılan bir iş parçacığı program içinden
+kurtarılamaz; sunucu kurulumunda (Docker ya da systemd) `.env`'e
+
+```
+BEKCI_TEPKISI=yeniden_baslat
+```
+
+yazın: program olayı yazıp kendini kapatır, `restart: unless-stopped` ya da
+`Restart=always` yeniden açar. Masaüstü programında bu ayar etkisizdir — orada
+program Kontrol Paneli'yle aynı süreçte çalışır ve yalnız uyarır.
+
 ### 1.2.2 Yedekten geri yükleme provası (K7)
 
 **Prova edilmemiş bir yedek, yedek değildir.** Kurulum tamamlandıktan sonra
@@ -299,6 +312,8 @@ görünmelidir.
 | Ekranda uyarı sesi gelmiyor | Tarayıcı kuralı: sayfaya bir kez tıklayın. Anons sayfasındaki kutuyu işaretleyin |
 | Disk doluyor | Ana sayfadaki "Boş alan"; saklama sürelerini kısaltın; `veri/goruntuler` en büyük kalemdir |
 | Canlı uyarı paneli "bağlantı koptu" | Sunucu durmuş olabilir; Kontrol Paneli'nden yeniden başlatın |
+| Olaylar'da "Analiz takıldı" ya da "Analiz durdu" | Görüntü geliyor ama analiz ilerlemiyor: o sürede **hiçbir uyarı üretilmiyor**. Sistemi yeniden başlatın (sunucuda `BEKCI_TEPKISI=yeniden_baslat` bunu kendiliğinden yapar, §1.2.1). `veri/loglar/sistem.log` içinde `"bilesen": "bekci"` satırından önceki hatalara bakın |
+| Olaylar'da "Analiz yavaşladı" | Ya kamerada kare üst üste işlenemedi (hattı yeniden kuruldu; günlükte "Kare işlenemedi" satırları sebebi yazar) ya da işlenen görüntü hızı hedefin altında kaldı: kamera `sample_fps`'ini düşürün, kamera sayısını azaltın ya da daha güçlü donanım kullanın. Eşikler Ayarlar → Analiz sağlığı |
 | Olaylar'da "Sistem başladı — önceki çalışma düzgün kapanmamıştı" | Sistem "Sistem durdu" yazamadan kapandı: elektrik kesintisi, bilgisayarın kapatılması, görev yöneticisinden sonlandırma ya da çökme. O sırada açık kalan olaylar "sistem yeniden başladı" sebebiyle kapatılmıştır. Sık görülüyorsa `veri/loglar/sistem.log`'un kapanıştan önceki son satırlarına bakın |
 
 ---

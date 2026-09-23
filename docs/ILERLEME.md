@@ -17,6 +17,27 @@ tanınıp susuyor. Okunabildiğinde yine satırın kendisi kullanılıyor: gölg
 açıp kapatmak bir sonraki ihlalde hemen etkili. Açılışı yazılamayan olay "açık"
 sayılmıyor; hatırlatma geldiğinde satırı yazılıyor.
 
+**2d-2 — bekçi, yavaşlama, analiz saatleri.** Analiz döngüsü her turda nabız
+bırakıyor; `analiz/bekci.py` 10 sn'de bir bakıyor. Görüntü gelirken nabız
+`BEKCI_ESIGI_SN`'den (90) eskiyse ya da analiz iş parçacığı ölmüşse Olaylar'a
+**"Analiz takıldı / Analiz durdu"** düşüyor (bekçinin kendi bağlantısıyla),
+günlüğe CRITICAL satır, `/saglik`'e `analiz_takildi` / `analiz_olu`. Aynı sorun
+bir kez bildiriliyor; model yüklenirken ya da hiç görüntü yokken takılma
+sayılmıyor. `BEKCI_TEPKISI=yeniden_baslat` ise program olayı yazıp kendini
+kapatıyor (Docker/systemd yeniden açar); masaüstü paketinde Kontrol Paneli de
+kapanmasın diye her durumda yalnız uyarıyor. Bir kamerada `ANALIZ_HATA_ESIGI`
+(30) kare üst üste işlenemezse kameranın hattı yeniden kuruluyor (açık olayları
+"işleme hattı yeniden kuruldu" sebebiyle bitiyor) ve **"Analiz yavaşladı"**
+yazılıyor; eskiden hata yalnız günlükte kalıyor, kamera sessizce analizsiz
+akıyordu. İşlenen hız hedefin `FPS_UYARI_ORANI` katının altında
+`ANALIZ_YAVAS_SURE_SN` (60) kalırsa da aynı olay bir kez yazılıyor; hedef,
+ayarlanan hız ile kameranın gerçekten verdiği hızın küçüğü (saniyede 3 kare
+veren kameradan 6 kare istenmez). `analysis_hours`'a kamera × saat başına analiz
+edilen süre (model yüklüyken işlenen ardışık kareler arası, 5 sn'den uzun
+boşluk sayılmaz), işlenen ve başarısız kare sayısı dakikada bir yazılıyor;
+yazılamazsa birikim kaybolmuyor. Dört yeni ayar Ayarlar → **Analiz sağlığı**
+grubunda.
+
 ## Faz 2c şema 007 ve olay modeli (23.09.2026)
 
 Plan: `docs/17-V2-TASARIM.md` §6, §8.2, §8.4 ve §13 (2c satırı). Alt adımlar

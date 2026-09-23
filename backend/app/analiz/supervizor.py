@@ -25,6 +25,7 @@ from pathlib import Path
 
 from app import veritabani, zaman
 from app.analiz import ortam
+from app.analiz.bekci import Bekci
 from app.analiz.boru_hatti import KameraHatti
 from app.analiz.kamera import (
     DURUM_BAGLANIYOR,
@@ -97,6 +98,20 @@ def _geri_al(baglanti) -> None:
 _KONFIG_KONTROL_SN = 5.0
 _DURUM_YAZMA_SN = 5.0
 _BAKIM_ARALIGI_SN = 24 * 3600.0
+# analysis_hours birikimi bu aralıkla yazılır (şema 007); çökmede en çok bu
+# kadarlık ölçüm kaybolur.
+_ANALIZ_SAATI_YAZMA_SN = 60.0
+# Ardışık iki işlenmiş kare arasındaki boşluk bundan uzunsa "analiz edilen
+# süre"ye eklenmez: kopukluk, takılma ya da uzun bekleme analiz değildir.
+# Yavaşlamış analiz (saniyede 1 kare) yine sayılır.
+_ANALIZ_BOSLUK_SN = 5.0
+_ANALIZ_SAATI_UPSERT = (
+    "INSERT INTO analysis_hours (camera_id, hour_utc, analyzed_s, frames_processed, "
+    "frames_failed) VALUES (?, ?, ?, ?, ?) ON CONFLICT (camera_id, hour_utc) DO UPDATE SET "
+    "analyzed_s = analyzed_s + excluded.analyzed_s, "
+    "frames_processed = frames_processed + excluded.frames_processed, "
+    "frames_failed = frames_failed + excluded.frames_failed"
+)
 
 
 class AnalizSupervizoru:
@@ -134,6 +149,18 @@ class AnalizSupervizoru:
         # Son ihlal kaydının hatası; /saglik "olay_yazilamadi" der. Bir sonraki
         # başarılı kayıt temizler.
         self.olay_yazma_hatasi: str | None = None
+        # Analiz döngüsünün nabzı: her turun başında time.monotonic(). Bekçi
+        # bununla takılmayı anlar; döngü hiç başlamadıysa None.
+        self.nabiz: float | None = None
+        # Kamera id → üst üste işlenemeyen kare sayısı (ANALIZ_HATA_ESIGI)
+        self._ardisik_hata: dict[int, int] = {}
+        # Kamera id → işlenen hızın hedefin altına ilk düştüğü an; bildirilenler
+        self._yavas_baslangic: dict[int, float] = {}
+        self._yavas_bildirildi: set[int] = set()
+        # (kamera id, 'YYYY-MM-DDTHH') → [analiz edilen sn, işlenen, başarısız]
+        self._analiz_saatleri: dict[tuple[int, str], list] = {}
+        self._son_analiz_karesi: dict[int, float] = {}
+        self._son_analiz_saati_yazma = 0.0
 
         self._son_konfig_kontrol = 0.0
         self._son_durum_yazma = 0.0
@@ -155,17 +182,31 @@ class AnalizSupervizoru:
         self.model_durumu: str = "yukleniyor"
         self.kkd = KkdSiniflandirici(None)  # model 9. adımda eğitilecek
         self._anons = AnonsYoneticisi(ayarlar)
+        self.bekci = Bekci(self, ayarlar)
 
     # ---- yaşam döngüsü ----
 
     def baslat(self) -> None:
         self._is_parcacigi.start()
+        self.bekci.baslat()
 
     def durdur(self) -> None:
+        # Bekçi önce: duran analiz iş parçacığı "öldü" diye bildirilmesin
+        self.bekci.durdur()
         self._dur.set()
         self._is_parcacigi.join(timeout=10)
         for kaynak in self._kaynaklar.values():
             kaynak.durdur()
+
+    # ---- bekçinin sorduğu ----
+
+    def analiz_canli_mi(self) -> bool:
+        return self._is_parcacigi.is_alive()
+
+    def kare_ureten_kamera_var(self, simdi: float) -> bool:
+        """En az bir kamera şu an görüntü veriyor mu? (Görüntü yokken analizin
+        beklemesi takılma değildir.)"""
+        return any(k.durum(simdi) == DURUM_ONLINE for k in list(self._kaynaklar.values()))
 
     # ---- web'in kullandığı arayüz ----
 
@@ -326,6 +367,7 @@ class AnalizSupervizoru:
         try:
             while not self._dur.is_set():
                 simdi = time.monotonic()
+                self.nabiz = simdi
                 try:
                     if simdi - self._son_konfig_kontrol >= _KONFIG_KONTROL_SN:
                         self._son_konfig_kontrol = simdi
@@ -334,6 +376,10 @@ class AnalizSupervizoru:
                     if simdi - self._son_durum_yazma >= _DURUM_YAZMA_SN:
                         self._son_durum_yazma = simdi
                         self._durumlari_yaz(baglanti)
+                        self._analiz_hizini_denetle(baglanti, simdi)
+                    if simdi - self._son_analiz_saati_yazma >= _ANALIZ_SAATI_YAZMA_SN:
+                        self._son_analiz_saati_yazma = simdi
+                        self._analiz_saatlerini_yaz(baglanti)
                     if simdi - self._son_bakim >= _BAKIM_ARALIGI_SN:
                         self._son_bakim = simdi
                         self._bakimi_baslat()
@@ -342,6 +388,7 @@ class AnalizSupervizoru:
                     self._log.error(f"Analiz döngüsünde hata: {hata}", exc_info=hata)
                 self._dur.wait(0.05)
         finally:
+            self._analiz_saatlerini_yaz(baglanti)
             try:
                 self._kapanis_olaylarini_yaz(baglanti)
             except Exception as hata:  # noqa: BLE001 — bağlantı yine kapanmalı
@@ -613,12 +660,7 @@ class AnalizSupervizoru:
                 hat = None
                 self._hatti_birak(baglanti, kid, "kamera_degisti")
             if hat is None:
-                hat = KameraHatti(
-                    kid,
-                    int(kamera["sample_fps"]),
-                    iyilestir=self.ayarlar.goruntu_iyilestirme == "otomatik",
-                    takip_hafiza_sn=self.ayarlar.takip_hafiza_sn,
-                )
+                hat = self._yeni_hat(kid, kamera)
                 self._hatlar[kid] = hat
             hat.yapilandir(
                 self._bolgeleri_yukle(baglanti, kid),
@@ -641,6 +683,10 @@ class AnalizSupervizoru:
                 self._son_durumlar.pop(kid, None)
                 self._canli_sayim.pop(kid, None)
                 self._olcumler.pop(kid, None)
+                self._ardisik_hata.pop(kid, None)
+                self._yavas_baslangic.pop(kid, None)
+                self._yavas_bildirildi.discard(kid)
+                self._son_analiz_karesi.pop(kid, None)
                 baglanti.execute(
                     "UPDATE cameras SET status = ?, measured_fps = NULL WHERE id = ?",
                     (DURUM_OFFLINE, kid),
@@ -650,6 +696,14 @@ class AnalizSupervizoru:
         # hata olursa bir sonraki turda aynı değişiklik tekrar denenir, sessizce
         # yutulmaz.
         self._konfig_damgasi = damga
+
+    def _yeni_hat(self, kid: int, kamera: dict) -> KameraHatti:
+        return KameraHatti(
+            kid,
+            int(kamera["sample_fps"]),
+            iyilestir=self.ayarlar.goruntu_iyilestirme == "otomatik",
+            takip_hafiza_sn=self.ayarlar.takip_hafiza_sn,
+        )
 
     def _atanmis_kameralar(self, baglanti) -> list[dict]:
         """Bu analizörün ilgilendiği kameralar (ADR-008): bugün 'tüm aktifler'.
@@ -752,9 +806,12 @@ class AnalizSupervizoru:
             except Exception as hata:  # noqa: BLE001 — kamera izolasyonu:
                 # bir kameranın işleme hatası diğerlerini durdurmamalı
                 self._log.error(f"Kare işlenemedi (kamera {kid}): {hata}", exc_info=hata)
+                self._isleme_hatasi(baglanti, kid)
                 continue
+            self._ardisik_hata.pop(kid, None)
             olcum.isle_ms.append((time.perf_counter() - baslangic) * 1000)
             olcum.islenen.append(simdi)
+            self._analiz_saati_ekle(kid, simdi)
 
             # Canlı sayım: takip edilen nesneler (kare başına ham tespit değil)
             sayim: dict[str, int] = {}
@@ -767,6 +824,130 @@ class AnalizSupervizoru:
             del ihlaller
             self._gecisleri_isle(baglanti, hat, simdi)
             self._kkd_ornekle(baglanti, kid, kare, tespitler, hat, simdi)
+
+    # ---- analiz sağlığı (docs/17 §3.6) ----
+
+    def _isleme_hatasi(self, baglanti, kid: int) -> None:
+        """Üst üste ANALIZ_HATA_ESIGI kare işlenemezse kameranın hattı yeniden
+        kurulur ve ANALYSIS_DEGRADED yazılır. Eskiden hata yalnız günlükte
+        kalıyor, kamera sessizce analizsiz akıyordu."""
+        self._analiz_saati_ekle(kid, None)
+        sayi = self._ardisik_hata.get(kid, 0) + 1
+        self._ardisik_hata[kid] = sayi
+        if sayi < self.ayarlar.analiz_hata_esigi:
+            return
+        self._ardisik_hata[kid] = 0
+        konfig = self._kamera_konfig.get(kid)
+        if konfig is None:
+            return
+        self._log.critical(
+            f"Kamera {kid}: {sayi} kare üst üste işlenemedi — işleme hattı yeniden kuruluyor."
+        )
+        # Yeni hat ÖNCE kurulur: yapılandırma başarısız olursa eski hat kalır
+        yeni = self._yeni_hat(kid, konfig)
+        yeni.yapilandir(
+            self._bolgeleri_yukle(baglanti, kid),
+            self._kurallari_yukle(baglanti, kid),
+            self._kalibrasyonu_yukle(baglanti, kid),
+        )
+        self._hatti_birak(baglanti, kid, "hat_yenilendi")
+        self._hatlar[kid] = yeni
+        self._sistem_olayi(
+            baglanti,
+            f"Analiz yavaşladı: {konfig.get('name', kid)} kamerasında {sayi} görüntü üst "
+            "üste işlenemedi; kameranın işleme hattı yeniden kuruldu.",
+            kamera_id=kid,
+            detaylar={"sebep": "isleme_hatasi", "ardisik_hata": sayi},
+            kod="ANALYSIS_DEGRADED",
+        )
+
+    def _analiz_hizini_denetle(self, baglanti, simdi: float) -> None:
+        """İşlenen hız hedefin FPS_UYARI_ORANI'nın altında ANALIZ_YAVAS_SURE_SN
+        kalırsa ANALYSIS_DEGRADED (kamera başına bir kez; hız düzelince yeniden).
+
+        Hedef, ayarlanan örnekleme hızı ile kameranın gerçekten verdiği hızın
+        küçüğüdür: saniyede 3 kare veren kameradan 6 kare işlenemez, bu analiz
+        yavaşlığı değildir. Model yokken hız ölçülmez.
+        """
+        if self.tespitci is None:
+            return
+        for kid, kaynak in list(self._kaynaklar.items()):
+            konfig = self._kamera_konfig.get(kid)
+            if konfig is None or kaynak.durum(simdi) != DURUM_ONLINE:
+                self._yavas_baslangic.pop(kid, None)
+                continue
+            ayarlanan = max(float(konfig["sample_fps"]), 0.1)
+            hedef = min(ayarlanan, kaynak.olculen_fps or ayarlanan)
+            olcum = self._olcumler.get(kid)
+            islenen = olcum.islenen_fps(simdi) if olcum is not None else 0.0
+            if islenen >= hedef * self.ayarlar.fps_uyari_orani:
+                self._yavas_baslangic.pop(kid, None)
+                self._yavas_bildirildi.discard(kid)
+                continue
+            baslangic = self._yavas_baslangic.setdefault(kid, simdi)
+            if (
+                kid in self._yavas_bildirildi
+                or simdi - baslangic < self.ayarlar.analiz_yavas_sure_sn
+            ):
+                continue
+            self._yavas_bildirildi.add(kid)
+            islenen_metni = f"{islenen:.1f}".replace(".", ",")
+            hedef_metni = f"{hedef:.1f}".replace(".", ",")
+            self._sistem_olayi(
+                baglanti,
+                f"Analiz yavaşladı: {konfig.get('name', kid)} kamerasında saniyede "
+                f"{islenen_metni} görüntü işleniyor, hedef {hedef_metni}. Uyarılar gecikebilir.",
+                kamera_id=kid,
+                detaylar={
+                    "sebep": "yavas",
+                    "islenen_fps": round(islenen, 1),
+                    "hedef_fps": round(hedef, 1),
+                },
+                kod="ANALYSIS_DEGRADED",
+            )
+
+    def _analiz_saati_ekle(self, kid: int, simdi: float | None) -> None:
+        """analysis_hours birikimi. `simdi` None ise kare işlenemedi demektir.
+
+        Yalnız tespit modeli yüklüyken işlenen kare sayılır: model yokken
+        görüntü akar ama analiz edilmez. Analiz edilen süre, ardışık iki
+        işlenmiş kare arasındaki süredir; _ANALIZ_BOSLUK_SN'den uzun boşluk
+        (kopukluk, takılma) sayılmaz.
+        """
+        kova = self._analiz_saatleri.setdefault((kid, zaman.simdi_utc()[:13]), [0.0, 0, 0])
+        if simdi is None:
+            kova[2] += 1
+            return
+        if self.tespitci is None:
+            self._son_analiz_karesi.pop(kid, None)
+            return
+        kova[1] += 1
+        onceki = self._son_analiz_karesi.get(kid)
+        self._son_analiz_karesi[kid] = simdi
+        if onceki is not None and 0 < simdi - onceki <= _ANALIZ_BOSLUK_SN:
+            kova[0] += simdi - onceki
+
+    def _analiz_saatlerini_yaz(self, baglanti) -> None:
+        """Birikimi upsert eder; yazılamazsa kaybetmez, bir sonraki turda dener."""
+        if not self._analiz_saatleri:
+            return
+        kovalar, self._analiz_saatleri = self._analiz_saatleri, {}
+        try:
+            baglanti.executemany(
+                _ANALIZ_SAATI_UPSERT,
+                [
+                    (kid, saat, round(sure, 3), islenen, basarisiz)
+                    for (kid, saat), (sure, islenen, basarisiz) in kovalar.items()
+                ],
+            )
+            baglanti.commit()
+        except sqlite3.Error as hata:
+            _geri_al(baglanti)
+            for anahtar, degerler in kovalar.items():
+                kova = self._analiz_saatleri.setdefault(anahtar, [0.0, 0, 0])
+                for i, deger in enumerate(degerler):
+                    kova[i] += deger
+            self._log.error(f"Analiz saatleri yazılamadı, sonra denenecek: {hata}")
 
     # ---- olay yaşam döngüsü ----
 
@@ -887,7 +1068,10 @@ class AnalizSupervizoru:
 
     def sorunlar(self) -> list[str]:
         """/saglik "sorunlar" listesine süpervizörün kodları (docs/17 §9.1)."""
-        return ["olay_yazilamadi"] if self.olay_yazma_hatasi else []
+        sorunlar = [self.bekci.sorun] if self.bekci.sorun else []
+        if self.olay_yazma_hatasi:
+            sorunlar.append("olay_yazilamadi")
+        return sorunlar
 
     def _duyur(self, ihlal, kural_kaydi: dict, simdi: float) -> None:
         # GÖLGE MOD (şema 002): kural çalışır ve olay yazılır, ama hoparlör
