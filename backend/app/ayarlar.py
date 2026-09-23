@@ -426,13 +426,37 @@ _ENV_SATIRI = re.compile(r"^(\s*)([A-Za-z_][A-Za-z0-9_]*)(\s*=\s*)(.*)$")
 # sonrasını yorum sayar, yani burada korunan şey okunan şeyle aynıdır.
 _SATIR_SONU_YORUMU = re.compile(r"\s+#.*$")
 
+# SATIR ENJEKSİYONU (docs/AUDIT.md R14): "hdmi\nYONETICI_SIFRESI=" gibi bir
+# değer dosyaya YENİ BİR SATIR ekler — şifreyi silen ya da sistemi ağa açan
+# bir satır. Açılış doğrulayıcısı bunu göremez: formdaki değeri tek bir değer
+# olarak okur, satır ancak dosyaya yazıldıktan sonra doğar. Bu yüzden yazmadan
+# ÖNCE reddedilir. Yalnız \n ve \r değil: C0/C1 kontrol karakterleri ve
+# Unicode satır/paragraf ayırıcıları da (str.splitlines() onları da satır sonu
+# sayar, yani bir sonraki kayıtta aynı enjeksiyon doğardı).
+_KONTROL_KARAKTERI = re.compile("[\x00-\x1f\x7f-\x9f\u2028\u2029]")
+_ANAHTAR_BICIMI = re.compile(r"[A-Z][A-Z0-9_]*")
+
+
+def env_degisikliklerini_dogrula(degisiklikler: dict[str, str]) -> None:
+    """Dosyaya yazılacak her anahtar ve değer tek satırlık, düz metin mi?"""
+    for anahtar, deger in degisiklikler.items():
+        if not _ANAHTAR_BICIMI.fullmatch(anahtar):
+            raise AyarHatasi(f"Geçersiz ayar adı: {anahtar!r}. Kaydedilmedi.")
+        if _KONTROL_KARAKTERI.search(deger):
+            raise AyarHatasi(
+                f".env dosyasında {anahtar} değeri satır sonu ya da görünmeyen bir "
+                "kontrol karakteri içeremez. Değeri tek satır olarak yeniden yazın."
+            )
+
 
 def env_guncelle(metin: str, degisiklikler: dict[str, str]) -> str:
     """Ayar dosyasının metnini, açıklama satırlarına dokunmadan günceller.
 
     Var olan anahtarın yalnızca değeri değişir; dosyada olmayan anahtarlar
-    sona eklenir.
+    sona eklenir. Satır enjeksiyonu taşıyan değişiklik reddedilir
+    (`env_degisikliklerini_dogrula`) — her yazma yolu buradan geçer.
     """
+    env_degisikliklerini_dogrula(degisiklikler)
     kalan = dict(degisiklikler)
     satirlar = metin.splitlines()
     for sira, satir in enumerate(satirlar):

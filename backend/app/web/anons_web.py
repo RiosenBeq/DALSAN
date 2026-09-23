@@ -14,7 +14,7 @@ from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from app import ayarlar as ayarlar_modulu
-from app.hatalar import DogrulamaHatasi
+from app.hatalar import AyarHatasi, DogrulamaHatasi
 from app.olaylar import ses_cihazlari, test_sesi
 from app.web.ortak import baglanti_al
 from app.web.rotalar import sablonlar
@@ -97,7 +97,17 @@ def ses_cikisini_kaydet(istek: Request, ses_cihazi: str = Form("")):
     açtığında ayarının kaybolmuş olması demekti.
     """
     ayarlar = istek.app.state.ayarlar
-    ayarlar_modulu.env_dosyasina_yaz(ayarlar.env_yolu, {"ANONS_SES_CIHAZI": ses_cihazi.strip()})
+    degisiklik = {"ANONS_SES_CIHAZI": ses_cihazi.strip()}
+    # Serbest metin ama TEK SATIR: satır sonu taşıyan bir ad .env'e yeni bir
+    # satır (ör. boş YONETICI_SIFRESI) eklerdi (docs/AUDIT.md R14).
+    try:
+        ayarlar_modulu.env_degisikliklerini_dogrula(degisiklik)
+    except AyarHatasi as hata:
+        raise DogrulamaHatasi(
+            "Ses çıkışının adı satır sonu ya da görünmeyen karakter içeremez; "
+            "listeden yeniden seçin."
+        ) from hata
+    ayarlar_modulu.env_dosyasina_yaz(ayarlar.env_yolu, degisiklik)
     return RedirectResponse("/anons?sonuc=ses_cikisi", status_code=303)
 
 

@@ -85,12 +85,45 @@ def test_afplay_cihaz_bayragi_almaz(monkeypatch):
     assert anons._ses_komutu("/ses/a.wav", "Hoparlörüm") == ["/usr/bin/afplay", "/ses/a.wav"]
 
 
-def test_windows_cihaz_bayragi_almaz(monkeypatch):
-    """PowerShell SoundPlayer da varsayılana çalar; komut değişmemeli."""
+class _SahteWinsound:
+    """Windows'un stdlib `winsound` modülünün yerine: çağrıları kaydeder."""
+
+    SND_FILENAME = 0x20000
+    SND_NODEFAULT = 0x2
+
+    def __init__(self, hata: Exception | None = None) -> None:
+        self.cagrilar: list[tuple[str, int]] = []
+        self._hata = hata
+
+    def PlaySound(self, ses, bayraklar):  # noqa: N802 — stdlib adı
+        self.cagrilar.append((ses, bayraklar))
+        if self._hata is not None:
+            raise self._hata
+
+
+def _windows(monkeypatch, sahte: _SahteWinsound) -> None:
     monkeypatch.setattr(sys, "platform", "win32")
-    komut = anons._ses_komutu("C:/ses/a.wav", "Hoparlörüm")
-    assert komut[0] == "powershell"
-    assert "Hoparlörüm" not in " ".join(komut)
+    monkeypatch.setitem(sys.modules, "winsound", sahte)
+    # Windows'ta süreç AÇILMAZ; açılırsa test kırılsın.
+    monkeypatch.setattr(anons.subprocess, "run", lambda *a, **k: pytest.fail("süreç açıldı"))
+
+
+def test_windows_cihaz_bayragi_almaz(monkeypatch):
+    """winsound da varsayılan çıkışa çalar; cihaz adı hiçbir yere geçmez."""
+    sahte = _SahteWinsound()
+    _windows(monkeypatch, sahte)
+    assert anons._ses_komutu("C:/ses/a.wav", "Hoparlörüm") is None
+    anons.SesKartiAnonscu("Hoparlörüm").cal("helmet", "Baret takınız", "C:/ses/a.wav")
+    assert sahte.cagrilar == [("C:/ses/a.wav", sahte.SND_FILENAME | sahte.SND_NODEFAULT)]
+
+
+def test_windows_bozuk_dosyada_bip_calip_basarili_demez(monkeypatch):
+    """SND_NODEFAULT olmadan Windows eksik/bozuk dosyada varsayılan bip sesini
+    çalar ve BAŞARILI döner; bayrakla PlaySound RuntimeError verir ve bu,
+    Türkçe AnonsHatasi olarak Anons sayfasına çıkar."""
+    _windows(monkeypatch, _SahteWinsound(RuntimeError("Failed to play sound")))
+    with pytest.raises(anons.AnonsHatasi, match="WAV biçiminde değil"):
+        anons.SesKartiAnonscu().cal("helmet", "Baret takınız", "C:/ses/yok.wav")
 
 
 def test_ayar_anonscuya_geciyor():

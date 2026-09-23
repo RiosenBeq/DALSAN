@@ -18,7 +18,7 @@ CİHAZ SEÇİMİ HER YERDE YAPILAMAZ — dürüst olmak gerekiyor:
   macOS                     afplay'in cihaz seçeneği YOKTUR. Çıkış, macOS
                             Ses ayarlarından seçilir. Burada yalnızca
                             listelenir ve hangisinin varsayılan olduğu yazar.
-  Windows                   PowerShell SoundPlayer da varsayılana çalar.
+  Windows                   winsound da varsayılana çalar.
                             Aynı şekilde: listelenir, seçim Windows'un Ses
                             ayarlarından yapılır.
 

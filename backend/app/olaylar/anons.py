@@ -60,27 +60,18 @@ class NullAnonscu:
 def _ses_komutu(ses_dosyasi: str, cihaz: str = "") -> list[str] | None:
     """İşletim sistemine göre WAV çalma komutu.
 
-    Fabrika sunucusu Linux'tur (aplay); geliştirme Mac (afplay) veya
-    Windows (PowerShell SoundPlayer) olabilir. Üçünde de EK KURULUM
-    GEREKTİRMEYEN, sistemde hazır gelen araçlar seçildi.
+    Fabrika sunucusu Linux'tur (aplay/paplay); geliştirme Mac (afplay) olabilir.
+    İkisinde de EK KURULUM GEREKTİRMEYEN, sistemde hazır gelen araçlar seçildi.
+    Windows'ta KOMUT YOKTUR: ses Python'un kendi `winsound` modülüyle, süreç
+    açmadan çalınır (`_windows_cal`); bu işlev orada None döner.
 
     `cihaz` (.env → ANONS_SES_CIHAZI) hangi ses ÇIKIŞINA çalınacağıdır ve
     yalnızca Linux'ta işe yarar: paplay/aplay çıkışı adıyla alır, afplay ve
-    PowerShell SoundPlayer almaz. Mac/Windows'ta çıkış, işletim sisteminin
-    ses ayarlarından seçilir — ayrıntı: olaylar/ses_cihazlari.py.
+    winsound almaz. Mac/Windows'ta çıkış, işletim sisteminin ses
+    ayarlarından seçilir — ayrıntı: olaylar/ses_cihazlari.py.
     """
     if sys.platform == "win32":
-        # Windows'ta afplay/aplay yoktur; SoundPlayer her Windows'ta hazırdır.
-        # Tek tırnak İKİLENİR: yolda kesme işareti varsa ("Ali'nin Sesleri")
-        # PowerShell metni erken kapanır — hem bozulur hem komut enjeksiyonu
-        # yüzeyi olur (yol arayüzden girilir).
-        guvenli = ses_dosyasi.replace("'", "''")
-        return [
-            "powershell",
-            "-NoProfile",
-            "-Command",
-            f"(New-Object Media.SoundPlayer '{guvenli}').PlaySync()",
-        ]
+        return None
     # SIRA ÖNEMLİ — paplay, aplay'den ÖNCE denenir. aplay ham ALSA'dır ve
     # Bluetooth hoparlörü HİÇ GÖRMEZ; Bluetooth çıkışı PulseAudio/PipeWire
     # tarafındadır ve ona ancak paplay çalar. İkisi de kuruluyken aplay
@@ -100,10 +91,35 @@ def _ses_komutu(ses_dosyasi: str, cihaz: str = "") -> list[str] | None:
     return [calici, ses_dosyasi]
 
 
+def _windows_cal(ses_dosyasi: str) -> None:
+    """Windows: WAV'ı stdlib `winsound` ile çalar — süreç açılmaz, komut kurulmaz.
+
+    Eskiden PowerShell'e `(New-Object Media.SoundPlayer '<yol>').PlaySync()`
+    METNİ veriliyordu. Yol arayüzden girildiği için güvenlik tek tırnak
+    kaçışına bağlıydı (docs/17 §10.5). winsound yolu komut değil VERİ olarak
+    alır; kaçılacak bir şey yoktur.
+
+    SND_NODEFAULT şarttır: onsuz, dosya bulunamadığında ya da WAV değilse
+    Windows varsayılan "bip" sesini çalar ve çağrı BAŞARILI döner — "Anonsu
+    Dene" düğmesi "çalındı" derdi. Çağrı ses bitene kadar bekler (anons zaten
+    kendi iş parçacığındadır). İkinci bir anons ilki çalarken gelirse Windows
+    ilkini keser: PlaySound süreç başına tek sestir. Üst üste binen iki
+    anonstan anlaşılır olanı budur.
+    """
+    import winsound  # yalnız Windows'ta vardır
+
+    try:
+        winsound.PlaySound(ses_dosyasi, winsound.SND_FILENAME | winsound.SND_NODEFAULT)
+    except RuntimeError as hata:
+        raise AnonsHatasi(
+            f"Ses çalınamadı ({ses_dosyasi}). Dosya bulunamadı ya da WAV biçiminde değil."
+        ) from hata
+
+
 class SesKartiAnonscu:
     """Kayıtlı WAV dosyasını yerel ses kartından çalar → mevcut amplifikatör.
 
-    macOS: afplay · Linux: aplay/paplay · Windows: PowerShell SoundPlayer.
+    macOS: afplay · Linux: aplay/paplay · Windows: winsound (Python ile gelir).
     Ses dosyası tanımlı değilse yalnız log düşer (sistem yine çalışır).
     """
 
@@ -130,6 +146,10 @@ class SesKartiAnonscu:
                 f"'{anahtar}' mesajına ses dosyası bağlanmamış. Anons sayfasında "
                 "bir .wav dosyasının yolunu yazın; yoksa yalnızca ekran uyarısı verilir."
             )
+        if sys.platform == "win32":
+            _windows_cal(ses_dosyasi)
+            _log.info(f"Anons çalındı: {metin}")
+            return
         komut = _ses_komutu(ses_dosyasi, self.cihaz)
         if komut is None:
             raise AnonsHatasi(f"Ses çalma komutu bulunamadı: {ses_dosyasi}")
@@ -137,14 +157,7 @@ class SesKartiAnonscu:
         # yüzden sonucu BEKLEYEBİLİRİZ. Beklemezsek komut hemen başarısız olsa
         # bile "gönderildi" yazardı ve 'Anonsu Dene' düğmesi yalan söylerdi.
         try:
-            sonuc = subprocess.run(
-                komut,
-                capture_output=True,
-                timeout=20,
-                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0)
-                if sys.platform == "win32"
-                else 0,
-            )
+            sonuc = subprocess.run(komut, capture_output=True, timeout=20)
         except (OSError, subprocess.SubprocessError) as hata:
             raise AnonsHatasi(f"Ses çalınamadı ({ses_dosyasi}): {hata}") from hata
         if sonuc.returncode != 0:

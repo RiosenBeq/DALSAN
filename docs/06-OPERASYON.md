@@ -80,7 +80,7 @@ Wants=network-online.target
 Type=simple
 User=<KULLANICI>
 WorkingDirectory=<KURULUM-YOLU>
-ExecStart=<KURULUM-YOLU>/.venv/bin/python -m uvicorn app.main:uygulama \
+ExecStart=<KURULUM-YOLU>/.venv/bin/python -m uvicorn app.main:app \
           --host 127.0.0.1 --port 8080 --app-dir backend
 Restart=always
 RestartSec=10

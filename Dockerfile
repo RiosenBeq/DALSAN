@@ -27,6 +27,14 @@ RUN test -s models/yolox_tiny.onnx || ( \
       echo "Cozum: imaji derlemeden ONCE su komutu calistirin:" && \
       echo "        bash models/indir.sh" && \
       echo "" && exit 1 )
+# Bozuk ya da değiştirilmiş bir model de imaja girmesin (docs/17 §10.5 R17):
+# klasördeki her resmi model, models/SHA256SUMS'taki özetle karşılaştırılır.
+RUN cd models && sha256sum -c --ignore-missing SHA256SUMS || ( \
+      echo "" && \
+      echo "HATA: models/ klasorundeki model dosyasi dogrulanamadi (bozuk ya da farkli surum)." && \
+      echo "Cozum: dosyayi silip imaji derlemeden ONCE su komutu calistirin:" && \
+      echo "        bash models/indir.sh" && \
+      echo "" && exit 1 )
 
 
 # veri/ ve .env container DIŞINDAN bağlanır (docker-compose.yml'e bakın):

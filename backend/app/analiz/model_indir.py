@@ -8,6 +8,7 @@ verilmişse indirilmez, kullanıcıya dosyayı kendisinin koyması söylenir.
 
 from __future__ import annotations
 
+import hashlib
 import ssl
 import urllib.error
 import urllib.request
@@ -19,7 +20,16 @@ from app.hatalar import DalsanHata
 
 # ADR-002: Apache-2.0 lisanslı YOLOX resmi yayınları (models/indir.sh ile aynı)
 _YAYIN_ADRESI = "https://github.com/Megvii-BaseDetection/YOLOX/releases/download/0.1.1rc0/"
-BILINEN_MODELLER = ("yolox_tiny.onnx", "yolox_s.onnx")
+
+# Dosya adı → SHA-256. İndirilen dosya bu özetle karşılaştırılır; tutmazsa
+# kullanılmaz (docs/17 §10.5 R17). Değerler 23.09.2026'da resmi yayından iki
+# ayrı indirmeyle ölçüldü ve aynı çıktı; models/indir.sh aynı değerleri taşır
+# (tests/test_model_butunlugu.py ikisini karşılaştırır). Yayın dosyası
+# değişirse (yeni sürüm) özet de buradan güncellenir — sessizce kabul edilmez.
+BILINEN_MODELLER: dict[str, str] = {
+    "yolox_tiny.onnx": "427cc366d34e27ff7a03e2899b5e3671425c262ea2291f88bb942bc1cc70b0f7",
+    "yolox_s.onnx": "c5c2d13e59ae883e6af3b45daea64af4833a4951c92d116ec270d9ddbe998063",
+}
 
 
 class ModelIndirmeHatasi(DalsanHata):
@@ -58,11 +68,13 @@ def ozel_model_hatasi(model_dosyasi: Path) -> ModelIndirmeHatasi:
 
 def modeli_indir(model_dosyasi: Path, ilerleme: Callable[[int, int], None] | None = None) -> None:
     """Modeli `.part` dosyasına indirip bitince adını değiştirir — yarım
-    kalan indirme asla 'geçerli model' sanılmaz."""
+    kalan indirme asla 'geçerli model' sanılmaz. Özeti bilinen değerle
+    TUTMAYAN dosya da (bozuk, eksik ya da yolda değiştirilmiş) sanılmaz."""
     if not indirilebilir_mi(model_dosyasi):
         raise ozel_model_hatasi(model_dosyasi)
     adres = _YAYIN_ADRESI + model_dosyasi.name
     gecici = model_dosyasi.with_suffix(model_dosyasi.suffix + ".part")
+    ozet = hashlib.sha256()
     try:
         model_dosyasi.parent.mkdir(parents=True, exist_ok=True)
         with urllib.request.urlopen(adres, timeout=30) as yanit, gecici.open("wb") as hedef:
@@ -73,16 +85,23 @@ def modeli_indir(model_dosyasi: Path, ilerleme: Callable[[int, int], None] | Non
                 if not parca:
                     break
                 hedef.write(parca)
+                ozet.update(parca)
                 inen += len(parca)
                 if ilerleme is not None:
                     ilerleme(inen, toplam)
-        if gecici.stat().st_size < 1024 * 1024:
+        if ozet.hexdigest() != BILINEN_MODELLER[model_dosyasi.name]:
+            gecici.unlink(missing_ok=True)
             raise ModelIndirmeHatasi(
-                f"{MARKA} eksik indi. İnternet bağlantısını kontrol edip Kontrol Paneli'nde "
-                "Durdur'a, sonra Sistemi Başlat'a basın.",
-                f"İndirilen model dosyası beklenmedik biçimde küçük "
-                f"({gecici.stat().st_size} bayt): {adres} → {gecici}",
+                f"{MARKA} indirildi ama doğrulanamadı: dosya eksik, bozuk ya da yolda "
+                "değiştirilmiş. Kullanılmadı ve silindi. İnternet bağlantısını kontrol "
+                "edip Kontrol Paneli'nde Durdur'a, sonra Sistemi Başlat'a basın. Sorun "
+                "sürerse bilgi işlem birimine haber verin: şirket ağındaki bir güvenlik "
+                "cihazı indirilen dosyayı değiştiriyor olabilir.",
+                f"SHA-256 tutmadı: {adres} → {gecici} | beklenen "
+                f"{BILINEN_MODELLER[model_dosyasi.name]} | inen {ozet.hexdigest()} "
+                f"({inen} bayt)",
             )
+        # Eksik inen dosya da özetten geçemez; ayrı bir boyut denetimi gerekmez.
         gecici.replace(model_dosyasi)
     except (urllib.error.URLError, TimeoutError, OSError) as hata:
         gecici.unlink(missing_ok=True)

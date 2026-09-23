@@ -158,7 +158,7 @@ Bu, kameralar arttıkça değil, **sisteme bağımlılık arttıkça** gündeme 
 | Elasticsearch | Olay hacmi PostgreSQL'in çok altında |
 | Multi-tenancy | Tek şirket, tek tesis; fabrika geneli yayılım multi-tenancy değil, alan gruplamadır |
 | Programın Bluetooth hoparlörü KENDİ eşleştirmesi | Hoparlör eşleştirmesi (A2DP) `bleak`/`pybluez` ile zaten yapılamaz; her işletim sisteminde ayrı kütüphane ve izin ister. İşletim sistemi bunu zaten yapıyor — üstelik daha iyi. Sistem eşleştirilmiş cihazı listeler ve koptuğunda uyarır (`olaylar/ses_cihazlari.py`) |
-| Mac/Windows'ta ses çıkışını PROGRAMDAN seçme | `afplay` ve PowerShell SoundPlayer cihaz seçeneği almaz; ek modül (AudioDeviceCmdlets, SwitchAudioSource) kurulum gerektirir. Ekran, çıkışın işletim sistemi ayarlarından seçileceğini söylüyor. Linux'ta (fabrika sunucusu) seçim zaten çalışıyor |
+| Mac/Windows'ta ses çıkışını PROGRAMDAN seçme | `afplay` ve `winsound` cihaz seçeneği almaz; ek modül (AudioDeviceCmdlets, SwitchAudioSource) kurulum gerektirir. Ekran, çıkışın işletim sistemi ayarlarından seçileceğini söylüyor. Linux'ta (fabrika sunucusu) seçim zaten çalışıyor |
 | CSS çatısı (Tailwind, Bootstrap) | `static/vendor/` istisnası yalnız simge ve yazı tipi içindir (CLAUDE.md §4). Çatı, derleme adımı ve npm getirir |
 
 ---

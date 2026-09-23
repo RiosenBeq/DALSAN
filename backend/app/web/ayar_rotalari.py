@@ -405,6 +405,7 @@ async def ayarlari_kaydet(istek: Request):
     birlesik = ayarlar_modulu.env_degerlerini_oku(ayarlar.env_yolu)
     birlesik.update(degisiklikler)
     try:
+        ayarlar_modulu.env_degisikliklerini_dogrula(degisiklikler)
         ayarlar_modulu.ayarlari_coz(ayarlar.kok_dizin, birlesik)
     except AyarHatasi as hata:
         raise DogrulamaHatasi(_anlasilir_hata(hata.kullanici_mesaji), hata.teknik_ayrinti) from hata

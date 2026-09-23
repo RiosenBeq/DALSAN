@@ -433,3 +433,58 @@ def test_izinli_adlar_ayarlar_sayfasindan_yazilir(test_ayarlari):
         )
         assert yanit.status_code == 400
         assert env_degerlerini_oku(test_ayarlari.env_yolu) == degerler
+
+
+# ------------------------------------------------ R14: .env satır enjeksiyonu
+
+
+def test_ses_cikisi_adi_env_dosyasina_satir_ekleyemez(test_ayarlari):
+    """Ses çıkışı adı serbest metindir (kapalı Bluetooth hoparlör listede
+    görünmez). 'hdmi\\nYONETICI_SIFRESI=' dosyaya yeni bir satır ekliyor ve
+    python-dotenv son satırı okuduğu için ŞİFREYİ SİLİYORDU — çalıştırılarak
+    doğrulandı."""
+    env = f"YONETICI_SIFRESI={SIFRE}\nSUNUCU_ADRESI=127.0.0.1\nANONS_SES_CIHAZI=\n"
+    with _istemci(test_ayarlari, SIFRE, env) as istemci:
+        _girisli(istemci, SIFRE)
+        yanit = istemci.post(
+            "/anons/ses-cikisi",
+            data={"ses_cihazi": "hdmi\nYONETICI_SIFRESI="},
+            follow_redirects=False,
+        )
+        assert yanit.status_code == 400
+        assert test_ayarlari.env_yolu.read_text(encoding="utf-8") == env
+
+
+@pytest.mark.parametrize(
+    "kotu",
+    [
+        "http://10.0.0.9/a\r\nSUNUCU_ADRESI=0.0.0.0",
+        # str.splitlines() bunu da satır sonu sayar: bir SONRAKİ kayıtta
+        # aynı enjeksiyon doğardı.
+        "http://10.0.0.9/a SUNUCU_ADRESI=0.0.0.0",
+        "http://10.0.0.9/a\x00",
+    ],
+)
+def test_ayarlar_sayfasi_kontrol_karakterini_reddeder(test_ayarlari, kotu):
+    with _istemci(test_ayarlari, SIFRE, _env(SIFRE)) as istemci:
+        _girisli(istemci, SIFRE)
+        yanit = istemci.post(
+            "/ayarlar/kaydet",
+            data={**TAM_FORM, "ANONS_HTTP_ADRESI": kotu},
+            follow_redirects=False,
+        )
+        assert yanit.status_code == 400
+        assert test_ayarlari.env_yolu.read_text(encoding="utf-8") == _env(SIFRE)
+
+
+def test_env_yazicisi_her_yoldan_korur():
+    """Yeni bir yazma ucu doğrulamayı unutsa bile dosyaya satır eklenemez."""
+    from app.ayarlar import env_guncelle
+    from app.hatalar import AyarHatasi
+
+    with pytest.raises(AyarHatasi, match="kontrol karakteri"):
+        env_guncelle("A=1\n", {"A": "2\nYONETICI_SIFRESI="})
+    with pytest.raises(AyarHatasi, match="Geçersiz ayar adı"):
+        env_guncelle("A=1\n", {"A\nB": "2"})
+    # Türkçe harf, boşluk ve '#' meşrudur: tırnakla yazılır.
+    assert env_guncelle("A=1\n", {"A": "Hoparlör şık # 2"}) == 'A="Hoparlör şık # 2"\n'

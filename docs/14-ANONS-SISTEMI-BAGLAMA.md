@@ -89,7 +89,7 @@ dürüstçe yazar:
 | **Mac** | Sistem Ayarları → Ses → Çıkış. Anons her zaman **varsayılan** çıkışa çalar. |
 | **Windows** | Görev çubuğundaki hoparlör simgesi → çıkış cihazı. Anons **varsayılan** çıkışa çalar. |
 
-Sebebi: Mac'in `afplay`'i ve Windows'un PowerShell ses çalıcısı cihaz
+Sebebi: Mac'in `afplay`'i ve Windows'un `winsound` ses çalıcısı cihaz
 seçeneği almaz. Arayüzde çalışmayan bir seçim kutusu göstermek en kötüsü
 olurdu — kullanıcı hoparlörü seçer, ses başka yerden çıkar ve sebebini
 hiçbir zaman öğrenemezdi.

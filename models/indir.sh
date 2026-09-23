@@ -1,24 +1,56 @@
 #!/bin/bash
-# DALSAN İSG — tespit modellerini indirir (model ağırlıkları repoya girmez).
+# DALSAN İSG — tespit modellerini indirir ve DOĞRULAR (model ağırlıkları repoya girmez).
 # Kullanım: bash models/indir.sh
 # YOLOX (Apache-2.0) resmi yayın dosyaları — ADR-002 karar gerekçesi docs/05'te.
+#
+# Her dosya models/SHA256SUMS'taki özetle karşılaştırılır (docs/17 §10.5 R17);
+# tutmayan dosya kullanılmaz. Aynı özetler backend/app/analiz/model_indir.py
+# içinde de durur — tests/test_model_butunlugu.py ikisinin aynı kaldığını denetler.
 set -e
 cd "$(dirname "$0")"
 
-indir() {
-  ad="$1"; url="$2"
-  if [ -s "$ad" ]; then
-    echo "✓ $ad zaten var, atlandı"
+YAYIN="https://github.com/Megvii-BaseDetection/YOLOX/releases/download/0.1.1rc0"
+
+# Dosya, SHA256SUMS'taki kendi satırıyla tutuyor mu? (Linux: sha256sum,
+# Mac: shasum — ikisi de işletim sistemiyle gelir.) Denetlenen dosya adı
+# ikinci argümandır: indirme .part dosyasına yapılır, satır asıl adı taşır.
+ozet_tutuyor_mu() {
+  ad="$1"; dosya="$2"
+  satir="$(grep "  $ad\$" SHA256SUMS | sed "s|  $ad\$|  $dosya|")"
+  [ -n "$satir" ] || return 1
+  if command -v sha256sum >/dev/null 2>&1; then
+    echo "$satir" | sha256sum -c >/dev/null 2>&1
   else
-    echo "▶ $ad indiriliyor..."
-    curl -L --fail --progress-bar -o "$ad.part" "$url"
-    mv "$ad.part" "$ad"
-    echo "✓ $ad indirildi"
+    echo "$satir" | shasum -a 256 -c >/dev/null 2>&1
   fi
 }
 
-indir yolox_tiny.onnx "https://github.com/Megvii-BaseDetection/YOLOX/releases/download/0.1.1rc0/yolox_tiny.onnx"
-indir yolox_s.onnx    "https://github.com/Megvii-BaseDetection/YOLOX/releases/download/0.1.1rc0/yolox_s.onnx"
+indir() {
+  ad="$1"
+  if [ -s "$ad" ]; then
+    if ozet_tutuyor_mu "$ad" "$ad"; then
+      echo "✓ $ad zaten var ve doğrulandı, atlandı"
+      return
+    fi
+    # Silinmez, kenara alınır: aynı adla kendi modelini koyan birinin dosyası kaybolmasın.
+    mv "$ad" "$ad.eski"
+    echo "✗ $ad doğrulanamadı (bozuk ya da farklı bir sürüm): $ad.eski olarak kenara alındı."
+  fi
+  echo "▶ $ad indiriliyor..."
+  curl -L --fail --progress-bar -o "$ad.part" "$YAYIN/$ad"
+  if ! ozet_tutuyor_mu "$ad" "$ad.part"; then
+    rm -f "$ad.part"
+    echo "✗ $ad indirildi ama doğrulanamadı: dosya eksik, bozuk ya da yolda değiştirilmiş." >&2
+    echo "  İnternet bağlantısını kontrol edip yeniden deneyin. Sürerse bilgi işlem birimine" >&2
+    echo "  haber verin: ağdaki bir güvenlik cihazı indirilen dosyayı değiştiriyor olabilir." >&2
+    exit 1
+  fi
+  mv "$ad.part" "$ad"
+  echo "✓ $ad indirildi ve doğrulandı"
+}
+
+indir yolox_tiny.onnx
+indir yolox_s.onnx
 
 echo ""
 echo "Tamam. Geliştirmede NextGen AI Hızlı, fabrikada NextGen AI İsabetli kullanılır."

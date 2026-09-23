@@ -11,6 +11,7 @@ import re
 import subprocess
 from pathlib import Path
 
+import pytest
 from conftest import git_gerekli
 
 KOK = Path(__file__).resolve().parents[1]
@@ -197,18 +198,30 @@ def test_kapali_anons_denemesi_dogru_soyler(test_ayarlari):
     assert "ANONS=null" in yonetici.son_sonuc
 
 
-def test_powershell_kesme_isareti_kacirilir():
-    """Yolda kesme işareti varsa ("Ali'nin Sesleri") PowerShell metni erken
-    kapanır: hem bozulur hem komut enjeksiyonu yüzeyi olur."""
+def test_windows_ses_yolu_komut_metnine_girmez(monkeypatch):
+    """Eskiden yol bir PowerShell komut METNİNE gömülüyordu ve güvenlik tek
+    tırnak kaçışına bağlıydı ("Ali'nin Sesleri"). Artık stdlib winsound yolu
+    VERİ olarak alır: süreç açılmaz, yol olduğu gibi geçer."""
     import sys
-    from unittest import mock
 
     from app.olaylar import anons
 
-    with mock.patch.object(sys, "platform", "win32"):
-        komut = anons._ses_komutu("C:/Ali'nin Sesleri/baret.wav")
-    assert komut is not None
-    assert "''" in komut[-1], "tek tırnak ikilenmeli"
+    cagrilar = []
+
+    class _SahteWinsound:
+        SND_FILENAME = 0x20000
+        SND_NODEFAULT = 0x2
+
+        @staticmethod
+        def PlaySound(ses, bayraklar):  # noqa: N802 — stdlib adı
+            cagrilar.append(ses)
+
+    monkeypatch.setattr(sys, "platform", "win32")
+    monkeypatch.setitem(sys.modules, "winsound", _SahteWinsound)
+    monkeypatch.setattr(anons.subprocess, "run", lambda *a, **k: pytest.fail("süreç açıldı"))
+    yol = "C:/Ali'nin Sesleri/baret'; Remove-Item C:/ -Recurse; '.wav"
+    anons.SesKartiAnonscu().cal("helmet", "Baret takınız", yol)
+    assert cagrilar == [yol]
 
 
 def test_bakim_kilitli_dosyada_durmaz(test_ayarlari, monkeypatch):
@@ -240,3 +253,34 @@ def test_bakim_kilitli_dosyada_durmaz(test_ayarlari, monkeypatch):
         test_ayarlari.goruntu_klasoru, 90, test_ayarlari.nesne_klasoru
     )
     assert silinen == 1, "kilitli dosya atlanmalı, diğeri silinmeli"
+
+
+def test_baslatma_komutlarindaki_uygulama_sembolu_var():
+    """docs/06'daki systemd birimi `app.main:uygulama` diyordu; main.py'de o
+    ad yoktur, sembol `app`'tir. Birim her açılışta "Attribute not found" ile
+    düşer ve Restart=always onu sonsuza kadar yeniden dener (AUDIT R26).
+    Başlatma komutu taşıyan her dosya aynı sembolü göstermeli."""
+    import ast
+
+    main = ast.parse((KOK / "backend" / "app" / "main.py").read_text(encoding="utf-8"))
+    tanimli = {
+        hedef.id
+        for dugum in main.body
+        if isinstance(dugum, ast.Assign)
+        for hedef in dugum.targets
+        if isinstance(hedef, ast.Name)
+    }
+    dosyalar = [
+        "docs/06-OPERASYON.md",
+        "Dockerfile",
+        "masaustu/dalsan_launcher.py",
+        "backend/app/main.py",
+        "README.md",
+        "NASIL-CALISIR.md",
+    ]
+    bulunan = 0
+    for yol in dosyalar:
+        for sembol in re.findall(r"app\.main:(\w+)", (KOK / yol).read_text(encoding="utf-8")):
+            bulunan += 1
+            assert sembol in tanimli, f"{yol}: app.main:{sembol} — main.py'de böyle bir ad yok"
+    assert bulunan >= 3
