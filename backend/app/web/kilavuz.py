@@ -19,6 +19,7 @@ import riski yok.
 from __future__ import annotations
 
 from app.analiz.model_adi import gorunen_model_adi
+from app.olaylar.kanallar import kanal_sagligi_ozeti
 from app.rules.motor import KALIBRASYON_GEREKTIREN
 
 # ---------------------------------------------------------------------------
@@ -243,6 +244,61 @@ def _kalibrasyon_adimi(bekleyenler: list[dict]) -> dict:
     }
 
 
+def _anons_adimi(kanal_sayisi: int, tek_bluetooth: bool, bluetooth_disi: int) -> dict:
+    """6. adım - sesli uyarı kanalı.
+
+    Zorunludur (docs/17 K21, Ç39): gölgede olmayan her uyarı en az bir sesli ya
+    da uzak kanala ulaşmalı; ekran bu garantiye sayılmaz. Kanal yoksa ya da ses
+    yalnız Bluetooth hoparlöre dayanıyorsa (GÖREV §7, S32) kırmızıdır. Sonraki
+    adımları engellemez: kanal, kamera kurulumundan bağımsız eklenebilir.
+    """
+    ortak = {
+        "no": 6,
+        "baslik": "Sesli anons kuruldu mu?",
+        "bag": "/komuta/anons",
+        "istege_bagli": False,
+        "engeller": False,
+    }
+    if not kanal_sayisi:
+        return {
+            **ortak,
+            "tamam": False,
+            "hal": "sorun",
+            "bag_yazi": "Kanal ekle",
+            "aciklama": (
+                "Sesli kanal yok: uyarılar ekranda ve olay listesinde görünür, ama "
+                "hoparlörden ses çıkmaz ve her uyarı “hiçbir hoparlöre ulaşmadı” diye "
+                "kaydedilir. Bu bilgisayarın ses çıkışını (kablolu amfi ya da Bluetooth "
+                "hoparlör) ya da bir IP hoparlörü kanal olarak ekleyin."
+            ),
+        }
+    if tek_bluetooth:
+        neden = (
+            "Bluetooth dışındaki sesli kanallar şu an bağlı değil; uyarı yalnız Bluetooth "
+            "hoparlörden duyuluyor. Anons sayfasında kopan kanala bakın."
+            if bluetooth_disi
+            else (
+                "Sesli uyarı yalnız Bluetooth hoparlöre dayanıyor: hoparlör kapanır ya da "
+                "menzilden çıkarsa uyarı hiçbir yerde duyulmaz. Bluetooth tek uyarı kanalı "
+                "olamaz; kablolu bir ses çıkışı ya da bir IP hoparlör ekleyin."
+            )
+        )
+        return {
+            **ortak,
+            "tamam": False,
+            "hal": "sorun",
+            "bag_yazi": "Kanalları aç",
+            "aciklama": neden,
+        }
+    return {
+        **ortak,
+        "tamam": True,
+        "hal": "",
+        "bag_yazi": "Kanal ekle",
+        "aciklama": f"{kanal_sayisi} açık sesli kanal tanımlı.",
+    }
+
+
 def _ham_adimlar(baglanti, supervizor, ayarlar) -> list[dict]:
     """Altı adımın ham cevabı - hepsi veritabanından ve sistem durumundan."""
     kamera_sayisi = baglanti.execute("SELECT COUNT(*) AS n FROM cameras").fetchone()["n"]
@@ -253,9 +309,11 @@ def _ham_adimlar(baglanti, supervizor, ayarlar) -> list[dict]:
     kural_sayisi = baglanti.execute("SELECT COUNT(*) AS n FROM rules WHERE enabled = 1").fetchone()[
         "n"
     ]
-    hoparlor_sayisi = baglanti.execute(
-        "SELECT COUNT(*) AS n FROM speaker_zones WHERE enabled = 1"
-    ).fetchone()["n"]
+    # Sesli kanal: tanım veritabanındadır (speaker_zones, docs/17 K22). Kanal
+    # yoksa ya da ses yalnız Bluetooth'a dayanıyorsa adım kırmızıdır (Ç38, Ç39)
+    kanal = kanal_sagligi_ozeti(baglanti, canli=supervizor is not None)
+    hoparlor_sayisi = len(kanal["kanallar"])
+    tek_bluetooth = "tek_kanal_bluetooth" in kanal["sorunlar"]
 
     # Bağlantılar HER ZAMAN var olan bir sayfayı göstermeli: tek kamera varsa
     # doğrudan o kameranın sayfası, birden çoksa liste. "Bölge çiz" ve "Hazır
@@ -363,31 +421,12 @@ def _ham_adimlar(baglanti, supervizor, ayarlar) -> list[dict]:
             "bag": "/ayarlar",
             "bag_yazi": "Şifre koy",
             # Engellemez: şifresiz sistem çalışır. Ama isteğe bağlı olduğu için
-            # listeyi sürekli "eksik" göstermez - kullanıcı anonssuz da,
-            # şifresiz de çalışan bir sistemle baş başa kalmamalı.
+            # listeyi sürekli "eksik" göstermez - kullanıcı şifresiz çalışan bir
+            # sistemle baş başa kalmamalı.
             "istege_bagli": True,
             "engeller": False,
         },
-        {
-            "no": 6,
-            "baslik": "Sesli anons kuruldu mu?",
-            # Kanal tanımı veritabanındadır (speaker_zones, docs/17 K22)
-            "tamam": hoparlor_sayisi > 0,
-            "hal": "",
-            "aciklama": (
-                f"{hoparlor_sayisi} açık sesli kanal tanımlı."
-                if hoparlor_sayisi
-                else (
-                    "Sesli kanal yok: uyarılar ekranda ve olay listesinde görünür, ama "
-                    "hoparlörden ses çıkmaz. Bu bilgisayarın ses çıkışını ya da bir IP "
-                    "hoparlörü kanal olarak ekleyin; sistemi anonssuz da kullanabilirsiniz."
-                )
-            ),
-            "bag": "/komuta/anons",
-            "bag_yazi": "Kanal ekle",
-            "istege_bagli": True,
-            "engeller": False,
-        },
+        _anons_adimi(hoparlor_sayisi, tek_bluetooth, kanal["bluetooth_disi"]),
     ]
     bekleyenler = kalibrasyon_bekleyen_kurallar(baglanti)
     if bekleyenler:
@@ -438,8 +477,9 @@ def kurulum_durumu(baglanti, supervizor, ayarlar) -> dict:
         "adimlar": adimlar,
         "toplam": len(zorunlu),
         "tamamlanan": sum(1 for a in zorunlu if a["durum"] == "tamam"),
-        # "Hazır" YALNIZCA zorunlu adımlara bakar: anons kurulmadan da sistem
-        # uyarı üretir. İsteğe bağlı bir adım yüzünden ekranda sürekli kurulum
+        # "Hazır" YALNIZCA zorunlu adımlara bakar. Sesli kanal zorunludur
+        # (docs/17 K21): kanalsız uyarı ekranda kalır, hoparlörden duyulmaz.
+        # İsteğe bağlı bir adım (şifre) yüzünden ekranda sürekli kurulum
         # listesi durmasın.
         "hazir": all(a["durum"] == "tamam" for a in zorunlu),
     }

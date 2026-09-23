@@ -123,13 +123,31 @@ def _adim_durumu(metin: str, baslik: str) -> str:
     return eslesme.group(1)
 
 
-def _kurulumu_tamamla(istemci, test_ayarlari) -> int:
-    """Beş zorunlu adımı da tamamlar; kamera id'sini döndürür."""
+def _kanal_ekle(
+    test_ayarlari,
+    tur: str = "http",
+    cihaz: str = "",
+    adres: str = "http://10.0.0.9/a",
+    saglik: str | None = None,
+) -> None:
+    """Açık "Tüm fabrika" kanalı; `saglik` sağlık izlemesinin yazdığı karar."""
+    _yaz(
+        test_ayarlari,
+        "INSERT INTO speaker_zones (name, area, address, description, enabled, kind, device, "
+        "health, created_at, updated_at) VALUES ('Genel', '', ?, '', 1, ?, ?, ?, ?, ?)",
+        (adres, tur, cihaz, saglik, zaman.simdi_utc(), zaman.simdi_utc()),
+    )
+
+
+def _kurulumu_tamamla(istemci, test_ayarlari, kanal: bool = True) -> int:
+    """Altı zorunlu adımı da tamamlar (kanal=False: sesli kanal hariç); kamera id'si."""
     _motoru_hazirla(istemci)
     kamera = _kamera_ekle(istemci)
     _kare_geldi(test_ayarlari, kamera)
     _bolge_ekle(test_ayarlari, kamera)
     _kural_ekle(test_ayarlari, kamera)
+    if kanal:
+        _kanal_ekle(test_ayarlari)
     return kamera
 
 
@@ -181,7 +199,7 @@ def test_kilavuz_sayfasinda_serit_yok(istemci):
 def test_bos_kurulumda_liste_ilk_adimi_gosteriyor(istemci):
     metin = istemci.get("/komuta").text
     assert "İlk kurulum" in metin
-    assert "0 / 5 adım tamam" in metin
+    assert "0 / 6 adım tamam" in metin
     assert "Henüz kamera eklenmedi" in metin
     assert 'href="/kameralar/yeni">Kamera ekle</a>' in metin
 
@@ -203,7 +221,7 @@ def test_kamera_eklenince_sonraki_adim_aciliyor(istemci):
     assert _adim_durumu(metin, "En az bir kamera eklendi mi?") == "tamam"
     assert _adim_durumu(metin, "Kamera görüntü veriyor mu?") == "sira"
     assert "1 kamera tanımlı." in metin
-    assert "1 / 5 adım tamam" in metin
+    assert "1 / 6 adım tamam" in metin
 
 
 def test_goruntu_gelince_bolge_adimi_aciliyor(istemci, test_ayarlari):
@@ -236,9 +254,30 @@ def test_kurulum_bitince_liste_rozete_donuyor(istemci, test_ayarlari):
     assert "Alanlara göre ihlal yoğunluğu" in metin
 
 
-def test_anons_istege_bagli_kurulumu_engellemiyor(istemci, test_ayarlari):
-    """Sesli kanal tanımlı değil; sistem yine de "hazır" sayılmalı."""
-    _kurulumu_tamamla(istemci, test_ayarlari)
+def test_sesli_kanal_yokken_kurulum_bitmis_sayilmaz(istemci, test_ayarlari):
+    """Kanalsız uyarı hoparlörden duyulmaz (docs/17 K21, Ç39): adım kırmızı,
+    kurulum "hazır" rozetine inmez; sonraki adımları engellemez."""
+    _kurulumu_tamamla(istemci, test_ayarlari, kanal=False)
+    metin = istemci.get("/komuta").text
+    assert "Sistem hazır." not in metin
+    assert _adim_durumu(metin, "Sesli anons kuruldu mu?") == "sorun"
+    assert "hiçbir hoparlöre ulaşmadı" in metin
+    assert "5 / 6 adım tamam" in metin
+
+
+def test_yalniz_bluetooth_kanali_kirmizi(istemci, test_ayarlari):
+    """GÖREV §7: Bluetooth tek uyarı kanalı olamaz (Ç38, S32). Çalar ama adım
+    kırmızıdır; kablolu ya da IP hoparlör eklenince düzelir."""
+    _kurulumu_tamamla(istemci, test_ayarlari, kanal=False)
+    _kanal_ekle(test_ayarlari, tur="ses_karti", cihaz="bluez_output.AA_BB_CC_DD_EE_FF.1", adres="")
+    metin = istemci.get("/komuta").text
+    assert _adim_durumu(metin, "Sesli anons kuruldu mu?") == "sorun"
+    assert "Bluetooth tek uyarı kanalı olamaz" in metin
+    # Analiz açıkken IP hoparlör yalnız bağlı olduğu yoklanınca yedek sayılır
+    _kanal_ekle(test_ayarlari)
+    metin = istemci.get("/komuta").text
+    assert "Bluetooth dışındaki sesli kanallar şu an bağlı değil" in metin
+    _yaz(test_ayarlari, "UPDATE speaker_zones SET health = 'ok' WHERE kind = 'http'")
     assert "Sistem hazır." in istemci.get("/komuta").text
 
 
@@ -264,10 +303,12 @@ def test_anons_adimi_kanal_eklenince_tamamlanir(istemci, test_ayarlari):
     assert "1 açık sesli kanal" in _anons_adimi()["aciklama"]
 
 
-def test_anons_adimi_istege_bagli_etiketli(istemci):
+def test_anons_adimi_zorunlu_sifre_istege_bagli(istemci):
     metin = istemci.get("/komuta").text
-    assert "Sesli anons kuruldu mu?" in metin
-    assert "isteğe bağlı" in metin
+    anons = re.search(r"Sesli anons kuruldu mu\?(.*?)</span>", metin, re.S)
+    sifre = re.search(r"Giriş şifresi kondu mu\?(.*?)</span>", metin, re.S)
+    assert anons and "isteğe bağlı" not in anons.group(1)
+    assert sifre and "isteğe bağlı" in sifre.group(1)
 
 
 def test_model_hazirlanirken_kamera_adimi_yine_de_acik(istemci):
@@ -395,7 +436,7 @@ def test_kilavuzda_tasarimin_ornek_verisi_yok(istemci):
 
 
 def test_kilavuz_kurulum_durumunu_gercek_veriden_gosteriyor(istemci, test_ayarlari):
-    assert "0 / 5 adımı tamam" in istemci.get("/komuta/kilavuz").text
+    assert "0 / 6 adımı tamam" in istemci.get("/komuta/kilavuz").text
     _kurulumu_tamamla(istemci, test_ayarlari)
     assert "Kurulumunuz tamam." in istemci.get("/komuta/kilavuz").text
 

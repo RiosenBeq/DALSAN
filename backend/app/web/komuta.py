@@ -1318,28 +1318,70 @@ def _anons_mesajlari(baglanti, ses_kanali_var: bool, sayilar: dict[int, int]) ->
     return mesajlar
 
 
-def _kanal_durumu(satir, secim: bool, bagli_cikislar: set[str] | None) -> tuple[str, str, str]:
-    """(rozet, rozet rengi, açıklama). Kanal sağlığının SÜREKLİ izlenmesi ayrı
-    iştir (docs/17 §7.4); bu, sayfa açılırken bakılan anlık durumdur.
+def _kanal_durumu(
+    satir,
+    secim: bool,
+    bagli_cikislar: set[str] | None,
+    saglik: dict[int, tuple[str | None, str]] | None = None,
+) -> tuple[str, str, str]:
+    """(rozet, rozet rengi, açıklama) (R38).
 
-    `bagli_cikislar` o an görünen ses çıkışlarının adlarıdır; None = liste
-    okunamadı. O durumda "görünmüyor" DENMEZ: "kontrol edemedik" ile "koptu"
-    aynı şey değildir (ses_cihazlari.cihaz_bagli_mi). Çıkışın programdan
-    seçilemediği Mac ve Windows'ta (`secim` False) ses işletim sisteminin
-    seçtiği çıkıştan çıkar; orada çıkış adına bakılmaz.
+    Analiz açıkken (`saglik` verilir) rozet sürekli sağlık izlemesinin
+    kararıdır (docs/17 §7.4, `speaker_zones.health`): bağlı / koptu /
+    bilinmiyor / denetleniyor; açıklama son yoklamanın sebebidir. Kısa bir
+    aksaklık rozeti değiştirmez: "koptu" ANONS_KOPUK_ESIGI_SN sürer.
+
+    Analiz kapalıyken sayfa açılırken bakılan anlık durumdur. `bagli_cikislar`
+    o an görünen ses çıkışlarının adlarıdır; None = liste okunamadı. O durumda
+    "görünmüyor" DENMEZ: "kontrol edemedik" ile "koptu" aynı şey değildir
+    (ses_cihazlari.cihaz_bagli_mi). Çıkışın programdan seçilemediği Mac ve
+    Windows'ta (`secim` False) ses işletim sisteminin seçtiği çıkıştan çıkar;
+    orada çıkış adına bakılmaz.
     """
     if not satir["enabled"]:
         return "kapalı", "gri", ""
-    if satir["kind"] == "ses_karti" and secim:
-        if not satir["device"]:
+    if satir["kind"] == "ses_karti" and secim and not satir["device"]:
+        return (
+            "çıkış seçilmedi",
+            "sari",
+            "Çıkışın adı boş (eski kayıt): ses işletim sisteminin varsayılan "
+            "çıkışına gider ve hangi hoparlörden çıktığı denetlenemez. "
+            "Düzenle'den çıkışı seçip kaydedin.",
+        )
+    if saglik is not None:
+        neden = saglik.get(satir["id"], (None, ""))[1]
+        sebep = f" Son yoklama: {neden}." if neden else ""
+        karar = satir["health"]
+        if karar == "ok":
+            return "bağlı", "yesil", ""
+        if karar == "down":
             return (
-                "çıkış seçilmedi",
-                "sari",
-                "Çıkışın adı boş (eski kayıt): ses işletim sisteminin varsayılan "
-                "çıkışına gider ve hangi hoparlörden çıktığı denetlenemez. "
-                "Düzenle'den çıkışı seçip kaydedin.",
+                "koptu",
+                "kirmizi",
+                "Bu kanala bir süredir ulaşılamıyor; bu haldeyken bu kanaldan anons "
+                "duyulmaz. Uyarı bölümün başka kanalından, yoksa “Tüm fabrika” "
+                f"kanalından duyurulur.{sebep}",
             )
-        if bagli_cikislar is not None and satir["device"] not in bagli_cikislar:
+        if karar == "unknown":
+            return (
+                "bilinmiyor",
+                "gri",
+                "Kanalın durumu bu bilgisayarda okunamıyor; uyarı yine bu kanaldan "
+                f"denenir ve sonucu teslim kaydına düşer.{sebep}",
+            )
+        return "denetleniyor", "gri", ""
+    if satir["kind"] == "ses_karti" and secim:
+        if bagli_cikislar is None:
+            # R38: "kontrol edemedik" yeşil bir rozetle "bağlı" gibi görünmemeli
+            return (
+                "bilinmiyor",
+                "gri",
+                "Çıkış listesi şu an okunamadı; kanalın bağlı olup olmadığı "
+                "bilinmiyor. Uyarı yine bu kanaldan denenir; ▶ Dene ile sınayın.",
+            )
+        # Bluetooth hoparlör yeniden bağlanınca adının soneki değişebilir: aynı
+        # adresli çıkış da "görünüyor" sayılır (ses_cihazlari.ayni_cikis_mi)
+        if not any(ses_cihazlari.ayni_cikis_mi(satir["device"], c) for c in bagli_cikislar):
             return (
                 "görünmüyor",
                 "kirmizi",
@@ -1369,6 +1411,7 @@ def _kanal_satirlari(
     secim: bool,
     bagli_cikislar: set[str] | None,
     teslim_sayaci: dict[int, dict[str, int]] | None = None,
+    saglik: dict[int, tuple[str | None, str]] | None = None,
 ) -> list[dict]:
     """speaker_zones satırları, ekrana hazır: adres MASKELİ, son anons insan diliyle.
 
@@ -1380,7 +1423,7 @@ def _kanal_satirlari(
     kanallar = []
     for satir in satirlar:
         ses_cikisi = satir["kind"] == "ses_karti"
-        rozet, rozet_rengi, uyari = _kanal_durumu(satir, secim, bagli_cikislar)
+        rozet, rozet_rengi, uyari = _kanal_durumu(satir, secim, bagli_cikislar, saglik)
         kanallar.append(
             {
                 "id": satir["id"],
@@ -1469,10 +1512,13 @@ def anons_baglami(istek: Request, baglanti) -> dict:
     secim = ses_cihazlari.secim_destekleniyor_mu()
     bagli = {c.kimlik for c in cihazlar} if cihazlar else None
     teslim = teslim_ozeti(baglanti)
-    kanallar = _kanal_satirlari(baglanti, secim, bagli, teslim["kanal_basina"])
+    supervizor = getattr(istek.app.state, "supervizor", None)
+    # Analiz açıkken rozetler sürekli sağlık izlemesinin kararıdır (docs/17 §7.4)
+    kanal_halleri = getattr(getattr(supervizor, "_anons", None), "kanal_halleri", None)
+    saglik = kanal_halleri() if callable(kanal_halleri) else None
+    kanallar = _kanal_satirlari(baglanti, secim, bagli, teslim["kanal_basina"], saglik)
     ses_kanali_var = any(k["aktif"] and k["tur"] == "ses_karti" for k in kanallar)
     saatler = saat_sutunlari(damgalar, "anons")
-    supervizor = getattr(istek.app.state, "supervizor", None)
     return {
         "anons_kartlari": _anons_kartlari(ayarlar, kanallar, len(damgalar)),
         "anons_mesajlari": _anons_mesajlari(baglanti, ses_kanali_var, sayilar),
@@ -1482,7 +1528,7 @@ def anons_baglami(istek: Request, baglanti) -> dict:
         "ses_cihazlari": cihazlar,
         "varsayilan_ses_cihazi": next((c.kimlik for c in cihazlar if c.varsayilan), ""),
         "ses_secimi_destekleniyor": secim,
-        "kopuk_kanal_var": any(k["rozet"] == "görünmüyor" for k in kanallar),
+        "kopuk_kanal_var": any(k["rozet"] in ("görünmüyor", "koptu") for k in kanallar),
         # Bölüm listesi kameralardan gelir: kullanıcı kanalın bölümünü elle
         # yazıp yanlış eşleştirmesin (ADR-007 - alan düz metindir).
         "bolumler": [

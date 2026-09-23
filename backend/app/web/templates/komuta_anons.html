@@ -102,10 +102,12 @@
 
   {% if kopuk_kanal_var %}
   <div class="komuta-bos uyari-tonu">
-    <h3>Bir ses çıkışı görünmüyor</h3>
-    <p>Aşağıda <b>görünmüyor</b> yazan kanalın çıkışı şu anda bu bilgisayarda yok:
-      Bluetooth hoparlörse kapanmış ya da menzilden çıkmış olabilir.
-      <b>Bu haldeyken o kanaldan anons duyulmaz;</b> ekran uyarıları çalışmaya devam eder.</p>
+    <h3>Bir uyarı kanalı çalışmıyor</h3>
+    <p>Aşağıda <b>koptu</b> ya da <b>görünmüyor</b> yazan kanala şu anda ulaşılamıyor:
+      Bluetooth hoparlörse kapanmış ya da menzilden çıkmış, IP hoparlörse ağdan düşmüş
+      olabilir. <b>Bu haldeyken o kanaldan anons duyulmaz;</b> uyarı bölümün başka
+      kanalından, yoksa “{{ tum_fabrika }}” kanalından duyurulur. Ekran uyarıları
+      çalışmaya devam eder.</p>
   </div>
   {% endif %}
 

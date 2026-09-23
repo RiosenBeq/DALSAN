@@ -70,9 +70,21 @@ Sistem açısından fark yoktur: Bluetooth hoparlör de bir **ses çıkışıdı
 
 > **Kalıcı kurulum için kablo tercih edin.** Bluetooth iki yerde zayıftır:
 > menzil (fabrikada duvar ve metal raf çok) ve hoparlörün kendi pili bitince
-> sessizce düşmesi. Sistem bu düşmeyi fark eder ve kanal satırında kırmızı
-> **"görünmüyor"** yazar, ama uyarıyı görmek için birinin ekrana bakması
-> gerekir. Kablolu bağlantıda böyle bir risk yoktur.
+> sessizce düşmesi. Sistem bu düşmeyi fark eder (§4.3): 30 sn görünmeyen
+> kanal **"koptu"** olur, olay listesine "Ses kanalı koptu" düşer ve o bölümün
+> uyarısı "Tüm fabrika" kanalından duyurulur. Ama birinin fark etmesi yine
+> ekrana ya da Kontrol Paneli'ne bağlıdır. Kablolu bağlantıda bu risk yoktur.
+>
+> **Bluetooth tek uyarı kanalı olamaz** (GÖREV §7). Sesli kanalların hepsi
+> Bluetooth hoparlörse (ya da Bluetooth dışındakiler şu an kopuksa) ses yine
+> çalar, ama sistem şeridi, Kontrol Paneli ve kurulum listesi bunu **kırmızı**
+> gösterir (`tek_kanal_bluetooth`). Yanına kablolu bir çıkış ya da bir IP
+> hoparlör ekleyin.
+>
+> Hoparlör kapatılıp açılınca işletim sistemi onu bazen başka bir profil
+> adıyla bağlar (`bluez_output.AA_BB_….1` → `….a2dp-sink`). Sistem adın içindeki
+> Bluetooth adresine bakar: adres aynıysa aynı hoparlör sayılır ve ses bugünkü
+> adına çalınır; kanalı yeniden seçmeniz gerekmez.
 
 ### 2.2 Kanalı ekleme
 
@@ -223,10 +235,17 @@ kameraların bölümlerini listeler.
 Seçim kuralı (`app/olaylar/anons.py` → `bolgeleri_sec`, docs/17 §7.3-1):
 
 1. Olay, kameranın bölümüyle **birebir eşleşen BÜTÜN** açık kanallardan
-   duyurulur (bir bölümde hem amfi hem IP hoparlör olabilir);
-2. bölümde açık kanal yoksa **bölümü boş** olan kanallardan (**Tüm fabrika**);
-3. o da yoksa ses çıkmaz: uyarı yalnızca ekranda görünür ve Anons ekranı bunu
-   yazar ("sesli kanal yok").
+   duyurulur (bir bölümde hem amfi hem IP hoparlör olabilir). **Koptu**
+   durumundaki kanal atlanır (§4.3);
+2. bölümde açık kanal yoksa ya da bölümün bütün kanalları koptuysa **bölümü
+   boş** olan kanallardan (**Tüm fabrika**). Atlanan kanal teslim kaydına
+   "Tüm fabrika'dan duyuruldu" diye yazılır;
+3. o da yoksa ses çıkmaz: uyarı yalnızca ekranda görünür, olay listesine
+   "Uyarı hiçbir sesli kanala ulaşamadı" düşer ve sistem "hazır değil" görünür
+   (§4.3). Her şey koptuysa kanallar yine denenir: belki şimdi bağlanmışlardır.
+
+Bölümlü kanal var ama "Tüm fabrika" kanalı yoksa Kontrol Paneli bunu sarı
+yazar (`yedek_ses_kanali_yok`): kanalı olmayan ya da kanalları kopan bölüm susar.
 
 > **Sık yapılan hata:** Kameranın alanı `sevkiyat`, hoparlörünki `Sevkiyat`
 > yazılırsa eşleşme olmaz (büyük/küçük harf duyarlıdır). İkisini kopyala-yapıştır
@@ -279,6 +298,50 @@ saatte kaç deneme çaldı, kaçı bastırıldı, bayatladı ya da kesildi ve ka
 yazılım gecikmesi (p50/p90). Gölge moddaki kural için "çalsaydı" kaydı da
 tutulur; hoparlör susar.
 
+### 4.3 Kanal sağlığı ve uyarı garantisi
+
+Analiz çalışırken her açık kanal **10 saniyede bir** yoklanır
+(`ANONS_SAGLIK_ARALIGI_SN`, docs/17 §7.4):
+
+| Kanal | Nasıl yoklanır |
+|---|---|
+| Ses çıkışı (Linux) | Çıkışın adı `pactl` listesinde mi (Bluetooth'ta aynı adres de sayılır). Çalıcı (`paplay`/`aplay`) yoksa "bağlı değil"; çıkış adı boşsa "bilinmiyor" (varsayılan çıkış denetlenemez, R37). |
+| Ses çıkışı (Mac) | Varsayılan çıkış kanalın beklediği mi; okunamazsa "bilinmiyor". |
+| Ses çıkışı (Windows) | Her zaman **"bilinmiyor"**: varsayılan çıkış ek modül olmadan okunamıyor. |
+| IP hoparlör | Adresin sunucusuna ≤3 sn TCP bağlantısı. "Ulaşılabilir", duyuldu demek değildir. |
+
+Kanal satırındaki rozet bu kararı gösterir: **bağlı** (yeşil), **koptu**
+(kırmızı), **bilinmiyor** ya da **denetleniyor** (gri). Tek bir yoklamanın
+kaçması rozeti değiştirmez: kanal ancak **30 saniye kesintisiz** yanıt vermezse
+"koptu" olur (`ANONS_KOPUK_ESIGI_SN`) ve olay listesine bir kez "Ses kanalı
+koptu" düşer; iki ardışık yoklamada yanıt verince "Ses kanalı tekrar bağlandı"
+düşer ve önceki olay kapanır. Analiz kapalıyken rozet, sayfa açılırken bakılan
+anlık durumdur ("açık" / "görünmüyor").
+
+**Uyarı garantisi.** Gölge modda olmayan her ihlalin açılışı en az bir sesli ya
+da uzak kanaldan **çalmış** olmalıdır (ses çıkışında çalıcı hatasız bitti, IP
+hoparlörde 2xx yanıt; aynı anons az önce o kanaldan çaldığı için bastırıldıysa
+da sayılır). Hiçbir kanal çalamadıysa:
+
+- olay listesine **"Uyarı hiçbir sesli kanala ulaşamadı"** düşer (aynı kamera
+  için en çok 5 dakikada bir, `ULASMAYAN_UYARI_ARALIGI_SN`; aradakiler sayılıp
+  bir sonraki kayda yazılır),
+- günlüğe CRITICAL satır yazılır,
+- `/saglik` `hazir=false`, `sorunlar=["uyari_ulasmiyor"]` olur; Kontrol Paneli ve
+  sistem şeridi kırmızı yazar. Sonraki ulaşan uyarı ya da kanal satırındaki
+  başarılı bir **▶ Dene** bunu siler.
+
+Ekran uyarısı bu garantiye **sayılmaz**: izleme penceresinin açık olması,
+hoparlörlerin hepsi susmuşken "uyarı ulaştı" demenin gerekçesi olamaz. Olaydan
+**önce** de görünür: `/saglik` `uyari_garantisi` "şu an en az bir sesli kanal
+bağlı mı" sorusunu `true` / `false` / `null` (doğrulanamıyor, ör. Windows) diye
+cevaplar; sistem şeridi `false`'ta kırmızı, `null`'da gri satır gösterir.
+
+**Dürüst sınır.** "Çaldı", sesin kanala teslim edildiğidir; bir insanın duyduğu
+değildir. Kopmuş bir Bluetooth sink'e `paplay`'in hata koduyla döndüğü hedef
+sunucuda henüz DOĞRULANMADI (docs/17 §7.4); bu yüzden kanal sağlığı ayrıca
+yoklanır.
+
 ## 5. Devreye alma sırası - bu sırayı bozmayın
 
 Yeni kurulan bir kuralı ilk günden anonsa açmak, sistem henüz ayarlanmamışken
@@ -326,6 +389,11 @@ Bu listeyi olduğu gibi iletebilirsiniz:
 |---|---|---|
 | "sesli kanal yok" yazıyor | Açık kanal yok | Anons sistemi → **+ Yeni kanal** (§2.2, §3) |
 | Kanal satırında kırmızı "görünmüyor" | Ses çıkışı şu an bilgisayarda yok (Bluetooth hoparlör kapalı ya da menzil dışı) | Hoparlörü açın, sayfayı yenileyin; kalıcı kurulumda kablo tercih edin |
+| Kanal satırında kırmızı "koptu" | Kanal 30 sn'den uzun süredir yanıt vermiyor; uyarı bölümün öbür kanalından ya da Tüm fabrika'dan duyuruluyor | Açıklamadaki "Son yoklama" sebebine bakın: Bluetooth kapalı, IP hoparlör ağdan düşmüş, container'da ses aracı yok (§4.3) |
+| Kanal satırında gri "bilinmiyor" | Durum bu bilgisayarda okunamıyor (Windows'ta her zaman; Linux'ta çıkış listesi okunamadı) | Uyarı yine denenir; sonucu teslim kaydında görünür. Kanal satırındaki **▶ Dene** ile sınayın |
+| "Son uyarı hiçbir hoparlöre ulaşmadı" | Bir ihlalin açılışı hiçbir sesli kanaldan çalamadı | Teslim kaydında hangi kanalın neden çalamadığına bakın; düzeltip **▶ Dene**'ye basın |
+| "Sesli uyarı yalnız Bluetooth hoparlöre dayanıyor" | Bluetooth dışında bağlı sesli kanal yok (GÖREV §7) | Kablolu bir ses çıkışı ya da IP hoparlör ekleyin (§2.1.1) |
+| Kontrol Paneli: "“Tüm fabrika” sesli kanalı yok" | Bölümlü kanal var, yedek yok | Bölümü boş bir kanal ekleyin (§4) |
 | Kanal satırında "çıkış seçilmedi" | Eski kayıtta çıkış adı boş (Linux) | Düzenle → çıkışı listeden seçip kaydedin |
 | "Mesaj denenemedi: … Tüm fabrika kanalı yok" | Mesaj denemesi Tüm fabrika kanalından çalar | Kanalları kendi **▶ Dene** düğmeleriyle sınayın ya da bölümü boş bir kanal ekleyin |
 | "Ses çalma komutu bulunamadı" | Linux'ta `alsa-utils` yok | `sudo apt install alsa-utils` |

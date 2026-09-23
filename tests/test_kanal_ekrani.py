@@ -148,7 +148,7 @@ def test_gorunmeyen_cikis_kirmizi_ve_uyarili(istemci, test_ayarlari, linux):
     kanalın kendi satırında ve panelin başında söyler."""
     _kanal_ekle(istemci, device="bluez_output.11_22_33_44_55_66.1")
     metin = istemci.get("/komuta/anons").text
-    assert "Bir ses çıkışı görünmüyor" in metin
+    assert "Bir uyarı kanalı çalışmıyor" in metin
     liste = _liste_satiri(metin)
     assert '<span class="rozet kirmizi">görünmüyor</span>' in liste
     assert "bu kanaldan anons duyulmaz" in liste
@@ -161,7 +161,8 @@ def test_liste_okunamazsa_gorunmuyor_denmez(istemci, test_ayarlari, monkeypatch)
     _kanal_ekle(istemci, device=BLUETOOTH)
     metin = istemci.get("/komuta/anons").text
     assert "görünmüyor" not in metin
-    assert '<span class="rozet yesil">açık</span>' in _liste_satiri(metin)
+    # R38: bilinmeyen durum yeşil "açık" rozetiyle bağlı gibi de görünmez
+    assert '<span class="rozet gri">bilinmiyor</span>' in _liste_satiri(metin)
 
 
 def test_eski_bos_cikisli_satir_uyarir(istemci, test_ayarlari, linux):

@@ -8,7 +8,7 @@ eksi işareti) düz tireye çevrildi: kod, yorum, arayüz metni, şablon, CSS/JS
 belge. Anlam değişmedi: yer tutucu "-" hem sunucuda hem `uyari.js`'te aynı
 karakterdir. Kural CLAUDE.md §7 ve §8'de ve docs/17 §16 karar kaydında;
 `tests/test_yazim_kurallari.py` depoda bu karakterlerden biri kalırsa dosya ve
-satırıyla kırmızı olur. Statik damga `?v=39`.
+satırıyla kırmızı olur. Statik damga o gün `?v=39`, 4b'den sonra `?v=40`.
 
 ## Faz 4 uyarı kanalları (23.09.2026)
 
@@ -73,6 +73,35 @@ p50/p90, bastırılan/bayat/kesilen, izleme ekranı) ve kanal başına sayılar;
 açıkken çıkışın kuyruğundan geçer ve sonucu yazılım gecikmesiyle gösterir.
 Kapanışta kuyruklar en çok 3 sn boşaltılır. Eski kayıtlar bakımda ihlal
 saklama süresiyle silinir.
+
+**4b - kanal sağlığı ve uyarı garantisi (§7.4, K21, R37).** "anons-saglik" iş
+parçacığı (`olaylar/kanal_sagligi.py`) her açık kanalı 10 sn'de bir yoklar:
+ses çıkışı Linux'ta `pactl` listesinde mi (Bluetooth'ta aynı adres de sayılır),
+Mac'te varsayılan çıkış mı, Windows'ta her zaman "bilinmiyor"; IP hoparlörde
+≤3 sn TCP bağlantısı (R30 reddi "koptu"). Çalıcı yoksa (container, R36) "koptu",
+boş çıkış adı "bilinmiyor" (`cihaz_bagli_mi("")` artık None, R37). Durum
+makinesi 30 sn kesintisiz yanıtsızlıkta bir kez `AUDIO_CHANNEL_DOWN` (süren
+olay), iki ardışık yanıtta `AUDIO_CHANNEL_UP` yazar; "bilinmiyor" olay üretmez.
+`speaker_zones.health` kararlaşmış değeri tutar (şüpheli geçişte son karar
+korunur; açılışta önceki çalışmanın kararından başlanır; çıkışı değişen ya da
+kapatılan kanalın açık olayı `kanal_degisti` ile kapanır). İş parçacığı analiz
+iş parçacığının açılış süpürmesinden sonra başlar, kapanış kaydından önce durur.
+Yönlendirme koptu kanalı atlar; bölümde sağlıklı kanal kalmazsa "Tüm fabrika"ya
+düşer (`fallback` teslim satırı), her şey koptuysa yine dener. Gölgede olmayan
+olayın açılışı hiçbir sesli/uzak kanala ulaşmazsa (bastırılan ulaşmış sayılır,
+ekran sayılmaz) kamera başına 5 dk'da bir `ALERT_UNDELIVERED` (aradakiler
+sayılır), CRITICAL günlük ve `/saglik` `uyari_ulasmiyor` (hazırlığı bozar);
+ulaşan uyarı ya da başarılı "Dene" siler. `/saglik` dar gövdeye
+`uyari_garantisi` (true / false / null), sorunlara `sesli_kanal_yok`,
+`yedek_ses_kanali_yok`, `tek_kanal_bluetooth` (S32: çalar, kırmızı), oturumlu
+ayrıntıya `kanallar` eklendi. Kontrol Paneli, sistem şeridi ve kurulum listesi
+bunları kırmızı gösterir; kurulum listesinde sesli kanal adımı artık zorunlu
+(Ç39: kanal yoksa kırmızı). Anons ekranında rozetler analiz açıkken sağlık
+kararıdır: bağlı / koptu / bilinmiyor / denetleniyor. Bluetooth sink'in profil
+soneki değişirse ses aynı adresli sink'in bugünkü adına çalınır (4d'nin ad
+çözümü). Yeni ayarlar: `ANONS_SAGLIK_ARALIGI_SN` (10), `ANONS_KOPUK_ESIGI_SN`
+(30), `ULASMAYAN_UYARI_ARALIGI_SN` (300). Belgeler: docs/14 §2.1.1, §4, §4.3,
+§7; docs/06 §2.
 
 ## Faz 3 KKD (23.09.2026)
 
