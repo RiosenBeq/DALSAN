@@ -344,8 +344,9 @@ her 24 saatlik çalışma süresinde bir çalışır. Ayrı zamanlanmış görev
 | Kanıt fotoğrafları | `GORUNTU_SAKLAMA_GUN` | 90 gün | Disk büyümesinin ana kalemi |
 | Etiketlenmemiş KKD kırpıkları | `KKD_HAM_VERI_SAKLAMA_GUN` | 30 gün | **Etiketlenenler silinmez** - eğitim veri setidir |
 | Sistem olayları | `SISTEM_OLAY_SAKLAMA_GUN` | 90 gün | |
+| Uyarı teslim kaydı | `UYARI_KAYDI_ARSIV_GUN` | 15 gün | Silinmeden önce masaüstüne CSV (aşağıda); 0 = kapalı, kayıt olayla gider |
 
-Bu dört süre, disk uyarı sınırı, anons adresi ve tespit eşikleri **arayüzden**
+Bu süreler, disk uyarı sınırı, anons adresi ve tespit eşikleri **arayüzden**
 de değiştirilebilir: soldaki raftan **Sistem ayarları** (`/ayarlar`). Sayfa
 `.env` dosyasını açıklama satırlarını bozmadan günceller ve değeri yazmadan
 önce açılıştaki doğrulayıcıdan geçirir - geçersiz bir ayar dosyaya yazılmaz.
@@ -359,8 +360,21 @@ Fotoğrafı silinen olayın kaydı korunur, yalnızca fotoğraf bağlantısı te
 fotoğrafı ve uyarı teslim kaydı kalır; dondurma kaldırılınca bir sonraki bakımda
 süresi dolmuşsa silinir (docs/18 §3).
 
+**Uyarı kayıtları önce masaüstüne yazılır, sonra silinir** (operatör isteği
+23.09.2026). Sistemdeki en eski teslim kaydı `UYARI_KAYDI_ARSIV_GUN` günü
+(15) doldurunca o ana kadarki kayıtlar "NextGen Detector uyarı kayıtları"
+klasörüne CSV olarak yazılır ve geri okunup doğrulanır; ancak ondan sonra
+silinir. Masaüstü yoksa (Docker, masaüstüsüz sunucu) klasör
+`veri/arsiv/uyari-kayitlari`'dır; Docker'da bu, sunucudaki bağlı `veri/`
+klasörünün içidir. Dosya yazılamazsa hiçbir kayıt silinmez, Olaylar'a
+"Uyarı kayıtları arşivlenemedi" düşer ve bakım ertesi gün yeniden dener.
+Dondurulan olayın teslim kaydı arşive de girmez, silinmez de. Masaüstündeki
+kopyalar sistemin saklama süresine tabi değildir; ne kadar tutulacağına
+müşterinin KVKK politikası karar verir (docs/18).
+
 **Her bakım koşusu imha kaydı yazar** (silinen olay, fotoğraf, KKD örneği,
-dondurulduğu için atlanan olay ve o günkü gün sayıları). Kayıt ve erişim izi
+dondurulduğu için atlanan olay, arşivlenip silinen uyarı kaydı ve dosyası,
+o günkü gün sayıları). Kayıt ve erişim izi
 Ayarlar sayfasının en altındaki "KVKK: erişim ve imha kayıtları" bölümündedir;
 ikisi de silinmez (docs/18 §2, §4).
 

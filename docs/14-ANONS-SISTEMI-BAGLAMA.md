@@ -402,6 +402,18 @@ saatte kaç deneme çaldı, kaçı bastırıldı, bayatladı ya da kesildi ve ka
 yazılım gecikmesi (p50/p90). Gölge moddaki kural için "çalsaydı" kaydı da
 tutulur; hoparlör susar.
 
+**Teslim kaydı 15 günde bir masaüstüne alınır** (operatör isteği 23.09.2026).
+Sistemdeki en eski kayıt 15 günü doldurunca o ana kadarki bütün kayıtlar
+masaüstündeki "NextGen Detector uyarı kayıtları" klasörüne
+`uyari-kayitlari_<ilk gün>_<son gün>.csv` olarak yazılır (Excel'de açılır:
+zaman, kamera, bölüm, uyarı, önem, olay no, kanal, sonuç, gecikme), dosya geri
+okunup doğrulanır, sonra sistemden silinir. Dosya yazılamazsa hiçbir kayıt
+silinmez ve Olaylar'a "Uyarı kayıtları arşivlenemedi" düşer. Süre ve klasör
+Ayarlar → Saklama süreleri'ndedir (`UYARI_KAYDI_ARSIV_GUN`,
+`UYARI_KAYDI_ARSIV_KLASORU`); masaüstü olmayan sunucuda ve Docker'da klasör
+`veri/arsiv/uyari-kayitlari`'dır. Temizlikten hemen sonra "son 24 saat"
+sayıları yeni kayıtlarla yeniden dolar.
+
 ### 4.3 Kanal sağlığı ve uyarı garantisi
 
 Analiz çalışırken her açık kanal **10 saniyede bir** yoklanır

@@ -31,6 +31,24 @@ yüksek ve uzun); teslim kaydı "sözlü anons yerine uyarı tonu çalındı" de
 Sahada yapılacak: her mesaja sözlü kayıt bağlamak ve "Anonsu Dene" ile
 dinlemek (docs/06 §8'de madde).
 
+**Uyarı kayıtları: 15 günde bir önce masaüstüne, sonra temizlik.** "Uyarı
+logu" teslim kaydıdır (`alert_deliveries`: hangi uyarı, hangi kanal, sonuç,
+gecikme); olaylar ve kanıt fotoğrafları bu kararın dışındadır (süreleri S5'te).
+`olaylar/uyari_arsivi.py`: sistemdeki en eski kayıt `UYARI_KAYDI_ARSIV_GUN`
+(15) günü doldurunca bakım o ana kadarki kayıtları masaüstündeki "NextGen
+Detector uyarı kayıtları" klasörüne BOM'lu, noktalı virgüllü, formül kaçışlı
+CSV olarak yazar, diske işler, geri okuyup satır sayısını doğrular ve ancak
+sonra yalnız yazdığı satırları siler. Yazılamazsa hiçbir satır silinmez ve
+Olaylar'a `ALERT_ARCHIVE_FAILED` düşer. Dondurulan olayın kaydı ne arşivlenir
+ne silinir. Arşiv, süresi dolan olaylardan ÖNCE çalışır (olay silinince teslim
+kaydı da giderdi). Masaüstü: Windows'ta bilinen klasör API'si (OneDrive
+yönlendirmesi), macOS `~/Desktop`, Linux XDG (Türkçe "Masaüstü"); Docker'da ve
+masaüstüsüz sunucuda `veri/arsiv/uyari-kayitlari`. Şema 011 imha kaydına sayı
+ve dosya ekler; Ayarlar'da süre, klasör ve imha günlüğünde arşiv dosyası
+görünür. CSV yazıcısı web katmanından `app/csv_yazici.py`'ye taşındı (bakım da
+aynı kaçışla yazsın). DOĞRULANMADI: Windows'taki masaüstü API çağrısı (bu
+ortamda Windows yok; yedek yolu sınandı).
+
 ## Eksik denetimi (23.09.2026)
 
 GÖREV ve docs/17 §13-§14 satır satır koda ve belgelere karşı tarandı. Açık

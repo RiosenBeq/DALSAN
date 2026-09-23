@@ -1776,6 +1776,10 @@ docs/07'ye satır olur.
   (bağlı hoparlör)" dedi. Ses çıkışı kanalı mesajın WAV'ı yoksa artık susmaz: üretilmiş
   uyarı tonu çalar (`olaylar/ton.py`, docs/14 §2.3). §7.9'daki "sabit mesaj = insan sesiyle
   WAV" kuralı değişmedi; ton yalnız yedektir.
+- **23.09.2026, uyarı kayıtları:** operatör "uyarı loglarını tut, 15 günde bir temizlensin,
+  öncesinde masaüstüne kaydedilsin" dedi. Uyarı kaydı teslim kaydıdır (`alert_deliveries`);
+  olay kaydı ve kanıt fotoğrafı bu kararın dışındadır, onların süresi S5'te açık kalır.
+  Uygulama `olaylar/uyari_arsivi.py`, şema 011, `ALERT_ARCHIVE_FAILED` (§6.1), docs/18.
 - **23.09.2026, çizgi işareti:** operatör "sistem genelinde çizgi işareti olarak `-`
   kullan" dedi. Kodda, yorumda, arayüz metninde, belgede, günlük iletisinde ve commit
   mesajında uzun çizgi (U+2014), orta çizgi (U+2013), eksi işareti (U+2212) ve benzeri
