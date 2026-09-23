@@ -1,5 +1,5 @@
 {
   "varyantlar": ["tiny-v1", "tiny-v2", "s-v1", "s-v2"],
   "devir": {"tiny": 30, "s": 20},
-  "not": "İlk tam eğitim (23.09.2026): duman çalıştırması 3 uçtan uca yeşil, LOCO arşivi sabitlendi. Dört aday: tiny ve s boyu, v1 ve v2 kipi. Yeni bir tam eğitim istemek için bu dosyayı değiştirip main'e gönderin (ör. bu notu güncelleyin); dosyanın ilk eklenmesi yalnız duman sınamasını başlatır."
+  "not": "İlk tam eğitim (23.09.2026): duman çalıştırması 3 uçtan uca yeşil, LOCO arşivi sabitlendi; çalıştırma 4'teki istek kip hatası yüzünden dumana düştü, yeniden istendi. Dört aday: tiny ve s boyu, v1 ve v2 kipi. Yeni bir tam eğitim istemek için bu dosyayı değiştirip main'e gönderin (ör. bu notu güncelleyin); dosyanın ilk eklenmesi yalnız duman sınamasını başlatır."
 }
