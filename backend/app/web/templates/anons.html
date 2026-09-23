@@ -1,5 +1,6 @@
 {% extends "temel.html" %}
 {% from "simge.html" import simge %}
+{% from "bilesen.html" import oge_rozeti %}
 {% block baslik %}Anons — DALSAN İSG{% endblock %}
 {% block icerik %}
   <h2>Anons (Sesli Uyarı)</h2>
@@ -8,7 +9,9 @@
     <h3>Durum</h3>
     <table>
       <tr><th>Anons yolu</th>
-        <td><b>{{ anons_yolu }}</b> — {{ anons_aciklamasi }}</td></tr>
+        {# Yolun simgesi: kapalı (sessiz) · ses kartı (hoparlör) · ağ (IP hoparlör) #}
+        <td><span class="simgeli">{{ simge({'ses_karti': 'hoparlor', 'http': 'ip-hoparlor'}.get(anons_yolu, 'sessiz')) }}
+          <span><b>{{ anons_yolu }}</b> — {{ anons_aciklamasi }}</span></span></td></tr>
       {% if anons_yolu == 'http' %}
       <tr><th>Anons sunucusu</th><td>{{ anons_adresi }}</td></tr>
       {% endif %}
@@ -131,6 +134,8 @@
 
     {% for m in mesajlar %}
     <div class="anons-satiri">
+      {# Mesajın hangi öğe için çaldığı: forklift, yaya yolu, tır, baret, yelek #}
+      {% if m.key in ANONS_OGELERI %}{{ oge_rozeti(OGELER[ANONS_OGELERI[m.key]]) }}{% endif %}
       <form method="post" action="/anons/{{ m.id }}/kaydet" class="satir-form">
         <input name="text" value="{{ m.text }}" size="46" required>
         <input name="audio_file" value="{{ m.audio_file or '' }}" size="24"
@@ -140,7 +145,7 @@
         <button class="dugme ikincil kucuk">Kaydet</button>
       </form>
       <form method="post" action="/anons/{{ m.id }}/dene" class="satir-form">
-        <button class="dugme kucuk">▶ Anonsu Dene</button>
+        <button class="dugme kucuk simgeli">{{ simge("oynat") }} Anonsu Dene</button>
         {% if m.audio_file and not m.ses_var %}
           <span class="rozet kirmizi">ses dosyası bulunamadı</span>
         {% endif %}

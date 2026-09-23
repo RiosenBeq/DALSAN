@@ -712,6 +712,7 @@ def inceleme_baglami(baglanti, secili_id: int | None) -> dict:
                 "saat": zaman.ekranda_saat(olay["occurred_at"]),
                 "durum_kucuk": olay["durum_kucuk"],
                 "renk": _olay_rengi(olay),
+                "oge": olay["oge"],
             }
         )
 

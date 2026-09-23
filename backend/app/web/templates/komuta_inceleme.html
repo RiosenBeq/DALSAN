@@ -8,6 +8,7 @@
    Tasarımdaki örnek olay ("Olay #418 · 2,1 m") buraya taşınmadı: ekrandaki
    her sayı seçili olayın kendi kaydından gelir. #}
 {% extends "komuta_temel.html" %}
+{% from "bilesen.html" import oge_rozeti %}
 {% block icerik %}
 
 {% if not olay %}
@@ -38,11 +39,16 @@
         <a class="akis-satiri {{ k.renk }} {% if k.id == olay.id %}secili{% endif %}"
            href="/komuta/inceleme?olay={{ k.id }}"
            {% if k.id == olay.id %}aria-current="true"{% endif %}>
-          <span class="akis-ust">
-            <span class="akis-baslik">{{ k.baslik }}</span>
-            <span class="akis-saat">{{ k.durum_kucuk }}</span>
+          <span class="akis-icerik">
+            {{ oge_rozeti(k.oge, "kucuk") }}
+            <span class="akis-govde">
+              <span class="akis-ust">
+                <span class="akis-baslik">{{ k.baslik }}</span>
+                <span class="akis-saat">{{ k.durum_kucuk }}</span>
+              </span>
+              <span class="akis-yer">{{ k.yer }} · {{ k.saat }}</span>
+            </span>
           </span>
-          <span class="akis-yer">{{ k.yer }} · {{ k.saat }}</span>
         </a>
         {% endfor %}
       </div>
@@ -56,6 +62,7 @@
     {# --- sağ: seçili olay ----------------------------------------------- #}
     <section class="komuta-panel">
       <div class="inceleme-ust">
+        {{ oge_rozeti(olay.oge, "buyuk") }}
         <span class="inceleme-baslik">
           <h2>{{ olay.ozet }}</h2>
           <span class="panel-notu">Olay #{{ olay.id }} · {{ olay.yer }} · {{ olay.zaman_kisa }}</span>

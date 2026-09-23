@@ -214,3 +214,114 @@ def test_sayi_kartlarinda_simge_var(istemci):
     metin = istemci.get("/komuta").text
     for ad in ("siren", "inceleme", "kamera", "kural"):
         assert f"#s-{ad}" in metin
+
+
+# ------------------------------------------------ öğe dili diğer ekranlarda da
+
+
+def _olay_idleri(test_ayarlari) -> list[int]:
+    from app import veritabani
+
+    baglanti = veritabani.baglanti_ac(test_ayarlari.veritabani_yolu)
+    try:
+        return [satir[0] for satir in baglanti.execute("SELECT id FROM events ORDER BY id")]
+    finally:
+        baglanti.close()
+
+
+def test_olay_listesi_ogeyi_ve_durumu_gosterir(istemci, test_ayarlari):
+    _kurulum(istemci, test_ayarlari)
+    metin = istemci.get("/olaylar").text
+    assert metin.count('class="oge-rozeti oge-forklift kucuk"') == 2
+    assert metin.count('class="oge-rozeti oge-yelek kucuk"') == 1
+    assert metin.count('class="durum-hapi durum-new"') == 3
+
+
+def test_olay_listesi_telefonda_karta_doner(istemci, test_ayarlari):
+    """Altı sütunlu tablo 375 px'e sığmıyordu; asıl bilgi (özet, durum,
+    kanıt) yatay kaydırmanın arkasında kalıyordu. Kart kuralı dar ekran
+    bloğunda durmalı, tablo da o sınıfı taşımalı."""
+    _kurulum(istemci, test_ayarlari)
+    assert 'class="liste olay-tablosu"' in istemci.get("/olaylar").text
+    bloklar = [b.split("\n}\n", 1)[0] for b in STIL.split("@media (max-width: 620px)")[1:]]
+    assert any("table.olay-tablosu tr" in b and "grid-template-areas" in b for b in bloklar)
+
+
+def test_olay_detayi_ve_inceleme_kuyrugu_ogeyi_gosterir(istemci, test_ayarlari):
+    _kurulum(istemci, test_ayarlari)
+    detay = istemci.get(f"/olaylar/{_olay_idleri(test_ayarlari)[0]}").text
+    assert 'class="oge-rozeti oge-forklift" title="Forklift"' in detay
+    assert 'class="durum-hapi durum-new"' in detay
+    kuyruk = istemci.get("/komuta/inceleme").text
+    assert 'class="oge-rozeti oge-forklift kucuk"' in kuyruk
+    assert 'class="oge-rozeti oge-yelek kucuk"' in kuyruk
+
+
+def test_kkd_durumu_asgari_hedeflere_gore_sayar(istemci, test_ayarlari):
+    """Asgari miktarlar docs/04 §4.5 "Minimum" sütunundandır."""
+    from app import veritabani, zaman
+
+    baglanti = veritabani.baglanti_ac(test_ayarlari.veritabani_yolu)
+    try:
+        for baret, yelek in (("no", "yes"), ("no", "unknown"), ("yes", "no"), (None, None)):
+            baglanti.execute(
+                "INSERT INTO ppe_samples (captured_at, crop_path, helmet_label, vest_label, "
+                "source) VALUES (?, 'kkd-ornekler/x.jpg', ?, ?, 'auto')",
+                (zaman.simdi_utc(), baret, yelek),
+            )
+        baglanti.commit()
+    finally:
+        baglanti.close()
+    metin = istemci.get("/kkd").text
+    degerler = re.findall(r'class="kkd-hedef-deger"><b>(\d+)</b> / asgari (\d+)<', metin)
+    assert degerler == [("4", "2500"), ("2", "500"), ("1", "500"), ("1", "300")]
+
+
+def test_kkd_cubugu_asgariyi_asinca_tasmaz():
+    from app.web.kkd_web import _hedef_kartlari
+
+    kartlar = _hedef_kartlari({"toplam": 3000, "baret_yok": 250})
+    assert [k["yuzde"] for k in kartlar] == [100, 50, 0, 0]
+
+
+def test_anons_mesajlari_ogesiyle_gorunur(istemci):
+    metin = istemci.get("/anons").text
+    for anahtar in sorted(set(ANONS_OGELERI.values())):
+        assert f'class="oge-rozeti oge-{anahtar}"' in metin, anahtar
+
+
+def test_kamera_sayfasinda_bolge_cipi_ve_kural_rozeti(istemci, test_ayarlari):
+    yanit = istemci.post(
+        "/kameralar/yeni",
+        data={
+            "name": "Rampa",
+            "area": "",
+            "source_type": "rtsp",
+            "source_url": "rtsp://10.0.0.5:554/1",
+            "sample_fps": "6",
+        },
+        follow_redirects=False,
+    )
+    kamera = int(yanit.headers["location"].rsplit("/", 1)[1])
+    istemci.post(
+        f"/kameralar/{kamera}/bolgeler",
+        data={
+            "name": "Ana yaya yolu",
+            "zone_type": "pedestrian_path",
+            "polygon": "[[0.1,0.1],[0.9,0.1],[0.9,0.9]]",
+        },
+        follow_redirects=False,
+    )
+    from app import veritabani
+
+    baglanti = veritabani.baglanti_ac(test_ayarlari.veritabani_yolu)
+    try:
+        bolge = baglanti.execute("SELECT id FROM zones").fetchone()[0]
+    finally:
+        baglanti.close()
+    # Hazır yaya yolu kuralı: yolun DIŞINDAKİ kişi → öğesi "yaya yolu".
+    istemci.post("/kurallar/hazir", data={"zone_id": str(bolge)}, follow_redirects=False)
+    metin = istemci.get(f"/kameralar/{kamera}").text
+    assert 'class="bolge-cipi bolge-pedestrian-path"' in metin
+    assert 'class="oge-rozeti oge-yaya-yolu kucuk" title="Yaya yolu"' in metin
+    assert "#s-yaya-yolu" in metin

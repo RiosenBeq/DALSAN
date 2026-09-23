@@ -443,6 +443,10 @@
 }
 .akis-ust { display: flex; align-items: center; gap: 8px; }
 .akis-baslik { font-size: 13px; font-weight: 640; letter-spacing: -0.015em; }
+/* Dar kuyrukta "Güvenli mesafe — 2,05 m" birimi tek başına alt satıra
+   düşürüyordu; dengeli kırılım satırları eşitler. Desteklemeyen tarayıcı
+   yok sayar, eski kırılımla devam eder. */
+.akis-baslik { text-wrap: balance; }
 .akis-saat {
   margin-left: auto;
   font-size: 11px;
@@ -1365,19 +1369,11 @@
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: var(--rozet-cizgi-karti, var(--vurgu));
+  background: var(--rozet-cubuk, var(--vurgu));
 }
-/* Çubuk, kartın rozet rengini alır: öğenin rengi kartta iki kez tekrarlanır
-   ve göz sayıyı öğeye bağlar. */
-.oge-karti:has(.oge-forklift) { --rozet-cizgi-karti: var(--oge-forklift-parlak); }
-.oge-karti:has(.oge-yaya-yolu) { --rozet-cizgi-karti: var(--oge-yaya-parlak); }
-.oge-karti:has(.oge-baret),
-.oge-karti:has(.oge-kkd) { --rozet-cizgi-karti: var(--oge-baret-parlak); }
-.oge-karti:has(.oge-yelek) { --rozet-cizgi-karti: #eab308; }
-.oge-karti:has(.oge-alan) { --rozet-cizgi-karti: var(--oge-alan-parlak); }
-.oge-karti:has(.oge-tir),
-.oge-karti:has(.oge-park),
-.oge-karti:has(.oge-hiz) { --rozet-cizgi-karti: var(--oge-tir-parlak); }
+/* Çubuk, kartın öğe rengini alır (kart .oge-<anahtar> sınıfını taşır ve
+   stil.css'teki --rozet-cubuk değişkeni oradan gelir): öğenin rengi kartta
+   iki kez tekrarlanır ve göz sayıyı öğeye bağlar. */
 
 /* Dar ekran (560 px) kuralları, dosyadaki TEK 560 px bloğundadır
    (nesne tablolarının yanında): sayı kartları iki sütun, öğeler liste. */

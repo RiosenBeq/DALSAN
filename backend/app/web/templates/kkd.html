@@ -1,16 +1,28 @@
 {% extends "temel.html" %}
+{% from "simge.html" import simge %}
+{% from "bilesen.html" import oge_rozeti %}
 {% block baslik %}KKD Verisi — DALSAN İSG{% endblock %}
 {% block icerik %}
   <h2>KKD (Baret / Yelek) Verisi</h2>
 
   <section class="kart">
     <h3>Durum</h3>
-    <table>
-      <tr><th>Toplanan örnek</th><td>{{ sayilar.toplam or 0 }}</td></tr>
-      <tr><th>Etiketlenen</th><td>{{ sayilar.etiketli or 0 }}</td></tr>
-      <tr><th>"Baret yok" örneği</th><td>{{ sayilar.baret_yok or 0 }} <span class="not">(hedef: en az 500 — docs/04)</span></td></tr>
-      <tr><th>"Yelek yok" örneği</th><td>{{ sayilar.yelek_yok or 0 }}</td></tr>
-    </table>
+    {# Her kart: öğe · sayı / asgari · çubuk. Asgari miktarlar docs/04 §4.5
+       "Minimum" sütunundan gelir (kkd_web.KKD_ASGARI). #}
+    <div class="kkd-hedefler">
+      {% for h in hedefler %}
+      <div class="kkd-hedef oge-{{ h.oge.anahtar }}">
+        {{ oge_rozeti(h.oge) }}
+        <span class="kkd-hedef-ad">{{ h.ad }}</span>
+        <span class="kkd-hedef-deger"><b>{{ h.deger }}</b> / asgari {{ h.asgari }}</span>
+        <span class="ilerleme" role="progressbar" aria-label="{{ h.ad }}"
+              aria-valuemin="0" aria-valuemax="{{ h.asgari }}" aria-valuenow="{{ h.deger }}"><span style="width: {{ h.yuzde }}%"></span></span>
+      </div>
+      {% endfor %}
+    </div>
+    <p class="not">Etiketlenen: <b>{{ sayilar.etiketli or 0 }}</b> / {{ sayilar.toplam or 0 }} örnek.
+      Çubuklar docs/04 §4.5'teki <b>asgari</b> miktarlardır; eğitime bunların hepsi
+      dolunca başlanır, hedef daha yüksektir.</p>
     <p class="not">Sistem, KKD zorunlu alan bölgesi çizilmiş kameralardan otomatik örnek toplar.
       Yeterli etiketli veri birikince model eğitilecek (9. adım) ve KKD kuralı gölge modda
       devreye alınacak. <b>Şüphede kaldığınız görüntüye her zaman "Belirsiz" deyin</b> —
@@ -26,16 +38,16 @@
         <img src="/kkd/ornek/{{ o.id }}.jpg" alt="kişi görüntüsü">
         <div class="kucuk-metin">{{ o.kamera_adi or "—" }} · {{ o.yerel_zaman }}</div>
         <div class="etiket-grubu" data-ornek="{{ o.id }}" data-alan="helmet">
-          <span>Baret:</span>
-          <button data-deger="yes">Var</button>
-          <button data-deger="no">Yok</button>
-          <button data-deger="unknown">Belirsiz</button>
+          <span class="etiket-adi">{{ oge_rozeti(OGELER.baret, "kucuk") }}Baret</span>
+          <button data-deger="yes">{{ simge("basarili") }}Var</button>
+          <button data-deger="no">{{ simge("hata") }}Yok</button>
+          <button data-deger="unknown">{{ simge("belirsiz") }}Belirsiz</button>
         </div>
         <div class="etiket-grubu" data-ornek="{{ o.id }}" data-alan="vest">
-          <span>Yelek:</span>
-          <button data-deger="yes">Var</button>
-          <button data-deger="no">Yok</button>
-          <button data-deger="unknown">Belirsiz</button>
+          <span class="etiket-adi">{{ oge_rozeti(OGELER.yelek, "kucuk") }}Yelek</span>
+          <button data-deger="yes">{{ simge("basarili") }}Var</button>
+          <button data-deger="no">{{ simge("hata") }}Yok</button>
+          <button data-deger="unknown">{{ simge("belirsiz") }}Belirsiz</button>
         </div>
       </div>
       {% endfor %}

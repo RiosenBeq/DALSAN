@@ -12,10 +12,43 @@ from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, Resp
 
 from app import zaman
 from app.hatalar import DogrulamaHatasi
-from app.web.ortak import baglanti_al
+from app.web.ortak import OGELER, baglanti_al
 from app.web.rotalar import sablonlar
 
 router = APIRouter()
+
+# docs/04 §4.5 "Minimum" sütunu: model eğitimine başlamak için ASGARİ miktar
+# (hedef bunun üstündedir). Durum kartlarının çubukları bu sayılara göre dolar;
+# sayı belgeden gelir, burada uydurulmaz. Belge değişirse burası da değişir.
+KKD_ASGARI = {"toplam": 2500, "baret_yok": 500, "yelek_yok": 500, "belirsiz": 300}
+
+# "Belirsiz" bir öğe değil, bir karardır; rozeti nötr sistem rengini alır.
+_BELIRSIZ = {"anahtar": "sistem", "ad": "Belirsiz", "simge": "belirsiz"}
+
+
+def _hedef_kartlari(sayilar: dict) -> list[dict]:
+    kalemler = (
+        ("toplam", "Toplanan kişi görüntüsü", OGELER["insan"]),
+        ("baret_yok", "“Baret yok” örneği", OGELER["baret"]),
+        ("yelek_yok", "“Yelek yok” örneği", OGELER["yelek"]),
+        ("belirsiz", "“Belirsiz” örneği", _BELIRSIZ),
+    )
+    kartlar = []
+    for anahtar, ad, oge in kalemler:
+        deger = int(sayilar.get(anahtar) or 0)
+        asgari = KKD_ASGARI[anahtar]
+        kartlar.append(
+            {
+                "ad": ad,
+                "oge": oge,
+                "deger": deger,
+                "asgari": asgari,
+                # Çubuk %100'de durur; asgari aşıldıysa sayı zaten söyler.
+                "yuzde": min(100, round(100 * deger / asgari)),
+            }
+        )
+    return kartlar
+
 
 _ETIKETLER = ("yes", "no", "unknown")
 _ALANLAR = {"helmet": "helmet_label", "vest": "vest_label"}
@@ -27,7 +60,9 @@ def kkd_sayfasi(istek: Request, baglanti=Depends(baglanti_al)):
         "SELECT COUNT(*) AS toplam, "
         "SUM(CASE WHEN labeled_at IS NOT NULL THEN 1 ELSE 0 END) AS etiketli, "
         "SUM(CASE WHEN helmet_label = 'no' THEN 1 ELSE 0 END) AS baret_yok, "
-        "SUM(CASE WHEN vest_label = 'no' THEN 1 ELSE 0 END) AS yelek_yok "
+        "SUM(CASE WHEN vest_label = 'no' THEN 1 ELSE 0 END) AS yelek_yok, "
+        "SUM(CASE WHEN helmet_label = 'unknown' OR vest_label = 'unknown' "
+        "THEN 1 ELSE 0 END) AS belirsiz "
         "FROM ppe_samples"
     ).fetchone()
 
@@ -47,6 +82,7 @@ def kkd_sayfasi(istek: Request, baglanti=Depends(baglanti_al)):
         {
             "aktif_sekme": "kkd",
             "sayilar": dict(sayilar),
+            "hedefler": _hedef_kartlari(dict(sayilar)),
             "ornekler": ornekler,
         },
     )

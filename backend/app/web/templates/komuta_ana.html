@@ -108,7 +108,7 @@
       </div>
       <div class="oge-izgara">
         {% for o in oge_dagilimi %}
-        <div class="oge-karti">
+        <div class="oge-karti oge-{{ o.oge.anahtar }}">
           {{ oge_rozeti(o.oge, "buyuk") }}
           <span class="oge-karti-deger">{{ o.deger }}</span>
           <span class="oge-karti-ad">{{ o.ad }}</span>

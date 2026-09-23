@@ -601,7 +601,6 @@ legend { font-size: 0.88rem; color: var(--metin-3); padding: 0 6px; }
 }
 .anahtar-baslik { font-weight: 650; color: var(--metin-3); }
 .anahtar-oge { display: inline-flex; align-items: center; gap: 6px; }
-.anahtar-simge { width: 20px; height: 20px; flex: none; }
 .anahtar-kutu {
   width: 15px; height: 15px; border-radius: 4px; flex: none;
   box-shadow: var(--ic-isik-koyu);
@@ -668,6 +667,49 @@ table.liste tr.pasif td { color: var(--metin-3); }
   /* Telefonda kılavuz balonu üç satıra çıkıyor ve görüntünün yarısını
      kapatıyordu — görüntünün üstünde değil, altında dursun. */
   .cizim-balonu { position: static; margin-top: 8px; box-shadow: var(--golge-ince); }
+
+  /* Olay listesi telefonda karta döner. Altı sütunlu tablo 375 px'e
+     sığmıyordu; asıl bilgi (özet, durum, kanıt) yatay kaydırmanın arkasında
+     kalıyordu. Kartta özet başta, kanıt sağda; kamera ve zaman altında
+     küçük; tip ve durum en altta yan yana. Zaman bağlantısı kartın tamamını
+     kaplar: karta dokunmak olayın sayfasını açar. */
+  .kart table.olay-tablosu { display: block; overflow: visible; }
+  .olay-tablosu thead { display: none; }
+  .olay-tablosu tbody { display: grid; gap: 10px; }
+  table.olay-tablosu tr {
+    position: relative;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      "ozet ozet kanit"
+      "kamera kamera kanit"
+      "zaman zaman kanit"
+      "tip durum durum";
+    column-gap: 10px;
+    padding: 12px 12px 11px;
+    border: 1px solid var(--cam-sinir);
+    border-radius: var(--radius-kucuk);
+    background: var(--cam-orta);
+    box-shadow: var(--cam-ic-isik);
+  }
+  table.olay-tablosu td { padding: 0; }
+  .olay-tablosu .olay-ozet { grid-area: ozet; font-weight: 600; }
+  /* 33 px = küçük rozet (24) + rozetle özet arası boşluk (9): alt satırlar
+     rozetin değil, özet metninin hizasından başlar. */
+  .olay-tablosu .olay-kamera,
+  .olay-tablosu .zaman-hucresi,
+  .olay-tablosu .olay-tip { padding-left: 33px; }
+  .olay-tablosu .olay-kamera { grid-area: kamera; margin-top: 2px; font-size: 0.82rem; color: var(--metin-2); }
+  .olay-tablosu .zaman-hucresi { grid-area: zaman; font-size: 0.78rem; font-variant-numeric: tabular-nums; }
+  .olay-tablosu .zaman-hucresi a { color: var(--metin-3); text-decoration: none; }
+  .olay-tablosu .zaman-hucresi a::after { content: ""; position: absolute; inset: 0; }
+  .olay-tablosu .olay-tip { grid-area: tip; margin-top: 9px; }
+  .olay-tablosu .olay-durum { grid-area: durum; margin-top: 9px; align-self: center; font-size: 0.82rem; }
+  .olay-tablosu .olay-kanit { grid-area: kanit; }
+  .olay-tablosu .olay-kanit .kucuk-resim { height: 56px; }
+  /* Kartta boş hücre "—" satırı olarak görünmesin (kamerasız sistem
+     olayı, kanıtsız olay); masaüstü tablosunda tire yerinde kalır. */
+  .olay-tablosu .kartta-gizli { display: none; }
 }
 
 /* ------------------------------------------------------------------ ipucu balonu
@@ -895,14 +937,17 @@ nav a.simgeli, .komuta-menu a.simgeli { gap: 6px; }
 .oge-rozeti.buyuk { width: 44px; height: 44px; border-radius: 13px; }
 .oge-rozeti.buyuk .simge { width: 24px; height: 24px; }
 
-.oge-insan { --rozet-cizgi: var(--oge-insan); --rozet-zemin: var(--oge-insan-zemin); --rozet-parlak: var(--oge-insan-parlak); }
-.oge-forklift { --rozet-cizgi: var(--oge-forklift); --rozet-zemin: var(--oge-forklift-zemin); --rozet-parlak: var(--oge-forklift-parlak); }
-.oge-tir, .oge-park, .oge-hiz { --rozet-cizgi: var(--oge-tir); --rozet-zemin: var(--oge-tir-zemin); --rozet-parlak: var(--oge-tir-parlak); }
-.oge-baret, .oge-kkd { --rozet-cizgi: var(--oge-baret); --rozet-zemin: var(--oge-baret-zemin); --rozet-parlak: var(--oge-baret-parlak); }
-.oge-yelek { --rozet-cizgi: var(--oge-yelek); --rozet-zemin: var(--oge-yelek-zemin); --rozet-parlak: var(--oge-yelek-parlak); }
-.oge-yaya-yolu { --rozet-cizgi: var(--oge-yaya); --rozet-zemin: var(--oge-yaya-zemin); --rozet-parlak: var(--oge-yaya-parlak); }
-.oge-alan { --rozet-cizgi: var(--oge-alan); --rozet-zemin: var(--oge-alan-zemin); --rozet-parlak: var(--oge-alan-parlak); }
-.oge-kamera, .oge-sistem { --rozet-cizgi: var(--oge-sistem); --rozet-zemin: var(--oge-sistem-zemin); --rozet-parlak: var(--oge-sistem-parlak); }
+/* --rozet-cubuk: öğenin oransal çubuk rengi (komuta öğe kartları, KKD hedefleri).
+   Parlak ton kullanılır; yalnız yelekte parlak sarı açık zeminde kaybolduğu
+   için bir ton koyusu. */
+.oge-insan { --rozet-cizgi: var(--oge-insan); --rozet-zemin: var(--oge-insan-zemin); --rozet-parlak: var(--oge-insan-parlak); --rozet-cubuk: var(--oge-insan-parlak); }
+.oge-forklift { --rozet-cizgi: var(--oge-forklift); --rozet-zemin: var(--oge-forklift-zemin); --rozet-parlak: var(--oge-forklift-parlak); --rozet-cubuk: var(--oge-forklift-parlak); }
+.oge-tir, .oge-park, .oge-hiz { --rozet-cizgi: var(--oge-tir); --rozet-zemin: var(--oge-tir-zemin); --rozet-parlak: var(--oge-tir-parlak); --rozet-cubuk: var(--oge-tir-parlak); }
+.oge-baret, .oge-kkd { --rozet-cizgi: var(--oge-baret); --rozet-zemin: var(--oge-baret-zemin); --rozet-parlak: var(--oge-baret-parlak); --rozet-cubuk: var(--oge-baret-parlak); }
+.oge-yelek { --rozet-cizgi: var(--oge-yelek); --rozet-zemin: var(--oge-yelek-zemin); --rozet-parlak: var(--oge-yelek-parlak); --rozet-cubuk: #eab308; }
+.oge-yaya-yolu { --rozet-cizgi: var(--oge-yaya); --rozet-zemin: var(--oge-yaya-zemin); --rozet-parlak: var(--oge-yaya-parlak); --rozet-cubuk: var(--oge-yaya-parlak); }
+.oge-alan { --rozet-cizgi: var(--oge-alan); --rozet-zemin: var(--oge-alan-zemin); --rozet-parlak: var(--oge-alan-parlak); --rozet-cubuk: var(--oge-alan-parlak); }
+.oge-kamera, .oge-sistem { --rozet-cizgi: var(--oge-sistem); --rozet-zemin: var(--oge-sistem-zemin); --rozet-parlak: var(--oge-sistem-parlak); --rozet-cubuk: #94a3b8; }
 
 .komuta-panel.koyu .oge-rozeti {
   color: var(--rozet-parlak, var(--koyu-metin));
@@ -924,7 +969,9 @@ nav a.simgeli, .komuta-menu a.simgeli { gap: 6px; }
   box-shadow: var(--cam-ic-isik);
 }
 .durum-hapi .simge { width: 13px; height: 13px; vertical-align: 0; }
-.durum-hapi .durum-noktasi { width: 7px; height: 7px; background: currentColor; }
+/* Nokta biçimi burada da tanımlı: eski kabuk (temel.html) komuta.css'i
+   yüklemez ve .durum-noktasi orada yuvarlak değildir. */
+.durum-hapi .durum-noktasi { width: 7px; height: 7px; border-radius: 50%; flex: none; background: currentColor; }
 .durum-hapi.durum-new { background: var(--bilgi-zemin); color: var(--bilgi); border-color: var(--bilgi-cizgi); }
 .durum-hapi.durum-reviewed { background: var(--basari-zemin); color: var(--basari-metin); border-color: var(--basari-cizgi); }
 .durum-hapi.durum-false-alarm { background: var(--cam-orta); color: var(--metin-3); border-color: var(--cam-sinir); }
@@ -951,3 +998,62 @@ nav a.simgeli, .komuta-menu a.simgeli { gap: 6px; }
 .bolge-vehicle-area { --cip-renk: var(--bolge-arac); }
 .bolge-ppe-required { --cip-renk: var(--bolge-kkd); }
 .bolge-restricted { --cip-renk: var(--bolge-yasak); }
+
+/* Olay tablosu: özetin solunda öğe rozeti. Rozet satırın ilk satırına
+   hizalanır; uzun özet iki satıra kırılırsa rozet yukarıda kalır. */
+.ozet-hucresi { display: inline-flex; align-items: flex-start; gap: 9px; }
+.ozet-hucresi > span:last-child { padding-top: 3px; }
+.soluk-metin { color: var(--metin-3); }
+/* Zaman tek satırda kalır: özet sütunu rozetle genişleyince tarih ve saat
+   bazı satırlarda ikiye bölünüyor, sütun düzensiz görünüyordu. */
+.zaman-hucresi { white-space: nowrap; }
+
+/* KKD veri sayfası: asgari veri hedeflerine göre ilerleme kartları.
+   Kart .oge-<anahtar> sınıfını taşır; çubuk rengi --rozet-cubuk'tan gelir. */
+.kkd-hedefler {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.kkd-hedef {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas: "rozet ad" "rozet deger" "cubuk cubuk";
+  column-gap: 12px;
+  row-gap: 1px;
+  align-items: center;
+  padding: 13px 14px 12px;
+  border-radius: var(--radius-kucuk);
+  border: 1px solid var(--cam-sinir);
+  background: var(--cam-orta);
+  box-shadow: var(--cam-ic-isik);
+}
+.kkd-hedef > .oge-rozeti { grid-area: rozet; }
+.kkd-hedef-ad { grid-area: ad; font-size: 0.8rem; font-weight: 600; color: var(--metin-2); }
+.kkd-hedef-deger { grid-area: deger; font-size: 0.82rem; color: var(--metin-3); font-variant-numeric: tabular-nums; }
+.kkd-hedef-deger b { font-size: 1.2rem; font-weight: 680; color: var(--metin); letter-spacing: -0.02em; }
+.ilerleme {
+  grid-area: cubuk;
+  display: block;
+  height: 6px;
+  margin-top: 9px;
+  border-radius: 999px;
+  background: var(--oyuk);
+  overflow: hidden;
+}
+.ilerleme > span { display: block; height: 100%; border-radius: inherit; background: var(--rozet-cubuk, var(--vurgu)); }
+
+/* Etiketleme düğmeleri: seçim yalnız renkle değil simgeyle de anlaşılır
+   (renk körlüğü). Seçilmemişken simge anlam rengini, seçilince düğme o
+   rengin dolgusunu alır. */
+.etiket-adi { display: inline-flex; align-items: center; gap: 6px; min-width: 74px; font-weight: 600; }
+.etiket-grubu button { display: inline-flex; align-items: center; gap: 4px; }
+.etiket-grubu button .simge { width: 13px; height: 13px; vertical-align: 0; }
+.etiket-grubu button[data-deger="yes"] .simge { color: var(--basari-metin); }
+.etiket-grubu button[data-deger="no"] .simge { color: var(--tehlike-metin); }
+.etiket-grubu button[data-deger="unknown"] .simge { color: var(--metin-3); }
+.etiket-grubu button.secili .simge { color: inherit; }
+.etiket-grubu button[data-deger="yes"].secili { background: var(--basari); border-color: var(--basari); }
+.etiket-grubu button[data-deger="no"].secili { background: var(--tehlike); border-color: var(--tehlike); }
+.etiket-grubu button[data-deger="unknown"].secili { background: var(--metin-2); border-color: var(--metin-2); }

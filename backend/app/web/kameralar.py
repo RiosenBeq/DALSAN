@@ -18,10 +18,12 @@ from app.web.ortak import (
     BOLGE_TIPLERI,
     HAZIR_KURALLAR,
     KURAL_TIPLERI,
+    OGELER,
     SINIFLAR,
     baglanti_al,
     guvenli_json,
     hazir_kural_aciklamasi,
+    olay_ogesi,
     rtsp_maskele,
 )
 from app.web.rotalar import sablonlar
@@ -145,6 +147,8 @@ def kamera_detay(istek: Request, kamera_id: int, duzenle: int = 0, baglanti=Depe
     ):
         kural = dict(satir)
         kural["tip_adi"] = KURAL_TIPLERI.get(kural["rule_type"], kural["rule_type"])
+        # Kuralın öğesi, üreteceği olayın öğesiyle aynıdır (ortak.olay_ogesi).
+        kural["oge"] = OGELER[olay_ogesi("violation", kural, {})]
         kurallar.append(kural)
 
     kalibrasyon = baglanti.execute(

@@ -1,4 +1,5 @@
 {% extends "temel.html" %}
+{% from "bilesen.html" import oge_rozeti, durum_hapi %}
 {% block baslik %}Olaylar — DALSAN İSG{% endblock %}
 {% block icerik %}
   <div class="baslik-satiri">
@@ -44,21 +45,28 @@
     </form>
 
     {% if olaylar %}
-    <table class="liste">
-      <tr><th>Zaman</th><th>Tip</th><th>Kamera</th><th>Özet</th><th>Durum</th><th>Kanıt</th></tr>
+    {# Telefonda (stil.css, 620 px) her satır bir karta dönüşür; hücre
+       sınıfları kartın yerleşimini taşır. #}
+    <table class="liste olay-tablosu">
+      <thead>
+        <tr><th>Zaman</th><th>Tip</th><th>Kamera</th><th>Özet</th><th>Durum</th><th>Kanıt</th></tr>
+      </thead>
+      <tbody>
       {% for o in olaylar %}
       <tr class="{% if o.event_type == 'system' %}sistem-satiri{% endif %}">
-        <td><a href="/olaylar/{{ o.id }}">{{ o.yerel_zaman }}</a></td>
-        <td>{% if o.event_type == 'violation' %}<span class="rozet kirmizi">İhlal</span>
+        <td class="zaman-hucresi"><a href="/olaylar/{{ o.id }}">{{ o.yerel_zaman }}</a></td>
+        <td class="olay-tip">{% if o.event_type == 'violation' %}<span class="rozet kirmizi">İhlal</span>
             {% else %}<span class="rozet gri">Sistem</span>{% endif %}</td>
-        <td>{{ o.kamera_adi or "—" }}</td>
-        <td>{{ o.ozet }}</td>
-        <td>{{ o.durum_adi }}</td>
-        <td>{% if o.snapshot_path %}
+        <td class="olay-kamera{% if not o.kamera_adi %} kartta-gizli{% endif %}">{{ o.kamera_adi or "—" }}</td>
+        <td class="olay-ozet"><span class="ozet-hucresi">{{ oge_rozeti(o.oge, "kucuk") }}<span>{{ o.ozet }}</span></span></td>
+        {# Sistem olayı incelenmez; durumu renkli hapla vurgulanmaz. #}
+        <td class="olay-durum">{% if o.event_type == 'violation' %}{{ durum_hapi(o.status, o.durum_adi) }}{% else %}<span class="soluk-metin">{{ o.durum_adi }}</span>{% endif %}</td>
+        <td class="olay-kanit{% if not o.snapshot_path %} kartta-gizli{% endif %}">{% if o.snapshot_path %}
           <a href="/olaylar/{{ o.id }}"><img class="kucuk-resim" src="/goruntuler/{{ o.snapshot_path }}" alt="kanıt"></a>
-        {% else %}—{% endif %}</td>
+        {% else %}<span class="soluk-metin">—</span>{% endif %}</td>
       </tr>
       {% endfor %}
+      </tbody>
     </table>
     <p class="not">Son 200 olay gösteriliyor. Daha fazlası için filtre daraltın veya CSV indirin.</p>
     {% else %}

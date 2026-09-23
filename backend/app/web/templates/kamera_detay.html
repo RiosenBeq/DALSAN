@@ -2,6 +2,7 @@
 {% block baslik %}{{ kamera.name }} — DALSAN İSG{% endblock %}
 {% block icerik %}
   {% from "ipucu.html" import ipucu %}
+  {% from "bilesen.html" import oge_rozeti, bolge_cipi %}
   {# ÇİZİM KİPİ — sayfa SADE açılır. Bu sayfada yedi ayrı araç var (dondur,
      görüntü yükle, otomatik bul, çiz, dikdörtgen, geri al, kalibrasyon) ve
      hepsi aynı anda ekrandayken ilk kez bölge çizen biri hangisine basacağını
@@ -126,7 +127,7 @@
         <td>{{ b.name }}
           {% if not b.enabled %}<span class="rozet gri">kapalı</span>{% endif %}
         </td>
-        <td>{{ b.tip_adi }}</td>
+        <td>{{ bolge_cipi(b.zone_type, b.tip_adi) }}</td>
         <td>{{ b.noktalar | length }}</td>
         <td class="islem-hucresi">
           <a class="dugme ikincil kucuk" href="/kameralar/{{ kamera.id }}?duzenle={{ b.id }}">Düzenle</a>
@@ -290,7 +291,7 @@
       <tr><th>Tip</th><th>Aktif</th><th></th></tr>
       {% for r in kurallar %}
       <tr>
-        <td>{{ r.tip_adi }}</td>
+        <td><span class="ozet-hucresi">{{ oge_rozeti(r.oge, "kucuk") }}<span>{{ r.tip_adi }}</span></span></td>
         <td>{{ "Evet" if r.enabled else "Hayır" }}</td>
         <td><a href="/kurallar/{{ r.id }}/duzenle">Düzenle →</a></td>
       </tr>

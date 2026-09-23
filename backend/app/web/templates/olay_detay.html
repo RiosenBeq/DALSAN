@@ -1,8 +1,9 @@
 {% extends "temel.html" %}
+{% from "bilesen.html" import oge_rozeti, durum_hapi %}
 {% block baslik %}Olay {{ olay.id }} — DALSAN İSG{% endblock %}
 {% block icerik %}
   <div class="baslik-satiri">
-    <h2>Olay #{{ olay.id }} — {{ olay.ozet }}</h2>
+    <h2 class="simgeli">{{ oge_rozeti(olay.oge) }} Olay #{{ olay.id }} — {{ olay.ozet }}</h2>
     <a href="/olaylar">← Olaylar</a>
   </div>
 
@@ -11,7 +12,7 @@
       <tr><th>Zaman</th><td>{{ olay.yerel_zaman }} (Türkiye)</td></tr>
       <tr><th>Tip</th><td>{{ "İhlal" if olay.event_type == "violation" else "Sistem" }}</td></tr>
       <tr><th>Kamera</th><td>{{ olay.kamera_adi or "—" }} {{ "(" + olay.kamera_alani + ")" if olay.kamera_alani }}</td></tr>
-      <tr><th>Durum</th><td>{{ olay.durum_adi }}{% if olay.note %} — Not: {{ olay.note }}{% endif %}</td></tr>
+      <tr><th>Durum</th><td>{% if olay.event_type == "violation" %}{{ durum_hapi(olay.status, olay.durum_adi) }}{% else %}{{ olay.durum_adi }}{% endif %}{% if olay.note %} — Not: {{ olay.note }}{% endif %}</td></tr>
     </table>
   </section>
 
