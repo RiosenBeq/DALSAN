@@ -4,6 +4,8 @@
    buraya taşınmadı. Veri yoksa sıfır dolu bir pano göstermek yerine ne
    yapılacağını söyleyen bir boş durum çıkar. #}
 {% extends "komuta_temel.html" %}
+{% from "simge.html" import simge %}
+{% from "bilesen.html" import oge_rozeti %}
 {% block icerik %}
 
 {# --- ilk kurulum kontrol listesi ------------------------------------
@@ -54,6 +56,7 @@
   <div class="komuta-sayilar">
     {% for kart in sayi_kartlari %}
     <div class="sayi-karti">
+      {% if kart.simge %}<span class="oge-rozeti sayi-simge {{ kart.renk or 'vurgu' }}">{{ simge(kart.simge) }}</span>{% endif %}
       <span class="sayi-etiketi">{{ kart.etiket }}</span>
       <span class="sayi-degeri {{ kart.renk }}">{{ kart.deger }}</span>
       {% if kart.alt %}<span class="sayi-alt">{{ kart.alt }}</span>{% endif %}
@@ -64,6 +67,7 @@
 
   <div class="komuta-ikili">
 
+    <div class="pano-sol-sutun">
     {# --- b) alanlara göre ihlal yoğunluğu ---------------------------- #}
     <section class="komuta-panel">
       <div class="panel-basligi">
@@ -95,6 +99,27 @@
       {% endif %}
     </section>
 
+    {# --- b2) öğelere göre ihlaller: "NEREDE" sorusunun yanına "NE" ---- #}
+    {% if oge_dagilimi %}
+    <section class="komuta-panel">
+      <div class="panel-basligi">
+        <h2>Öğelere göre ihlaller</h2>
+        <span class="panel-notu">son {{ alan_penceresi }} gün · hangi tür ihlal</span>
+      </div>
+      <div class="oge-izgara">
+        {% for o in oge_dagilimi %}
+        <div class="oge-karti">
+          {{ oge_rozeti(o.oge, "buyuk") }}
+          <span class="oge-karti-deger">{{ o.deger }}</span>
+          <span class="oge-karti-ad">{{ o.ad }}</span>
+          <span class="oge-karti-cubuk" aria-hidden="true"><span style="width: {{ o.genislik }}"></span></span>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+    </div>
+
     {# --- c) canlı akış ----------------------------------------------- #}
     <section class="komuta-panel">
       <div class="panel-basligi">
@@ -106,12 +131,16 @@
         <div class="akis-listesi">
           {% for olay in akis %}
           <a class="akis-satiri {{ olay.renk }}" href="/olaylar/{{ olay.id }}">
-            <span class="akis-ust">
-              <span class="durum-noktasi {{ olay.renk }}" aria-hidden="true"></span>
-              <span class="akis-baslik">{{ olay.baslik }}</span>
-              <span class="akis-saat">{{ olay.saat }}</span>
+            <span class="akis-icerik">
+              {{ oge_rozeti(olay.oge) }}
+              <span class="akis-govde">
+                <span class="akis-ust">
+                  <span class="akis-baslik">{{ olay.baslik }}</span>
+                  <span class="akis-saat">{{ olay.saat }}</span>
+                </span>
+                <span class="akis-yer">{{ olay.yer }} · {{ olay.durum_kucuk }}</span>
+              </span>
             </span>
-            <span class="akis-yer">{{ olay.yer }} · {{ olay.durum_kucuk }}</span>
           </a>
           {% endfor %}
         </div>
@@ -192,5 +221,5 @@
 {% endif %}
 {% endblock %}
 {% block betikler %}
-<script src="/static/onizleme.js?v=24"></script>
+<script src="/static/onizleme.js?v=25"></script>
 {% endblock %}

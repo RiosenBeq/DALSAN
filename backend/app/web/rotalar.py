@@ -13,7 +13,15 @@ from fastapi.templating import Jinja2Templates
 from app import kaynaklar, veritabani, zaman
 from app.analiz.model_adi import gorunen_model_adi
 from app.hatalar import VeritabaniHatasi
-from app.web.ortak import SINIFLAR, baglanti_al, sayi_eki
+from app.web.ortak import (
+    ANONS_OGELERI,
+    BOLGE_SIMGELERI,
+    OGELER,
+    SINIF_OGELERI,
+    SINIFLAR,
+    baglanti_al,
+    sayi_eki,
+)
 
 router = APIRouter()
 
@@ -37,6 +45,14 @@ def _sifre_kurulu(istek) -> bool:
 
 
 sablonlar.env.globals["sifre_kurulu"] = _sifre_kurulu
+
+# Öğe dili (web/ortak.py → OGELER): her şablon aynı tablodan okur, böylece
+# forklift her ekranda aynı simge ve renkle görünür. Bileşen makroları
+# templates/bilesen.html'dedir.
+sablonlar.env.globals["OGELER"] = OGELER
+sablonlar.env.globals["SINIF_OGELERI"] = SINIF_OGELERI
+sablonlar.env.globals["ANONS_OGELERI"] = ANONS_OGELERI
+sablonlar.env.globals["BOLGE_SIMGELERI"] = BOLGE_SIMGELERI
 
 # GİRİŞ İSTEMEYEN rotalar. Yalnız iki tane vardır ve ikisi de sistem bilgisi
 # taşımaz: tarayıcı simgesi ve canlılık yoklaması. Ayrı bir router olmalarının

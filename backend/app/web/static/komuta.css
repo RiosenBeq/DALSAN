@@ -1161,6 +1161,29 @@
   .nesne-izgara { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); }
 }
 @media (max-width: 560px) {
+
+  /* Komuta ekranı: dört sayı kartı tek sütuna dizilip ekranı dört kez
+     kaydırtmasın — iki sütun, daha küçük rakam. */
+  .komuta-sayilar:not(.uclu) { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .komuta-sayilar:not(.uclu) .sayi-karti { padding: 16px 16px 14px; border-radius: var(--radius-orta); }
+  .komuta-sayilar:not(.uclu) .sayi-degeri { font-size: 34px; }
+  .komuta-sayilar:not(.uclu) .sayi-simge { top: 12px; right: 12px; width: 26px; height: 26px; border-radius: 8px; }
+  .komuta-sayilar:not(.uclu) .sayi-simge .simge { width: 14px; height: 14px; }
+  .komuta-sayilar:not(.uclu) .sayi-simge + .sayi-etiketi { padding-right: 28px; }
+  /* Öğeler dar ekranda liste olur: rozet · ad · sayı, altında çubuk.
+     İki sütunlu kartta "Forklift–insan yakınlığı" üç satıra bölünüyordu. */
+  .oge-izgara { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .oge-karti {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas: "rozet ad deger" "cubuk cubuk cubuk";
+    padding: 10px 14px;
+  }
+  .oge-karti .oge-rozeti { width: 32px; height: 32px; border-radius: 9px; }
+  .oge-karti .oge-rozeti .simge { width: 18px; height: 18px; }
+  .oge-karti-ad { font-size: 13px; }
+  .oge-karti-deger { font-size: 22px; }
+  .oge-karti-cubuk { margin-top: 8px; }
+
   /* Dar ekranda üç sütunlu eğri tablosu 375 px'e sığmaz: sütunlar daralır,
      satır adı sarar. Ölçüldü: bu kural olmadan sayfa yatay kayıyor. */
   .nesne-egri-tablo .komuta-tablo-basligi,
@@ -1276,3 +1299,85 @@
   .rapor-kapak { border-bottom: 2px solid #333; padding-bottom: 8px; }
   a[href]::after { content: ""; }  /* adresleri metne ekleme */
 }
+
+/* ======================================================================
+   ÖĞE DİLİ — komuta ekranındaki kullanımları (bileşenin kendisi stil.css'te)
+   ====================================================================== */
+
+/* Sayı kartının sağ üst köşesindeki simge: kartın ne saydığını okumadan
+   tanıtır. Karttaki sayı "dikkat" rengindeyse simge de o tona döner. */
+.sayi-karti { position: relative; }
+.sayi-simge { position: absolute; top: 18px; right: 18px; }
+/* Etiket simgenin altına girmesin: simge genişliği kadar sağ boşluk. */
+.sayi-simge + .sayi-etiketi { padding-right: 38px; }
+.oge-rozeti.vurgu { --rozet-cizgi: var(--vurgu-metin); --rozet-zemin: var(--bilgi-zemin); }
+.oge-rozeti.dikkat { --rozet-cizgi: var(--uyari-metin); --rozet-zemin: var(--uyari-zemin); }
+.oge-rozeti.tehlike { --rozet-cizgi: var(--tehlike-metin); --rozet-zemin: var(--tehlike-zemin); }
+
+/* İki sütunun SOL tarafı: alan yoğunluğu ve öğe dağılımı üst üste.
+   (.komuta-sutun DEĞİL: o ad kabuğun ana sütunudur.) */
+.pano-sol-sutun { display: grid; gap: 22px; align-content: start; }
+
+/* Canlı akış satırı: solda öğe rozeti, sağda başlık ve yer. Rozet
+   bağlantının İÇİNDEKİ sarmalayıcıya konur; satırın kendi sınıfları
+   (akis-satiri kirmizi/sari/notr) olduğu gibi kalır. */
+.akis-icerik { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; align-items: center; }
+.akis-govde { display: grid; gap: 5px; min-width: 0; }
+
+/* Öğe dağılımı: her öğe bir kart — büyük rozet, sayı, ad ve oransal çubuk. */
+.oge-izgara {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+  gap: 12px;
+}
+.oge-karti {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas: "rozet deger" "rozet ad" "cubuk cubuk";
+  column-gap: 12px;
+  row-gap: 3px;
+  align-items: center;
+  padding: 14px 15px 13px;
+  border-radius: var(--radius-orta);
+  border: 1px solid var(--cam-sinir);
+  background: var(--cam-hafif);
+  box-shadow: var(--cam-ic-isik);
+}
+.oge-karti .oge-rozeti { grid-area: rozet; }
+.oge-karti-deger {
+  grid-area: deger;
+  font-size: 26px;
+  font-weight: 660;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.oge-karti-ad { grid-area: ad; font-size: 12px; font-weight: 600; color: var(--metin-2); letter-spacing: -0.01em; }
+.oge-karti-cubuk {
+  grid-area: cubuk;
+  height: 5px;
+  margin-top: 9px;
+  border-radius: 999px;
+  background: var(--oyuk);
+  overflow: hidden;
+}
+.oge-karti-cubuk > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--rozet-cizgi-karti, var(--vurgu));
+}
+/* Çubuk, kartın rozet rengini alır: öğenin rengi kartta iki kez tekrarlanır
+   ve göz sayıyı öğeye bağlar. */
+.oge-karti:has(.oge-forklift) { --rozet-cizgi-karti: var(--oge-forklift-parlak); }
+.oge-karti:has(.oge-yaya-yolu) { --rozet-cizgi-karti: var(--oge-yaya-parlak); }
+.oge-karti:has(.oge-baret),
+.oge-karti:has(.oge-kkd) { --rozet-cizgi-karti: var(--oge-baret-parlak); }
+.oge-karti:has(.oge-yelek) { --rozet-cizgi-karti: #eab308; }
+.oge-karti:has(.oge-alan) { --rozet-cizgi-karti: var(--oge-alan-parlak); }
+.oge-karti:has(.oge-tir),
+.oge-karti:has(.oge-park),
+.oge-karti:has(.oge-hiz) { --rozet-cizgi-karti: var(--oge-tir-parlak); }
+
+/* Dar ekran (560 px) kuralları, dosyadaki TEK 560 px bloğundadır
+   (nesne tablolarının yanında): sayı kartları iki sütun, öğeler liste. */

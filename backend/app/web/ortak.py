@@ -48,6 +48,135 @@ SINIFLAR = {"person": "İnsan", "forklift": "Forklift", "truck": "Tır/Araç"}
 # kelime görünsün diye tek yerde durur.
 KKD_ADLARI = {"helmet": "baret", "vest": "yelek"}
 
+
+# ------------------------------------------------------------------ öğe dili
+
+
+@dataclass(frozen=True)
+class Oge:
+    """Sistemin tanıdığı ya da denetlediği bir öğe: ekrandaki simgesi ve adı.
+
+    İlk istekteki öğeler (insan, forklift, tır, yaya yolu, baret, yelek) her
+    ekranda AYNI simge ve AYNI renkle görünsün diye tek yerde durur. Bir
+    olayın hangi öğeye ait olduğu bakınca anlaşılmalı: "forklift insana
+    yaklaştı" ile "baret yok" aynı kırmızı satır olarak görünmemeli.
+
+    `anahtar` CSS sınıfıdır (`.oge-<anahtar>`, stil.css → ÖĞE DİLİ; renk
+    ailesi canlı görüntüdeki kutu renkleriyle aynıdır). `simge` sprite'taki
+    addır (vendor/simgeler.svg, "s-" öneksiz).
+    """
+
+    anahtar: str
+    ad: str
+    simge: str
+
+
+OGELER: dict[str, Oge] = {
+    "insan": Oge("insan", "İnsan", "insan"),
+    "forklift": Oge("forklift", "Forklift", "forklift"),
+    "tir": Oge("tir", "Tır / araç", "tir"),
+    "baret": Oge("baret", "Baret", "kkd"),
+    "yelek": Oge("yelek", "Reflektörlü yelek", "yelek"),
+    "kkd": Oge("kkd", "Baret ve yelek", "kkd"),
+    "yaya-yolu": Oge("yaya-yolu", "Yaya yolu", "yaya-yolu"),
+    "alan": Oge("alan", "Girilmemesi gereken alan", "yasak"),
+    "park": Oge("park", "Tır park yeri", "park"),
+    "hiz": Oge("hiz", "Araç hızı", "hiz"),
+    "kamera": Oge("kamera", "Kamera", "kamera-yok"),
+    "sistem": Oge("sistem", "Sistem", "saglik"),
+}
+
+# Öğenin İHLAL olarak adı: "Forklift" bir öğedir, "forklift–insan yakınlığı"
+# onun ürettiği ihlaldir. Komuta ekranındaki öğe dağılımı bu adları kullanır.
+OGE_IHLAL_ADLARI = {
+    "forklift": "Forklift–insan yakınlığı",
+    "yaya-yolu": "Yaya yolu dışında",
+    "baret": "Baret yok",
+    "yelek": "Yelek yok",
+    "kkd": "Baret ve yelek yok",
+    "alan": "Yasak alana giriş",
+    "park": "Tır park yeri dışında",
+    "tir": "Tır bölgede",
+    "hiz": "Hız aşımı",
+}
+
+# Tespit sınıfı → öğe (renk anahtarı ve sayım tabloları)
+SINIF_OGELERI = {"person": "insan", "forklift": "forklift", "truck": "tir"}
+
+# Anons mesajı anahtarı → öğe (anons sayfasındaki mesaj satırları)
+ANONS_OGELERI = {
+    "safe_distance": "forklift",
+    "pedestrian_path": "yaya-yolu",
+    "vehicle_position": "park",
+    "helmet": "baret",
+    "vest": "yelek",
+}
+
+# Bölge tipi → simge. Renk stil.css'teki --bolge-* değişkenlerinden gelir
+# (yeni bölge çizilirken kullanılan renklerle aynı).
+BOLGE_SIMGELERI = {
+    "pedestrian_path": "yaya-yolu",
+    "loading_area": "yukleme",
+    "truck_parking": "park",
+    "vehicle_area": "arac-yolu",
+    "ppe_required": "kkd",
+    "restricted": "yasak",
+}
+
+
+def _liste(deger) -> list:
+    """Kural kaydındaki JSON alanı: bazen çözülmüş liste, bazen ham metin."""
+    if isinstance(deger, str):
+        try:
+            deger = json.loads(deger)
+        except json.JSONDecodeError:
+            return []
+    return list(deger) if isinstance(deger, (list, tuple)) else []
+
+
+def _sozluk(deger) -> dict:
+    if isinstance(deger, str):
+        try:
+            deger = json.loads(deger)
+        except json.JSONDecodeError:
+            return {}
+    return deger if isinstance(deger, dict) else {}
+
+
+def olay_ogesi(olay_tipi: str, kural: dict, detaylar: dict) -> str:
+    """Olayın öğesi (`OGELER` anahtarı): ekranda hangi simgeyle görüneceği.
+
+    Olay anındaki kural kaydından çıkarılır; kural sonradan silinse ya da
+    değişse de geçmiş olay aynı simgeyle görünür. Kayıt bölge TİPİNİ
+    taşımaz, bu yüzden bölge ihlalinde yön ve hedeften okunur: yolun
+    DIŞINDA kalan kişi yaya yolu, alanın dışında duran tır park yeri,
+    alanın İÇİNDE kalan kişi girilmemesi gereken alandır (yasak bölge ile
+    yükleme alanı aynı simgeyi paylaşır). Bilinmeyen durum genel bölge
+    simgesine düşer; hiçbir olay simgesiz kalmaz.
+    """
+    if olay_tipi == "system":
+        return "kamera" if str(detaylar.get("mesaj", "")).startswith("Kamera") else "sistem"
+    tip = kural.get("rule_type", "")
+    if tip == "ppe_violation":
+        eksik = set(_liste(detaylar.get("eksik_kkd")))
+        if eksik == {"helmet"}:
+            return "baret"
+        if eksik == {"vest"}:
+            return "yelek"
+        return "kkd"
+    if tip == "safe_distance":
+        return "forklift"
+    if tip == "vehicle_speed":
+        return "hiz"
+    if tip == "zone_intrusion":
+        hedef = _liste(kural.get("target_classes"))
+        yon = _sozluk(kural.get("params")).get("mode")
+        if "truck" in hedef or "forklift" in hedef:
+            return "park" if yon == "outside" else "tir"
+        return "yaya-yolu" if yon == "outside" else "alan"
+    return "alan"
+
+
 # .env'deki ANONS ayarının başlıkta gösterilen KISA adı. Uzun açıklamalar
 # web/anons_web.py ANONS_ACIKLAMALARI'nda; burada yalnızca tek kelimelik ad.
 ANONS_KISA_ADLARI = {"null": "kapalı", "ses_karti": "ses kartı", "http": "IP hoparlör"}
@@ -242,6 +371,7 @@ def olay_hazirla(satir) -> dict:
     # anındaki anlık görüntüsünden okunur: kural sonradan canlıya alındıysa
     # geçmiş olay "anons çaldı" diye görünmemeli.
     olay["golge_mod"] = bool(kural.get("shadow_mode"))
+    olay["oge"] = OGELER[olay_ogesi(olay["event_type"], kural, olay["detaylar"])]
     if olay["event_type"] == "system":
         olay["ozet"] = olay["detaylar"].get("mesaj", "Sistem olayı")
     else:

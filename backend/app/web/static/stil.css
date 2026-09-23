@@ -844,3 +844,110 @@ nav a.simgeli, .komuta-menu a.simgeli { gap: 6px; }
 .simge.iyi { color: var(--basari-metin); }
 .simge.kotu { color: var(--tehlike-metin); }
 .simge.dikkat { color: var(--uyari-metin); }
+
+/* ======================================================================
+   ÖĞE DİLİ — sistemin tanıdığı öğelerin (insan, forklift, tır, baret,
+   yelek, yaya yolu…) her ekranda aynı simge ve aynı renkle görünmesi.
+   Tablo: web/ortak.py → OGELER · makrolar: templates/bilesen.html.
+
+   Renk ailesi canlı görüntüdeki kutu renkleriyle AYNIDIR (analiz/
+   boru_hatti.py → _RENKLER): forklift sahada turuncu kutu, burada turuncu
+   rozet. Ama o renkler koyu video üstünde parlasın diye seçildi; açık cam
+   zeminde doğrudan simge rengi olarak okunmazlar (sarı yelek beyaz üstünde
+   kaybolur). Bu yüzden her öğenin iki tonu vardır: ZEMİN (kutu renginin
+   saydam hali) ve ÇİZGİ (aynı ailenin, açık zeminde okunan koyu tonu).
+   Koyu panelde (video duvarı) tersine döner: çizgi kutu renginin kendisidir.
+   ====================================================================== */
+:root {
+  --oge-insan: #166534;      --oge-insan-zemin: rgba(80, 200, 80, 0.18);
+  --oge-insan-parlak: #50c850;
+  --oge-forklift: #9a4a06;   --oge-forklift-zemin: rgba(255, 170, 0, 0.22);
+  --oge-forklift-parlak: #ffaa00;
+  --oge-tir: #1d4ed8;        --oge-tir-zemin: rgba(60, 140, 255, 0.17);
+  --oge-tir-parlak: #3c8cff;
+  --oge-baret: #075985;      --oge-baret-zemin: rgba(60, 200, 255, 0.20);
+  --oge-baret-parlak: #3cc8ff;
+  --oge-yelek: #854d0e;      --oge-yelek-zemin: rgba(245, 220, 0, 0.32);
+  --oge-yelek-parlak: #f5dc00;
+  --oge-yaya: #0f766e;       --oge-yaya-zemin: rgba(13, 148, 136, 0.16);
+  --oge-yaya-parlak: #2dd4bf;
+  --oge-alan: #b91c1c;       --oge-alan-zemin: rgba(248, 113, 113, 0.20);
+  --oge-alan-parlak: #f87171;
+  --oge-sistem: #475569;     --oge-sistem-zemin: rgba(100, 116, 139, 0.15);
+  --oge-sistem-parlak: #cbd5e1;
+}
+
+/* --- öğe rozeti: yuvarlatılmış kare, renkli zemin, öğe simgesi --- */
+.oge-rozeti {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 30px; height: 30px;
+  border-radius: 9px;
+  color: var(--rozet-cizgi, var(--metin-2));
+  background: var(--rozet-zemin, var(--cam-orta));
+  /* İnce iç ışık: rozet cam panelin ÜSTÜNDE duruyormuş gibi görünsün. */
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.55), 0 1px 2px rgba(20, 22, 28, 0.06);
+}
+.oge-rozeti .simge { width: 17px; height: 17px; vertical-align: 0; }
+.oge-rozeti.kucuk { width: 24px; height: 24px; border-radius: 7px; }
+.oge-rozeti.kucuk .simge { width: 14px; height: 14px; }
+.oge-rozeti.buyuk { width: 44px; height: 44px; border-radius: 13px; }
+.oge-rozeti.buyuk .simge { width: 24px; height: 24px; }
+
+.oge-insan { --rozet-cizgi: var(--oge-insan); --rozet-zemin: var(--oge-insan-zemin); --rozet-parlak: var(--oge-insan-parlak); }
+.oge-forklift { --rozet-cizgi: var(--oge-forklift); --rozet-zemin: var(--oge-forklift-zemin); --rozet-parlak: var(--oge-forklift-parlak); }
+.oge-tir, .oge-park, .oge-hiz { --rozet-cizgi: var(--oge-tir); --rozet-zemin: var(--oge-tir-zemin); --rozet-parlak: var(--oge-tir-parlak); }
+.oge-baret, .oge-kkd { --rozet-cizgi: var(--oge-baret); --rozet-zemin: var(--oge-baret-zemin); --rozet-parlak: var(--oge-baret-parlak); }
+.oge-yelek { --rozet-cizgi: var(--oge-yelek); --rozet-zemin: var(--oge-yelek-zemin); --rozet-parlak: var(--oge-yelek-parlak); }
+.oge-yaya-yolu { --rozet-cizgi: var(--oge-yaya); --rozet-zemin: var(--oge-yaya-zemin); --rozet-parlak: var(--oge-yaya-parlak); }
+.oge-alan { --rozet-cizgi: var(--oge-alan); --rozet-zemin: var(--oge-alan-zemin); --rozet-parlak: var(--oge-alan-parlak); }
+.oge-kamera, .oge-sistem { --rozet-cizgi: var(--oge-sistem); --rozet-zemin: var(--oge-sistem-zemin); --rozet-parlak: var(--oge-sistem-parlak); }
+
+.komuta-panel.koyu .oge-rozeti {
+  color: var(--rozet-parlak, var(--koyu-metin));
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+
+/* --- olay durumu hapı --- */
+.durum-hapi {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px 2px 7px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 0.78rem;
+  font-weight: 650;
+  white-space: nowrap;
+  box-shadow: var(--cam-ic-isik);
+}
+.durum-hapi .simge { width: 13px; height: 13px; vertical-align: 0; }
+.durum-hapi .durum-noktasi { width: 7px; height: 7px; background: currentColor; }
+.durum-hapi.durum-new { background: var(--bilgi-zemin); color: var(--bilgi); border-color: var(--bilgi-cizgi); }
+.durum-hapi.durum-reviewed { background: var(--basari-zemin); color: var(--basari-metin); border-color: var(--basari-cizgi); }
+.durum-hapi.durum-false-alarm { background: var(--cam-orta); color: var(--metin-3); border-color: var(--cam-sinir); }
+
+/* --- bölge tipi çipi: simge, yeni bölge çizerkenki rengini alır --- */
+.bolge-cipi {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px 3px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--cam-sinir);
+  background: var(--cam-orta);
+  color: var(--metin);
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: var(--cam-ic-isik);
+}
+.bolge-cipi .simge { width: 14px; height: 14px; vertical-align: 0; color: var(--cip-renk, var(--metin-3)); }
+.bolge-pedestrian-path { --cip-renk: var(--bolge-yaya-yolu); }
+.bolge-loading-area { --cip-renk: var(--bolge-yukleme); }
+.bolge-truck-parking { --cip-renk: var(--bolge-tir-park); }
+.bolge-vehicle-area { --cip-renk: var(--bolge-arac); }
+.bolge-ppe-required { --cip-renk: var(--bolge-kkd); }
+.bolge-restricted { --cip-renk: var(--bolge-yasak); }

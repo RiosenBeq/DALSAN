@@ -229,3 +229,25 @@ def test_sayfa_simge_ve_yazi_tipini_gercekten_sunuyor(istemci):
         yanit = istemci.get(yol)
         assert yanit.status_code == 200, yol
         assert tur in yanit.headers.get("content-type", "") or yanit.content[:4] == b"wOF2"
+
+
+# ------------------------------------------------------- CSS sözdizimi
+
+
+@pytest.mark.parametrize("dosya", ["stil.css", "komuta.css"])
+def test_css_suslu_parantezleri_dengeli(dosya):
+    """Eksik ya da fazla bir `}` hata vermez: tarayıcı sonraki kuralları
+    sessizce bozuk bildirimin içine yutar ve bir ekran (ör. dar ekrandaki
+    tablolar) görünürde hiçbir sebep yokken bozulur. Metin arayan testler
+    bunu göremez; denge burada sayılır."""
+    metin = (KOK / "backend/app/web/static" / dosya).read_text(encoding="utf-8")
+    govde = re.sub(r"/\*.*?\*/", "", metin, flags=re.S)
+    derinlik = 0
+    for satir_no, satir in enumerate(govde.splitlines(), 1):
+        for karakter in satir:
+            if karakter == "{":
+                derinlik += 1
+            elif karakter == "}":
+                derinlik -= 1
+                assert derinlik >= 0, f"{dosya}: fazladan '}}' (yorumsuz metinde satır {satir_no})"
+    assert derinlik == 0, f"{dosya}: {derinlik} adet '{{' kapanmamış"

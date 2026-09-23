@@ -1,0 +1,34 @@
+{# Bileşen makroları — ÖĞE DİLİNİN tek yeri.
+
+   Sistemin tanıdığı öğeler (insan, forklift, tır, baret, yelek, yaya yolu…)
+   her ekranda AYNI simge ve AYNI renkle görünür. Tablolar web/ortak.py'dedir
+   (OGELER, BOLGE_SIMGELERI; şablonlara Jinja globali olarak gelir), görünüş
+   stil.css → ÖĞE DİLİ bölümündedir. Bir şablon rozeti kendisi çizmez, bu
+   makroları çağırır: forklift bir sayfada turuncu, ötekinde mavi görünemez.
+
+   Kullanım:  {% from "bilesen.html" import oge_rozeti, durum_hapi, bolge_cipi %}
+              {{ oge_rozeti(olay.oge) }} {{ olay.ozet }}
+
+   Rozet tek başına anlam taşımaz; yanında her zaman yazısı durur (simge.html
+   ile aynı ilke). `title` fareyle üstüne gelene adını söyler. #}
+{% from "simge.html" import simge %}
+
+{# Öğe rozeti: renkli zemin üstünde öğe simgesi. boyut: "" | "kucuk" | "buyuk" #}
+{% macro oge_rozeti(oge, boyut="") -%}
+<span class="oge-rozeti oge-{{ oge.anahtar }}{% if boyut %} {{ boyut }}{% endif %}" title="{{ oge.ad }}">{{ simge(oge.simge) }}</span>
+{%- endmacro %}
+
+{# Olay durumu hapı: yeni (mavi nokta) · incelendi (yeşil tik) · yanlış alarm (gri çarpı).
+   Durum yalnız renkle anlatılmaz: simge ve yazı da değişir (renk körlüğü). #}
+{% macro durum_hapi(durum, ad) -%}
+<span class="durum-hapi durum-{{ durum|replace('_', '-') }}">
+  {%- if durum == "reviewed" %}{{ simge("basarili") }}
+  {%- elif durum == "false_alarm" %}{{ simge("hata") }}
+  {%- else %}<span class="durum-noktasi" aria-hidden="true"></span>
+  {%- endif %}{{ ad }}</span>
+{%- endmacro %}
+
+{# Bölge tipi çipi: tipin simgesi, yeni bölge çizerkenki rengiyle. #}
+{% macro bolge_cipi(tip, ad) -%}
+<span class="bolge-cipi bolge-{{ tip|replace('_', '-') }}">{{ simge(BOLGE_SIMGELERI.get(tip, "yasak")) }}{{ ad }}</span>
+{%- endmacro %}

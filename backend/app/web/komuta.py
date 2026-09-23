@@ -32,11 +32,14 @@ from app.web.ortak import (
     BOLGE_TIPLERI,
     KKD_ADLARI,
     KURAL_TIPLERI,
+    OGE_IHLAL_ADLARI,
+    OGELER,
     OLAY_SORGUSU,
     SINIFLAR,
     baglanti_al,
     cubuk_yuzdesi,
     olay_hazirla,
+    olay_ogesi,
     rtsp_maskele,
     saat_sutunlari,
     sayi_metni,
@@ -318,6 +321,7 @@ def _sayi_kartlari(baglanti) -> list[dict]:
     return [
         {
             "etiket": "Bugünkü ihlal",
+            "simge": "siren",
             "deger": bugunku,
             "renk": "",
             "alt": _dune_gore(bugunku, dunku),
@@ -326,6 +330,7 @@ def _sayi_kartlari(baglanti) -> list[dict]:
         },
         {
             "etiket": "İncelenmeyi bekleyen",
+            "simge": "inceleme",
             "deger": bekleyen,
             "renk": "dikkat" if bekleyen else "",
             "alt": "" if bekleyen else "kuyruk boş",
@@ -334,6 +339,7 @@ def _sayi_kartlari(baglanti) -> list[dict]:
         },
         {
             "etiket": "Canlı kamera",
+            "simge": "kamera",
             "deger": canli,
             "renk": "" if canli == toplam else "dikkat",
             "alt": f"toplam {toplam} kamera",
@@ -342,6 +348,7 @@ def _sayi_kartlari(baglanti) -> list[dict]:
         },
         {
             "etiket": "Aktif kural",
+            "simge": "kural",
             "deger": kural,
             "renk": "" if kural else "dikkat",
             "alt": "" if kural else "kural kurulmadan ihlal üretilmez",
@@ -405,9 +412,52 @@ def _canli_akis(baglanti) -> list[dict]:
                 "saat": zaman.ekranda_saat(olay["occurred_at"]),
                 "renk": _olay_rengi(olay),
                 "durum_kucuk": olay["durum_kucuk"],
+                "oge": olay["oge"],
             }
         )
     return akis
+
+
+def _json_sozluk(metin) -> dict:
+    try:
+        deger = json.loads(metin) if metin else {}
+    except json.JSONDecodeError:
+        return {}
+    return deger if isinstance(deger, dict) else {}
+
+
+def _oge_dagilimi(baglanti) -> list[dict]:
+    """Son günlerin ihlalleri, öğeye göre: forklift yakınlığı kaç, baret yok kaç.
+
+    Alan yoğunluğu "NEREDE" sorusunu cevaplar; bu tablo "NE" sorusunu. Öğe,
+    olay listesindeki simgeyle aynı fonksiyondan çıkar (ortak.olay_ogesi):
+    bir olay burada forklift sayılıp listede yaya yolu görünemez.
+    """
+    sinir = zaman.gun_basi_utc(ALAN_PENCERESI_GUN - 1)
+    satirlar = baglanti.execute(
+        "SELECT rule_snapshot, details FROM events "
+        "WHERE event_type = 'violation' AND occurred_at >= ?",
+        (sinir,),
+    ).fetchall()
+    sayac: dict[str, int] = {}
+    for satir in satirlar:
+        anahtar = olay_ogesi(
+            "violation", _json_sozluk(satir["rule_snapshot"]), _json_sozluk(satir["details"])
+        )
+        sayac[anahtar] = sayac.get(anahtar, 0) + 1
+    if not sayac:
+        return []
+    sirali = sorted(sayac.items(), key=lambda kv: (-kv[1], OGE_IHLAL_ADLARI.get(kv[0], kv[0])))
+    en_yuksek = sirali[0][1]
+    return [
+        {
+            "oge": OGELER[anahtar],
+            "ad": OGE_IHLAL_ADLARI.get(anahtar, OGELER[anahtar].ad),
+            "deger": n,
+            "genislik": cubuk_yuzdesi(n, en_yuksek),
+        }
+        for anahtar, n in sirali
+    ]
 
 
 def _saatlik_dagilim(baglanti) -> dict:
@@ -449,6 +499,7 @@ def pano_baglami(baglanti) -> dict:
         "kamera_var": toplam > 0,
         "sayi_kartlari": _sayi_kartlari(baglanti),
         "alanlar": _alan_yogunlugu(baglanti),
+        "oge_dagilimi": _oge_dagilimi(baglanti),
         "alan_penceresi": ALAN_PENCERESI_GUN,
         "akis": _canli_akis(baglanti),
         "saat_sutunlari": saatler["sutunlar"],

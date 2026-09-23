@@ -19,7 +19,7 @@ bu dosyalar için ayrı bir adım yoktur.
 
 | Dosya | Kaynak | Lisans |
 |---|---|---|
-| `simgeler.svg` | [Lucide](https://lucide.dev) — seçili 32 simgeden üretilmiş sprite | ISC |
+| `simgeler.svg` | [Lucide](https://lucide.dev) — seçili 46 simgeden üretilmiş sprite, artı Lucide kuralıyla çizilmiş 1 DALSAN simgesi (yelek) | ISC (Lucide) · DALSAN çizimi projenin kendisinindir |
 | `inter-latin.woff2` | [Inter](https://rsms.me/inter/) (fontsource, latin altkümesi) | SIL OFL 1.1 |
 | `inter-latin-ext.woff2` | Inter (latin-ext altkümesi) | SIL OFL 1.1 |
 
@@ -30,8 +30,11 @@ iki farklı yazı tipiyle karışık görünürdü. Hangi harfin hangi dosyadan
 geleceğini `stil.css` içindeki `unicode-range` belirler; tarayıcı yalnız
 gerekeni indirir.
 
-`simgeler.svg` ELLE DÜZENLENMEZ; yeni bir simge gerekince Lucide paketinden
-yeniden üretilir (üretim yöntemi dosyanın başındaki yorumda yazar).
+`simgeler.svg`'deki Lucide simgeleri ELLE DEĞİŞTİRİLMEZ; yeni bir simge
+gerekince Lucide deposundan alınır. Yöntem ve "bizim ad, Lucide adı"
+listesi dosyanın başındaki yorumdadır. Lucide'de karşılığı olmayan öğeler
+(yelek gibi) aynı çizgi kuralıyla çizilir ve dosyanın sonunda ayrı bir
+bölümde durur; onlar üçüncü parti kod değildir.
 
 ## Lisans metinleri
 
