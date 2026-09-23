@@ -13,6 +13,22 @@ bekliyor. Belgede şunlar var:
   bölge çizimi ya da kural ayarı) ve cevap gelene kadarki sistem varsayılanı;
 - zor örnek kodları.
 
+**3b — KKD verisi.** Şema 008 örneklere üç sütun ekliyor: kişi boyu, netlik
+(kırpığın Laplacian varyansı) ve zor örnek kodu. Kurallara da onaylı model
+sürümü sütunu geliyor (3d kullanacak). Otomatik örnekleme boyu ve netliği
+kaydediyor.
+
+KKD sayfasında iki yenilik var:
+- her kartın üstünde **Zor örnek** seçimi (beyaz kep, reflektörlü mont, gece
+  yansıması, sırt çantası, yağmurluk, kabindeki sürücü);
+- **Veri seti** bölümü: eğitim / doğrulama / test sayıları ve **Veri setini
+  dışa aktar (.zip)** düğmesi.
+
+Bölmenin birimi yerel gün; günler sırayla ayrılıyor, rastgele bölme yok. Zip'te
+kırpıklar, etiket CSV'si, bölme ve her dosyanın sha256'sı var. Testler iki şeyi
+denetliyor: aynı kamera ve gün iki kümede olamıyor, manifest dosyalarla tutarlı.
+Biçim docs/04 §5.4'te. Statik damga `?v=34`.
+
 ## Faz 5d kalan güvenlik (23.09.2026)
 
 Plan: `docs/17-V2-TASARIM.md` §10.5 (R16, R18, R31, R32) ve §13 (5d satırı).

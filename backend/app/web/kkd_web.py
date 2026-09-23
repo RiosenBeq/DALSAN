@@ -7,16 +7,24 @@ Emin olunamayan görüntüye 'yok' demek, veri setini baştan bozar.
 
 from __future__ import annotations
 
+import os
+import tempfile
+from pathlib import Path
+
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, Response
+from starlette.background import BackgroundTask
 
 from app import zaman
+from app.egitim import veri_seti
 from app.hatalar import DogrulamaHatasi
+from app.loglama import log_al
 from app.olaylar.yazici import sistem_olayi_yaz
 from app.web.ortak import OGELER, baglanti_al
 from app.web.rotalar import sablonlar
 
 router = APIRouter()
+_log = log_al("kkd")
 
 # docs/04 §4.5 "Minimum" sütunu: model eğitimine başlamak için ASGARİ miktar
 # (hedef bunun üstündedir). Durum kartlarının çubukları bu sayılara göre dolar;
@@ -107,6 +115,8 @@ def kkd_sayfasi(istek: Request, baglanti=Depends(baglanti_al)):
             "toplama": toplama_durumu(baglanti),
             "toplama_onay_metni": TOPLAMA_ONAY_METNI,
             "saat_limiti": istek.app.state.ayarlar.kkd_ornek_saat_limit,
+            "zor_ornekler": veri_seti.ZOR_ORNEKLER,
+            "veri_seti": veri_seti.ozet(veri_seti.etiketli_ornekler(baglanti)),
         },
     )
 
@@ -167,6 +177,54 @@ def etiketle(
     )
     baglanti.commit()
     return Response(status_code=204)  # sayfadaki JS kartı günceller
+
+
+@router.post("/kkd/{ornek_id}/zor")
+def zor_ornek_isaretle(ornek_id: int, kod: str = Form(""), baglanti=Depends(baglanti_al)):
+    """Zor örnek kodu (docs/17 §5.8): veri setinde ve değerlendirmede ayrı
+    kırılım olur. Boş kod işareti kaldırır."""
+    if kod and kod not in veri_seti.ZOR_ORNEKLER:
+        raise DogrulamaHatasi(f"Geçersiz zor örnek kodu: {kod}")
+    baglanti.execute("UPDATE ppe_samples SET hard_case = ? WHERE id = ?", (kod or None, ornek_id))
+    baglanti.commit()
+    return Response(status_code=204)
+
+
+@router.get("/kkd/veri-seti.zip")
+def veri_seti_indir(istek: Request, baglanti=Depends(baglanti_al)):
+    """Etiketli örneklerin veri seti (docs/17 §5.8): güne göre bölünmüş kırpıklar,
+    etiketler, bölme ve sha256 manifest'i. Model ürün dışında bununla eğitilir.
+
+    Zip geçici dosyaya yazılır (binlerce kırpık belleğe sığmayabilir) ve
+    gönderildikten sonra silinir.
+    """
+    ornekler = veri_seti.etiketli_ornekler(baglanti)
+    if not ornekler:
+        raise DogrulamaHatasi(
+            "Dışa aktarılacak etiketli örnek yok. Örnekler, Baret ve Yelek etiketinin ikisi "
+            "de verilince veri setine girer."
+        )
+    tanimlayici, gecici = tempfile.mkstemp(prefix="dalsan-kkd-", suffix=".zip")
+    os.close(tanimlayici)
+    try:
+        manifest = veri_seti.disa_aktar(
+            ornekler, istek.app.state.ayarlar.goruntu_klasoru, Path(gecici)
+        )
+    except BaseException:
+        Path(gecici).unlink(missing_ok=True)
+        raise
+    # Kişi görüntüsü dışarı çıkıyor: kaç tane olduğu günlükte kalsın (KVKK
+    # erişim izi Faz 5'te access_log'a da yazılacak)
+    _log.info(
+        f"KKD veri seti dışa aktarıldı: {manifest['ornek_sayisi']} örnek, "
+        f"{manifest['eksik_dosya']} eksik dosya."
+    )
+    return FileResponse(
+        gecici,
+        media_type="application/zip",
+        filename=f"dalsan-kkd-veri-seti-{zaman.yerel_tarih_iso()}.zip",
+        background=BackgroundTask(os.unlink, gecici),
+    )
 
 
 @router.post("/kkd/{ornek_id}/sil")

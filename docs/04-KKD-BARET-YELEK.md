@@ -276,6 +276,23 @@ test:  7.–8. gün + planlı çekim seansının bir bölümü
 düşer. Model ezberler, test skoru %98 çıkar, sahada %70 olur. Bu hata bu alanda
 en sık yapılan hatadır ve müşteriye yanlış vaat verilmesine yol açar.
 
+**Uygulamada (Faz 3b):** KKD sayfası → **Veri setini dışa aktar (.zip)**
+(`backend/app/egitim/veri_seti.py`). Yalnız iki etiketi de verilmiş örnekler girer.
+Bölmenin birimi Türkiye yerel günüdür: bir günün bütün kameraları aynı kümededir.
+Böylece aynı anı iki kameradan gören kareler de ayrılmaz. Günler sırayla bölünür:
+doğrulama %12,5, test %25, en az üç günde her kümeye en az bir gün düşer. Üçten az
+gün varsa sayfa ve manifest bunu uyarı olarak yazar. Uzmanın alacağı zip:
+
+| Dosya | İçerik |
+|---|---|
+| `goruntuler/<train\|val\|test>/<örnek no>.jpg` | 128×256 kırpıklar |
+| `etiketler.csv` | virgüllü, UTF-8: `dosya, kume, ornek_id, kamera_id, gun, alinma_utc, baret, yelek, zor_ornek, kaynak, kisi_boyu_px, netlik`. Kamera adı ya da kişi bilgisi yok |
+| `bolme.json` | hangi gün ve kamera × gün grubu hangi kümede, yöntem metni |
+| `manifest.json` | küme başına sayılar, uyarılar, eksik dosya sayısı, her dosyanın sha256'sı |
+
+Zor örnekler (`zor_ornek` sütunu) KKD sayfasında kart başına işaretlenir; kodlar
+`docs/kkd-politika.md` §4'te.
+
 ---
 
 ## 6. Model ve eğitim

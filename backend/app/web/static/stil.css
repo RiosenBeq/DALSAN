@@ -568,6 +568,21 @@ legend { font-size: 0.88rem; color: var(--metin-3); padding: 0 6px; }
   background: var(--vurgu); color: var(--dolu-metin); border-color: var(--vurgu);
   box-shadow: var(--ic-isik-koyu);
 }
+/* Zor örnek seçimi: kartın dar sütununa sığar */
+.zor-ornek { display: grid; gap: 2px; font-size: 0.75rem; font-weight: 600; color: var(--metin-2); }
+.zor-ornek select { font-size: 0.78rem; padding: 3px 6px; min-width: 0; }
+/* Veri seti kümeleri: eğitim · doğrulama · test */
+.veri-seti-kumeler {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px; margin: 10px 0;
+}
+.veri-seti-kume {
+  display: grid; gap: 2px; padding: 10px 12px;
+  border: 1px solid var(--cam-sinir); border-radius: var(--radius-kucuk);
+  background: var(--cam-orta); box-shadow: var(--cam-ic-isik);
+  font-size: 0.8rem; color: var(--metin-2);
+}
+.veri-seti-kume b { font-size: 1.2rem; font-weight: 680; color: var(--metin); font-variant-numeric: tabular-nums; }
 
 /* canlı sayım kutuları */
 .sayim-izgara { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }

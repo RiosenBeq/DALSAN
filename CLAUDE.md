@@ -94,7 +94,8 @@ dalsan-isg/
 │       │                       #   alan_bulucu (zemindeki boyadan bölge önerisi)
 │       ├── rules/              # SAF karar mantığı — aşağıya bak (sayim.py dahil)
 │       ├── olaylar/            # olay yazımı, fotoğraf, anons
-│       └── egitim/             # veri seti, eğitim, HTML rapor
+│       └── egitim/             # veri seti dışa aktarımı, değerlendirme, HTML rapor
+│                               #   (eğitimin kendisi ürün dışı — docs/04 §6)
 ├── tests/
 ├── veri/                       # dalsan.db, goruntuler/, loglar/, yedekler/  (git'e girmez)
 └── docs/

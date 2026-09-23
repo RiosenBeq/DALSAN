@@ -52,9 +52,36 @@
       Çubuklar docs/04 §4.5'teki <b>asgari</b> miktarlardır; eğitime bunların hepsi
       dolunca başlanır, hedef daha yüksektir.</p>
     <p class="not">Veri toplama açıkken sistem, KKD zorunlu alan bölgesi çizilmiş kameralardan otomatik örnek toplar.
-      Yeterli etiketli veri birikince model eğitilecek (9. adım) ve KKD kuralı gölge modda
-      devreye alınacak. <b>Şüphede kaldığınız görüntüye her zaman "Belirsiz" deyin</b> —
-      emin olmadan "Yok" demek modeli bozar.</p>
+      Yeterli etiketli veri birikince aşağıdaki veri setiyle model ürün dışında eğitilir
+      (docs/04 §6) ve KKD kuralı gölge modda devreye alınır. <b>Şüphede kaldığınız
+      görüntüye her zaman "Belirsiz" deyin</b> — emin olmadan "Yok" demek modeli bozar.</p>
+  </section>
+
+  {# Veri seti (docs/17 §5.8): güne göre bölme — bir günün bütün kameraları aynı
+     kümede, rastgele bölme yok. Sayılar indirilecek dosyanın aynısıdır. #}
+  <section class="kart" id="veri-seti">
+    <h3>Veri seti</h3>
+    {% if veri_seti.ornek %}
+    <p class="not">Etiketli <b>{{ veri_seti.ornek }}</b> örnek · {{ veri_seti.kamera }} kamera ·
+      {{ veri_seti.gun }} gün. Günler sırayla bölünür: ilk günler eğitim, sonraki doğrulama,
+      son günler test; model hep görmediği sonraki günlerde sınanır.</p>
+    <div class="veri-seti-kumeler">
+      {% for ad, etiket in (("train", "Eğitim"), ("val", "Doğrulama"), ("test", "Test")) %}
+      <div class="veri-seti-kume"><span>{{ etiket }}</span>
+        <b>{{ veri_seti.kumeler[ad].ornek }}</b>
+        <span class="kucuk-metin">{{ veri_seti.kumeler[ad].gun }} gün</span></div>
+      {% endfor %}
+    </div>
+    {% for uyari in veri_seti.uyarilar %}<p class="kalite-uyarisi">{{ uyari }}</p>{% endfor %}
+    <p class="satir-form">
+      <a class="dugme" href="/kkd/veri-seti.zip" download>Veri setini dışa aktar (.zip)</a>
+    </p>
+    <p class="not">Dosyada kırpıklar, etiketler (CSV), bölme ve her dosyanın sha256 özeti
+      vardır. Kişi görüntüsü içerir: yalnız eğitimi yapacak uzmana, kurum içinde verin.</p>
+    {% else %}
+    <p class="bos">Henüz etiketli örnek yok. Bir örnek, Baret ve Yelek etiketinin ikisi de
+      verilince veri setine girer.</p>
+    {% endif %}
   </section>
 
   <section class="kart">
@@ -65,6 +92,15 @@
       <div class="kkd-kart" id="ornek-{{ o.id }}">
         <img src="/kkd/ornek/{{ o.id }}.jpg" alt="kişi görüntüsü">
         <div class="kucuk-metin">{{ o.kamera_adi or "—" }} · {{ o.yerel_zaman }}</div>
+        {# Etiketlerden ÖNCE: iki etiket verilince kart listeden düşer #}
+        <label class="zor-ornek">Zor örnek
+          <select data-ornek="{{ o.id }}" aria-label="Zor örnek">
+            <option value="">—</option>
+            {% for kod, ad in zor_ornekler.items() %}
+            <option value="{{ kod }}" {% if o.hard_case == kod %}selected{% endif %}>{{ ad }}</option>
+            {% endfor %}
+          </select>
+        </label>
         <div class="etiket-grubu" data-ornek="{{ o.id }}" data-alan="helmet">
           <span class="etiket-adi">{{ oge_rozeti(OGELER.baret, "kucuk") }}Baret</span>
           <button data-deger="yes">{{ simge("basarili") }}Var</button>
@@ -94,6 +130,16 @@
 {% endblock %}
 {% block betikler %}
 <script>
+document.querySelectorAll(".zor-ornek select").forEach(function (secim) {
+  secim.addEventListener("change", function () {
+    var veri = new FormData();
+    veri.append("kod", secim.value);
+    fetch("/kkd/" + secim.dataset.ornek + "/zor", { method: "POST", body: veri })
+      .then(function (yanit) {
+        if (!yanit.ok) { alert("Zor örnek işareti kaydedilemedi. Sayfayı yenileyin."); }
+      });
+  });
+});
 document.querySelectorAll(".etiket-grubu button").forEach(function (dugme) {
   dugme.addEventListener("click", function () {
     var grup = dugme.parentElement;
