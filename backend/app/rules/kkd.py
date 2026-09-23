@@ -6,15 +6,31 @@ gözlemin yeterli oranı 'yok' diyorsa, o da kişi bölgede yeterince kaldıysa,
 olay üretilir. Bu kural test_belirsiz_asla_olay_uretmez ile korunur.
 
 Karar kare bazında DEĞİL, takip (track) bazında zamansal oylamayla verilir.
+Her kalem (baret, yelek) AYRI karar ve AYRI olaydır (docs/17 §5.6): yalnız
+yelek eksikse yalnız PPE_NO_VEST açılır; ikisi eksikse iki olay, iki bekleme.
+
+Bir karedeki gözlem şüpheliyse (kabindeki sürücü, üst üste iki kişi, bulanık
+kırpık — docs/17 §5.3–5.4) o karede iki kalem de BELİRSİZ yazılır.
 """
 
 from __future__ import annotations
 
 from collections import deque
 
-from app.rules.geometri import nokta_poligonda
+from app.rules.geometri import kutu_alani, kutu_iou, kutu_kesisimi, nokta_poligonda
 from app.rules.parametreler import KkdParams
-from app.rules.tipler import BELIRSIZ, SINIF_INSAN, VAR, YOK, Ihlal, Kural, Tespit
+from app.rules.tipler import (
+    BELIRSIZ,
+    SINIF_FORKLIFT,
+    SINIF_INSAN,
+    SINIF_TIR,
+    VAR,
+    YOK,
+    Ihlal,
+    KkdGozlem,
+    Kural,
+    Tespit,
+)
 
 # details JSON'unda veritabanı şemasıyla aynı İngilizce etiketler kullanılır
 # (ppe_samples.helmet_label: yes/no/unknown)
@@ -23,6 +39,8 @@ _KKD_ALANLARI = {"helmet": ("baret", "baret_guven"), "vest": ("yelek", "yelek_gu
 
 # Kare kenarına bu kadar yakın kutular "kesik" sayılır (require_full_bbox)
 _KENAR_PAYI_PX = 2.0
+# Sürücü muafiyetinde kabin sayılan araçlar (docs/17 §5.4)
+_ARAC_SINIFLARI = (SINIF_FORKLIFT, SINIF_TIR)
 
 
 class KkdDegerlendirici:
@@ -35,12 +53,12 @@ class KkdDegerlendirici:
         self._belirsiz: set[tuple] = set()
 
     def aktif_anahtarlar(self) -> set[tuple]:
-        """Son değerlendirmede oyu hâlâ "yok" olan kişiler (olay_durumu)."""
+        """Son değerlendirmede oyu hâlâ "yok" olan (kişi, kalem)lar (olay_durumu)."""
         return self._aktif
 
     def belirsiz_anahtarlar(self) -> set[tuple]:
-        """Oyu "yok"tan BELİRSİZE dönen kişiler: olay `belirsiz` sebebiyle
-        kapanır. Belirsiz kanıtla "ihlal sürüyor" denmez (docs/17 §5.6)."""
+        """Oyu BELİRSİZ olan (kişi, kalem)lar: o kalemin açık olayı `belirsiz`
+        sebebiyle kapanır. Belirsiz kanıtla "ihlal sürüyor" denmez (docs/17 §5.6)."""
         return self._belirsiz
 
     def degerlendir(self, baglam) -> list[Ihlal]:
@@ -86,9 +104,7 @@ class KkdDegerlendirici:
             kalis = baglam.zaman_s - durum["giris"]
             if kalis < self.params.min_dwell_s:
                 continue
-            ihlal = self._karar_ver(tespit, durum, kalis, baglam)
-            if ihlal is not None:
-                ihlaller.append(ihlal)
+            ihlaller.extend(self._karar_ver(tespit, durum, kalis, baglam))
 
         # Uzun süredir görülmeyen takipler temizlenir (bellek)
         for takip_id in list(self._durumlar):
@@ -111,6 +127,10 @@ class KkdDegerlendirici:
         """
         if tespit.kkd_gozlemi is None:
             return  # bu karede değerlendirme yapılmadı (kadans/model yok)
+        if self._gozlem_supheli_mi(tespit, tespit.kkd_gozlemi, baglam):
+            for kkd in self.params.required_ppe:
+                durum["pencereler"][kkd].append((BELIRSIZ, 0.0))
+            return
 
         boy_px = tespit.kutu[3] - tespit.kutu[1]
         kesik = self._kesik_mi(tespit, baglam.kare_boyutu)
@@ -134,9 +154,40 @@ class KkdDegerlendirici:
                 deger = BELIRSIZ  # düşük güven → karar YOK, belirsiz
             durum["pencereler"][kkd].append((deger, guven))
 
-    def _karar_ver(self, tespit: Tespit, durum: dict, kalis: float, baglam) -> Ihlal | None:
+    def _gozlem_supheli_mi(self, tespit: Tespit, gozlem: KkdGozlem, baglam) -> bool:
+        """Bu karenin gözlemi karar için güvenilmez mi (docs/17 §5.3–5.4)?
+
+        Üç kaynak, üçü de saf geometri ya da ölçülmüş sayı:
+        - bulanık kırpık: netlik `min_netlik`'in altında (None = kapalı);
+        - kabindeki sürücü (`surucu_muaf`): ayak noktası bir araç kutusunda ya
+          da kişi kutusunun `surucu_ortusme_orani`'ı araçla örtüşüyor;
+        - üst üste iki kişi: IoU `max_kisi_ortusmesi`'ni aşıyor (None = kapalı).
+        """
+        p = self.params
+        if p.min_netlik is not None and gozlem.netlik is not None and gozlem.netlik < p.min_netlik:
+            return True
+        digerleri = [t for t in baglam.tespitler if t is not tespit]
+        araclar = [t for t in digerleri if t.sinif in _ARAC_SINIFLARI]
+        if p.surucu_muaf and any(self._arac_icinde_mi(tespit, arac) for arac in araclar):
+            return True
+        return p.max_kisi_ortusmesi is not None and any(
+            kutu_iou(tespit.kutu, kisi.kutu) > p.max_kisi_ortusmesi
+            for kisi in digerleri
+            if kisi.sinif == SINIF_INSAN
+        )
+
+    def _arac_icinde_mi(self, kisi: Tespit, arac: Tespit) -> bool:
+        x1, y1, x2, y2 = arac.kutu
+        ayak_x, ayak_y = kisi.ayak_noktasi()
+        if x1 <= ayak_x <= x2 and y1 <= ayak_y <= y2:
+            return True
+        alan = kutu_alani(kisi.kutu)
+        return alan > 0 and kutu_kesisimi(kisi.kutu, arac.kutu) / alan >= (
+            self.params.surucu_ortusme_orani
+        )
+
+    def _karar_ver(self, tespit: Tespit, durum: dict, kalis: float, baglam) -> list[Ihlal]:
         kararlar: dict[str, dict] = {}
-        ihlal_var = False
 
         for kkd in self.params.required_ppe:
             pencere = durum["pencereler"][kkd]
@@ -147,7 +198,6 @@ class KkdDegerlendirici:
                 karar = BELIRSIZ  # yeterli kanıt yok → olay YOK
             elif yok_sayisi / len(gecerli) >= self.params.violation_ratio:
                 karar = YOK
-                ihlal_var = True
             else:
                 karar = VAR
 
@@ -159,34 +209,42 @@ class KkdDegerlendirici:
                 "mean_conf": round(ort_guven, 2),
             }
 
-        anahtar = (self.kural.id, self.kural.kamera_id, tespit.takip_id)
-        if not ihlal_var:
-            if any(v["decision"] == _ETIKET[BELIRSIZ] for v in kararlar.values()):
+        # Kalem başına anahtar, olay ve bekleme: baret ve yelek ayrı olaydır
+        # (docs/17 §5.6). Olay ayrıntısı iki kalemin kararını da taşır.
+        ihlaller: list[Ihlal] = []
+        for kkd, karar in kararlar.items():
+            anahtar = (self.kural.id, self.kural.kamera_id, tespit.takip_id, kkd)
+            if karar["decision"] == _ETIKET[BELIRSIZ]:
                 self._belirsiz.add(anahtar)
-            return None
-        self._aktif.add(anahtar)
-        if not baglam.cooldown.izinli_mi(anahtar, baglam.zaman_s, self.kural.cooldown_s):
-            return None
-        eksikler = [k for k, v in kararlar.items() if v["decision"] == "no"]
-        return Ihlal(
-            kural_id=self.kural.id,
-            kamera_id=self.kural.kamera_id,
-            takip_idler=[tespit.takip_id],
-            bolge_id=self.kural.bolge_id,
-            olculen=round(kalis, 1),
-            detaylar={
-                "ppe": {
-                    "required": list(self.params.required_ppe),
-                    **kararlar,
-                    "person_height_px": int(durum.get("son_boy_px", 0)),
-                    # model_version olmadan "model iyileşti mi" sorusu
-                    # cevaplanamaz — zorunludur (docs/03 §3)
-                    "model_version": durum.get("model_surumu", ""),
-                    "dwell_s": round(kalis, 1),
-                },
-                "eksik_kkd": eksikler,
-            },
-        )
+                continue
+            if karar["decision"] != _ETIKET[YOK]:
+                continue
+            self._aktif.add(anahtar)
+            if not baglam.cooldown.izinli_mi(anahtar, baglam.zaman_s, self.kural.cooldown_s):
+                continue
+            ihlaller.append(
+                Ihlal(
+                    kural_id=self.kural.id,
+                    kamera_id=self.kural.kamera_id,
+                    takip_idler=[tespit.takip_id],
+                    bolge_id=self.kural.bolge_id,
+                    olculen=round(kalis, 1),
+                    detaylar={
+                        "ppe": {
+                            "required": list(self.params.required_ppe),
+                            **kararlar,
+                            "person_height_px": int(durum.get("son_boy_px", 0)),
+                            # model_version olmadan "model iyileşti mi" sorusu
+                            # cevaplanamaz — zorunludur (docs/03 §3)
+                            "model_version": durum.get("model_surumu", ""),
+                            "dwell_s": round(kalis, 1),
+                        },
+                        "eksik_kkd": [kkd],
+                    },
+                    kalem=kkd,
+                )
+            )
+        return ihlaller
 
     def _kesik_mi(self, tespit: Tespit, kare_boyutu: tuple[float, float]) -> bool:
         x1, y1, x2, y2 = tespit.kutu

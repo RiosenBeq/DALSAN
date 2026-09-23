@@ -130,3 +130,6 @@ class Ihlal:
     # kural motoru, kural ve bölge tipinden atar. Boş = kodsuz (motor dışı yol).
     kod: str = ""
     onem: str = ""
+    # Aynı kişinin aynı kuraldaki ayrı olayları (KKD: "helmet" / "vest";
+    # docs/17 §5.6). Olay ve cooldown anahtarına girer; çoğu kuralda boştur.
+    kalem: str = ""

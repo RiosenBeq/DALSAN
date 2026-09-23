@@ -239,9 +239,11 @@ def test_semanin_her_alani_formda(kural_tipi):
     """Formda karşılığı olmayan bir şema alanı, kaydetmede hep önceki/varsayılan
     değerde kalırdı: operatör onu hiç değiştiremezdi."""
     liste_alanlari = {"mode", "object_classes", "subject_classes", "required_ppe"}
+    bos_kapali = kurallar_web._BOS_KAPALI_ALANLAR.get(kural_tipi, ())
     formdakiler = (
         set(kurallar_web._SAYI_ALANLARI[kural_tipi])
         | set(kurallar_web._KUTU_ALANLARI[kural_tipi])
+        | set(bos_kapali)
         | liste_alanlari
     )
     assert set(PARAM_SEMALARI[kural_tipi].model_fields) <= formdakiler
@@ -250,6 +252,7 @@ def test_semanin_her_alani_formda(kural_tipi):
     for alan in (
         *kurallar_web._SAYI_ALANLARI[kural_tipi],
         *kurallar_web._KUTU_ALANLARI[kural_tipi],
+        *bos_kapali,
     ):
         assert f'name="{alan}"' in sablon, alan
 

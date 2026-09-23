@@ -150,8 +150,8 @@ def ihlal_kodu(kural_tipi: str, detaylar: dict, bolge_tipi: str | None) -> str:
     if kural_tipi == "vehicle_speed":
         return "VEHICLE_OVERSPEED"
     if kural_tipi == "ppe_violation":
-        # Tek olay iki eksik kalem taşıyabilir (kalem başına ayrı olay Faz 3d);
-        # o zaman daha ağır olanın kodu verilir, iki kalem de ayrıntıda durur.
+        # Faz 3d'den beri kalem başına ayrı olay (tek elemanlı liste). Daha eski
+        # olay iki kalem taşıyabilir: o zaman daha ağır olanın kodu verilir.
         eksik = detaylar.get("eksik_kkd") or []
         return "PPE_NO_VEST" if eksik and "helmet" not in eksik else "PPE_NO_HELMET"
     if kural_tipi == "zone_intrusion":

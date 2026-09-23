@@ -145,8 +145,27 @@
         <label class="yatay"><input type="checkbox" name="require_full_bbox" value="1"
           {% if pk.require_full_bbox %}checked{% endif %}>
           Kare kenarında kesik görünen kişiyi değerlendirme (önerilir)</label>
+        <label class="yatay"><input type="checkbox" name="surucu_muaf" value="1"
+          {% if pk.surucu_muaf %}checked{% endif %}>
+          Forklift / tır kabinindeki sürücüyü değerlendirme (politika: docs/kkd-politika.md #4–5)</label>
+        <label><span>Araçla örtüşme oranı (0,1-1)
+          {{ ipucu('kkd-surucu', 'Kişi kutusunun bu kadarı araç kutusuyla örtüşürse kişi sürücü sayılır; ayağı araç kutusundaysa her durumda.') }}</span>
+          <input name="surucu_ortusme_orani" type="number" step="0.05" min="0.1" max="1"
+                 value="{{ pk.surucu_ortusme_orani }}">
+        </label>
+        <label><span>Üst üste kişi eşiği (0-1, boş = kapalı)
+          {{ ipucu('kkd-ortusme', 'İki kişinin kutusu bu kadar örtüşürse görüntü iki kişiyi karıştırır; o an karar verilmez. Değer gölge moddaki ölçümle seçilir.') }}</span>
+          <input name="max_kisi_ortusmesi" type="number" step="0.05" min="0" max="1"
+                 value="{{ pk.max_kisi_ortusmesi if pk.max_kisi_ortusmesi is not none else '' }}">
+        </label>
+        <label><span>En az netlik (boş = kapalı)
+          {{ ipucu('kkd-netlik', 'Kişi görüntüsü bu netliğin altındaysa (bulanık) o an karar verilmez. Değer gölge moddaki ölçümle seçilir; KKD sayfasındaki veri setinde her örneğin netliği yazar.') }}</span>
+          <input name="min_netlik" type="number" step="1" min="0"
+                 value="{{ pk.min_netlik if pk.min_netlik is not none else '' }}">
+        </label>
         <p class="not">"Belirsiz" HİÇBİR ZAMAN uyarı üretmez. KKD modeli henüz
-          eğitilmediyse bu kural olay üretmez ama bölgeden veri toplar (KKD sekmesi).</p>
+          eğitilmediyse bu kural olay üretmez ama bölgeden veri toplar (KKD sekmesi).
+          KKD kuralı gölge modda doğar; anonsu Komuta → Uyarı zinciri'nden açılır.</p>
       </fieldset>
 
       {# --- Araç hız sınırı --- #}

@@ -452,13 +452,19 @@ _SAYI_ALANLARI: dict[str, tuple[str, ...]] = {
         "violation_ratio",
         "min_dwell_s",
         "bitis_s",
+        "surucu_ortusme_orani",
     ),
     "vehicle_speed": ("speed_limit_mps", "window_size", "bitis_s"),
+}
+# Boş bırakılınca KAPALI (None) olan eşikler: öbür sayı alanlarında boş,
+# "önceki değer ya da varsayılan" demektir; bunlarda "kapat" demektir.
+_BOS_KAPALI_ALANLAR: dict[str, tuple[str, ...]] = {
+    "ppe_violation": ("max_kisi_ortusmesi", "min_netlik"),
 }
 _KUTU_ALANLARI: dict[str, tuple[str, ...]] = {
     "zone_intrusion": ("gecit_haric",),
     "safe_distance": ("require_moving_vehicle",),
-    "ppe_violation": ("require_full_bbox",),
+    "ppe_violation": ("require_full_bbox", "surucu_muaf"),
     "vehicle_speed": (),
 }
 _TAM_SAYI_ALANLARI = frozenset(
@@ -481,6 +487,8 @@ def _formdan_params(kural_tipi: str, form) -> tuple[dict, list[str]]:
             params[alan] = int(deger) if alan in _TAM_SAYI_ALANLARI else deger
     for alan in _KUTU_ALANLARI[kural_tipi]:
         params[alan] = form.get(alan) == "1"
+    for alan in _BOS_KAPALI_ALANLAR.get(kural_tipi, ()):
+        params[alan] = _sayi(form, alan, None)
 
     if kural_tipi == "zone_intrusion":
         hedefler = form.getlist("target_classes")

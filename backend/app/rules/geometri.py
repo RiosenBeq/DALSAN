@@ -23,3 +23,24 @@ def nokta_poligonda(nokta: tuple[float, float], poligon: list[tuple[float, float
 
 def oklid_mesafe(a: tuple[float, float], b: tuple[float, float]) -> float:
     return ((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2) ** 0.5
+
+
+Kutu = tuple[float, float, float, float]  # piksel (x1, y1, x2, y2)
+
+
+def kutu_alani(kutu: Kutu) -> float:
+    return max(0.0, kutu[2] - kutu[0]) * max(0.0, kutu[3] - kutu[1])
+
+
+def kutu_kesisimi(a: Kutu, b: Kutu) -> float:
+    """İki kutunun kesişim ALANI (piksel²); kesişmiyorsa 0."""
+    genislik = min(a[2], b[2]) - max(a[0], b[0])
+    yukseklik = min(a[3], b[3]) - max(a[1], b[1])
+    return max(0.0, genislik) * max(0.0, yukseklik)
+
+
+def kutu_iou(a: Kutu, b: Kutu) -> float:
+    """Kesişim / birleşim (0–1)."""
+    kesisim = kutu_kesisimi(a, b)
+    birlesim = kutu_alani(a) + kutu_alani(b) - kesisim
+    return kesisim / birlesim if birlesim > 0 else 0.0

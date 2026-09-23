@@ -72,6 +72,17 @@ class KkdParams(BaseModel):
     min_dwell_s: float = Field(default=3.0, ge=0, le=600)
     require_full_bbox: bool = True
     bitis_s: float = _bitis_alani()
+    # Sürücü muafiyeti (docs/17 §5.4, S3 varsayılanı): ayak noktası araç
+    # (forklift, tır) kutusunda olan ya da kutusunun bu oranı araçla örtüşen
+    # kişinin o karedeki gözlemi BELİRSİZDİR — kabindeki sürücü için olay yok.
+    surucu_muaf: bool = True
+    surucu_ortusme_orani: float = Field(default=0.6, ge=0.1, le=1)
+    # İki kişi kutusu bu IoU'dan fazla örtüşürse kırpık iki kişiyi karıştırır
+    # (docs/04 §8.3): gözlem belirsiz. None = kapalı; değer gölge ölçümüyle.
+    max_kisi_ortusmesi: float | None = Field(default=None, ge=0, le=1)
+    # Kırpık netliği (Laplacian varyansı) bunun altındaysa gözlem belirsiz.
+    # None = kapalı: DALSAN kırpıklarında ölçülene kadar sayı yazılmaz.
+    min_netlik: float | None = Field(default=None, ge=0)
 
 
 class HizParams(BaseModel):

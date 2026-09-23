@@ -21,7 +21,8 @@ Kapandıktan sonra aynı anahtar ancak değerlendirici yeniden ihlal ürettiğin
 açılır; o da kuralın bekleme süresine tabidir (cooldown zaten orada).
 
 Anahtar, cooldown anahtarıyla aynı biçimdedir: (kural, kamera, iz) ya da
-mesafede (kural, kamera, küçük iz, büyük iz).
+mesafede (kural, kamera, küçük iz, büyük iz); KKD'de sona kalem eklenir
+(kural, kamera, iz, "helmet") — baret ve yelek ayrı olaydır.
 """
 
 from __future__ import annotations
@@ -53,7 +54,8 @@ class OlayGecisi:
 
 def olay_anahtari(ihlal: Ihlal) -> tuple:
     """İhlalin anahtarı: cooldown anahtarıyla aynı biçim (iz sırası önemsiz)."""
-    return (ihlal.kural_id, ihlal.kamera_id, *sorted(ihlal.takip_idler))
+    anahtar = (ihlal.kural_id, ihlal.kamera_id, *sorted(ihlal.takip_idler))
+    return (*anahtar, ihlal.kalem) if ihlal.kalem else anahtar
 
 
 @dataclass
@@ -142,6 +144,8 @@ class OlayDurumMakinesi:
     def _pasif_sebebi(anahtar: tuple, belirsizler, gorulen: set[int] | None) -> str:
         if anahtar in belirsizler:
             return "belirsiz"
-        if gorulen is not None and not set(anahtar[2:]) <= gorulen:
+        # İzler anahtarın tam sayı kısmıdır; KKD kalemi ("helmet") iz değildir
+        izler = {parca for parca in anahtar[2:] if isinstance(parca, int)}
+        if gorulen is not None and not izler <= gorulen:
             return "iz_kayboldu"
         return "kosul_bitti"
