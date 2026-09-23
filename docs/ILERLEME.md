@@ -1,5 +1,55 @@
 # İlerleme
 
+## Faz 2c şema 007 ve olay modeli (23.09.2026)
+
+Plan: `docs/17-V2-TASARIM.md` §6, §8.2, §8.4 ve §13 (2c satırı). Alt adımlar
+ayrı commit'lerdir; her birinden sonra tam paket ve `tests/rules` yeşil.
+
+**2c-1 — şema 007 ve göç yedeği.** `zones.zone_type` üzerindeki CHECK kalktı
+(tipin tek kaynağı `rules/tipler.py BOLGE_TIPI_KODLARI`; süpervizör bilinmeyen
+tipi atlıyor). Yeni bölge tipleri: **Yaya-araç geçidi** (`crossing`) ve **KKD
+muaf alan** (`ppe_exempt`) — kendi renk, simge ve çipleriyle; kuralları 2c-4'te.
+`events`'e olay kodu, önem ve bitiş sütunları; eski olayların bitişi
+başlangıcına eşitlendi (hiçbiri "sürüyor" görünmez). `analysis_hours`,
+kapalı doğan KKD veri toplama kapısı ve üç taslak anons mesajı (yaya yolunda
+araç, araç yolunda yaya, yasak alana giriş). Kurulu bir veritabanında bu göçten
+önce otomatik yedek alınıyor (`veri/yedekler/goc-oncesi-007_…db`); yedek
+alınamazsa göç yapılmıyor. Anons mesajı değişince yeni metin yeniden
+başlatmadan çalıyor (R19).
+
+**2c-2 — olay kodları ve önem.** Sözlük `rules/olay_kodu.py`'de: 26 kod, her
+birinin Türkçe adı ve varsayılan önemi (Kritik / Yüksek / Orta / Düşük /
+Sistem). Kural motoru her ihlale kodunu ve önemini değerlendirmeden sonra
+atıyor; değerlendiricilere ve 85 eski kural testine dokunulmadı (33 yeni kural
+testi eklendi). Kuralın `severity`'si `warning` ise kodun önemi geçerli; araç
+yolundaki yaya, aynı bölgede bir aracın ayak noktası varken Yüksek oluyor.
+Sistem olaylarının hepsi kodlu. **"Kamera çevrimdışı" artık süren bir olay:**
+kamera dönünce görüntünün geri geldiği anla kapanıyor; kamera kapatılır,
+silinir ya da adresi değişirse de kapanıyor. Süreç açılırken önceki
+çalışmadan açık kalan olaylar kapatılıyor ve **"Sistem başladı"** yazılıyor
+(önceki çalışma "Sistem durdu" yazamadan bittiyse bu olayda söyleniyor);
+düzgün kapanışta açık olaylar kapatılıp **"Sistem durdu"** yazılıyor. Model
+yüklenemeyince beklenmeyen hata yolu da olay yazıyor (eskiden yalnız tipli
+hata yolu yazıyordu). Sistem olayı yazılamazsa (kilitli veritabanı) analiz
+durmuyor, model atılmıyor; hata günlüğe düşüyor.
+
+**Kapanış gerçekten çalışıyor.** Ölçerken bulundu: tarayıcıda Olaylar ya da
+bir komuta ekranı açıkken (canlı akış, SSE) uvicorn kapanışta bu bağlantıyı
+sonsuza kadar bekliyordu — 30 sn sonra hâlâ kapanmamıştı. Kontrol Paneli
+8 sn sonra süreci zorla kapattığı için kapanış kodu fabrikada neredeyse hiç
+çalışmıyordu: kameralar düzgün durmuyor, "Sistem durdu" yazılamıyordu. Bütün
+başlatma yollarına (panelin iki kipi, Dockerfile, systemd birimi) 3 sn'lik
+kapanış süresi eklendi; açık akışla kapanış 3,2 sn'de bitiyor ve olay
+yazılıyor. Paketlenmiş kipte "Durdur" artık sunucu iş parçacığının bitmesini
+bekliyor (port hemen kapanıyordu, pencere o arada kapatılırsa kapanış yarım
+kalırdı). Testi gerçek bir sunucu ve açık bir akışla koşuyor; süre
+verilmediğinde aynı testin takıldığı karşı deneyle doğrulandı.
+
+Tasarımda açık kalan iki nokta kodda şöyle kapandı: `ZONE_INTRUSION`'ın
+varsayılan önemi **Orta** (tasarım "kural satırından" diyordu ama bütün
+satırlar `warning`); kapanış sebeplerine `kamera_degisti` eklendi. Bitiş hiçbir
+zaman başlangıçtan önce yazılmıyor (saat geri alınsa bile).
+
 ## Faz 2b takip ve kamera (23.09.2026)
 
 **Takip hafızası.** ByteTrack'in kayıp iz tamponu hiç verilmiyordu (varsayılan

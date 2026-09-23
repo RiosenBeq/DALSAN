@@ -188,11 +188,40 @@ dosyaya konsaydı, sayım için yapılan her ayar ihlal kararını da riske atar
 Sayım kural gerektirmez: bölge çizilen her kamerada kendiliğinden çalışır.
 Ayrıntı ve üç sayının anlamı `02-MIMARI.md` §8'de.
 
+## 5.2 Olay kodu ve önem
+
+Her ihlal bir **olay kodu** ve bir **önem** taşır (şema 007, `docs/17` §6.1).
+Değerlendirici bunları bilmez: kural motoru değerlendirmeden sonra atar
+(`rules/motor.py` `_kodla`, sözlük `rules/olay_kodu.py`). Kod; kural tipinden,
+bölge ihlalinde de yön + bölge tipi + ihlali **o an tetikleyen** sınıftan çıkar:
+
+| Kural | Yön | Bölge tipi | Tetikleyen | Kod | Varsayılan önem |
+|---|---|---|---|---|---|
+| zone_intrusion | inside | vehicle_area | person | `PERSON_IN_VEHICLE_LANE` | Orta (bölgede araç varken Yüksek) |
+| zone_intrusion | inside | pedestrian_path | forklift, truck | `VEHICLE_ON_WALKWAY` | Yüksek |
+| zone_intrusion | inside | restricted | person | `RESTRICTED_ENTRY` | Yüksek |
+| zone_intrusion | outside | pedestrian_path | person | `PERSON_OFF_WALKWAY` | Orta |
+| zone_intrusion | inside | loading_area | person | `PERSON_IN_LOADING_AREA` | Orta |
+| zone_intrusion | outside | truck_parking | truck | `VEHICLE_OUT_OF_POSITION` | Düşük |
+| zone_intrusion | tabloya uymayan her birleşim | | | `ZONE_INTRUSION` (bölge tipi ayrıntıda) | Orta |
+| safe_distance | | | | `VEHICLE_PERSON_PROXIMITY` | Kritik |
+| ppe_violation | | | baret eksik / yalnız yelek eksik | `PPE_NO_HELMET` / `PPE_NO_VEST` | Yüksek / Orta |
+| vehicle_speed | | | | `VEHICLE_OVERSPEED` | Yüksek |
+
+Kural satırındaki `severity` `warning` ise (şema varsayılanı; bugünkü bütün
+kurallar) kodun varsayılan önemi geçerlidir; `critical` / `high` / `medium` /
+`low` yazılıysa o geçerlidir ve bağlam onu değiştirmez. Tanınmayan değer
+varsayılana düşer. Baret ve yelek birlikte eksikse bugün tek olay yazılır ve
+kodu baretinkidir; kalem başına ayrı olay Faz 3d'dedir.
+
 ## 6. Yeni kural tipi ekleme prosedürü
 
 1. `backend/app/rules/<tip>.py` — saf değerlendirici sınıfı (`degerlendir(baglam) -> list[Ihlal]`)
 2. `backend/app/rules/parametreler.py` — `params` Pydantic modeli + `PARAM_SEMALARI` kaydı
 3. `backend/app/rules/motor.py` — `DEGERLENDIRICILER` kaydı
+3a. `backend/app/rules/olay_kodu.py` — `ihlal_kodu` içinde tipin olay kodu; kod
+    sözlükte yoksa `OLAY_KODLARI`'na adı ve varsayılan önemiyle eklenir
+    (`tests/rules/test_olay_kodu.py` kodsuz kalan tipi yakalar)
 4. `tests/rules/test_<tip>.py` — en az: pozitif durum, negatif durum, sınır durum, eksik/ölçülemeyen veri durumu, cooldown
 5. Arayüz: `web/ortak.py` (`KURAL_TIPLERI`, `VARSAYILAN_COOLDOWN_SN`), `web/kurallar.py`
    (`_formdan_params`), `templates/kural_form.html` (alan kümesi)

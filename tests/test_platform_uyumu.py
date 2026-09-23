@@ -374,3 +374,30 @@ def test_baslatma_komutlarindaki_uygulama_sembolu_var():
             bulunan += 1
             assert sembol in tanimli, f"{yol}: app.main:{sembol} — main.py'de böyle bir ad yok"
     assert bulunan >= 3
+
+
+def test_baslatma_komutlari_kapanista_acik_akisi_sonsuza_beklemez():
+    """Açık canlı akış (Olaylar, komuta ekranları) varken uvicorn kapanışta onu
+    sonsuza kadar bekliyordu; panel 8 sn sonra süreci zorla kapatıyor, kapanış
+    kodu (kameraların durması, "Sistem durdu") hiç çalışmıyordu. Her başlatma
+    yolu aynı kapanış süresini vermeli (davranış: test_sistem_olaylari.py)."""
+    import ast
+
+    baslatici = (KOK / "masaustu" / "dalsan_launcher.py").read_text(encoding="utf-8")
+    sure = int(re.search(r"^KAPANIS_BEKLEME_SN = (\d+)$", baslatici, re.M).group(1))
+    assert 0 < sure < 8, "panel alt süreci en çok 8 sn bekler"
+    govdeler = {
+        d.name: ast.unparse(d)
+        for d in ast.walk(ast.parse(baslatici))
+        if isinstance(d, ast.FunctionDef)
+    }
+    assert (
+        "'--timeout-graceful-shutdown', str(KAPANIS_BEKLEME_SN)" in (govdeler["alt_surecte_baslat"])
+    )
+    assert "timeout_graceful_shutdown=KAPANIS_BEKLEME_SN" in govdeler["_ic_surecte_baslat"]
+    # Paketlenmiş kipte port hemen kapanır; panel sunucunun bitmesini beklemeli
+    assert "is_parcacigi.join(" in govdeler["ic_sureci_durdur"]
+    for yol in ("Dockerfile", "docs/06-OPERASYON.md", "backend/app/main.py"):
+        metin = (KOK / yol).read_text(encoding="utf-8")
+        bulunan = re.findall(r'--timeout-graceful-shutdown"?,?\s*"?(\d+)', metin)
+        assert bulunan and set(bulunan) == {str(sure)}, (yol, bulunan)

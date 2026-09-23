@@ -104,7 +104,7 @@ def test_silinmis_kamera_olayi_dusurmez(test_ayarlari):
         satir = baglanti.execute("SELECT * FROM events WHERE id = ?", (olay_id,)).fetchone()
         assert satir["camera_id"] is None
         assert satir["rule_id"] is None
-        sistem_olayi_yaz(baglanti, "Kamera çevrimdışı", kamera_id=999)
+        sistem_olayi_yaz(baglanti, "Kamera çevrimdışı", kamera_id=999, kod="CAMERA_DOWN")
     finally:
         baglanti.close()
 
@@ -145,7 +145,7 @@ def test_olay_listesi_ve_durum_isaretleme(istemci, test_ayarlari):
             {"rule_type": "zone_intrusion"},
             None,
         )
-        sistem_olayi_yaz(baglanti, "Kamera çevrimdışı: K1", kamera_id=kamera_id)
+        sistem_olayi_yaz(baglanti, "Kamera çevrimdışı: K1", kamera_id=kamera_id, kod="CAMERA_DOWN")
     finally:
         baglanti.close()
 
@@ -176,7 +176,7 @@ def test_olay_filtresi(istemci, test_ayarlari):
             {"rule_type": "zone_intrusion"},
             None,
         )
-        sistem_olayi_yaz(baglanti, "Disk azalıyor")
+        sistem_olayi_yaz(baglanti, "Disk azalıyor", kod="DISK_LOW")
     finally:
         baglanti.close()
 

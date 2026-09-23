@@ -5,8 +5,12 @@ Zamanı çağıran verir (zaman_s, saniye cinsinden monoton sayaç) — testlerd
 zaman ileri sarılabilir. Hız tahmini de burada yapılır: kalibrasyonlu
 kamerada ayak noktasının zemindeki yer değişiminden (m/sn).
 
+Olay kodu ve önemi de burada, değerlendirmeden SONRA atanır (rules/olay_kodu.py):
+değerlendiriciler kodu bilmez, kendi testleri kod yüzünden değişmez.
+
 Yeni kural tipi ekleme prosedürü docs/03 §6'tedir: değerlendirici + şema +
-buradaki kayıt (DEGERLENDIRICILER) + test. Başka dosyaya dokunulmaz.
+buradaki kayıt (DEGERLENDIRICILER) + olay kodu (olay_kodu.ihlal_kodu) + test.
+Başka dosyaya dokunulmaz.
 """
 
 from __future__ import annotations
@@ -15,11 +19,12 @@ from dataclasses import dataclass, field
 
 from app.rules.bolge_ihlali import BolgeIhlaliDegerlendirici
 from app.rules.cooldown import Cooldown
-from app.rules.geometri import oklid_mesafe
+from app.rules.geometri import nokta_poligonda, oklid_mesafe
 from app.rules.hiz import HizDegerlendirici
 from app.rules.kalibrasyon import KalibrasyonHatasi, dunyaya_cevir
 from app.rules.kkd import KkdDegerlendirici
 from app.rules.mesafe import MesafeDegerlendirici
+from app.rules.olay_kodu import ARAC_SINIFLARI, ihlal_kodu, olay_onemi
 from app.rules.tipler import Bolge, Ihlal, Kalibrasyon, Kural, Tespit
 
 DEGERLENDIRICILER = {
@@ -137,12 +142,38 @@ class KuralMotoru:
 
         ihlaller: list[Ihlal] = []
         for degerlendirici in self._degerlendiriciler:
-            ihlaller.extend(degerlendirici.degerlendir(baglam))
+            for ihlal in degerlendirici.degerlendir(baglam):
+                self._kodla(ihlal, degerlendirici.kural, baglam)
+                ihlaller.append(ihlal)
 
         # Temizlik eşiği en uzun kuralın cooldown'unun gerisinde kalmalı;
         # aksi halde 1 saatten uzun cooldown'lar fiilen kırpılırdı.
         self._cooldown.temizle(zaman_s - max(3600.0, self._en_uzun_cooldown * 2))
         return ihlaller
+
+    @staticmethod
+    def _kodla(ihlal: Ihlal, kural: Kural, baglam: Baglam) -> None:
+        """İhlale olay kodunu ve önemini yazar (docs/17 §6.1–6.3)."""
+        bolge = baglam.bolgeler.get(ihlal.bolge_id) if ihlal.bolge_id is not None else None
+        bolge_tipi = bolge.tip if bolge is not None else None
+        ihlal.kod = ihlal_kodu(kural.tip, ihlal.detaylar, bolge_tipi)
+        if ihlal.kod == "ZONE_INTRUSION" and bolge_tipi:
+            # Yedek kodda olayın NE olduğunu bölge tipi söyler (ekran ve rapor)
+            ihlal.detaylar["bolge_tipi"] = bolge_tipi
+        # Bağlamsal önem: araç yolundaki yaya, yolda o anda bir araç da varsa
+        # daha ciddidir. Karar, ihlalin olduğu KAREDEKİ ayak noktalarıyla verilir.
+        arac_var = (
+            ihlal.kod == "PERSON_IN_VEHICLE_LANE"
+            and bolge is not None
+            and any(
+                t.sinif in ARAC_SINIFLARI
+                and nokta_poligonda(_normalize(t.ayak_noktasi(), baglam.kare_boyutu), bolge.poligon)
+                for t in baglam.tespitler
+            )
+        )
+        if arac_var:
+            ihlal.detaylar["arac_ayni_bolgede"] = True
+        ihlal.onem = olay_onemi(ihlal.kod, kural.siddet, arac_ayni_bolgede=arac_var)
 
     def _konum_ve_hiz_hesapla(self, baglam: Baglam) -> None:
         for tespit in baglam.tespitler:
@@ -166,3 +197,7 @@ class KuralMotoru:
         self._son_konumlar = {
             t: kayit for t, kayit in self._son_konumlar.items() if kayit[0] >= esik
         }
+
+
+def _normalize(nokta: tuple[float, float], kare_boyutu: tuple[float, float]) -> tuple[float, float]:
+    return (nokta[0] / kare_boyutu[0], nokta[1] / kare_boyutu[1])

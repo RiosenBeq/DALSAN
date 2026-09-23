@@ -90,9 +90,7 @@ class Tespit:
 @dataclass
 class Bolge:
     id: int
-    # pedestrian_path | loading_area | truck_parking | vehicle_area |
-    # ppe_required | restricted
-    tip: str
+    tip: str  # BOLGE_TIPI_KODLARI'ndan biri
     poligon: list[tuple[float, float]]  # normalize (0-1), en az 3 nokta
     aktif: bool = True
 
@@ -125,3 +123,7 @@ class Ihlal:
     bolge_id: int | None
     olculen: float | None  # mesafe (m), kalış süresi (sn) vb. — kurala göre
     detaylar: dict = field(default_factory=dict)  # olay kaydının details JSON'ı
+    # Olay kodu ve önemi (rules/olay_kodu.py). Değerlendirici DOLDURMAZ:
+    # kural motoru, kural ve bölge tipinden atar. Boş = kodsuz (motor dışı yol).
+    kod: str = ""
+    onem: str = ""

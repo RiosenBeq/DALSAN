@@ -53,5 +53,9 @@ WORKDIR /uygulama/backend
 ENV PYTHONUNBUFFERED=1
 EXPOSE 8080
 
-# Kontrol Paneli'nin kullandığı komutun aynısı — davranış birebir aynı olsun
-CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080"]
+# Kontrol Paneli'nin kullandığı komutun aynısı — davranış birebir aynı olsun.
+# --timeout-graceful-shutdown: açık canlı akış (SSE) bağlantısı kapanışı
+# sonsuza kadar bekletmesin; `docker stop` 10 sn sonra SIGKILL gönderir ve
+# kapanış kodu ("Sistem durdu", kameraların durması) hiç çalışmazdı.
+CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080", \
+     "--timeout-graceful-shutdown", "3"]

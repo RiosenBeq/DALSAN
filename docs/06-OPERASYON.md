@@ -87,7 +87,8 @@ Type=simple
 User=<KULLANICI>
 WorkingDirectory=<KURULUM-YOLU>
 ExecStart=<KURULUM-YOLU>/.venv/bin/python -m uvicorn app.main:app \
-          --host 127.0.0.1 --port 8080 --app-dir backend
+          --host 127.0.0.1 --port 8080 --app-dir backend \
+          --timeout-graceful-shutdown 3
 Restart=always
 RestartSec=10
 
@@ -270,6 +271,14 @@ docker compose logs -f            # Docker kurulumunda
 Biçim: her satır tek bir JSON nesnesi — `ts, level, bilesen, mesaj`.
 Sorun bildirirken kırmızı/`ERROR` satırlarını **olduğu gibi** kopyalayın.
 
+**Beklenen tek `ERROR` satırı:** sistem durdurulurken bir tarayıcıda Olaylar ya
+da komuta ekranı açıksa uvicorn `Cancel 1 running task(s), timeout graceful
+shutdown exceeded` yazar. Ekranın canlı akışı kendiliğinden bitmez; kapanış
+onu 3 sn bekleyip keser (başlatma komutlarındaki `--timeout-graceful-shutdown 3`),
+sayfa da kendiliğinden yeniden bağlanır. Bu süre olmasaydı kapanış hiç bitmez,
+Kontrol Paneli süreci zorla kapatırdı. Hemen ardından Olaylar'da "Sistem durdu"
+görünmelidir.
+
 ---
 
 ## 7. Sorun giderme
@@ -290,6 +299,7 @@ Sorun bildirirken kırmızı/`ERROR` satırlarını **olduğu gibi** kopyalayın
 | Ekranda uyarı sesi gelmiyor | Tarayıcı kuralı: sayfaya bir kez tıklayın. Anons sayfasındaki kutuyu işaretleyin |
 | Disk doluyor | Ana sayfadaki "Boş alan"; saklama sürelerini kısaltın; `veri/goruntuler` en büyük kalemdir |
 | Canlı uyarı paneli "bağlantı koptu" | Sunucu durmuş olabilir; Kontrol Paneli'nden yeniden başlatın |
+| Olaylar'da "Sistem başladı — önceki çalışma düzgün kapanmamıştı" | Sistem "Sistem durdu" yazamadan kapandı: elektrik kesintisi, bilgisayarın kapatılması, görev yöneticisinden sonlandırma ya da çökme. O sırada açık kalan olaylar "sistem yeniden başladı" sebebiyle kapatılmıştır. Sık görülüyorsa `veri/loglar/sistem.log`'un kapanıştan önceki son satırlarına bakın |
 
 ---
 

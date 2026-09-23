@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import json
 import math
+import sqlite3
 import threading
 import time
 from collections import deque
@@ -44,7 +45,7 @@ from app.analiz.tespit import ModelHatasi, Tespitci
 from app.ayarlar import Ayarlar
 from app.loglama import log_al
 from app.olaylar.anons import AnonsYoneticisi
-from app.olaylar.yazici import ihlal_yaz, sistem_olayi_yaz
+from app.olaylar.yazici import acik_olaylari_kapat, ihlal_yaz, olay_kapat, sistem_olayi_yaz
 from app.rules.parametreler import KuralParametreHatasi, params_dogrula
 from app.rules.tipler import BOLGE_TIPI_KODLARI, SINIF_INSAN, Bolge, Kalibrasyon, Kural
 
@@ -108,6 +109,11 @@ class AnalizSupervizoru:
         self._siradaki_ornek: dict[int, float] = {}
         self._son_kkd_ornek: dict[int, float] = {}
         self._olcumler: dict[int, _KameraOlcumu] = {}
+        # Kamera id → açık "Kamera çevrimdışı" olayının id'si. Kamera dönünce,
+        # kapatılınca ya da silinince bu olay kapatılır (docs/17 §6.1). Id ile
+        # tutulur: silinen kameranın olaylarında camera_id boşalır (FK SET NULL)
+        # ve olay artık kameradan bulunamazdı.
+        self._kopukluk_olaylari: dict[int, int] = {}
 
         self._son_konfig_kontrol = 0.0
         self._son_durum_yazma = 0.0
@@ -266,6 +272,10 @@ class AnalizSupervizoru:
             self._log.error(f"Analiz başlatılamadı: {hata}", exc_info=hata)
             return
         try:
+            self._acilis_olaylarini_yaz(baglanti)
+        except Exception as hata:  # noqa: BLE001 — olay yazılamadı diye analiz başlamamazlık etmez
+            self._log.error(f"Açılış olayları yazılamadı: {hata}", exc_info=hata)
+        try:
             self._tespitciyi_kur(baglanti)
         except Exception as hata:  # noqa: BLE001 — model kurulamadı diye kameralar durmaz
             self.tespitci = None
@@ -277,6 +287,13 @@ class AnalizSupervizoru:
                 "program klasöründeki veri/loglar/sistem.log dosyasını destek ekibine iletin."
             )
             self._log.error(f"Tespit modeli kurulamadı: {hata}", exc_info=hata)
+            # Beklenmeyen hata yolu da olay yazar (docs/17 §6.1): eskiden yalnız
+            # tipli hata yolu yazıyordu ve bu durumda Olaylar'da iz kalmıyordu.
+            self._sistem_olayi(
+                baglanti,
+                f"Tespit modeli yüklenemedi: {self.tespit_hatasi}",
+                kod="MODEL_LOAD_FAILED",
+            )
         # Bakım açılıştan hemen sonra bir kez, sonra her 24 saatlik UYGULAMA
         # çalışma süresinde bir çalışsın (makinenin uptime'ından bağımsız).
         self._son_bakim = time.monotonic() - _BAKIM_ARALIGI_SN
@@ -305,8 +322,98 @@ class AnalizSupervizoru:
                     self._log.error(f"Analiz döngüsünde hata: {hata}", exc_info=hata)
                 self._dur.wait(0.05)
         finally:
+            try:
+                self._kapanis_olaylarini_yaz(baglanti)
+            except Exception as hata:  # noqa: BLE001 — bağlantı yine kapanmalı
+                self._log.error(f"Kapanış olayları yazılamadı: {hata}", exc_info=hata)
             baglanti.close()
             self._log.info("Analiz süpervizörü durdu.")
+
+    # ---- sistem olayları ----
+
+    def _sistem_olayi(
+        self,
+        baglanti,
+        mesaj: str,
+        *,
+        kod: str,
+        kamera_id: int | None = None,
+        detaylar: dict | None = None,
+    ) -> int | None:
+        """Sistem olayını yazar; yazılamazsa günlüğe düşer ve None döner.
+
+        Olay kaydı başarısız diye analiz durmaz (docs/17 §3.5): kilitli ya da
+        dolu bir veritabanı yüzünden model atılmamalı, kamera durumları
+        yazılmaya devam etmeli.
+        """
+        try:
+            return sistem_olayi_yaz(baglanti, mesaj, kamera_id, detaylar, kod=kod)
+        except sqlite3.Error as hata:
+            self._log.error(
+                f"Sistem olayı veritabanına yazılamadı ({kod}): {hata}",
+                extra={"ayrinti": mesaj},
+                exc_info=hata,
+            )
+            return None
+
+    def _acilis_olaylarini_yaz(self, baglanti) -> None:
+        """Önceki çalışmadan açık kalan olayları kapatır, "Sistem başladı" yazar.
+
+        Açık kalan olay (elektrik kesintisinde "Kamera çevrimdışı" gibi) ekranda
+        sonsuza kadar "sürüyor" görünürdü. Son yaşam olayı "Sistem başladı"
+        ise önceki çalışma "Sistem durdu" yazamadan bitmiştir; bu da çalışma
+        süresi ölçümünün (docs/17 §14) kanıtıdır ve olayda söylenir.
+        """
+        try:
+            son = baglanti.execute(
+                "SELECT event_code FROM events "
+                "WHERE event_code IN ('SYSTEM_STARTED', 'SYSTEM_STOPPED') "
+                "ORDER BY occurred_at DESC, id DESC LIMIT 1"
+            ).fetchone()
+            kapatilan = acik_olaylari_kapat(baglanti, "yeniden_baslama")
+        except sqlite3.Error as hata:
+            self._log.error(f"Açık kalan olaylar kapatılamadı: {hata}", exc_info=hata)
+            son, kapatilan = None, 0
+        mesaj = "Sistem başladı"
+        detaylar: dict = {}
+        if son is not None and son["event_code"] == "SYSTEM_STARTED":
+            mesaj += (
+                " — önceki çalışma düzgün kapanmamıştı (elektrik kesintisi ya da "
+                "program çökmesi olabilir)"
+            )
+            detaylar["onceki_calisma"] = "duzgun_kapanmadi"
+        if kapatilan:
+            detaylar["kapatilan_acik_olay"] = kapatilan
+        self._sistem_olayi(baglanti, mesaj, kod="SYSTEM_STARTED", detaylar=detaylar)
+
+    def _kapanis_olaylarini_yaz(self, baglanti) -> None:
+        """Düzgün kapanışta açık olayları kapatır ve "Sistem durdu" yazar."""
+        try:
+            kapatilan = acik_olaylari_kapat(baglanti, "kapanis")
+        except sqlite3.Error as hata:
+            self._log.error(f"Açık olaylar kapanışta kapatılamadı: {hata}", exc_info=hata)
+            kapatilan = 0
+        self._kopukluk_olaylari.clear()
+        self._sistem_olayi(
+            baglanti,
+            "Sistem durdu",
+            kod="SYSTEM_STOPPED",
+            detaylar={"kapatilan_acik_olay": kapatilan} if kapatilan else None,
+        )
+
+    def _kopuklugu_kapat(
+        self, baglanti, kamera_id: int, sebep: str, bitis_utc: str | None = None
+    ) -> None:
+        """Kameranın açık "çevrimdışı" olayını (varsa) kapatır."""
+        olay_id = self._kopukluk_olaylari.pop(kamera_id, None)
+        if olay_id is None:
+            return
+        try:
+            olay_kapat(baglanti, olay_id, sebep, bitis_utc)
+        except sqlite3.Error as hata:
+            self._log.error(
+                f"Kamera çevrimdışı olayı kapatılamadı (olay {olay_id}): {hata}", exc_info=hata
+            )
 
     def _tespitciyi_kur(self, baglanti) -> None:
         try:
@@ -325,7 +432,9 @@ class AnalizSupervizoru:
             if self.tespitci.cihaz_uyarisi:
                 # GPU istenip CPU'ya düşülmüşse kullanıcı bunu bilmeli
                 self.cihaz_uyarisi = self.tespitci.cihaz_uyarisi
-                sistem_olayi_yaz(baglanti, self.tespitci.cihaz_uyarisi)
+                self._sistem_olayi(
+                    baglanti, self.tespitci.cihaz_uyarisi, kod="INFERENCE_DEVICE_FALLBACK"
+                )
         except (ModelHatasi, ModelIndirmeHatasi) as hata:
             # Model yokken sistem ÇÖKMEZ: kameralar izlenir, tespit yapılmaz.
             # Durum ana sayfada ve olay listesinde görünür.
@@ -340,7 +449,11 @@ class AnalizSupervizoru:
                 extra={"ayrinti": hata.teknik_ayrinti},
                 exc_info=hata,
             )
-            sistem_olayi_yaz(baglanti, f"Tespit modeli yüklenemedi: {hata.kullanici_mesaji}")
+            self._sistem_olayi(
+                baglanti,
+                f"Tespit modeli yüklenemedi: {hata.kullanici_mesaji}",
+                kod="MODEL_LOAD_FAILED",
+            )
 
     def _modeli_hazirla(self) -> None:
         """Model dosyası yoksa ve bilinen bir YOLOX modeliyse bir kez indirir.
@@ -437,6 +550,9 @@ class AnalizSupervizoru:
                 mevcut.durdur()
                 mevcut = None
                 del self._kaynaklar[kid]
+                # Durum makinesi baştan başlar ("bağlanıyor"); eski kaynağın
+                # "çevrimdışı" olayı bir "tekrar çevrimiçi" ile kapanamaz artık.
+                self._kopuklugu_kapat(baglanti, kid, "kamera_degisti")
                 # Adres değiştiyse ESKİ kameranın son karesi ve takip durumu
                 # yeni kameraya ait değildir: hat da sıfırlanmalı, yoksa
                 # önizlemede eski görüntü ve yanlış takip id'leri sürerdi.
@@ -484,6 +600,7 @@ class AnalizSupervizoru:
         for kid in list(self._kaynaklar):
             if kid not in aktif_idler:
                 self._kaynaklar.pop(kid).durdur()
+                self._kopuklugu_kapat(baglanti, kid, "kamera_degisti")
                 self._kaynak_damgalari.pop(kid, None)
                 self._hatlar.pop(kid, None)
                 self._kamera_konfig.pop(kid, None)
@@ -747,23 +864,46 @@ class AnalizSupervizoru:
             if durum_olayi != onceki:
                 self._son_durumlar[kid] = durum_olayi
                 ad = self._kamera_konfig.get(kid, {}).get("name", kid)
+                if durum != DURUM_OFFLINE:
+                    # "Kamera çevrimdışı" SÜREN bir olaydır (docs/17 §6.1): görüntü
+                    # geri geldiği an biter — fark edildiği an değil, kararlılık
+                    # süresi kadar önce. Video bittiyse de kopukluk sona ermiştir.
+                    self._kopuklugu_kapat(
+                        baglanti,
+                        kid,
+                        "kosul_bitti",
+                        zaman.saniye_once_utc(kaynak.kesintisiz_akis_sn()),
+                    )
                 if durum == DURUM_BITTI:
                     # "Çevrimdışı" DEĞİL: video planlandığı gibi bitti. Aynı
                     # cümle kullanılsaydı kullanıcı bozulduğunu sanıp aramaya
                     # koyulurdu (docs/12 — dürüst geri bildirim).
                     self._log.info(f"Video analizi tamamlandı: {ad}")
-                    sistem_olayi_yaz(baglanti, f"Video analizi tamamlandı: {ad}", kamera_id=kid)
+                    self._sistem_olayi(
+                        baglanti,
+                        f"Video analizi tamamlandı: {ad}",
+                        kod="VIDEO_FINISHED",
+                        kamera_id=kid,
+                    )
                 elif durum == DURUM_OFFLINE:
                     sebep = f" — {kaynak.son_hata}" if kaynak.son_hata else ""
                     self._log.warning(f"Kamera çevrimdışı: {ad}{sebep}")
-                    sistem_olayi_yaz(
+                    olay_id = self._sistem_olayi(
                         baglanti,
                         f"Kamera çevrimdışı: {ad}{sebep}",
+                        kod="CAMERA_DOWN",
                         kamera_id=kid,
                     )
+                    if olay_id is not None:
+                        self._kopukluk_olaylari[kid] = olay_id
                 elif durum == DURUM_ONLINE and onceki == DURUM_OFFLINE:
                     self._log.info(f"Kamera tekrar çevrimiçi: {ad}")
-                    sistem_olayi_yaz(baglanti, f"Kamera tekrar çevrimiçi: {ad}", kamera_id=kid)
+                    self._sistem_olayi(
+                        baglanti,
+                        f"Kamera tekrar çevrimiçi: {ad}",
+                        kod="CAMERA_UP",
+                        kamera_id=kid,
+                    )
             if durum == DURUM_ONLINE:
                 baglanti.execute(
                     "UPDATE cameras SET status = ?, last_frame_at = ?, measured_fps = ? "
@@ -840,10 +980,11 @@ class AnalizSupervizoru:
             f"boş disk {bos_gb:.1f} GB"
         )
         if bos_gb < a.disk_uyari_gb:
-            sistem_olayi_yaz(
+            self._sistem_olayi(
                 baglanti,
                 f"Disk azalıyor: {bos_gb:.1f} GB kaldı (uyarı eşiği {a.disk_uyari_gb} GB). "
                 "Saklama sürelerini kısaltmayı veya disk açmayı değerlendirin.",
+                kod="DISK_LOW",
             )
 
     def _eski_dosyalari_sil(self, klasor: Path, gun: int, nesne_klasoru: Path) -> int:

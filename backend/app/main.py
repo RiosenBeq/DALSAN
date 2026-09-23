@@ -1,6 +1,11 @@
 """TEK giriş noktası. Kontrol Paneli sistemi şu komutla başlatır (değiştirilemez):
 
-    uvicorn app.main:app --host 127.0.0.1 --port 8080   (çalışma dizini: backend/)
+    uvicorn app.main:app --host 127.0.0.1 --port 8080 --timeout-graceful-shutdown 3
+    (çalışma dizini: backend/)
+
+Kapanış süresi şarttır: açık bir canlı akış (Olaylar, komuta ekranları)
+kendiliğinden bitmez ve süre verilmezse uvicorn kapanırken onu sonsuza kadar
+bekler; kapanış kodu hiç çalışmaz (masaustu/dalsan_launcher.py KAPANIS_BEKLEME_SN).
 
 Bu dosya .env'den ayarları yükler, log sistemini kurar ve FastAPI uygulamasını
 `app` adıyla dışa verir. Uygulamanın kendisi app/uygulama.py'de kurulur;

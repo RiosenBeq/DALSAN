@@ -38,6 +38,15 @@ URL = f"http://127.0.0.1:{PORT}"
 # (app/ayarlar.py); panel o hatayi gunluge olduğu gibi yazar.
 DINLEME_ADRESI_VARSAYILAN = "127.0.0.1"
 
+# Kapanista acik baglantilar icin bekleme (sn). Olaylar ve komuta ekranlarinin
+# canli akisi (SSE) kendiliginden bitmez: sure verilmezse uvicorn kapanirken
+# onu SONSUZA kadar bekler (olculdu: 30 sn sonra hala bekliyordu), panel 8 sn
+# sonra sureci zorla kapatir ve kapanis kodu hic calismazdi — kameralar
+# durmaz, "Sistem durdu" olayi yazilmazdi. Sure dolunca akis kesilir, tarayici
+# kendiliginden yeniden baglanir. Dockerfile ve docs/06 ayni sayiyi kullanir
+# (tests/test_platform_uyumu.py denetler).
+KAPANIS_BEKLEME_SN = 3
+
 IS_WINDOWS = os.name == "nt"
 
 # Program, cift tiklanan bir uygulama (.app / .exe) olarak mi calisiyor?
@@ -603,7 +612,7 @@ def _gunlugu_panele_bagla(log) -> None:
 
 
 def _ic_surecte_baslat(log, gunluk_yaz=None):
-    """Sunucuyu ayni surec icinde baslatir; uvicorn.Server nesnesini dondurur.
+    """Sunucuyu ayni surec icinde baslatir; (uvicorn.Server, is parcacigi) dondurur.
 
     Hata durumunda None doner ve sebebi Turkce olarak gunluge yazar.
 
@@ -640,7 +649,8 @@ def _ic_surecte_baslat(log, gunluk_yaz=None):
     # kendi bicimi (JSON satirlari) bozulmasin.
     sunucu = uvicorn.Server(
         uvicorn.Config(
-            fastapi_uygulamasi, host=dinleme_adresi(), port=PORT, log_config=None
+            fastapi_uygulamasi, host=dinleme_adresi(), port=PORT, log_config=None,
+            timeout_graceful_shutdown=KAPANIS_BEKLEME_SN,
         )
     )
 
@@ -654,8 +664,9 @@ def _ic_surecte_baslat(log, gunluk_yaz=None):
         except OSError as hata:
             log(f"[HATA] Sistem başlatılamadı: {hata}")
 
-    threading.Thread(target=calistir, daemon=True, name="sunucu").start()
-    return sunucu
+    is_parcacigi = threading.Thread(target=calistir, daemon=True, name="sunucu")
+    is_parcacigi.start()
+    return sunucu, is_parcacigi
 
 
 # ----------------------------------------------------------------------------
@@ -681,7 +692,10 @@ def arayuzu_baslat():
     kucuk_font = tkfont.Font(family="Helvetica", size=11)
     log_font = tkfont.Font(family="Menlo" if not IS_WINDOWS else "Consolas", size=10)
 
-    durum = {"surec": None, "sunucu": None, "calisiyor": False, "mesgul": False}
+    durum = {
+        "surec": None, "sunucu": None, "sunucu_is_parcacigi": None,
+        "calisiyor": False, "mesgul": False,
+    }
     log_kuyrugu: "queue.Queue[str]" = queue.Queue()
 
     # paketler_hazir() bir alt surec calistirir (yavas). Ana pencere donmasin
@@ -974,7 +988,8 @@ def arayuzu_baslat():
     def alt_surecte_baslat():
         """Gelistirme kurulumu: sunucu, .venv'deki python ile ayri surecte."""
         komut = [str(venv_python()), "-m", "uvicorn", "app.main:app",
-                 "--host", dinleme_adresi(), "--port", str(PORT)]
+                 "--host", dinleme_adresi(), "--port", str(PORT),
+                 "--timeout-graceful-shutdown", str(KAPANIS_BEKLEME_SN)]
 
         durum["surec"] = subprocess.Popen(
             komut, cwd=str(BACKEND),
@@ -1001,9 +1016,10 @@ def arayuzu_baslat():
         log("SİSTEM BAŞLATILIYOR…")
 
         if PAKETLENMIS:
-            durum["sunucu"] = _ic_surecte_baslat(log, log_kuyrugu.put)
-            if durum["sunucu"] is None:
+            baslatilan = _ic_surecte_baslat(log, log_kuyrugu.put)
+            if baslatilan is None:
                 return
+            durum["sunucu"], durum["sunucu_is_parcacigi"] = baslatilan
         else:
             if venv_python().exists() and not venv_hazir():
                 # Engellenmez: guncelleme sonrasi sistemin DURMASI, eski
@@ -1034,11 +1050,19 @@ def arayuzu_baslat():
             return False
         log("\nSistem durduruluyor…")
         sunucu.should_exit = True
+        # Port hemen kapanir ama kapanis (kameralarin durmasi, "Sistem durdu"
+        # olayi) acik ekran baglantilari yuzunden KAPANIS_BEKLEME_SN kadar
+        # surebilir. Is parcacigi beklenmezse pencere bu arada kapatildiginda
+        # surec kapanisi bitirmeden olurdu.
+        is_parcacigi = durum.get("sunucu_is_parcacigi")
+        if is_parcacigi is not None:
+            is_parcacigi.join(timeout=KAPANIS_BEKLEME_SN + 12)
         for _ in range(60):          # en fazla 15 saniye bekle
             if not sunucu_ayakta():
                 break
             time.sleep(0.25)
         durum["sunucu"] = None
+        durum["sunucu_is_parcacigi"] = None
         log("✓ Durduruldu")
         return True
 

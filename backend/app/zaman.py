@@ -36,6 +36,16 @@ def gun_once_utc(gun: int) -> str:
     return (datetime.now(UTC) - timedelta(days=gun)).isoformat(timespec="seconds")
 
 
+def saniye_once_utc(saniye: float) -> str:
+    """Şimdiden `saniye` önceki an (ISO-8601 UTC).
+
+    Monotonik saatle ölçülmüş bir süreyi olay zamanına çevirir: "görüntü 7 sn
+    önce geri geldi" → kopukluk olayının bitişi o an yazılır, fark edildiği an
+    değil. Negatif süre şimdi sayılır.
+    """
+    return (datetime.now(UTC) - timedelta(seconds=max(0.0, saniye))).isoformat(timespec="seconds")
+
+
 def yerel_gun_baslangici_utc(tarih: str) -> str:
     """'2026-09-02' (Türkiye tarihi) → o günün 00:00'ının UTC karşılığı.
 
