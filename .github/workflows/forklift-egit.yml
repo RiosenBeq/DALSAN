@@ -7,7 +7,12 @@
 # makinenin disk/işlemci durumunu yazar. Eğitim işi bu bilgiyle yazılır.
 name: Forklift eğitimi
 
+# Bu dosya değişince kendiliğinden, istenince "Run workflow" düğmesiyle.
 on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/forklift-egit.yml"
   workflow_dispatch:
 
 permissions:
@@ -39,6 +44,7 @@ jobs:
       - name: CPU PyTorch paketi
         run: |
           python3 --version
+          curl -sSI --max-time 30 https://download.pytorch.org/whl/cpu/torch/ | head -3 || true
           python3 -m pip download --no-deps --only-binary=:all: --python-version 3.12 \
             --platform manylinux_2_28_x86_64 -d paket \
             --index-url https://download.pytorch.org/whl/cpu torch==2.14.0 torchvision==0.29.0 \
