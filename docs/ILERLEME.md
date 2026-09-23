@@ -17,6 +17,33 @@ günlük adresi maskeli yazar. 127.0.0.1:9'u "bağlantı reddedildi" örneği ol
 kullanan iki test, fabrika ağı adresi ve sahte `urlopen` ile aynı davranışı
 sınıyor.
 
+**4a-2 - kanal satırları (K22).** Uyarı kanalının tek tanım yeri artık
+`speaker_zones`: her satır ya bu bilgisayarın bir ses çıkışı (kablolu amfi ya da
+Bluetooth hoparlör, `kind='ses_karti'`, `device`) ya da bir IP hoparlör
+(`kind='http'`, `address`).
+
+- *4a-2a:* şema 009 (`kind`, `device`, `health`, `health_changed_at`;
+  `alert_deliveries` teslim kaydı). `.env`'deki `ANONS` / `ANONS_SES_CIHAZI` /
+  `ANONS_HTTP_ADRESI` ilk açılışta bir kez "Tüm fabrika" satırına aktarılır ve
+  duyulan davranış aynı kalır: `ses_karti` ve `null` ayarında hiç kullanılmayan
+  eski bölgeler kapalı aktarılır. Adım `sema_surumu`'na yazılır; yarıda kalırsa
+  yeniden denenir, silinen satır geri gelmez.
+- *4a-2b:* olay, kameranın bölümündeki BÜTÜN açık kanallardan, bölümde kanal
+  yoksa "Tüm fabrika" kanallarından duyurulur; hiç kanal yoksa ses çıkmaz ve bu
+  söylenir.
+- *4a-2c:* Komuta → Anons ekranında "Uyarı kanalları" listesi: her satırın kendi
+  Dene düğmesi ve düzenleme formu (tür, bağlı çıkışlardan öneri listesi, o anki
+  varsayılan çıkış önceden yazılı, adres). Linux'ta çıkış adı boş bırakılamaz
+  (R37); test sesi kayıtlı satırın çıkışına çalar (R39). Rozetler: kapalı,
+  çıkış seçilmedi (eski boş kayıt), görünmüyor (çıkış listede yok; liste
+  okunamazsa ya da çıkışı işletim sistemi seçiyorsa hiçbir şey iddia edilmez).
+  390 px'te kanal formunun 30 px taşması giderildi. Statik damga `?v=38`.
+- *4a-2d:* üç `.env` anahtarı emekli: Ayarlar sayfasında Anons grubu yalnız
+  `ANONS_HTTP_BICIMI` ve `ANONS_BEKLEME_SN`'yi tutar; eski /anons sayfasında
+  kanal özeti; `/anons/ses-cikisi` ve `/anons/test-sesi` kalktı (çıkış adı bir
+  daha `.env`'e yazılmaz, R14 yapı gereği kapanır); kurulum listesinin anons
+  adımı açık kanal sayar. docs/14 kanal ekranına göre yeniden yazıldı.
+
 ## Faz 3 KKD (23.09.2026)
 
 Plan: `docs/17-V2-TASARIM.md` §5 ve §13 (3a–3e satırları). Operatör Faz 3 ve Faz 4

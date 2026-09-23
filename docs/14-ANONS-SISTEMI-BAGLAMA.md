@@ -3,10 +3,18 @@
 Sistemin ihlalde **hoparlörden konuşabilmesi** için fabrikanın mevcut anons
 altyapısına bağlanması gerekir. Bu belge o işi adım adım tarif eder.
 
-> **Önce şunu bilin:** Anons **zorunlu değildir.** `ANONS=null` iken sistem
-> tam olarak çalışır — uyarılar ekranda görünür, olaylar kanıt fotoğrafıyla
-> kaydedilir. Anons yalnızca "sahadaki kişi de duysun" adımıdır. Anons
-> kurulamıyorsa proje durmaz (kabul kriteri K6, `01-MVP-KAPSAM.md`).
+> **Önce şunu bilin:** Anons **zorunlu değildir.** Hiç sesli kanal
+> tanımlanmamışken sistem tam olarak çalışır: uyarılar ekranda görünür, olaylar
+> kanıt fotoğrafıyla kaydedilir. Anons yalnızca "sahadaki kişi de duysun"
+> adımıdır. Anons kurulamıyorsa proje durmaz (kabul kriteri K6,
+> `01-MVP-KAPSAM.md`).
+>
+> **Kanal nedir:** sesin çıktığı her yer bir **uyarı kanalıdır**: bu
+> bilgisayarın bir ses çıkışı (kablolu amfi ya da Bluetooth hoparlör) ya da
+> ağdaki bir IP hoparlör. Kanallar **Komuta → Anons sistemi → Uyarı kanalları**
+> listesinde eklenir, düzenlenir ve tek tek denenir (docs/17 K22). Eklenen ya
+> da değiştirilen kanal çalışan sisteme kendiliğinden iner; yeniden başlatma
+> gerekmez.
 
 ---
 
@@ -17,10 +25,10 @@ Fabrikada anons üç biçimden birinde bulunur. Hangisi olduğunu bilmiyorsanız
 
 | Sizdeki durum | Seçilecek yol | Zorluk |
 |---|---|---|
-| Hoparlörler bir **amplifikatöre** (amfi) bağlı, amfinin ses girişi var | **A — Ses kartı** | En kolay |
-| Hoparlörler **ağ üzerinden** çalışıyor (IP hoparlör, PoE, "SIP" ya da "IP paging") | **B — HTTP** | Orta |
-| Anonsu bir **bilgisayar programı / anons sunucusu** yönetiyor | **B — HTTP** | Orta |
-| Hiçbiri, ya da bilinmiyor | **Şimdilik kapalı** (`ANONS=null`) | — |
+| Hoparlörler bir **amplifikatöre** (amfi) bağlı, amfinin ses girişi var | **A - Ses çıkışı kanalı** | En kolay |
+| Hoparlörler **ağ üzerinden** çalışıyor (IP hoparlör, PoE, "SIP" ya da "IP paging") | **B - IP hoparlör kanalı** | Orta |
+| Anonsu bir **bilgisayar programı / anons sunucusu** yönetiyor | **B - IP hoparlör kanalı** | Orta |
+| Hiçbiri, ya da bilinmiyor | **Şimdilik kanal eklemeyin** (yalnız ekran uyarısı) | - |
 
 **Önerimiz:** Şüphedeyseniz **A ile başlayın.** Sunucuya bir ses kablosu takıp
 amfinin hat girişine (AUX / LINE IN) vermek, çoğu fabrikada yarım saatlik
@@ -52,51 +60,56 @@ Sistem açısından fark yoktur: Bluetooth hoparlör de bir **ses çıkışıdı
 
 1. Hoparlörü **işletim sisteminden eşleştirin** (Windows: Ayarlar → Bluetooth
    ve cihazlar · Mac: Sistem Ayarları → Bluetooth · Linux: `bluetoothctl` ya
-   da masaüstünün Bluetooth ayarı). Program eşleştirmeyi kendisi yapmaz —
+   da masaüstünün Bluetooth ayarı). Program eşleştirmeyi kendisi yapmaz:
    yapmaya kalkan bir yazılım, işletim sisteminin zaten yaptığı işi ikinci
    kez, daha kötü yapmış olurdu.
-2. **Anons sistemi** sayfasındaki **Ses çıkışı** bölümünden hoparlörü seçin.
-3. **Test sesi çal**'a basın: üç kısa bip duymalısınız.
+2. **Komuta → Anons sistemi → + Yeni kanal**: Tür = **Ses çıkışı**, "Ses
+   çıkışı" kutusunda listeden hoparlörü seçin (Linux'ta adı
+   `bluez_output.…` ile başlar).
+3. Kanalın satırındaki **▶ Dene**'ye basın: üç kısa bip duymalısınız.
 
 > **Kalıcı kurulum için kablo tercih edin.** Bluetooth iki yerde zayıftır:
 > menzil (fabrikada duvar ve metal raf çok) ve hoparlörün kendi pili bitince
-> sessizce düşmesi. Sistem bu düşmeyi fark eder ve Anons sayfasında
-> **"seçili cihaz bağlı değil"** diye kırmızı yazar, ama uyarıyı görmek için
-> birinin ekrana bakması gerekir. Kablolu bağlantıda böyle bir risk yoktur.
+> sessizce düşmesi. Sistem bu düşmeyi fark eder ve kanal satırında kırmızı
+> **"görünmüyor"** yazar, ama uyarıyı görmek için birinin ekrana bakması
+> gerekir. Kablolu bağlantıda böyle bir risk yoktur.
 
-### 2.2 Ayar
+### 2.2 Kanalı ekleme
 
-Ayarlar sayfasından (**Komuta → Ayarlar**) ya da `.env` dosyasından:
+**Komuta → Anons sistemi → Uyarı kanalları → + Yeni kanal**:
 
-```
-ANONS=ses_karti
-```
+| Alan | Ne yazılır |
+|---|---|
+| Ad | "Sevkiyat amfisi" |
+| Bölüm | Kameranın bölümü; boş bırakılırsa **Tüm fabrika** (§4) |
+| Tür | **Ses çıkışı (kablolu ya da Bluetooth)** |
+| Ses çıkışı | Listeden amfinin bağlı olduğu çıkış (o anki varsayılan önceden yazılı gelir) |
 
-Sistemi yeniden başlatın (Kontrol Paneli → Durdur → Sistemi Başlat).
+Kaydedin ve satırdaki **▶ Dene** ile sınayın. Yeniden başlatma gerekmez.
 
 ### 2.2.1 Hangi çıkıştan çalsın?
 
 Bilgisayarda birden fazla ses çıkışı olabilir (dahili hoparlör, HDMI ekran,
-Bluetooth hoparlör, USB ses kartı). **Anons sistemi → Ses çıkışı** bölümü
-bağlı çıkışları listeler ve hangisinin kullanılacağını gösterir.
+Bluetooth hoparlör, USB ses kartı). Kanal formundaki "Ses çıkışı" kutusu o an
+bağlı çıkışları önerir; kapalı bir Bluetooth hoparlörün adı elle de yazılabilir.
 
-Seçimin programdan yapılabilmesi işletim sistemine bağlıdır ve bu ekranda
+Seçimin programdan yapılabilmesi işletim sistemine bağlıdır ve formda
 dürüstçe yazar:
 
 | İşletim sistemi | Çıkış nasıl seçilir |
 |---|---|
-| **Linux** (fabrika sunucusu) | Listeden seçilir, sistem o çıkışa çalar. |
-| **Mac** | Sistem Ayarları → Ses → Çıkış. Anons her zaman **varsayılan** çıkışa çalar. |
-| **Windows** | Görev çubuğundaki hoparlör simgesi → çıkış cihazı. Anons **varsayılan** çıkışa çalar. |
+| **Linux** (fabrika sunucusu) | Listeden seçilir, kanal o çıkışa çalar. **Boş bırakılamaz:** "varsayılan çıkış" denetlenemez; Bluetooth hoparlör koparsa işletim sistemi sesi sessizce dahili hoparlöre devrederdi (docs/17 §7.2, R37). |
+| **Mac** | Sistem Ayarları → Ses → Çıkış. Anons her zaman **varsayılan** çıkışa çalar; alan boş kalabilir. |
+| **Windows** | Görev çubuğundaki hoparlör simgesi → çıkış cihazı. Anons **varsayılan** çıkışa çalar; alan boş kalabilir. |
 
 Sebebi: Mac'in `afplay`'i ve Windows'un `winsound` ses çalıcısı cihaz
-seçeneği almaz. Arayüzde çalışmayan bir seçim kutusu göstermek en kötüsü
-olurdu — kullanıcı hoparlörü seçer, ses başka yerden çıkar ve sebebini
-hiçbir zaman öğrenemezdi.
+seçeneği almaz. Arayüzde çalışmayan bir seçim göstermek en kötüsü olurdu:
+kullanıcı hoparlörü seçer, ses başka yerden çıkar ve sebebini hiçbir zaman
+öğrenemezdi.
 
-**Test sesi çal** düğmesi her üç sistemde de çalışır ve mesaj/ses dosyası
-hazırlamanızı beklemez: yalnızca "bu hoparlörden ses çıkıyor mu" sorusunu
-cevaplar.
+Kanalın **▶ Dene** düğmesi her üç sistemde de çalışır ve mesaj/ses dosyası
+hazırlamanızı beklemez: kanalın kayıtlı çıkışından üç kısa bip çalar ve
+yalnızca "bu hoparlörden ses çıkıyor mu" sorusunu cevaplar.
 
 ### 2.3 Ses dosyalarını hazırlama
 
@@ -136,7 +149,8 @@ Cihazlar bu isteği tek tip beklemez; bu yüzden üç biçim desteklenir.
 
 ### 3.1 Hangi biçim?
 
-`ANONS_HTTP_BICIMI` ayarı üç değer alır:
+Biçim **Ayarlar → Anons** bölümündeki `ANONS_HTTP_BICIMI` ayarıdır ve bütün
+IP hoparlör kanalları için ortaktır. Üç değer alır:
 
 | Biçim | Ne gönderilir | Tipik cihaz |
 |---|---|---|
@@ -146,7 +160,7 @@ Cihazlar bu isteği tek tip beklemez; bu yüzden üç biçim desteklenir.
 
 ### 3.2 Adres ve yer tutucular
 
-`ANONS_HTTP_ADRESI` içine iki yer tutucu yazılabilir; sistem gönderirken
+IP hoparlör kanalının adresine iki yer tutucu yazılabilir; sistem gönderirken
 bunları doldurur:
 
 | Yer tutucu | Yerine yazılan |
@@ -154,32 +168,32 @@ bunları doldurur:
 | `{anahtar}` | Mesaj anahtarı (`helmet`, `vest`, `safe_distance` …) |
 | `{metin}` | Anons metninin tamamı |
 
-**`get` biçiminde adres, hangi mesajın çalınacağını taşımak ZORUNDADIR** —
-yoksa her ihlalde aynı ses çalar. Sistem bunu açılışta denetler ve `{anahtar}`
-yoksa anlaşılır bir hatayla durur.
+**`get` biçiminde adres, hangi mesajın çalınacağını taşımak ZORUNDADIR**;
+yoksa her ihlalde aynı ses çalar. Kanal formu `{anahtar}` ya da `{metin}`
+taşımayan adresi kaydetmez ve nedenini söyler.
 
 ### 3.3 Üç örnek
 
-**Örnek 1 — Cihaz, dosya adını adreste istiyor:**
+Her örnekte kanal, **+ Yeni kanal** formunda Tür = **IP hoparlör** ile
+eklenir; biçim Ayarlar → Anons'tan seçilir.
+
+**Örnek 1 - Cihaz, dosya adını adreste istiyor:**
 ```
-ANONS=http
-ANONS_HTTP_BICIMI=get
-ANONS_HTTP_ADRESI=http://10.0.0.9/play?file={anahtar}
+Biçim (Ayarlar → Anons):  get
+Kanal adresi:             http://10.0.0.9/play?file={anahtar}
 ```
 Baret ihlalinde çağrılan adres: `http://10.0.0.9/play?file=helmet`
 
-**Örnek 2 — Cihaz, metni okuyup seslendiriyor (metinden konuşma):**
+**Örnek 2 - Cihaz, metni okuyup seslendiriyor (metinden konuşma):**
 ```
-ANONS=http
-ANONS_HTTP_BICIMI=get
-ANONS_HTTP_ADRESI=http://10.0.0.9/tts?msg={metin}
+Biçim (Ayarlar → Anons):  get
+Kanal adresi:             http://10.0.0.9/tts?msg={metin}
 ```
 
-**Örnek 3 — Anons sunucusu JSON bekliyor (varsayılan):**
+**Örnek 3 - Anons sunucusu JSON bekliyor (varsayılan):**
 ```
-ANONS=http
-ANONS_HTTP_BICIMI=json
-ANONS_HTTP_ADRESI=http://10.0.0.9:8080/anons
+Biçim (Ayarlar → Anons):  json
+Kanal adresi:             http://10.0.0.9:8080/anons
 ```
 Gönderilen gövde: `{"key": "helmet", "text": "Lütfen baretinizi takınız."}`
 
@@ -200,33 +214,44 @@ ad çözülür ve sonuç da aynı denetimden geçer.
 
 ---
 
-## 4. Bölüm bölüm anons (hoparlör bölgeleri)
+## 4. Bölüm bölüm anons
 
-Varsayılanda tüm ihlaller aynı adrese gider. Fabrikanın öbür ucundaki çalışanın,
-kendisiyle ilgisi olmayan bir uyarıyı duymaması için **hoparlör bölgeleri**
-tanımlanır.
+Fabrikanın öbür ucundaki çalışanın, kendisiyle ilgisi olmayan bir uyarıyı
+duymaması için kanallar **bölüme** bağlanır. Kanal formundaki "Bölüm" kutusu
+kameraların bölümlerini listeler.
 
-**Komuta → Anons sistemi → Hoparlör bölgeleri** bölümünden:
+Seçim kuralı (`app/olaylar/anons.py` → `bolgeleri_sec`, docs/17 §7.3-1):
 
-| Alan | Ne yazılır |
-|---|---|
-| Ad | "Sevkiyat holü hoparlörü" |
-| Bölüm | Kameranın **Alan** alanıyla **birebir aynı** metin: `Sevkiyat` |
-| Adres | O bölümün hoparlörünün adresi |
-
-Seçim kuralı (`app/olaylar/anons.py` → `bolge_sec`):
-
-1. Kameranın bölümüyle **birebir eşleşen** açık bölge,
-2. yoksa **bölümü boş** olan bölge ("tüm fabrika"),
-3. o da yoksa `.env`'deki tek adres.
+1. Olay, kameranın bölümüyle **birebir eşleşen BÜTÜN** açık kanallardan
+   duyurulur (bir bölümde hem amfi hem IP hoparlör olabilir);
+2. bölümde açık kanal yoksa **bölümü boş** olan kanallardan (**Tüm fabrika**);
+3. o da yoksa ses çıkmaz: uyarı yalnızca ekranda görünür ve Anons ekranı bunu
+   yazar ("sesli kanal yok").
 
 > **Sık yapılan hata:** Kameranın alanı `sevkiyat`, hoparlörünki `Sevkiyat`
 > yazılırsa eşleşme olmaz (büyük/küçük harf duyarlıdır). İkisini kopyala-yapıştır
 > yapın.
 
-Her hoparlörün yanında **"Bu hoparlörü dene"** düğmesi vardır; anons ayarınız
-`null` olsa bile çalışır. Kabloyu ve adresi, sistemi anonsa açmadan önce
-buradan sınayın.
+Her kanalın satırında **▶ Dene** düğmesi vardır ve kanal kapalıyken de çalışır.
+Kabloyu ve adresi, kanalı açmadan önce buradan sınayın. Mesaj listesindeki
+"Dene" ise mesajı **Tüm fabrika** kanallarından çalar; Tüm fabrika kanalı yoksa
+bunu söyler.
+
+### 4.1 Eski kurulumdan geçiş (tek seferlik)
+
+Eskiden anons `.env` dosyasındaki `ANONS`, `ANONS_SES_CIHAZI` ve
+`ANONS_HTTP_ADRESI` satırlarıyla kurulurdu. Güncellemeden sonraki ilk açılışta
+bu değerler **bir kez** kanal listesine aktarılır ve duyulan davranış aynı
+kalır (docs/17 K22):
+
+| Eski `.env` | Aktarımdan sonra |
+|---|---|
+| `ANONS=ses_karti` | "Tüm fabrika" = bu bilgisayarın seçili ses çıkışı. Eski hoparlör bölgeleri **kapalı** aktarılır (o ayarda hiç kullanılmıyorlardı); kullanmak için listeden açın. |
+| `ANONS=http` | "Tüm fabrika" kanalı yoksa `.env` adresi o kanal olur. |
+| `ANONS=null` | Kanal eklenmez; eski hoparlör bölgeleri kapalı aktarılır. |
+
+Aktarım günlüğe yazılır. Sonra o üç satır okunmaz; silebilirsiniz. Aktarılan
+bir kanalı sonradan silerseniz geri gelmez.
 
 ---
 
@@ -275,7 +300,10 @@ Bu listeyi olduğu gibi iletebilirsiniz:
 
 | Belirti | Sebep | Çözüm |
 |---|---|---|
-| "Anons KAPALI" yazıyor | `ANONS=null` | Ayarlar'dan `ses_karti` ya da `http` seçip **yeniden başlatın** |
+| "sesli kanal yok" yazıyor | Açık kanal yok | Anons sistemi → **+ Yeni kanal** (§2.2, §3) |
+| Kanal satırında kırmızı "görünmüyor" | Ses çıkışı şu an bilgisayarda yok (Bluetooth hoparlör kapalı ya da menzil dışı) | Hoparlörü açın, sayfayı yenileyin; kalıcı kurulumda kablo tercih edin |
+| Kanal satırında "çıkış seçilmedi" | Eski kayıtta çıkış adı boş (Linux) | Düzenle → çıkışı listeden seçip kaydedin |
+| "Mesaj denenemedi: … Tüm fabrika kanalı yok" | Mesaj denemesi Tüm fabrika kanalından çalar | Kanalları kendi **▶ Dene** düğmeleriyle sınayın ya da bölümü boş bir kanal ekleyin |
 | "Ses çalma komutu bulunamadı" | Linux'ta `alsa-utils` yok | `sudo apt install alsa-utils` |
 | "…mesajına ses dosyası bağlanmamış" | WAV yolu boş | Anons sayfasında dosya yolunu yazın |
 | "Dosya biçimi desteklenmiyor olabilir" | MP3 verilmiş | WAV'a çevirin (§2.3) |
@@ -283,7 +311,7 @@ Bu listeyi olduğu gibi iletebilirsiniz:
 | Deneme çalışıyor, gerçek anons çalmıyor | Kural **gölge modda** | Uyarı zinciri → "Anonsu aç" |
 | Her ihlalde **aynı** ses çalıyor | `get` biçiminde adres `{anahtar}` taşımıyor | Adrese `{anahtar}` ekleyin (§3.2) |
 | Hoparlör aynı olayda üst üste bağırıyor | Bekleme süresi kısa | `ANONS_BEKLEME_SN` değerini artırın |
-| Yanlış bölümün hoparlörü çalıyor | Bölüm adları eşleşmiyor | Kamera **Alan**ı ile hoparlör **Bölüm**ü birebir aynı olmalı (§4) |
+| Yanlış bölümün hoparlörü çalıyor | Bölüm adları eşleşmiyor | Kamera **Alan**ı ile kanalın **Bölüm**ü birebir aynı olmalı (§4) |
 | Ekranda uyarı var, hoparlör hiç çalmıyor | Kurala anons mesajı bağlanmamış | Kurallar → kuralı düzenle → anons mesajı seç |
 
 Her denemenin sonucu **Anons sistemi** sayfasında son satır olarak yazar
@@ -298,5 +326,5 @@ Her denemenin sonucu **Anons sistemi** sayfasında son satır olarak yazar
 | SIP/VoIP ile doğrudan hoparlöre çağrı | Ayrı bir yığın (SIP kütüphanesi, ses kodlayıcı) demektir. IP hoparlörlerin neredeyse tamamının HTTP tetikleyicisi var; onu kullanmak tek satır ayar. |
 | Metinden konuşma (sunucuda) | Yeni bir çalışma zamanı ve dil modeli. Ses dosyasını bir kez kaydetmek, hem daha net hem bedelsiz. `get` biçimiyle cihazın kendi seslendirmesi kullanılabilir. |
 | Anonsun gerçekten duyulduğunun doğrulanması | Geri besleme mikrofonu ve ölçüm gerektirir. Bugün cihazın "aldım" yanıtı kaydedilir; ötesi `07-YOL-HARITASI.md` #16. |
-| Bölge başına ayrı HTTP biçimi | Fabrikadaki hoparlörler aynı marka olur; kullanıcıya öğrenmesi gereken ikinci bir kavram çıkarmamak için biçim tek yerde (`.env`) durur. |
+| Kanal başına ayrı HTTP biçimi | Fabrikadaki hoparlörler aynı marka olur; kullanıcıya öğrenmesi gereken ikinci bir kavram çıkarmamak için biçim tek yerde (Ayarlar → Anons, `ANONS_HTTP_BICIMI`) durur. |
 | Gece vardiyasında ses seviyesini düşürme | Sistem ses seviyesini yönetmez; amfinin işidir. Çalışmayan bir düğme, olmayan bir özellikten kötüdür. |

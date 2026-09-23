@@ -160,14 +160,19 @@ sistem bunu ana sayfada Türkçe bir uyarı olarak yazar (ADR-002), çünkü
 ## 7. Anons adaptörü
 
 ```
-Announcer (arayüz): play(message_key) -> None
-├── NullAnnouncer        # varsayılan; dev + anons altyapısı yoksa prod
-├── LocalAudioAnnouncer  # WAV → ses kartı → mevcut amplifikatör (/dev/snd container'a)
-└── HttpAnnouncer        # IP hoparlör / anons sunucusu HTTP endpoint'i
+Anonscu (arayüz): cal(anahtar, metin, ses_dosyasi) -> None
+├── SesKartiAnonscu(device)  # WAV → ses çıkışı (kablolu amfi ya da Bluetooth hoparlör)
+└── HttpAnonscu(address)     # IP hoparlör / anons sunucusu HTTP ucu
 ```
 
-Seçim: `.env` → `ANONS=null|ses_karti|http`. Anons cooldown'u ekran uyarısından
-**bağımsız ve daha uzun** (varsayılan 30 sn). Hoparlör sürekli bağırmamalı.
+Seçim: **kanal satırları** (`speaker_zones`, şema 009; docs/17 K22). Her satır
+bir kanaldır (`kind` = `ses_karti` | `http`); olay, kameranın bölümündeki bütün
+açık kanallardan, bölümde kanal yoksa "Tüm fabrika" kanallarından duyurulur
+(`olaylar/anons.py` → `bolgeleri_sec`). Hiç kanal yoksa ses çıkmaz, uyarı
+yalnızca ekranda görünür. Eski `.env ANONS=null|ses_karti|http` ayarı ilk
+açılışta bir kez "Tüm fabrika" kanalına aktarılır (`olaylar/kanallar.py`).
+Anons cooldown'u ekran uyarısından **bağımsız ve daha uzun** (varsayılan 30 sn).
+Hoparlör sürekli bağırmamalı.
 
 **HTTP biçimi (`ANONS_HTTP_BICIMI`).** Sahadaki IP hoparlörlerin HTTP arayüzü tek
 tip değildir; tek bir JSON gövdesi cihazların çoğuyla konuşamaz. Üç biçim
