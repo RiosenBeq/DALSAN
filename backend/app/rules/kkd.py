@@ -31,8 +31,20 @@ class KkdDegerlendirici:
         self.params = KkdParams(**kural.params)
         # takip_id -> {"giris": zaman, "pencereler": {kkd: deque[(durum, guven)]}}
         self._durumlar: dict[int, dict] = {}
+        self._aktif: set[tuple] = set()
+        self._belirsiz: set[tuple] = set()
+
+    def aktif_anahtarlar(self) -> set[tuple]:
+        """Son değerlendirmede oyu hâlâ "yok" olan kişiler (olay_durumu)."""
+        return self._aktif
+
+    def belirsiz_anahtarlar(self) -> set[tuple]:
+        """Oyu "yok"tan BELİRSİZE dönen kişiler: olay `belirsiz` sebebiyle
+        kapanır. Belirsiz kanıtla "ihlal sürüyor" denmez (docs/17 §5.6)."""
+        return self._belirsiz
 
     def degerlendir(self, baglam) -> list[Ihlal]:
+        self._aktif, self._belirsiz = set(), set()
         bolge = baglam.bolgeler.get(self.kural.bolge_id)
         if bolge is None or not bolge.aktif:
             return []  # KKD kuralı bölgesiz ÇALIŞMAZ (docs/03 §3: zone_id zorunlu)
@@ -141,9 +153,12 @@ class KkdDegerlendirici:
                 "mean_conf": round(ort_guven, 2),
             }
 
-        if not ihlal_var:
-            return None
         anahtar = (self.kural.id, self.kural.kamera_id, tespit.takip_id)
+        if not ihlal_var:
+            if any(v["decision"] == _ETIKET[BELIRSIZ] for v in kararlar.values()):
+                self._belirsiz.add(anahtar)
+            return None
+        self._aktif.add(anahtar)
         if not baglam.cooldown.izinli_mi(anahtar, baglam.zaman_s, self.kural.cooldown_s):
             return None
         eksikler = [k for k, v in kararlar.items() if v["decision"] == "no"]

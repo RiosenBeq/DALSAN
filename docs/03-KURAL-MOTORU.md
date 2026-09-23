@@ -26,6 +26,7 @@ Ortak filtre: cooldown. Ortak ilke: **kare değil, track bazlı karar.**
 | `mode` | `inside` | `inside` = bölgede olmak ihlal · `outside` = bölge dışında olmak ihlal |
 | `min_dwell_s` | 2.0 | Bölgede minimum kalış |
 | `cooldown_s` | 120 | Track başına tekrar bastırma |
+| `bitis_s` | 3.0 | Olayın bitmesi için koşulun görülmediği süre (§5.3; dört tipte ortak) |
 
 **`mode` neden var:** "Yaya yolunu kullan" kuralı aslında "yaya yolu **dışında** insan"
 kuralıdır. Tek parametreyle üç senaryo çözülür:
@@ -214,6 +215,36 @@ kurallar) kodun varsayılan önemi geçerlidir; `critical` / `high` / `medium` /
 varsayılana düşer. Baret ve yelek birlikte eksikse bugün tek olay yazılır ve
 kodu baretinkidir; kalem başına ayrı olay Faz 3d'dedir.
 
+## 5.3 Olay yaşam döngüsü: açıldı → hatırlatma → bitti
+
+Bir ihlal artık tek bir anlık kayıt değil, başı ve sonu olan bir **olaydır**
+(`rules/olay_durumu.py`, docs/17 §6.3). Değerlendiriciler değişmedi: ihlal
+üretir ve tekrar bastırmayı (cooldown) kendileri uygular. Motor bu ihlalleri
+olaya çevirir:
+
+| Geçiş | Ne zaman | Sonuç |
+|---|---|---|
+| **açıldı** | Anahtarı (kural, kamera, iz) açık olmayan bir ihlal | Yeni olay satırı, bitişi boş ("sürüyor"); anons |
+| **hatırlatma** | Olay açıkken kuralın bekleme süresi dolup yeniden ihlal | **Yeni satır yok**; anons tekrarlanır (gölge modda susar) |
+| **bitti** | Koşul `bitis_s` (varsayılan 3 sn) boyunca görülmedi | Bitiş yazılır: koşulun **son görüldüğü an** |
+
+Koşulun "sürüyor" sayılması girişten gevşektir (çıkış eşiği):
+
+| Kural | Açılış | Sürüyor sayılır |
+|---|---|---|
+| Bölge | ayak noktası bölgede ve kalış ≥ `min_dwell_s` | ayak noktası bölgede (kalıştan bağımsız) ya da iz kayıp toleransı içinde |
+| Mesafe | mesafe < `distance_m`, `min_frames` ardışık, araç hareketli | çift hâlâ `distance_m` altında (araç durdu diye bitmez) |
+| KKD | oy "yok" | oy hâlâ "yok"; oy **belirsize** dönerse olay `belirsiz` sebebiyle biter, belirsiz dönemde hatırlatma olmaz |
+| Hız | pencere ortancası ≥ sınır | son ortanca hâlâ sınırın üstünde |
+
+Bitiş sebepleri olayın ayrıntısına yazılır (`kapanis_sebebi`): koşul bitti, oy
+belirsizleşti, iz kayboldu, kural değişti (kural düzenlenince ya da silinince
+açık olayı hemen biter; başka kuralların olayları sürer), kamera görüntüsü
+kesildi, kamera ayarı değişti, sistem durdu, sistem yeniden başladı.
+
+Kapandıktan sonra aynı kişi aynı kurala yeniden takılırsa yeni olay, ancak
+kuralın bekleme süresi dolunca açılır — bugünkü tekrar bastırma kuralı.
+
 ## 6. Yeni kural tipi ekleme prosedürü
 
 1. `backend/app/rules/<tip>.py` — saf değerlendirici sınıfı (`degerlendir(baglam) -> list[Ihlal]`)
@@ -222,6 +253,8 @@ kodu baretinkidir; kalem başına ayrı olay Faz 3d'dedir.
 3a. `backend/app/rules/olay_kodu.py` — `ihlal_kodu` içinde tipin olay kodu; kod
     sözlükte yoksa `OLAY_KODLARI`'na adı ve varsayılan önemiyle eklenir
     (`tests/rules/test_olay_kodu.py` kodsuz kalan tipi yakalar)
+3b. Değerlendiricide `aktif_anahtarlar()` — koşulun hâlâ sürdüğü anahtarlar
+    (§5.3 çıkış eşiği); şemaya ortak `bitis_s` alanı
 4. `tests/rules/test_<tip>.py` — en az: pozitif durum, negatif durum, sınır durum, eksik/ölçülemeyen veri durumu, cooldown
 5. Arayüz: `web/ortak.py` (`KURAL_TIPLERI`, `VARSAYILAN_COOLDOWN_SN`), `web/kurallar.py`
    (`_formdan_params`), `templates/kural_form.html` (alan kümesi)

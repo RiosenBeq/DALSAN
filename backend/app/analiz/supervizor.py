@@ -46,6 +46,7 @@ from app.ayarlar import Ayarlar
 from app.loglama import log_al
 from app.olaylar.anons import AnonsYoneticisi
 from app.olaylar.yazici import acik_olaylari_kapat, ihlal_yaz, olay_kapat, sistem_olayi_yaz
+from app.rules.olay_durumu import ACILDI, HATIRLATMA, KAPANDI, OlayGecisi
 from app.rules.parametreler import KuralParametreHatasi, params_dogrula
 from app.rules.tipler import BOLGE_TIPI_KODLARI, SINIF_INSAN, Bolge, Kalibrasyon, Kural
 
@@ -114,6 +115,9 @@ class AnalizSupervizoru:
         # tutulur: silinen kameranın olaylarında camera_id boşalır (FK SET NULL)
         # ve olay artık kameradan bulunamazdı.
         self._kopukluk_olaylari: dict[int, int] = {}
+        # Olay anahtarı (kural, kamera, iz…) → açık ihlal olayının id'si
+        # (rules/olay_durumu.py). Kapanış geçişi gelince bitiş bu satıra yazılır.
+        self._acik_olaylar: dict[tuple, int] = {}
 
         self._son_konfig_kontrol = 0.0
         self._son_durum_yazma = 0.0
@@ -394,6 +398,7 @@ class AnalizSupervizoru:
             self._log.error(f"Açık olaylar kapanışta kapatılamadı: {hata}", exc_info=hata)
             kapatilan = 0
         self._kopukluk_olaylari.clear()
+        self._acik_olaylar.clear()
         self._sistem_olayi(
             baglanti,
             "Sistem durdu",
@@ -556,7 +561,7 @@ class AnalizSupervizoru:
                 # Adres değiştiyse ESKİ kameranın son karesi ve takip durumu
                 # yeni kameraya ait değildir: hat da sıfırlanmalı, yoksa
                 # önizlemede eski görüntü ve yanlış takip id'leri sürerdi.
-                self._hatlar.pop(kid, None)
+                self._hatti_birak(baglanti, kid, "kamera_degisti")
                 self._son_islenen_kare.pop(kid, None)
                 self._canli_sayim.pop(kid, None)
             if mevcut is None:
@@ -580,7 +585,7 @@ class AnalizSupervizoru:
             # Örnekleme hızı değiştiyse takipçinin kare hızı da değişmeli
             if hat is not None and hat.fps != int(kamera["sample_fps"]):
                 hat = None
-                self._hatlar.pop(kid, None)
+                self._hatti_birak(baglanti, kid, "kamera_degisti")
             if hat is None:
                 hat = KameraHatti(
                     kid,
@@ -594,6 +599,9 @@ class AnalizSupervizoru:
                 self._kurallari_yukle(baglanti, kid),
                 self._kalibrasyonu_yukle(baglanti, kid),
             )
+            # Değişen ya da kaldırılan kuralın açık olayı hemen kapanır
+            # (kural_degisti); kamera kare vermiyor olsa bile asılı kalmaz.
+            self._gecisleri_isle(baglanti, hat, time.monotonic())
 
         # Silinen/pasifleşen kameraların iş parçacıkları durdurulur; pasif
         # kamera listede 'çevrimiçi' görünmeye devam etmesin diye durumu sıfırlanır
@@ -602,7 +610,7 @@ class AnalizSupervizoru:
                 self._kaynaklar.pop(kid).durdur()
                 self._kopuklugu_kapat(baglanti, kid, "kamera_degisti")
                 self._kaynak_damgalari.pop(kid, None)
-                self._hatlar.pop(kid, None)
+                self._hatti_birak(baglanti, kid, "kamera_degisti")
                 self._kamera_konfig.pop(kid, None)
                 self._son_durumlar.pop(kid, None)
                 self._canli_sayim.pop(kid, None)
@@ -728,25 +736,96 @@ class AnalizSupervizoru:
                 sayim[tespit.sinif] = sayim.get(tespit.sinif, 0) + 1
             self._canli_sayim[kid] = sayim
 
-            for ihlal in ihlaller:
-                self._ihlali_kaydet(baglanti, hat, ihlal, simdi)
+            # İhlal listesi önizleme çizimi içindir; OLAYLAR geçişlerden doğar
+            # (açıldı / hatırlatma / kapandı, rules/olay_durumu.py).
+            del ihlaller
+            self._gecisleri_isle(baglanti, hat, simdi)
             self._kkd_ornekle(baglanti, kid, kare, tespitler, hat, simdi)
 
-    def _ihlali_kaydet(self, baglanti, hat: KameraHatti, ihlal, simdi: float) -> None:
+    # ---- olay yaşam döngüsü ----
+
+    def _gecisleri_isle(self, baglanti, hat: KameraHatti, simdi: float) -> None:
+        """Hattın olay geçişlerini veritabanına ve anonsa taşır (docs/17 §6.3).
+
+        açıldı → yeni olay satırı (bitişi boş) + anons; hatırlatma → yeni satır
+        YOK, yalnız anons (S17); kapandı → satıra bitiş ve sebep. Bir geçişin
+        veritabanı hatası diğerlerini düşürmez: her biri ayrı denenir.
+        """
+        for gecis in hat.gecisleri_al():
+            try:
+                self._gecisi_isle(baglanti, hat, gecis, simdi)
+            except sqlite3.Error as hata:
+                self._log.error(
+                    f"Olay geçişi veritabanına yazılamadı ({gecis.asama}, anahtar "
+                    f"{gecis.anahtar}): {hata}",
+                    exc_info=hata,
+                )
+
+    def _gecisi_isle(self, baglanti, hat: KameraHatti, gecis: OlayGecisi, simdi: float) -> None:
+        if gecis.asama == KAPANDI:
+            self._olayi_kapat(baglanti, gecis)
+        elif gecis.asama == HATIRLATMA and gecis.anahtar in self._acik_olaylar:
+            olay_id = self._acik_olaylar[gecis.anahtar]
+            self._log.info(f"İhlal sürüyor (olay {olay_id}) — anons tekrarlanıyor.")
+            self._duyur(gecis.ihlal, self._kural_kaydi(baglanti, gecis.ihlal.kural_id), simdi)
+        elif gecis.asama in (ACILDI, HATIRLATMA):
+            # Hatırlatma ama satır yok: açılış yazılamamıştı; olay şimdi yazılır
+            self._acik_olaylar[gecis.anahtar] = self._ihlali_kaydet(
+                baglanti, hat, gecis.ihlal, simdi, suruyor=True
+            )
+
+    def _olayi_kapat(self, baglanti, gecis: OlayGecisi) -> None:
+        olay_id = self._acik_olaylar.pop(gecis.anahtar, None)
+        if olay_id is None:
+            return  # açılışı yazılamamış olay: kapatılacak satır yok
+        # Bitiş, koşulun son görüldüğü an: kare zamanı monotonik saattedir.
+        bitis = (
+            zaman.saniye_once_utc(time.monotonic() - gecis.son_aktif_s)
+            if gecis.son_aktif_s is not None
+            else None
+        )
+        olay_kapat(baglanti, olay_id, gecis.sebep, bitis)
+        self._log.info(f"Olay bitti (olay {olay_id}, sebep {gecis.sebep}).")
+
+    def _hatti_birak(self, baglanti, kamera_id: int, sebep: str) -> None:
+        """Kameranın hattını atar; açık ihlal olayları son görüldükleri anda biter."""
+        hat = self._hatlar.pop(kamera_id, None)
+        if hat is None:
+            return
+        for gecis in hat.olaylari_birak(sebep):
+            try:
+                self._olayi_kapat(baglanti, gecis)
+            except sqlite3.Error as hata:
+                self._log.error(f"Olay kapatılamadı (kamera {kamera_id}): {hata}", exc_info=hata)
+
+    def _ihlali_kaydet(
+        self, baglanti, hat: KameraHatti, ihlal, simdi: float, *, suruyor: bool = False
+    ) -> int:
         kural_kaydi = self._kural_kaydi(baglanti, ihlal.kural_id)
         baslangic = time.perf_counter()
-        olay_id = ihlal_yaz(baglanti, self.ayarlar, ihlal, kural_kaydi, hat.son_islenmis_jpeg())
+        olay_id = ihlal_yaz(
+            baglanti,
+            self.ayarlar,
+            ihlal,
+            kural_kaydi,
+            hat.son_islenmis_jpeg(),
+            suruyor=suruyor,
+        )
         self._olcumler.setdefault(ihlal.kamera_id, _KameraOlcumu()).ihlal_yaz_ms.append(
             (time.perf_counter() - baslangic) * 1000
         )
         self._log.info(
             f"İhlal kaydedildi (olay {olay_id}, kamera {ihlal.kamera_id}, kural {ihlal.kural_id})"
         )
+        self._duyur(ihlal, kural_kaydi, simdi)
+        return olay_id
+
+    def _duyur(self, ihlal, kural_kaydi: dict, simdi: float) -> None:
         # GÖLGE MOD (şema 002): kural çalışır ve olay yazılır, ama hoparlör
         # susar. Yeni kurulan bir kuralın güvenli deneme yoludur (docs/04 §8.2:
         # KKD 3 gün "aktif ama anonssuz" çalışır, precision ölçülür, sonra anons
         # açılır). Kural motoruna DOKUNULMAZ: karar yine kural motorundan gelir,
-        # burada yalnızca duyurma adımı atlanır.
+        # burada yalnızca duyurma adımı atlanır. Hatırlatma da aynı kapıdan geçer.
         if kural_kaydi.get("shadow_mode"):
             self._log.info(f"Kural {ihlal.kural_id} gölge modda — anons çalınmadı.")
             return
@@ -896,6 +975,13 @@ class AnalizSupervizoru:
                     )
                     if olay_id is not None:
                         self._kopukluk_olaylari[kid] = olay_id
+                    # Görüntü yokken ihlalin sürüp sürmediği bilinemez: açık
+                    # ihlal olayları son görüldükleri anda biter. Kamera dönüp
+                    # kişi hâlâ oradaysa kural yeniden ihlal üretir.
+                    hat = self._hatlar.get(kid)
+                    if hat is not None:
+                        for gecis in hat.olaylari_birak("kamera_koptu"):
+                            self._olayi_kapat(baglanti, gecis)
                 elif durum == DURUM_ONLINE and onceki == DURUM_OFFLINE:
                     self._log.info(f"Kamera tekrar çevrimiçi: {ad}")
                     self._sistem_olayi(

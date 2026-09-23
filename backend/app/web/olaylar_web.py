@@ -126,6 +126,37 @@ def akis_yuku(olay: dict) -> dict:
     }
 
 
+# Bir akışın izlediği süren olay sayısının üst sınırı: bağlantı günlerce açık
+# kalsa da bellek büyümez (en eskiler bırakılır; açılış/kapanış taraması onları
+# zaten kapatır).
+_IZLENEN_EN_COK = 500
+
+
+def kapanan_olaylar(baglanti, idler: set[int]) -> list[dict]:
+    """Akışın "sürüyor" diye gönderdiği olaylardan kapanmış olanlar.
+
+    Bitiş zamanına göre sorgulanmaz: bitiş, koşulun son görüldüğü ana GERİYE
+    yazılır ve "son bakıştan sonra biten" sorgusu onu kaçırırdı. Akış kendi
+    gönderdiği açık olayları id'leriyle izler.
+    """
+    if not idler:
+        return []
+    yer = ",".join("?" * len(idler))
+    satirlar = baglanti.execute(
+        f"{OLAY_SORGUSU} WHERE e.id IN ({yer}) AND e.resolved_at IS NOT NULL",
+        tuple(sorted(idler)),
+    ).fetchall()
+    return [
+        {
+            "guncelleme": "bitti",
+            "id": olay["id"],
+            "tip": olay["event_type"],
+            "sure_metni": olay["sure_metni"],
+        }
+        for olay in map(olay_hazirla, satirlar)
+    ]
+
+
 @router.get("/olaylar/akis")
 async def olay_akisi(istek: Request):
     """SSE: yeni olayları ekrana anlık iter (docs/02 §4 — saniyede bir sorgu)."""
@@ -136,6 +167,7 @@ async def olay_akisi(istek: Request):
         try:
             son = baglanti.execute("SELECT COALESCE(MAX(id), 0) AS m FROM events").fetchone()
             son_id = son["m"]
+            acik_idler: set[int] = set()  # bu akışın "sürüyor" diye gönderdikleri
             while True:
                 if await istek.is_disconnected():
                     return
@@ -147,6 +179,13 @@ async def olay_akisi(istek: Request):
                     son_id = olay["id"]
                     veri = json.dumps(akis_yuku(olay), ensure_ascii=False)
                     yield f"data: {veri}\n\n"
+                    if olay["suruyor"]:
+                        acik_idler.add(olay["id"])
+                for guncelleme in kapanan_olaylar(baglanti, acik_idler):
+                    acik_idler.discard(guncelleme["id"])
+                    yield f"data: {json.dumps(guncelleme, ensure_ascii=False)}\n\n"
+                while len(acik_idler) > _IZLENEN_EN_COK:
+                    acik_idler.discard(min(acik_idler))
                 yield ": ping\n\n"  # ara bağlantı canlı tutma
                 await asyncio.sleep(1.0)
         finally:

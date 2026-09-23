@@ -203,6 +203,9 @@ def test_kurala_karenin_zamani_gider_ve_islem_olculur(supervizor):
             self.zamanlar.append(zaman_s)
             return [], []
 
+        def gecisleri_al(self):  # olay yaşam döngüsü (KameraHatti arayüzü)
+            return []
+
     hat = _Hat()
     sup._kaynaklar = {1: _Kaynak()}
     sup._hatlar = {1: hat}

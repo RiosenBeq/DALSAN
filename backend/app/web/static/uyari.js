@@ -77,13 +77,27 @@ window.Uyari = (function () {
     } catch (e) { /* seslendirme yoksa sessizce geç */ }
   }
 
+  // Şu an bantta görünen olay: {id, onem}. Kritik bant daha hafif bir olayla
+  // EZİLMEZ ve kendiliğinden kaybolmaz (docs/17 §11): olay bitince ya da
+  // üstüne tıklanınca kapanır.
+  var gosterilen = null;
+
   function kutuAl() {
     if (kutu) return kutu;
     kutu = document.createElement("div");
     kutu.className = "uyari-bandi";
     kutu.hidden = true;
+    kutu.title = "Kapatmak için tıklayın";
+    kutu.addEventListener("click", gizle);
     document.body.appendChild(kutu);
     return kutu;
+  }
+
+  function gizle() {
+    var k = kutuAl();
+    clearTimeout(k._zamanlayici);
+    k.hidden = true;
+    gosterilen = null;
   }
 
   // Bandın rengi olayın önemidir (docs/17 §11). Sınıf adına yalnız bilinen
@@ -92,11 +106,13 @@ window.Uyari = (function () {
 
   function goster(veri) {
     var k = kutuAl();
+    if (gosterilen && gosterilen.onem === "critical" && veri.onem !== "critical") return;
     k.textContent = "⚠ " + (veri.kamera || "Kamera") + " — " + (veri.ozet || "İhlal");
     k.className = "uyari-bandi" + (ONEMLER.indexOf(veri.onem) !== -1 ? " onem-" + veri.onem : "");
     k.hidden = false;
+    gosterilen = { id: veri.id, onem: veri.onem };
     clearTimeout(k._zamanlayici);
-    k._zamanlayici = setTimeout(function () { k.hidden = true; }, 8000);
+    if (veri.onem !== "critical") k._zamanlayici = setTimeout(gizle, 8000);
   }
 
   return {
@@ -104,6 +120,10 @@ window.Uyari = (function () {
     konusmaAcikMi: function () { return ayarOku(KONUSMA_ANAHTARI); },
     sesAyarla: function (acik) { ayarYaz(SES_ANAHTARI, acik); if (acik) sesCal(); },
     konusmaAyarla: function (acik) { ayarYaz(KONUSMA_ANAHTARI, acik); },
+    // Canlı akış bir olayın bittiğini bildirince (static/canli.js)
+    bitti: function (id) {
+      if (gosterilen && gosterilen.id === id) gizle();
+    },
     // Yeni bir ihlal geldiğinde çağrılır (olay akışından)
     duyur: function (veri) {
       if (!veri || veri.tip !== "violation") return;

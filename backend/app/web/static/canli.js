@@ -32,6 +32,17 @@
     } catch (e) {
       return;
     }
+    // Süren bir olay bitti (kişi alandan çıktı, çift ayrıldı): satırdaki
+    // "sürüyor" işareti süreye döner, o olayın bandı kapanır.
+    if (veri.guncelleme === "bitti") {
+      if (window.Uyari && window.Uyari.bitti) window.Uyari.bitti(veri.id);
+      var isaret = liste && liste.querySelector('li[data-olay="' + Number(veri.id) + '"] .surec-hapi');
+      if (isaret) {
+        isaret.className = "surec-hapi bitti";
+        isaret.textContent = "bitti" + (veri.sure_metni ? " · " + veri.sure_metni : "");
+      }
+      return;
+    }
     if (window.Uyari) window.Uyari.duyur(veri);
     if (!liste) return;
 
@@ -42,6 +53,7 @@
     // yorumlanmamalı (kullanıcı verisi ekrana ham basılmaz).
     var satir = document.createElement("li");
     satir.className = veri.tip === "violation" ? "ihlal" : "sistem";
+    satir.setAttribute("data-olay", String(Number(veri.id)));
     // Önem: satırın rengi ve başındaki hap (Kritik / Yüksek / Orta / Düşük).
     // Değer sunucunun sabit listesinden gelir; yine de sınıf adına yalnız
     // bilinen değer yazılır.
@@ -63,6 +75,17 @@
     bag.href = "/olaylar/" + veri.id;
     bag.textContent = "aç";
     satir.appendChild(bag);
+    if (veri.suruyor) {
+      var surec = document.createElement("span");
+      surec.className = "surec-hapi suruyor";
+      var nokta = document.createElement("span");
+      nokta.className = "durum-noktasi";
+      nokta.setAttribute("aria-hidden", "true");
+      surec.appendChild(nokta);
+      surec.appendChild(document.createTextNode("sürüyor"));
+      satir.appendChild(document.createTextNode(" "));
+      satir.appendChild(surec);
+    }
     liste.prepend(satir);
     while (liste.children.length > 8) liste.removeChild(liste.lastChild);
   };

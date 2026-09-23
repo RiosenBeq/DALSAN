@@ -20,8 +20,19 @@ class MesafeDegerlendirici:
         self.kural = kural
         self.params = MesafeParams(**kural.params)
         self._ardisik: dict[tuple[int, int], int] = {}  # (id_kucuk, id_buyuk) -> sayaç
+        self._aktif: set[tuple] = set()
+
+    def aktif_anahtarlar(self) -> set[tuple]:
+        """Son değerlendirmede hâlâ yakın olan çiftler (olay_durumu çıkış eşiği).
+
+        Hareket şartı yalnız GİRİŞTE aranır (park etmiş aracın yanındaki şoför
+        olay açmaz); açılmış olay, araç durduğu için değil, çift ayrıldığı ya da
+        görünmez olduğu için biter (docs/17 §6.3).
+        """
+        return self._aktif
 
     def degerlendir(self, baglam) -> list[Ihlal]:
+        self._aktif = set()
         if baglam.kalibrasyon is None:
             return []  # kural pasif — arayüz 'kalibrasyon bekleniyor' gösterir
 
@@ -52,6 +63,8 @@ class MesafeDegerlendirici:
                     max(ozne.takip_id, nesne.takip_id),
                 )
                 aktif_ciftler.add(cift)
+                if mesafe_m < self.params.distance_m:
+                    self._aktif.add((self.kural.id, self.kural.kamera_id) + cift)
 
                 # Park halindeki aracın yanındaki şoför gerçek risk değildir —
                 # yanlış alarmların büyük kısmını bu tek koşul keser (docs/03 §2)

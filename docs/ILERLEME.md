@@ -62,6 +62,23 @@ adı sözlükten gelen "Araç–yaya yakınlığı" oldu (aynı olay aynı ekran
 adla görünüyordu). Kılavuza "Önem: uyarı ne kadar ciddi?" bölümü eklendi.
 Statik dosya damgası `?v=27`.
 
+**2c-3 — olay yaşam döngüsü.** İhlal artık başı ve sonu olan bir olay
+(`rules/olay_durumu.py`, docs/03 §5.3): açılışta satır "sürüyor" doğar, kişi
+içeride kaldıkça kuralın bekleme süresi dolunca **yeni satır açılmadan** anons
+tekrarlanır, koşul `bitis_s` (yeni kural parametresi, varsayılan 3 sn) boyunca
+görülmeyince olay biter; bitiş koşulun son görüldüğü andır. Uzun bir ihlal
+Olaylar'ı artık her iki dakikada bir yeni satırla doldurmuyor. Sınırda gidip
+gelen ya da bir an görünmeyen kişi tek olay kalıyor; KKD olayı oy belirsize
+dönünce "belirsiz" sebebiyle kapanıyor ve belirsizken hatırlatma üretmiyor.
+Kural düzenlenince ya da silinince yalnız o kuralın açık olayı biter (motor
+artık yalnız değişen kuralın değerlendiricisini yeniden kuruyor; eskiden bir
+kuralı düzenlemek aynı kameradaki bütün kuralların durumunu sıfırlıyordu).
+Kamera görüntüsü kesilince açık ihlaller "kamera görüntüsü kesildi" diye
+kapanıyor. Canlı akış olayın bittiğini de bildiriyor: listede "sürüyor"
+işareti süreye dönüyor, **kritik uyarı bandı kendiliğinden kaybolmuyor**, olay
+bitince ya da tıklanınca kapanıyor. Önem (`severity`) artık kural imzasında;
+önem değişikliği yeniden başlatmadan uygulanıyor. Statik damga `?v=28`.
+
 Tasarımda açık kalan iki nokta kodda şöyle kapandı: `ZONE_INTRUSION`'ın
 varsayılan önemi **Orta** (tasarım "kural satırından" diyordu ama bütün
 satırlar `warning`); kapanış sebeplerine `kamera_degisti` eklendi. Bitiş hiçbir

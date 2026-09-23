@@ -332,11 +332,15 @@
       <p class="durum-ornekleri">Önem:
         {% for anahtar in IHLAL_ONEMLERI %}{{ onem_hapi({"onem": anahtar, "onem_adi": ONEM_ADLARI[anahtar], "event_type": "violation"}) }}{% endfor %}
         {{ onem_hapi({"onem": "system", "onem_adi": ONEM_ADLARI["system"], "event_type": "system"}) }}</p>
-      <p>Bir süre devam eden olay — örneğin görüntüsü kesilen bir kamera — listede
+      <p>Bir ihlal tek bir anlık kayıt değil, başı ve sonu olan bir olaydır:
+        yasak alana giren kişi orada durdukça olay
         <span class="surec-hapi suruyor"><span class="durum-noktasi" aria-hidden="true"></span>sürüyor</span>
-        olarak görünür ve ne kadar zamandır sürdüğü yazar; bitince kaç saniye ya da
-        dakika sürdüğü kalır. Olaylar sayfasında <b>“Yalnız sürenler”</b> seçeneği
-        şu anda devam eden her şeyi tek listede gösterir.</p>
+        olarak görünür ve listede <b>tek satır</b> kalır; hoparlör, kuralın bekleme
+        süresi dolunca anonsu bir kez tekrarlar. Kişi çıkınca olay “bitti” olur ve
+        ne kadar sürdüğü yazar. Görüntüsü kesilen bir kamera da aynı biçimde
+        görünür. Olaylar sayfasında <b>“Yalnız sürenler”</b> seçeneği şu anda devam
+        eden her şeyi tek listede gösterir. Ekrandaki kırmızı “Kritik” uyarı bandı
+        kendiliğinden kaybolmaz: olay bitince ya da üstüne tıklayınca kapanır.</p>
       <p class="kilavuz-bag">
         <a class="dugme" href="/komuta/inceleme">Olay incelemeyi aç</a>
         <a href="/olaylar">Tüm olaylar →</a>

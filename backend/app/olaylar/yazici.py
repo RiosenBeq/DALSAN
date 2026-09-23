@@ -37,8 +37,14 @@ def ihlal_yaz(
     ihlal: Ihlal,
     kural_kaydi: dict,
     kanit_jpeg: bytes | None,
+    *,
+    suruyor: bool = False,
 ) -> int:
-    """İhlali events tablosuna yazar; olay id'sini döndürür."""
+    """İhlali events tablosuna yazar; olay id'sini döndürür.
+
+    `suruyor`: olay yaşam döngüsünden gelen açılış (rules/olay_durumu.py);
+    bitiş boş yazılır, olay kapanınca `olay_kapat` doldurur. Değilse anlık.
+    """
     simdi = zaman.simdi_utc()
 
     foto_yolu: str | None = None
@@ -71,8 +77,7 @@ def ihlal_yaz(
             foto_yolu,
             ihlal.kod or None,
             ihlal.onem or None,
-            # Olay yaşam döngüsü gelene kadar (docs/17 §6.3) her ihlal anlıktır.
-            simdi,
+            None if suruyor else simdi,
         ),
     )
     baglanti.commit()

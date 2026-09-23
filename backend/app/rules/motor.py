@@ -6,7 +6,9 @@ zaman ileri sarılabilir. Hız tahmini de burada yapılır: kalibrasyonlu
 kamerada ayak noktasının zemindeki yer değişiminden (m/sn).
 
 Olay kodu ve önemi de burada, değerlendirmeden SONRA atanır (rules/olay_kodu.py):
-değerlendiriciler kodu bilmez, kendi testleri kod yüzünden değişmez.
+değerlendiriciler kodu bilmez, kendi testleri kod yüzünden değişmez. Olay yaşam
+döngüsü de öyle (rules/olay_durumu.py): `degerlendir()` bugünkü gibi ihlalleri
+döndürür; açılış / hatırlatma / kapanış geçişleri `gecisleri_al()` ile alınır.
 
 Yeni kural tipi ekleme prosedürü docs/03 §6'tedir: değerlendirici + şema +
 buradaki kayıt (DEGERLENDIRICILER) + olay kodu (olay_kodu.ihlal_kodu) + test.
@@ -24,6 +26,7 @@ from app.rules.hiz import HizDegerlendirici
 from app.rules.kalibrasyon import KalibrasyonHatasi, dunyaya_cevir
 from app.rules.kkd import KkdDegerlendirici
 from app.rules.mesafe import MesafeDegerlendirici
+from app.rules.olay_durumu import OlayDurumMakinesi, OlayGecisi
 from app.rules.olay_kodu import ARAC_SINIFLARI, ihlal_kodu, olay_onemi
 from app.rules.tipler import Bolge, Ihlal, Kalibrasyon, Kural, Tespit
 
@@ -73,6 +76,10 @@ class KuralMotoru:
         # verilmezse değerlendiricilerin kendi varsayılanı (5) geçerlidir.
         self._kayip_toleransi = kayip_toleransi
         self._cooldown = Cooldown()
+        self._durum = OlayDurumMakinesi()
+        # Alınmamış geçişler: degerlendir() ve kurallari_yukle() ekler,
+        # gecisleri_al() boşaltır.
+        self._gecisler: list[OlayGecisi] = []
         self._degerlendiriciler: list = []
         self._kural_imzasi: tuple = ()
         self._en_uzun_cooldown: float = 0.0
@@ -80,12 +87,14 @@ class KuralMotoru:
         self._son_konumlar: dict[int, tuple[float, tuple[float, float]]] = {}
 
     def kurallari_yukle(self, kurallar: list[Kural]) -> None:
-        """Kural listesi değiştiyse değerlendiricileri yeniden kurar.
+        """Kural listesi değiştiyse DEĞİŞEN kuralların değerlendiricilerini kurar.
 
-        Değişiklik yoksa mevcut durum (kalış süreleri, KKD pencereleri)
-        korunur — restart'sız config yayılımının gereği (docs/02 §5).
-        İmza, davranışı etkileyen HER alanı içermelidir; eksik alan,
-        değişikliğin restart'a kadar sessizce uygulanmaması demektir.
+        Değişmeyen kuralın durumu (kalış süreleri, KKD pencereleri, açık
+        olayı) korunur — restart'sız config yayılımının gereği (docs/02 §5).
+        Bir kuralı düzenlemek aynı kameradaki başka bir kuralın açık olayını
+        bitirmemeli. İmza, davranışı etkileyen HER alanı içermelidir; eksik
+        alan, değişikliğin restart'a kadar sessizce uygulanmaması demektir
+        (önem olayın önemini belirler: rules/olay_kodu.olay_onemi).
         """
         imza = tuple(
             (
@@ -95,6 +104,7 @@ class KuralMotoru:
                 tuple(sorted(k.hedef_siniflar)),
                 tuple(sorted(k.params.items(), key=str)),
                 k.cooldown_s,
+                k.siddet,
             )
             for k in sorted(kurallar, key=lambda k: k.id)
         )
@@ -103,11 +113,22 @@ class KuralMotoru:
         # Tanımı değişen (veya id'si yeniden kullanılan) kuralların cooldown
         # geçmişi eskidir — yeni kural eskisinin bastırmasını miras almamalı.
         eski = dict(self._eski_imzalar(self._kural_imzasi))
-        for kural_id, kural_imza in self._eski_imzalar(imza):
+        yeni = dict(self._eski_imzalar(imza))
+        for kural_id, kural_imza in yeni.items():
             if eski.get(kural_id) != kural_imza:
                 self._cooldown.kural_sifirla(kural_id)
+        # Değişen ya da kaldırılan kuralın açık olayı biter: değerlendiricisi
+        # yeniden kuruluyor, eski koşul artık izlenemez (sebep: kural_degisti).
+        for kural_id, kural_imza in eski.items():
+            if yeni.get(kural_id) != kural_imza:
+                self._gecisler.extend(self._durum.kurali_birak(kural_id))
         self._kural_imzasi = imza
-        self._degerlendiriciler = [self._kur(k) for k in kurallar if k.tip in DEGERLENDIRICILER]
+        onceki = {d.kural.id: d for d in self._degerlendiriciler}
+        self._degerlendiriciler = [
+            onceki[k.id] if eski.get(k.id) == yeni[k.id] and k.id in onceki else self._kur(k)
+            for k in kurallar
+            if k.tip in DEGERLENDIRICILER
+        ]
         # Cooldown temizliği, en uzun kuralın cooldown'unu asla kırpmamalı
         self._en_uzun_cooldown = max([k.cooldown_s for k in kurallar], default=0.0)
 
@@ -141,15 +162,41 @@ class KuralMotoru:
             self._konum_ve_hiz_hesapla(baglam)
 
         ihlaller: list[Ihlal] = []
+        aktifler: set[tuple] = set()
+        belirsizler: set[tuple] = set()
         for degerlendirici in self._degerlendiriciler:
             for ihlal in degerlendirici.degerlendir(baglam):
                 self._kodla(ihlal, degerlendirici.kural, baglam)
                 ihlaller.append(ihlal)
+            aktifler |= degerlendirici.aktif_anahtarlar()
+            if hasattr(degerlendirici, "belirsiz_anahtarlar"):
+                belirsizler |= degerlendirici.belirsiz_anahtarlar()
+        self._gecisler.extend(
+            self._durum.guncelle(
+                zaman_s,
+                ihlaller,
+                aktifler,
+                {d.kural.id: d.params.bitis_s for d in self._degerlendiriciler},
+                belirsizler,
+                (t.takip_id for t in tespitler),
+            )
+        )
 
         # Temizlik eşiği en uzun kuralın cooldown'unun gerisinde kalmalı;
         # aksi halde 1 saatten uzun cooldown'lar fiilen kırpılırdı.
         self._cooldown.temizle(zaman_s - max(3600.0, self._en_uzun_cooldown * 2))
         return ihlaller
+
+    def olaylari_birak(self, sebep: str) -> list[OlayGecisi]:
+        """Açık olayların hepsini kapatır ve geçişlerini döndürür (bkz.
+        OlayDurumMakinesi.hepsini_birak). Değerlendirici durumu korunur."""
+        return self._durum.hepsini_birak(sebep)
+
+    def gecisleri_al(self) -> list[OlayGecisi]:
+        """Son alıştan bu yana üretilen olay geçişleri (açıldı / hatırlatma /
+        kapandı); alınan geçiş bir daha verilmez."""
+        gecisler, self._gecisler = self._gecisler, []
+        return gecisler
 
     @staticmethod
     def _kodla(ihlal: Ihlal, kural: Kural, baglam: Baglam) -> None:

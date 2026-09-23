@@ -18,11 +18,23 @@ class KuralParametreHatasi(DalsanHata):
     http_kodu = 400
 
 
+def _bitis_alani():
+    """Olayın bitişi için bekleme (sn), dört kural tipinde ortak (docs/17 §6.3).
+
+    Koşul bu kadar süre görülmezse olay "bitti" olur; bitiş, koşulun son
+    görüldüğü andır. Kısa boşlukları (sınırda gidip gelen kişi, bir an
+    görünmeyen iz) kapatır: aynı ihlal iki olay olmaz. rules/olay_durumu.py
+    VARSAYILAN_BITIS_S ile aynı sayı.
+    """
+    return Field(default=3.0, ge=0, le=600)
+
+
 class BolgeIhlaliParams(BaseModel):
     """zone_intrusion — docs/03 §1"""
 
     mode: Literal["inside", "outside"] = "inside"
     min_dwell_s: float = Field(default=2.0, ge=0, le=600)
+    bitis_s: float = _bitis_alani()
 
 
 class MesafeParams(BaseModel):
@@ -34,6 +46,7 @@ class MesafeParams(BaseModel):
     min_frames: int = Field(default=5, ge=1, le=100)
     require_moving_vehicle: bool = True
     min_speed_mps: float = Field(default=0.3, ge=0, le=20)
+    bitis_s: float = _bitis_alani()
 
 
 class KkdParams(BaseModel):
@@ -50,6 +63,7 @@ class KkdParams(BaseModel):
     violation_ratio: float = Field(default=0.75, ge=0.5, le=1)
     min_dwell_s: float = Field(default=3.0, ge=0, le=600)
     require_full_bbox: bool = True
+    bitis_s: float = _bitis_alani()
 
 
 class HizParams(BaseModel):
@@ -67,6 +81,7 @@ class HizParams(BaseModel):
     # Kararın dayandığı ölçüm sayısı. Ortanca alınır; tek karelik sıçrama
     # ihlal üretmez. 5 ölçüm, 6 fps'te ~1 saniyelik gözlem demektir.
     window_size: int = Field(default=5, ge=3, le=60)
+    bitis_s: float = _bitis_alani()
 
 
 PARAM_SEMALARI: dict[str, type[BaseModel]] = {

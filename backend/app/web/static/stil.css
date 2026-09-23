@@ -535,6 +535,7 @@ legend { font-size: 0.88rem; color: var(--metin-3); padding: 0 6px; }
 .canli-liste li.onem-medium { background: var(--uyari-zemin); border-color: var(--uyari-cizgi); }
 .canli-liste li.onem-low { background: var(--cam-hafif); border-color: var(--cam-sinir); }
 .canli-liste li .onem-hapi { padding: 0 7px; font-size: 0.72rem; vertical-align: 1px; }
+.canli-liste li .surec-hapi { font-size: 0.72rem; vertical-align: 1px; }
 .canli-liste li.sistem { color: var(--metin-3); }
 .kucuk-resim { height: 40px; border-radius: 6px; }
 .kanit-resim { max-width: 100%; border-radius: var(--radius-kucuk); border: 1px solid var(--cam-sinir); }
@@ -588,6 +589,7 @@ legend { font-size: 0.88rem; color: var(--metin-3); padding: 0 6px; }
 /* ihlal bandı (ekran uyarısı) */
 .uyari-bandi {
   position: fixed; left: 50%; transform: translateX(-50%); bottom: 22px; z-index: 60;
+  cursor: pointer; /* tıklanınca kapanır; kritik bant yalnız böyle ya da olay bitince */
   background: var(--tehlike); color: var(--dolu-metin);
   padding: 12px 22px; border-radius: 999px;
   font-size: 0.95rem; font-weight: 650;

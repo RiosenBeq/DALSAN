@@ -155,7 +155,8 @@ def test_hiz_kurali_bolgesiz_kaydedilir(istemci, test_ayarlari):
     assert satir is not None
     assert satir["zone_id"] is None
     assert json.loads(satir["target_classes"]) == ["forklift"]
-    assert json.loads(satir["params"]) == {"speed_limit_mps": 2.5, "window_size": 5}
+    # bitis_s: olayın bitişi için bekleme, şema varsayılanı (docs/17 §6.3)
+    assert json.loads(satir["params"]) == {"speed_limit_mps": 2.5, "window_size": 5, "bitis_s": 3.0}
 
 
 def test_hiz_kurali_kalibrasyonsuz_uyari_gosterir(istemci, test_ayarlari):

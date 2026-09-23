@@ -118,6 +118,7 @@ KAPANIS_SEBEPLERI = {
     "iz_kayboldu": "Görüş alanından çıktı",
     "kural_degisti": "Kural değiştirildi ya da kapatıldı",
     "kamera_degisti": "Kamera ayarı değişti ya da kamera kapatıldı",
+    "kamera_koptu": "Kamera görüntüsü kesildi; durum izlenemedi",
     "kapanis": "Sistem durduruldu",
     "yeniden_baslama": "Sistem yeniden başladı; olay açık kalmıştı",
 }

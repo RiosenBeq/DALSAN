@@ -49,13 +49,21 @@ class HizDegerlendirici:
         self.params = HizParams(**kural.params)
         self._olcumler: dict[int, list[float]] = {}  # takip_id -> son hız ölçümleri
         self._kayip_sayaci: dict[int, int] = {}
+        self._asan: set[int] = set()  # son ortancası sınırın üstündeki izler
+
+    def aktif_anahtarlar(self) -> set[tuple]:
+        """Son ortancası hâlâ sınırın üstünde olan izler (olay_durumu çıkış
+        eşiği). Hızı bu karede ölçülemeyen iz son kararını korur."""
+        return {(self.kural.id, self.kural.kamera_id, t) for t in self._asan}
 
     def degerlendir(self, baglam) -> list[Ihlal]:
         if baglam.kalibrasyon is None:
+            self._asan.clear()
             return []  # kural pasif — arayüz 'kalibrasyon bekleniyor' gösterir
 
         bolge = baglam.bolgeler.get(self.kural.bolge_id) if self.kural.bolge_id else None
         if self.kural.bolge_id is not None and (bolge is None or not bolge.aktif):
+            self._asan.clear()
             return []  # bölgeye bağlı kural, bölge yoksa/kapalıysa çalışmaz
 
         ihlaller: list[Ihlal] = []
@@ -81,7 +89,9 @@ class HizDegerlendirici:
 
             hiz = median(pencere)
             if hiz < self.params.speed_limit_mps:
+                self._asan.discard(tespit.takip_id)
                 continue
+            self._asan.add(tespit.takip_id)
             anahtar = (self.kural.id, self.kural.kamera_id, tespit.takip_id)
             if not baglam.cooldown.izinli_mi(anahtar, baglam.zaman_s, self.kural.cooldown_s):
                 continue
@@ -111,6 +121,7 @@ class HizDegerlendirici:
             if self._kayip_sayaci[takip_id] > self._kayip_toleransi:
                 del self._olcumler[takip_id]
                 del self._kayip_sayaci[takip_id]
+                self._asan.discard(takip_id)
         return ihlaller
 
     def _bolgede(self, tespit: Tespit, bolge, baglam) -> bool:

@@ -28,10 +28,18 @@ class BolgeIhlaliDegerlendirici:
         self.params = BolgeIhlaliParams(**kural.params)
         self._giris_zamani: dict[int, float] = {}  # takip_id -> koşulun başladığı an
         self._kayip_sayaci: dict[int, int] = {}  # takip_id -> ardışık görülmeme
+        self._aktif: set[tuple] = set()
+
+    def aktif_anahtarlar(self) -> set[tuple]:
+        """Son değerlendirmede koşulu süren anahtarlar (olay_durumu çıkış eşiği):
+        kişi bölgede (kalış süresinden bağımsız) ya da izi kayıp toleransı
+        içinde. Kısa örtülmede olay bitmez."""
+        return self._aktif
 
     def degerlendir(self, baglam) -> list[Ihlal]:
         bolge = baglam.bolgeler.get(self.kural.bolge_id)
         if bolge is None or not bolge.aktif:
+            self._aktif = set()
             return []
 
         ihlaller: list[Ihlal] = []
@@ -85,4 +93,5 @@ class BolgeIhlaliDegerlendirici:
             if self._kayip_sayaci[takip_id] > self._kayip_toleransi:
                 del self._giris_zamani[takip_id]
                 del self._kayip_sayaci[takip_id]
+        self._aktif = {(self.kural.id, self.kural.kamera_id, t) for t in self._giris_zamani}
         return ihlaller

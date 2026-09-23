@@ -17,6 +17,7 @@ from app.analiz.takip import Takipci
 from app.analiz.tespit import SINIF_OVERLAY, Tespitci
 from app.rules.geometri import nokta_poligonda
 from app.rules.motor import KuralMotoru
+from app.rules.olay_durumu import OlayGecisi
 from app.rules.sayim import BolgeSayaci, BolgeSayimi
 from app.rules.tipler import (
     SINIF_INSAN,
@@ -227,6 +228,17 @@ class KameraHatti:
 
         self._overlay_guncelle(kare, tespitler, ihlaller)
         return tespitler, ihlaller
+
+    def gecisleri_al(self) -> list[OlayGecisi]:
+        """Kural motorunun olay geçişleri: açıldı / hatırlatma / kapandı
+        (rules/olay_durumu.py). Süpervizör her `isle()` ve `yapilandir()`
+        çağrısından sonra alır; alınan geçiş bir daha verilmez."""
+        return self._motor.gecisleri_al()
+
+    def olaylari_birak(self, sebep: str) -> list[OlayGecisi]:
+        """Bu kameranın açık olaylarını kapatır (kamera koptu ya da hat
+        atılıyor); geçişler doğrudan döner, `gecisleri_al()`'a düşmez."""
+        return self._motor.olaylari_birak(sebep)
 
     def kalite(self) -> dict:
         """Son ölçülen görüntü kalitesi (kamera sayfasında gösterilir)."""
