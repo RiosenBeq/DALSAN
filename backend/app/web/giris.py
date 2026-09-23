@@ -23,7 +23,9 @@ KABA KUVVET KORUMASI: tek şifreli bir sistemde sınırsız deneme, şifreyi
 fiilen yok sayar — saniyede yüzlerce deneme yapan bir betik altı haneli bir
 şifreyi kısa sürede bulur. Aynı adresten arka arkaya birkaç yanlış denemeden
 sonra o adres bir süre kilitlenir. Kilit ADRES BAZLIDIR: fabrikadaki bir
-kişinin yanlış yazması, başka bir bilgisayardan girişi engellemez.
+kişinin yanlış yazması, başka bir bilgisayardan girişi engellemez. Adres,
+istemcinin yazabildiği başlıklardan değil bağlantının kendisinden okunur
+(`_istemci_adresi`).
 """
 
 from __future__ import annotations
@@ -72,11 +74,25 @@ def cerez_uret(sifre: str, simdi: float | None = None) -> str:
     return f"{son}.{_imzala(str(son), sifre)}"
 
 
+def _esit(birinci: str, ikinci: str) -> bool:
+    """Sabit süreli karşılaştırma — Türkçe karakterle de çalışır.
+
+    `hmac.compare_digest` iki METİN alınca ASCII dışı bir karakterde TypeError
+    fırlatır: "ş" içeren bir şifre kurulduğunda ya da giriş kutusuna Türkçe
+    harf yazıldığında kullanıcı 500 hatası görürdü (docs/AUDIT.md R15). Bayt
+    olarak karşılaştırmak bu sınırı kaldırır; `surrogatepass` hiçbir metinde
+    kodlama hatası vermez.
+    """
+    return hmac.compare_digest(
+        birinci.encode("utf-8", "surrogatepass"), ikinci.encode("utf-8", "surrogatepass")
+    )
+
+
 def cerez_gecerli(cerez: str | None, sifre: str, simdi: float | None = None) -> bool:
     if not cerez or "." not in cerez:
         return False
     son_metni, imza = cerez.rsplit(".", 1)
-    if not hmac.compare_digest(imza, _imzala(son_metni, sifre)):
+    if not _esit(imza, _imzala(son_metni, sifre)):
         return False
     try:
         return int(son_metni) > (time.time() if simdi is None else simdi)
@@ -85,15 +101,19 @@ def cerez_gecerli(cerez: str | None, sifre: str, simdi: float | None = None) -> 
 
 
 def _istemci_adresi(istek: Request) -> str:
-    """İsteğin geldiği adres.
+    """İsteğin geldiği adres — kaba kuvvet kilidi bu adrese uygulanır.
 
-    Ters vekil (reverse proxy) arkasındaysa gerçek adres X-Forwarded-For'un
-    İLK değeridir. Sonraki değerler istemcinin uydurabileceği metinlerdir;
-    ilki, ilk vekilin yazdığıdır. Vekil yoksa doğrudan bağlantı adresi.
+    `X-Forwarded-For` burada BİLEREK okunmaz. O başlığın ilk değerini
+    istemcinin kendisi yazar: her denemede farklı bir değer gönderen bir
+    betik, adres başına kilidi hiç tetiklemeden sınırsız şifre deneyebilirdi
+    (docs/AUDIT.md R7).
+
+    Ters vekil (nginx/Caddy) arkasında gerçek adresi uvicorn kendisi yazar:
+    vekil başlıkları varsayılan olarak işlenir ama YALNIZ güvenilen vekilden
+    gelen bağlantıda. Varsayılan güvenilen vekil aynı makinedir (127.0.0.1,
+    ::1); vekil başka bir makinedeyse onun adresi `FORWARDED_ALLOW_IPS` ortam
+    değişkenine yazılır (docs/15 §4.3).
     """
-    iletilen = istek.headers.get("x-forwarded-for", "")
-    if iletilen:
-        return iletilen.split(",")[0].strip()
     return istek.client.host if istek.client else "bilinmeyen"
 
 
@@ -194,7 +214,7 @@ def giris_yap(istek: Request, sifre: str = Form(...), sonra: str = Form("/")):
     if kalan > 0:
         return RedirectResponse(f"/giris?sonra={sonra}&kilit={kalan}", status_code=303)
 
-    if not hmac.compare_digest(sifre, ayarlar.yonetici_sifresi):
+    if not _esit(sifre, ayarlar.yonetici_sifresi):
         _yanlis_deneme_kaydet(adres)
         kalan = kilit_kalan_sn(adres)
         _log.warning(

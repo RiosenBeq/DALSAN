@@ -129,9 +129,18 @@ Yine de zorundaysanız, **en azından** şunlar yapılmalıdır:
    oraya "Yanlış şifre denemesi (adres)" satırı olarak düşer.
 
 > Sistem ters vekil arkasında çalıştığını anlar: `X-Forwarded-Proto: https`
-> gelirse oturum çerezini **yalnız HTTPS'te gönderilecek** biçimde işaretler,
-> `X-Forwarded-For` başlığından da gerçek istemci adresini okuyup kilidi ona
-> uygular.
+> gelirse oturum çerezini **yalnız HTTPS'te gönderilecek** biçimde işaretler.
+>
+> Yanlış şifre kilidi için gerçek istemci adresini uvicorn yazar, ama yalnız
+> **güvendiği** vekilden gelen bağlantıda. Varsayılan güvenilen vekil aynı
+> makinedir (127.0.0.1). Vekil başka bir makinedeyse, ya da sistem Docker'da
+> çalışıyorsa (container vekili köprü adresinden görür, ör. `172.17.0.1`),
+> sistemi başlatan ortamda `FORWARDED_ALLOW_IPS=<vekilin adresi>` tanımlanmalıdır.
+> Tanımlanmazsa bütün istekler vekilin adresinden gelmiş sayılır ve bir kişinin
+> yanlış denemeleri herkesi 5 dakika kilitler.
+>
+> `X-Forwarded-For` başlığına koşulsuz güvenilmez: o başlığı istemcinin kendisi
+> de yazabilir ve her denemede başka bir adres uydurarak kilidi atlatırdı.
 
 ---
 

@@ -49,7 +49,7 @@ class AyarAlani:
     alan: str
     etiket: str
     aciklama: str
-    tur: str = "sayi"  # sayi | ondalik | secim | metin
+    tur: str = "sayi"  # sayi | ondalik | secim | metin | sifre
     en_az: str = ""
     en_cok: str = ""
     adim: str = "1"
@@ -96,11 +96,11 @@ AYAR_GRUPLARI: tuple[AyarGrubu, ...] = (
                 anahtar="YONETICI_SIFRESI",
                 alan="yonetici_sifresi",
                 etiket="Yönetici şifresi",
-                tur="metin",
-                ipucu="boş = giriş sorulmaz",
+                tur="sifre",
                 aciklama=(
-                    "Boş bırakılırsa giriş sorulmaz. Doldurursanız her sayfa şifre "
-                    "ister; en az 6 karakter olmalıdır. Değişiklik sistemi yeniden "
+                    "Kurulu şifre bu sayfada hiçbir zaman gösterilmez. Değiştirmek için "
+                    "yeni şifreyi yazın; kutuyu boş bırakırsanız mevcut şifre aynen "
+                    "kalır. Şifre en az 6 karakter olmalıdır. Değişiklik sistemi yeniden "
                     "başlattıktan sonra geçerli olur ve açık oturumların hepsi düşer."
                 ),
             ),
@@ -361,6 +361,7 @@ def ayarlar_sayfasi(istek: Request, sonuc: str = "", baglanti=Depends(baglanti_a
         {
             "gruplar": AYAR_GRUPLARI,
             "degerler": {alan.anahtar: _gosterilecek_deger(ayarlar, alan) for alan in TUM_ALANLAR},
+            "yonetici_sifresi_kurulu": bool(ayarlar.yonetici_sifresi),
             "sonuc_mesaji": SONUC_MESAJLARI.get(sonuc, ""),
         }
     )
@@ -373,11 +374,14 @@ async def ayarlari_kaydet(istek: Request):
     ayarlar = istek.app.state.ayarlar
     form = await istek.form()
 
-    degisiklikler = {
-        alan.anahtar: str(form[alan.anahtar]).strip()
-        for alan in TUM_ALANLAR
-        if alan.anahtar in form
-    }
+    degisiklikler: dict[str, str] = {}
+    for alan in TUM_ALANLAR:
+        if alan.tur == "sifre":
+            yeni = _sifre_degisikligi(form, alan.anahtar)
+            if yeni is not None:
+                degisiklikler[alan.anahtar] = yeni
+        elif alan.anahtar in form:
+            degisiklikler[alan.anahtar] = str(form[alan.anahtar]).strip()
     if not degisiklikler:
         raise DogrulamaHatasi("Kaydedilecek ayar bulunamadı. Sayfayı yenileyip tekrar deneyin.")
 
@@ -394,8 +398,33 @@ async def ayarlari_kaydet(istek: Request):
     return RedirectResponse("/ayarlar?sonuc=kaydedildi", status_code=303)
 
 
+# Şifreyi kaldırmak için ayrı onay kutusu: şifre kutusu artık boş gelir ve
+# "boş" = "değiştirme" demektir, yani kaldırma isteği başka yoldan gelmeli.
+SIFRE_KALDIR_EKI = "_KALDIR"
+
+
+def _sifre_degisikligi(form, anahtar: str) -> str | None:
+    """Şifre alanının dosyaya yazılacak yeni değeri; değişiklik yoksa None.
+
+    Boş kutu şifreyi DEĞİŞTİRMEZ: kutu kurulu şifreyi bilerek göstermez
+    (docs/AUDIT.md R9), dolayısıyla başka bir ayarı kaydeden kullanıcının
+    şifresi sessizce silinmemeli. Kaldırmak için "Şifreyi kaldır" işaretlenir;
+    sistem ağa açıksa bunu açılış doğrulayıcısı zaten reddeder.
+    """
+    if form.get(anahtar + SIFRE_KALDIR_EKI):
+        return ""
+    yeni = str(form.get(anahtar, "")).strip()
+    return yeni or None
+
+
 def _gosterilecek_deger(ayarlar, alan: AyarAlani) -> str:
-    """Çalışan sistemdeki değerin form kutusuna yazılacak hali."""
+    """Çalışan sistemdeki değerin form kutusuna yazılacak hali.
+
+    Şifre asla yazılmaz: sayfa kaynağında, tarayıcı önbelleğinde ya da bir
+    ekran görüntüsünde görünmemeli.
+    """
+    if alan.tur == "sifre":
+        return ""
     deger = getattr(ayarlar, alan.alan)
     if isinstance(deger, float):
         # 0.35 → "0.35", 0.6 → "0.6"  (sayı kutusu noktalı yazım bekler)
