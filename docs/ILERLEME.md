@@ -40,6 +40,28 @@ bekler), docs/06 §1.4 ağ bölümlendirmesi, §5 dondurma ve imha kaydı, §8 k
 maddeleri. Yapılmayanlar: yüz bulanıklaştırma (S27), roller (S5), çalışan
 temsilcisi maddesi (avukata sorulacak).
 
+**5e - tespit doğruluk takımı (docs/17 §14).** `tests/dogruluk_kiyas`: YOLO
+dışa aktarım biçimli etiketli saha karelerinde (CVAT, Label Studio, Roboflow;
+`siniflar.txt`'te `car=truck` gibi eşleme) sahada çalışan `Tespitci`'yi
+.env eşikleriyle çağırır ve sınıf başına kutu/tahmin sayısı, recall@IoU 0,5,
+precision ve AP50 (VOC her nokta enterpolasyonu) basar; GÖREV §4.8 hedefini
+"tuttu / tutmadı / ölçülmedi" yazar, 50 kutunun altını "az örnek" işaretler,
+isterse JSON'a yazar. Pytest kapısı değildir, veri depoya girmez; hesap
+`tests/test_dogruluk_kiyas.py`'de sınanır. Saha verisi yok: ölçüm yapılmadı
+(S6, S11, S15).
+
+**5a - Python 3.12 (hedef sürüm).** Tam takım Python 3.12.3'te, gereksinimler
+sıfırdan kurulmuş bir ortamda koşuldu (onnxruntime 1.30.0, opencv 4.10.0.84,
+supervision 0.25.1, numpy 2.5.3, fastapi 0.141.1): 1770 geçti, 17 atlandı; 3.11
+geliştirme ortamıyla aynı sonuç. GPU imajı ve hedef donanımda duman testi S1'i
+bekliyor.
+
+**Ölçüm: erişim izinin maliyeti.** Olay listesi en çok 200 küçük resim açar ve
+her biri bir `access_log` yazması demektir. Bu ortamın diskinde (WAL,
+synchronous=FULL) 200 ayrı yazma + commit toplam 64,6 ms, ortanca 0,29 ms, p90
+0,44 ms sürdü; ayrı bir yazıcı iş parçacığı gerekmedi. Hedef sunucunun diski
+farklıdır; liste sayfası orada yavaşlarsa ilk adım yazmaları toplu yapmaktır.
+
 ## Faz 4 uyarı kanalları (23.09.2026)
 
 Plan: `docs/17-V2-TASARIM.md` §7 ve §13 (4a-4e satırları), operatörün kabul ettiği

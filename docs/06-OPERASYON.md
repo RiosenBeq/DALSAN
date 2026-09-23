@@ -458,6 +458,7 @@ görünmelidir.
 - [ ] KKD anonsu ancak precision kabul edildikten **sonra** açıldı: KKD sayfasındaki
       gölge karnesinde baret ve yelek için "kapı açık"; Olaylar'da "KKD anonsu
       ölçülmeden açıldı" kaydı yok (varsa gerekçesi tutanağa yazıldı)
+- [ ] Tespit doğruluğu KVKK dayanaklı etiketli saha karelerinde ölçüldü: `.venv/bin/python -m tests.dogruluk_kiyas --klasor veri/dogruluk --json dogruluk.json` (insan recall ≥ 0,95; tır ve forklift AP50 ≥ 0,90; kare ve kutu sayısıyla tutanağa, docs/17 §14). Kareler `veri/` altında kalır, depoya girmez
 - [ ] Yanlış alarm hedefi ölçüldü: Komuta → Rapor'da her kamera için incelemesi tam günlerden hesaplanan yanlış alarm / saat, hedefin (saatte en çok 2) altında (`17-V2-TASARIM.md` §14)
 - [ ] Bakım (retention) çalıştığı günlükten doğrulandı, KVKK süreleriyle uyumlu
 - [ ] **Giriş şifresi geri eklendi** (`docs/07` #0) - ağa açık kurulumda zorunlu
