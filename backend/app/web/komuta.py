@@ -273,17 +273,41 @@ ONE_CIKAN_KAMERA = 4
 KARE_TAZELEME_MS = 2000
 
 
-# Olay satırının rengi.
-# Tasarımdaki kırmızı/sarı/nötr üçlüsü korundu, ama anlamı ŞU ANKİ veriye
-# bağlandı: kurallardaki `severity` alanı bu kurulumda her zaman 'warning' —
-# ona göre renk verseydik bütün satırlar aynı renk olurdu.
-#   kırmızı = incelenmemiş ihlal (ilgi bekliyor)
-#   sarı    = incelenmiş ihlal
-#   nötr    = yanlış alarm ya da sistem olayı (kamera koptu/geldi gibi)
+# Olay satırının rengi ÖNEMDEN gelir (docs/17 §11; önem şema 007'den beri
+# her olayda var, rules/olay_kodu.py):
+#   kırmızı (+ kalın şerit) = kritik · kırmızı = yüksek · sarı = orta
+#   nötr = düşük, sistem olayı ve yanlış alarm (gerçek bir tehlike değildi)
+# İnceleme durumu artık renk değil, satırdaki yazıdır: incelenmiş bir kritik
+# olay yine kritiktir. Önemi olmayan (şema 007 öncesi) ihlalde eski kural
+# geçerli: incelenmemiş kırmızı, incelenmiş sarı.
+_ONEM_RENKLERI = {"critical": "kirmizi kritik", "high": "kirmizi", "medium": "sari"}
+
+
 def _olay_rengi(olay: dict) -> str:
-    if olay["event_type"] != "violation":
+    if olay["event_type"] != "violation" or olay["status"] == "false_alarm":
         return "notr"
+    if olay.get("onem"):
+        return _ONEM_RENKLERI.get(olay["onem"], "notr")
     return {"new": "kirmizi", "reviewed": "sari"}.get(olay["status"], "notr")
+
+
+def _akis_ogesi(olay: dict) -> dict:
+    """Canlı akış ve inceleme kuyruğu satırı: iki liste aynı bileşendir."""
+    return {
+        "id": olay["id"],
+        "baslik": olay["ozet"],
+        "yer": _olay_yeri(olay),
+        "saat": zaman.ekranda_saat(olay["occurred_at"]),
+        "renk": _olay_rengi(olay),
+        "durum_kucuk": olay["durum_kucuk"],
+        "oge": olay["oge"],
+        # onem_hapi / surec_hapi makroları bu alanları okur (bilesen.html)
+        "event_type": olay["event_type"],
+        "onem": olay["onem"],
+        "onem_adi": olay["onem_adi"],
+        "suruyor": olay["suruyor"],
+        "sure_metni": olay["sure_metni"],
+    }
 
 
 def _olay_yeri(olay: dict) -> str:
@@ -401,21 +425,7 @@ def _canli_akis(baglanti) -> list[dict]:
     satirlar = baglanti.execute(
         f"{OLAY_SORGUSU} ORDER BY e.occurred_at DESC, e.id DESC LIMIT ?", (AKIS_SATIRI,)
     ).fetchall()
-    akis = []
-    for satir in satirlar:
-        olay = olay_hazirla(satir)
-        akis.append(
-            {
-                "id": olay["id"],
-                "baslik": olay["ozet"],
-                "yer": _olay_yeri(olay),
-                "saat": zaman.ekranda_saat(olay["occurred_at"]),
-                "renk": _olay_rengi(olay),
-                "durum_kucuk": olay["durum_kucuk"],
-                "oge": olay["oge"],
-            }
-        )
-    return akis
+    return [_akis_ogesi(olay_hazirla(satir)) for satir in satirlar]
 
 
 def _json_sozluk(metin) -> dict:
@@ -701,20 +711,7 @@ def inceleme_baglami(baglanti, secili_id: int | None) -> dict:
         (KUYRUK_SATIRI,),
     ).fetchall()
 
-    kuyruk = []
-    for satir in satirlar:
-        olay = olay_hazirla(satir)
-        kuyruk.append(
-            {
-                "id": olay["id"],
-                "baslik": olay["ozet"],
-                "yer": _olay_yeri(olay),
-                "saat": zaman.ekranda_saat(olay["occurred_at"]),
-                "durum_kucuk": olay["durum_kucuk"],
-                "renk": _olay_rengi(olay),
-                "oge": olay["oge"],
-            }
-        )
+    kuyruk = [_akis_ogesi(olay_hazirla(satir)) for satir in satirlar]
 
     bekleyen = baglanti.execute(
         "SELECT COUNT(*) AS n FROM events WHERE event_type = 'violation' AND status = 'new'"

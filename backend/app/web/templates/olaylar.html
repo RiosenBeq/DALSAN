@@ -1,5 +1,5 @@
 {% extends "temel.html" %}
-{% from "bilesen.html" import oge_rozeti, durum_hapi %}
+{% from "bilesen.html" import oge_rozeti, durum_hapi, onem_hapi, surec_hapi %}
 {% block baslik %}Olaylar — DALSAN İSG{% endblock %}
 {% block icerik %}
   <div class="baslik-satiri">
@@ -33,11 +33,21 @@
         <option value="violation" {% if filtre.get('tip') == 'violation' %}selected{% endif %}>Yalnız ihlaller</option>
         <option value="system" {% if filtre.get('tip') == 'system' %}selected{% endif %}>Yalnız sistem</option>
       </select>
+      <select name="onem">
+        <option value="">Tüm önemler</option>
+        {% for deger, ad in onemler.items() %}
+        <option value="{{ deger }}" {% if filtre.get('onem') == deger %}selected{% endif %}>{{ ad }}</option>
+        {% endfor %}
+      </select>
       <select name="durum">
         <option value="">Tüm durumlar</option>
         {% for deger, ad in durumlar.items() %}
         <option value="{{ deger }}" {% if filtre.get('durum') == deger %}selected{% endif %}>{{ ad }}</option>
         {% endfor %}
+      </select>
+      <select name="surec">
+        <option value="">Süren + biten</option>
+        <option value="suruyor" {% if filtre.get('surec') == 'suruyor' %}selected{% endif %}>Yalnız sürenler</option>
       </select>
       <label>Başlangıç <input type="date" name="baslangic" value="{{ filtre.get('baslangic', '') }}"></label>
       <label>Bitiş <input type="date" name="bitis" value="{{ filtre.get('bitis', '') }}"></label>
@@ -49,16 +59,15 @@
        sınıfları kartın yerleşimini taşır. #}
     <table class="liste olay-tablosu">
       <thead>
-        <tr><th>Zaman</th><th>Tip</th><th>Kamera</th><th>Özet</th><th>Durum</th><th>Kanıt</th></tr>
+        <tr><th>Zaman</th><th>Önem</th><th>Kamera</th><th>Özet</th><th>Durum</th><th>Kanıt</th></tr>
       </thead>
       <tbody>
       {% for o in olaylar %}
       <tr class="{% if o.event_type == 'system' %}sistem-satiri{% endif %}">
         <td class="zaman-hucresi"><a href="/olaylar/{{ o.id }}">{{ o.yerel_zaman }}</a></td>
-        <td class="olay-tip">{% if o.event_type == 'violation' %}<span class="rozet kirmizi">İhlal</span>
-            {% else %}<span class="rozet gri">Sistem</span>{% endif %}</td>
+        <td class="olay-tip">{{ onem_hapi(o) }}</td>
         <td class="olay-kamera{% if not o.kamera_adi %} kartta-gizli{% endif %}">{{ o.kamera_adi or "—" }}</td>
-        <td class="olay-ozet"><span class="ozet-hucresi">{{ oge_rozeti(o.oge, "kucuk") }}<span>{{ o.ozet }}</span></span></td>
+        <td class="olay-ozet"><span class="ozet-hucresi">{{ oge_rozeti(o.oge, "kucuk") }}<span>{{ o.ozet }} {{ surec_hapi(o) }}</span></span></td>
         {# Sistem olayı incelenmez; durumu renkli hapla vurgulanmaz. #}
         <td class="olay-durum">{% if o.event_type == 'violation' %}{{ durum_hapi(o.status, o.durum_adi) }}{% else %}<span class="soluk-metin">{{ o.durum_adi }}</span>{% endif %}</td>
         <td class="olay-kanit{% if not o.snapshot_path %} kartta-gizli{% endif %}">{% if o.snapshot_path %}
@@ -76,8 +85,9 @@
        olmadığına DEĞERLERE bakılarak karar verilir. #}
     {% if filtre.values() | select | list %}
     <p class="bos">Bu filtreyle olay bulunamadı.</p>
-    <p class="not">Filtreyi genişletmeyi deneyin: kamera, alan, tip ve durum
-      kutularını "Tüm…" seçeneğine alın, tarih aralığını kaldırın.</p>
+    <p class="not">Filtreyi genişletmeyi deneyin: kamera, alan, tip, önem ve durum
+      kutularını "Tüm…" seçeneğine alın, "Yalnız sürenler"i kaldırın, tarih
+      aralığını silin.</p>
     <p class="satir-form"><a class="dugme ikincil" href="/olaylar">Filtreyi temizle</a></p>
     {% else %}
     <p class="bos">Henüz hiç olay kaydedilmedi.</p>
@@ -93,6 +103,6 @@
   </section>
 {% endblock %}
 {% block betikler %}
-<script src="/static/uyari.js?v=26"></script>
-<script src="/static/canli.js?v=26"></script>
+<script src="/static/uyari.js?v=27"></script>
+<script src="/static/canli.js?v=27"></script>
 {% endblock %}

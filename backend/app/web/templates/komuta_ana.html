@@ -5,7 +5,7 @@
    yapılacağını söyleyen bir boş durum çıkar. #}
 {% extends "komuta_temel.html" %}
 {% from "simge.html" import simge %}
-{% from "bilesen.html" import oge_rozeti %}
+{% from "bilesen.html" import oge_rozeti, onem_hapi, surec_hapi %}
 {% block icerik %}
 
 {# --- ilk kurulum kontrol listesi ------------------------------------
@@ -138,7 +138,7 @@
                   <span class="akis-baslik">{{ olay.baslik }}</span>
                   <span class="akis-saat">{{ olay.saat }}</span>
                 </span>
-                <span class="akis-yer">{{ olay.yer }} · {{ olay.durum_kucuk }}</span>
+                <span class="akis-yer">{% if olay.event_type == "violation" and olay.onem %}{{ onem_hapi(olay) }}{% endif %}{{ olay.yer }} · {{ olay.durum_kucuk }} {{ surec_hapi(olay) }}</span>
               </span>
             </span>
           </a>
@@ -221,5 +221,5 @@
 {% endif %}
 {% endblock %}
 {% block betikler %}
-<script src="/static/onizleme.js?v=26"></script>
+<script src="/static/onizleme.js?v=27"></script>
 {% endblock %}

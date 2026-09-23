@@ -150,6 +150,32 @@ def ne_kadar_once(utc_metni: str, simdi: datetime | None = None) -> str:
     return f"{int(saniye // 86400)} gün önce"
 
 
+def sure_saniye(baslangic_utc: str, bitis_utc: str | None = None) -> float:
+    """İki ISO-8601 UTC damgası arası saniye; bitiş yoksa şimdiye kadar."""
+    bitis = datetime.now(UTC) if bitis_utc is None else _yerel(bitis_utc)
+    return max(0.0, (bitis - _yerel(baslangic_utc)).total_seconds())
+
+
+def sure_metni(saniye: float) -> str:
+    """Olay süresi insan diliyle: '12 sn', '3 dk 5 sn', '2 sa 10 dk', '1 gün 3 sa'.
+
+    İki birimden fazlası yazılmaz: "2 sa 10 dk 7 sn" okunmaz, "2 sa 10 dk" yeter.
+    Tam birimde ikinci parça düşer ("3 dk", "2 sa").
+    """
+    kalan = int(max(0.0, saniye))
+    if kalan < 60:
+        return f"{kalan} sn"
+    birimler = ((86400, "gün"), (3600, "sa"), (60, "dk"), (1, "sn"))
+    parcalar = []
+    for boyut, ad in birimler:
+        if kalan >= boyut or parcalar:
+            adet, kalan = divmod(kalan, boyut)
+            parcalar.append((adet, ad))
+        if len(parcalar) == 2:
+            break
+    return " ".join(f"{adet} {ad}" for adet, ad in parcalar if adet)
+
+
 def yerel_saat(utc_metni: str) -> int:
     """Olayın Türkiye saatindeki saat dilimi (0-23) — saatlik histogram için."""
     return _yerel(utc_metni).hour

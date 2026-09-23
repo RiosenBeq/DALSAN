@@ -7,7 +7,7 @@
    Sayfadaki tek değişken sayı, üstteki kurulum satırıdır; o da gerçek
    veritabanı durumundan gelir. Geri kalanı sabit metindir — uydurma sayı yok. #}
 {% extends "komuta_temel.html" %}
-{% from "bilesen.html" import oge_rozeti, durum_hapi %}
+{% from "bilesen.html" import oge_rozeti, durum_hapi, onem_hapi %}
 {% block icerik %}
 
 <div class="kilavuz-duzen">
@@ -321,6 +321,22 @@
       </div>
       <p class="durum-ornekleri">Olayın durumu:
         {% for anahtar, ad in OLAY_DURUMLARI.items() %}{{ durum_hapi(anahtar, ad) }}{% endfor %}</p>
+
+      <h3>Önem: uyarı ne kadar ciddi?</h3>
+      <p>Her ihlalin bir önemi vardır ve komuta ekranındaki satırın rengi ondan
+        gelir: kritik ve yüksek kırmızı, orta sarı, düşük gri. Önemi ihlalin türü
+        belirler — araç ile yayanın birbirine tehlikeli yaklaşması kritiktir, yaya
+        yolunun dışında yürümek ortadır. Araç yolundaki bir yaya, o anda yolda bir
+        araç da varsa yüksek sayılır. İncelediğiniz olay rengini korur; yalnız
+        “Yanlış alarm” işaretlenen olay griye döner.</p>
+      <p class="durum-ornekleri">Önem:
+        {% for anahtar in IHLAL_ONEMLERI %}{{ onem_hapi({"onem": anahtar, "onem_adi": ONEM_ADLARI[anahtar], "event_type": "violation"}) }}{% endfor %}
+        {{ onem_hapi({"onem": "system", "onem_adi": ONEM_ADLARI["system"], "event_type": "system"}) }}</p>
+      <p>Bir süre devam eden olay — örneğin görüntüsü kesilen bir kamera — listede
+        <span class="surec-hapi suruyor"><span class="durum-noktasi" aria-hidden="true"></span>sürüyor</span>
+        olarak görünür ve ne kadar zamandır sürdüğü yazar; bitince kaç saniye ya da
+        dakika sürdüğü kalır. Olaylar sayfasında <b>“Yalnız sürenler”</b> seçeneği
+        şu anda devam eden her şeyi tek listede gösterir.</p>
       <p class="kilavuz-bag">
         <a class="dugme" href="/komuta/inceleme">Olay incelemeyi aç</a>
         <a href="/olaylar">Tüm olaylar →</a>

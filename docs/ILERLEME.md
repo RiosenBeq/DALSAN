@@ -45,6 +45,23 @@ bekliyor (port hemen kapanıyordu, pencere o arada kapatılırsa kapanış yarı
 kalırdı). Testi gerçek bir sunucu ve açık bir akışla koşuyor; süre
 verilmediğinde aynı testin takıldığı karşı deneyle doğrulandı.
 
+**2c-2b — olay ekranları.** Olaylar listesinde "Tip" sütunu **önem hapı**
+oldu: Kritik (dolu kırmızı), Yüksek (kırmızı), Orta (kehribar), Düşük ve
+Sistem (gri); 007 öncesi olaylar "İhlal" yazar ve eski başlıklarını korur.
+Kodlu olayın başlığı kodun adı ("Yasak alana giriş", "Baret ve yelek yok",
+"Araç–yaya yakınlığı — 1,42 m"). Süren olayda nefes alan noktalı
+"sürüyor · 4 dk", biten olayda "bitti · 12 sn". Yeni süzgeçler: önem ve
+"Yalnız sürenler". Olay sayfasında bitiş, süre, "Neden bitti" ve olay kodu.
+CSV'ye dört sütun **sona** eklendi (Önem, Olay kodu, Bitiş, Süre); eski
+sütunların yeri değişmedi. Komuta ekranında satır rengi artık önemden:
+kritik kalın şeritli kırmızı, yüksek kırmızı, orta sarı, düşük ve sistem
+nötr; incelenen olay rengini korur, yanlış alarm griye döner. Canlı akış
+önemi taşıyor: uyarı bandı ve canlı liste önemin rengini alıyor,
+seslendirme kodun adını okuyor. Öğe kartındaki "Forklift–insan yakınlığı"
+adı sözlükten gelen "Araç–yaya yakınlığı" oldu (aynı olay aynı ekranda iki
+adla görünüyordu). Kılavuza "Önem: uyarı ne kadar ciddi?" bölümü eklendi.
+Statik dosya damgası `?v=27`.
+
 Tasarımda açık kalan iki nokta kodda şöyle kapandı: `ZONE_INTRUSION`'ın
 varsayılan önemi **Orta** (tasarım "kural satırından" diyordu ama bütün
 satırlar `warning`); kapanış sebeplerine `kamera_degisti` eklendi. Bitiş hiçbir

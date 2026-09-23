@@ -8,7 +8,7 @@
    Tasarımdaki örnek olay ("Olay #418 · 2,1 m") buraya taşınmadı: ekrandaki
    her sayı seçili olayın kendi kaydından gelir. #}
 {% extends "komuta_temel.html" %}
-{% from "bilesen.html" import oge_rozeti %}
+{% from "bilesen.html" import oge_rozeti, onem_hapi, surec_hapi %}
 {% block icerik %}
 
 {% if not olay %}
@@ -46,7 +46,7 @@
                 <span class="akis-baslik">{{ k.baslik }}</span>
                 <span class="akis-saat">{{ k.durum_kucuk }}</span>
               </span>
-              <span class="akis-yer">{{ k.yer }} · {{ k.saat }}</span>
+              <span class="akis-yer">{% if k.onem %}{{ onem_hapi(k) }}{% endif %}{{ k.yer }} · {{ k.saat }} {{ surec_hapi(k) }}</span>
             </span>
           </span>
         </a>
@@ -73,6 +73,8 @@
           {% if olay.golge_mod %}
           <span class="rozet sari">gölge mod — anons çalmadı</span>
           {% endif %}
+          {{ onem_hapi(olay) }}
+          {{ surec_hapi(olay) }}
           <span class="rozet {{ olay.rozet_rengi }}">{{ olay.rozet }}</span>
         </span>
       </div>
@@ -134,5 +136,5 @@
 
 {% endblock %}
 {% block betikler %}
-<script src="/static/inceleme.js?v=26"></script>
+<script src="/static/inceleme.js?v=27"></script>
 {% endblock %}

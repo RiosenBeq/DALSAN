@@ -18,6 +18,7 @@ from fastapi.responses import (
 
 from app import veritabani, zaman
 from app.hatalar import DogrulamaHatasi
+from app.rules.olay_kodu import IHLAL_ONEMLERI, ONEM_ADLARI
 from app.web.ortak import OLAY_DURUMLARI, OLAY_SORGUSU, baglanti_al, olay_hazirla
 from app.web.rotalar import sablonlar
 
@@ -41,6 +42,13 @@ def _filtre_sorgusu(istek: Request) -> tuple[str, list]:
     if p.get("durum") in OLAY_DURUMLARI:
         kosullar.append("e.status = ?")
         degerler.append(p["durum"])
+    if p.get("onem") in IHLAL_ONEMLERI:
+        kosullar.append("e.severity = ?")
+        degerler.append(p["onem"])
+    if p.get("surec") == "suruyor":
+        # Şema 007 öncesi olayların bitişi başlangıcına eşitlendi; burada
+        # yalnız gerçekten süren olaylar kalır (idx_events_resolved).
+        kosullar.append("e.resolved_at IS NULL")
     # Tarihler ekranda TÜRKİYE saatiyle gösterilir; sınırlar da Türkiye gününe
     # göre kurulmalı. UTC sanılırsa gece 00:00-03:00 arası olaylar bir önceki
     # güne düşer ve kullanıcı "olay kayboldu" der (docs/08 R7).
@@ -88,11 +96,34 @@ def olay_listesi(istek: Request, baglanti=Depends(baglanti_al)):
             "kameralar": kameralar,
             "alanlar": alanlar,
             "durumlar": OLAY_DURUMLARI,
+            "onemler": {onem: ONEM_ADLARI[onem] for onem in IHLAL_ONEMLERI},
             "filtre": dict(istek.query_params),
             # CSV bağlantısı ekrandaki filtreyi aynen taşısın
             "istek_sorgusu": istek.url.query,
         },
     )
+
+
+def akis_yuku(olay: dict) -> dict:
+    """Canlı akışın (SSE) tek olay için gönderdiği veri (static/canli.js, uyari.js)."""
+    return {
+        "id": olay["id"],
+        "zaman": olay["yerel_zaman"],
+        "kamera": olay["kamera_adi"] or "—",
+        "ozet": olay["ozet"],
+        "tip": olay["event_type"],
+        # Seslendirilen ad: kodun adı ("Yasak alana giriş"); kodsuz eski olayda
+        # kural tipinin adı.
+        "kural": olay["kod_adi"] or olay["kural_tipi_adi"],
+        "kod": olay.get("event_code") or "",
+        # Bant ve liste rengi önemden
+        "onem": olay["onem"],
+        "onem_adi": olay["onem_adi"],
+        "suruyor": olay["suruyor"],
+        # Gölge moddaki kuralın olayı listeye düşer ama ekranda uyarı bandı
+        # ÇIKMAZ (static/uyari.js): gölge mod "sessizce dene" demektir.
+        "golge": olay["golge_mod"],
+    }
 
 
 @router.get("/olaylar/akis")
@@ -114,21 +145,7 @@ async def olay_akisi(istek: Request):
                 for satir in satirlar:
                     olay = olay_hazirla(satir)
                     son_id = olay["id"]
-                    veri = json.dumps(
-                        {
-                            "id": olay["id"],
-                            "zaman": olay["yerel_zaman"],
-                            "kamera": olay["kamera_adi"] or "—",
-                            "ozet": olay["ozet"],
-                            "tip": olay["event_type"],
-                            "kural": olay["kural_tipi_adi"],
-                            # Gölge moddaki kuralın olayı listeye düşer ama
-                            # ekranda uyarı bandı ÇIKMAZ (static/uyari.js):
-                            # gölge mod "sessizce dene" demektir.
-                            "golge": olay["golge_mod"],
-                        },
-                        ensure_ascii=False,
-                    )
+                    veri = json.dumps(akis_yuku(olay), ensure_ascii=False)
                     yield f"data: {veri}\n\n"
                 yield ": ping\n\n"  # ara bağlantı canlı tutma
                 await asyncio.sleep(1.0)
@@ -150,9 +167,26 @@ def csv_disa_aktar(istek: Request, baglanti=Depends(baglanti_al)):
     ).fetchall()
     tampon = io.StringIO()
     yazici = csv.writer(tampon, delimiter=";")  # Türkçe Excel noktalı virgül bekler
-    yazici.writerow(["Zaman", "Tip", "Kamera", "Alan", "Özet", "Durum", "Not"])
+    # Yeni sütunlar SONA eklendi: eski sütunların yeri değişirse kullanıcının
+    # Excel'de kurduğu formüller ve pivot tablolar sessizce yanlış sütunu okur.
+    yazici.writerow(
+        [
+            "Zaman",
+            "Tip",
+            "Kamera",
+            "Alan",
+            "Özet",
+            "Durum",
+            "Not",
+            "Önem",
+            "Olay kodu",
+            "Bitiş",
+            "Süre (sn)",
+        ]
+    )
     for satir in satirlar:
         olay = olay_hazirla(satir)
+        bitis = olay.get("resolved_at")
         yazici.writerow(
             [
                 olay["yerel_zaman"],
@@ -162,6 +196,13 @@ def csv_disa_aktar(istek: Request, baglanti=Depends(baglanti_al)):
                 olay["ozet"],
                 olay["durum_adi"],
                 olay["note"] or "",
+                olay["onem_adi"],
+                olay.get("event_code") or "",
+                "sürüyor" if olay["suruyor"] else olay["bitis_zamani"],
+                # Süren olayın süresi henüz yok; anlık olayın süresi 0'dır.
+                ""
+                if olay["suruyor"] or not bitis
+                else round(zaman.sure_saniye(olay["occurred_at"], bitis)),
             ]
         )
     return Response(

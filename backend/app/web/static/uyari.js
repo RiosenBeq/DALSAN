@@ -86,9 +86,14 @@ window.Uyari = (function () {
     return kutu;
   }
 
+  // Bandın rengi olayın önemidir (docs/17 §11). Sınıf adına yalnız bilinen
+  // değer yazılır; önemsiz (eski) olay varsayılan kırmızıda kalır.
+  var ONEMLER = ["critical", "high", "medium", "low"];
+
   function goster(veri) {
     var k = kutuAl();
     k.textContent = "⚠ " + (veri.kamera || "Kamera") + " — " + (veri.ozet || "İhlal");
+    k.className = "uyari-bandi" + (ONEMLER.indexOf(veri.onem) !== -1 ? " onem-" + veri.onem : "");
     k.hidden = false;
     clearTimeout(k._zamanlayici);
     k._zamanlayici = setTimeout(function () { k.hidden = true; }, 8000);

@@ -2,6 +2,7 @@
 // her ihlalde Uyari.duyur() çağrılır (bant + isteğe bağlı ses/seslendirme).
 // Hem Olaylar hem Ana Sayfa bu dosyayı kullanır — iki ayrı kopya kod olmasın.
 (function () {
+  var ONEMLER = ["critical", "high", "medium", "low"];
   var liste = document.getElementById("canli-liste");
   var durum = document.getElementById("canli-durum");
   if (!liste && !durum) return;
@@ -41,6 +42,17 @@
     // yorumlanmamalı (kullanıcı verisi ekrana ham basılmaz).
     var satir = document.createElement("li");
     satir.className = veri.tip === "violation" ? "ihlal" : "sistem";
+    // Önem: satırın rengi ve başındaki hap (Kritik / Yüksek / Orta / Düşük).
+    // Değer sunucunun sabit listesinden gelir; yine de sınıf adına yalnız
+    // bilinen değer yazılır.
+    if (veri.tip === "violation" && ONEMLER.indexOf(veri.onem) !== -1) {
+      satir.classList.add("onem-" + veri.onem);
+      var hap = document.createElement("span");
+      hap.className = "onem-hapi onem-" + veri.onem;
+      hap.textContent = veri.onem_adi || "";
+      satir.appendChild(hap);
+      satir.appendChild(document.createTextNode(" "));
+    }
     var zaman = document.createElement("b");
     zaman.textContent = veri.zaman || "";
     satir.appendChild(zaman);

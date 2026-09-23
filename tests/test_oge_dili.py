@@ -183,7 +183,7 @@ def test_komuta_ekrani_ihlalleri_ogeye_gore_sayar(istemci, test_ayarlari):
     kartlar = re.findall(
         r'class="oge-karti-deger">(\d+)</span>\s*<span class="oge-karti-ad">([^<]+)</span>', metin
     )
-    assert kartlar == [("2", "Forklift–insan yakınlığı"), ("1", "Yelek yok")]
+    assert kartlar == [("2", "Araç–yaya yakınlığı"), ("1", "Yelek yok")]
 
 
 def test_ihlal_yokken_oge_paneli_cikmaz(istemci):

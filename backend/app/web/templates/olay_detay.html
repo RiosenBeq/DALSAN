@@ -1,5 +1,5 @@
 {% extends "temel.html" %}
-{% from "bilesen.html" import oge_rozeti, durum_hapi %}
+{% from "bilesen.html" import oge_rozeti, durum_hapi, onem_hapi, surec_hapi %}
 {% block baslik %}Olay {{ olay.id }} — DALSAN İSG{% endblock %}
 {% block icerik %}
   <div class="baslik-satiri">
@@ -10,7 +10,17 @@
   <section class="kart">
     <table>
       <tr><th>Zaman</th><td>{{ olay.yerel_zaman }} (Türkiye)</td></tr>
-      <tr><th>Tip</th><td>{{ "İhlal" if olay.event_type == "violation" else "Sistem" }}</td></tr>
+      {# Süren ya da bir süre boyunca sürmüş olayda bitiş ve süre; anlık olayda
+         (bitiş = başlangıç) bu satırlar hiç çizilmez. #}
+      {% if olay.suruyor %}
+      <tr><th>Bitiş</th><td>{{ surec_hapi(olay) }}</td></tr>
+      {% elif olay.sure_metni %}
+      <tr><th>Bitiş</th><td>{{ olay.bitis_zamani }} {{ surec_hapi(olay) }}</td></tr>
+      {% endif %}
+      {% if olay.kapanis_sebebi_adi %}
+      <tr><th>Neden bitti</th><td>{{ olay.kapanis_sebebi_adi }}</td></tr>
+      {% endif %}
+      <tr><th>Önem</th><td>{{ onem_hapi(olay) }}{% if olay.kod_adi %} <span class="soluk-metin">{{ olay.kod_adi }} · <code>{{ olay.event_code }}</code></span>{% endif %}</td></tr>
       <tr><th>Kamera</th><td>{{ olay.kamera_adi or "—" }} {{ "(" + olay.kamera_alani + ")" if olay.kamera_alani }}</td></tr>
       <tr><th>Durum</th><td>{% if olay.event_type == "violation" %}{{ durum_hapi(olay.status, olay.durum_adi) }}{% else %}{{ olay.durum_adi }}{% endif %}{% if olay.note %} — Not: {{ olay.note }}{% endif %}</td></tr>
     </table>

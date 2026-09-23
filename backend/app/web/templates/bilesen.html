@@ -6,7 +6,7 @@
    stil.css → ÖĞE DİLİ bölümündedir. Bir şablon rozeti kendisi çizmez, bu
    makroları çağırır: forklift bir sayfada turuncu, ötekinde mavi görünemez.
 
-   Kullanım:  {% from "bilesen.html" import oge_rozeti, durum_hapi, bolge_cipi %}
+   Kullanım:  {% from "bilesen.html" import oge_rozeti, durum_hapi, bolge_cipi, onem_hapi, surec_hapi %}
               {{ oge_rozeti(olay.oge) }} {{ olay.ozet }}
 
    Rozet tek başına anlam taşımaz; yanında her zaman yazısı durur (simge.html
@@ -26,6 +26,29 @@
   {%- elif durum == "false_alarm" %}{{ simge("hata") }}
   {%- else %}<span class="durum-noktasi" aria-hidden="true"></span>
   {%- endif %}{{ ad }}</span>
+{%- endmacro %}
+
+{# Olay önemi hapı (docs/17 §6.1): Kritik dolu kırmızı · Yüksek kırmızı ·
+   Orta kehribar · Düşük gri · Sistem gri. Yazı her zaman yanındadır; renk tek
+   başına anlam taşımaz. Önemi olmayan (şema 007 öncesi) ihlal "İhlal" yazar. #}
+{% macro onem_hapi(olay) -%}
+{%- if olay.onem -%}
+<span class="onem-hapi onem-{{ olay.onem }}">{{ olay.onem_adi }}</span>
+{%- elif olay.event_type == "violation" -%}
+<span class="onem-hapi onem-eski">İhlal</span>
+{%- else -%}
+<span class="onem-hapi onem-system">Sistem</span>
+{%- endif -%}
+{%- endmacro %}
+
+{# Olayın süreci: süren olay "sürüyor · 4 dk" (nefes alan noktayla), biten olay
+   "bitti · 12 sn". Anlık olayda (bitiş = başlangıç) hiçbir şey çizilmez. #}
+{% macro surec_hapi(olay) -%}
+{%- if olay.suruyor -%}
+<span class="surec-hapi suruyor"><span class="durum-noktasi" aria-hidden="true"></span>sürüyor{% if olay.sure_metni %} · {{ olay.sure_metni }}{% endif %}</span>
+{%- elif olay.sure_metni -%}
+<span class="surec-hapi bitti">bitti · {{ olay.sure_metni }}</span>
+{%- endif -%}
 {%- endmacro %}
 
 {# Bölge tipi çipi: tipin simgesi, yeni bölge çizerkenki rengiyle. #}

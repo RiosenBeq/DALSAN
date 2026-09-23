@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from fastapi import Request
 
 from app import veritabani, zaman
+from app.rules.olay_kodu import KAPANIS_SEBEPLERI, OLAY_KODLARI, ONEM_ADLARI
 from app.rules.parametreler import params_dogrula
 
 # Kullanıcıya görünen Türkçe adlar (kod içi değerler İngilizce kalır)
@@ -88,18 +89,20 @@ OGELER: dict[str, Oge] = {
     "sistem": Oge("sistem", "Sistem", "saglik"),
 }
 
-# Öğenin İHLAL olarak adı: "Forklift" bir öğedir, "forklift–insan yakınlığı"
-# onun ürettiği ihlaldir. Komuta ekranındaki öğe dağılımı bu adları kullanır.
+# Öğenin İHLAL olarak adı: "Forklift" bir öğedir, "araç–yaya yakınlığı" onun
+# ürettiği ihlaldir. Komuta ekranındaki öğe dağılımı bu adları kullanır. Olay
+# koduyla aynı şeyi anlatan ad sözlükten gelir (rules/olay_kodu.py): aynı
+# ekranda akış "Araç–yaya yakınlığı", öğe kartı başka bir ad yazmasın.
 OGE_IHLAL_ADLARI = {
-    "forklift": "Forklift–insan yakınlığı",
-    "yaya-yolu": "Yaya yolu dışında",
-    "baret": "Baret yok",
-    "yelek": "Yelek yok",
+    "forklift": OLAY_KODLARI["VEHICLE_PERSON_PROXIMITY"].ad,
+    "yaya-yolu": OLAY_KODLARI["PERSON_OFF_WALKWAY"].ad,
+    "baret": OLAY_KODLARI["PPE_NO_HELMET"].ad,
+    "yelek": OLAY_KODLARI["PPE_NO_VEST"].ad,
     "kkd": "Baret ve yelek yok",
-    "alan": "Yasak alana giriş",
-    "park": "Tır park yeri dışında",
+    "alan": OLAY_KODLARI["RESTRICTED_ENTRY"].ad,
+    "park": OLAY_KODLARI["VEHICLE_OUT_OF_POSITION"].ad,
     "tir": "Tır bölgede",
-    "hiz": "Hız aşımı",
+    "hiz": OLAY_KODLARI["VEHICLE_OVERSPEED"].ad,
 }
 
 # Tespit sınıfı → öğe (renk anahtarı ve sayım tabloları)
@@ -381,23 +384,66 @@ def olay_hazirla(satir) -> dict:
     # geçmiş olay "anons çaldı" diye görünmemeli.
     olay["golge_mod"] = bool(kural.get("shadow_mode"))
     olay["oge"] = OGELER[olay_ogesi(olay["event_type"], kural, olay["detaylar"])]
+    _kod_ve_sure(olay)
     if olay["event_type"] == "system":
         olay["ozet"] = olay["detaylar"].get("mesaj", "Sistem olayı")
     else:
-        olay["ozet"] = olay["kural_tipi_adi"] or "İhlal"
-        if olay["detaylar"].get("eksik_kkd"):
-            olay["ozet"] += (
-                " — "
-                + ", ".join(KKD_ADLARI.get(k, k) for k in olay["detaylar"]["eksik_kkd"])
-                + " yok"
-            )
-        elif olay["detaylar"].get("mesafe_m") is not None:
-            olay["ozet"] += f" — {sayi_metni(olay['detaylar']['mesafe_m'], 'm', 2)}"
-        elif olay["detaylar"].get("hiz_kmh") is not None:
-            # Hız km/sa yazılır: fabrika hız levhaları da km/sa'dır. Ayarın
-            # kendisi m/sn tutulur (Tespit.hiz_mps ile aynı birim).
-            olay["ozet"] += f" — {sayi_metni(olay['detaylar']['hiz_kmh'], 'km/sa', 1)}"
+        olay["ozet"] = _ihlal_ozeti(olay)
     return olay
+
+
+def _kod_ve_sure(olay: dict) -> None:
+    """Olay kodunun adı, önem ve süre (şema 007, docs/17 §6.1).
+
+    007 öncesi olayda kod ve önem boştur: ekran kural tipinin adına düşer.
+    `suruyor` yalnız kodlu ve bitişi olmayan olaydadır; anlık olayda (bitiş =
+    başlangıç) süre metni boş kalır, çünkü "0 sn sürdü" bilgi değildir.
+    """
+    kod = olay.get("event_code")
+    tanim = OLAY_KODLARI.get(kod) if kod else None
+    olay["kod_adi"] = tanim.ad if tanim else ""
+    olay["onem"] = olay.get("severity") or ""
+    olay["onem_adi"] = ONEM_ADLARI.get(olay["onem"], "")
+    bitis = olay.get("resolved_at")
+    olay["suruyor"] = bool(kod) and bitis is None
+    olay["bitis_zamani"] = zaman.ekranda_goster(bitis) if bitis else ""
+    if olay["suruyor"]:
+        olay["sure_metni"] = zaman.sure_metni(zaman.sure_saniye(olay["occurred_at"]))
+    elif bitis and bitis != olay["occurred_at"]:
+        olay["sure_metni"] = zaman.sure_metni(zaman.sure_saniye(olay["occurred_at"], bitis))
+    else:
+        olay["sure_metni"] = ""
+    olay["kapanis_sebebi_adi"] = KAPANIS_SEBEPLERI.get(
+        str(olay["detaylar"].get("kapanis_sebebi", "")), ""
+    )
+
+
+def _ihlal_ozeti(olay: dict) -> str:
+    """ "Yasak alana giriş", "Araç–yaya yakınlığı — 1,85 m", "Baret ve yelek yok".
+
+    Kodlu olayda başlık kodun adıdır; 007 öncesi olayda kural tipinin adı
+    ("KKD (baret/yelek) — baret yok") — eski olayın yazısı değişmez.
+    """
+    detay = olay["detaylar"]
+    ad = olay["kod_adi"] or olay["kural_tipi_adi"] or "İhlal"
+    eksik = [KKD_ADLARI.get(k, k) for k in _liste(detay.get("eksik_kkd"))]
+    if eksik and olay["kod_adi"]:
+        # Kodun adı yalnız ağır kalemi söyler ("Baret yok"); iki kalem eksikse
+        # ikisi de yazılır.
+        metin = " ve ".join(eksik) + " yok"
+        return metin[0].upper() + metin[1:]
+    if eksik:
+        return f"{ad} — {', '.join(eksik)} yok"
+    if detay.get("mesafe_m") is not None:
+        return f"{ad} — {sayi_metni(detay['mesafe_m'], 'm', 2)}"
+    if detay.get("hiz_kmh") is not None:
+        # Hız km/sa yazılır: fabrika hız levhaları da km/sa'dır. Ayarın
+        # kendisi m/sn tutulur (Tespit.hiz_mps ile aynı birim).
+        return f"{ad} — {sayi_metni(detay['hiz_kmh'], 'km/sa', 1)}"
+    if detay.get("bolge_tipi") in BOLGE_TIPLERI:
+        # Yedek kod (ZONE_INTRUSION): olayın ne olduğunu bölge tipi söyler
+        return f"{ad} — {BOLGE_TIPLERI[detay['bolge_tipi']]}"
+    return ad
 
 
 def baglanti_al(istek: Request) -> Iterator:

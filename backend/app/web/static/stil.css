@@ -81,6 +81,7 @@
   --uyari-metin: #92400e;
   --uyari-zemin: rgba(254, 243, 199, 0.85);
   --uyari-cizgi: rgba(252, 211, 77, 0.9);
+  --uyari-golge: rgba(180, 83, 9, 0.30);
   --bilgi: #1d4ed8;
   --bilgi-zemin: rgba(219, 234, 254, 0.7);
   --bilgi-cizgi: rgba(147, 197, 253, 0.85);
@@ -530,6 +531,10 @@ legend { font-size: 0.88rem; color: var(--metin-3); padding: 0 6px; }
   box-shadow: var(--cam-ic-isik);
 }
 .canli-liste li.ihlal { background: var(--tehlike-zemin); border-color: var(--tehlike-cizgi); }
+/* Önemli ihlal satırı önemin rengini alır; kırmızı zemin kritik ve yükseğe kalır. */
+.canli-liste li.onem-medium { background: var(--uyari-zemin); border-color: var(--uyari-cizgi); }
+.canli-liste li.onem-low { background: var(--cam-hafif); border-color: var(--cam-sinir); }
+.canli-liste li .onem-hapi { padding: 0 7px; font-size: 0.72rem; vertical-align: 1px; }
 .canli-liste li.sistem { color: var(--metin-3); }
 .kucuk-resim { height: 40px; border-radius: 6px; }
 .kanit-resim { max-width: 100%; border-radius: var(--radius-kucuk); border: 1px solid var(--cam-sinir); }
@@ -588,6 +593,10 @@ legend { font-size: 0.88rem; color: var(--metin-3); padding: 0 6px; }
   font-size: 0.95rem; font-weight: 650;
   box-shadow: 0 8px 28px var(--tehlike-golge), var(--ic-isik-koyu);
 }
+/* Kritik ve yüksek kırmızı kalır (varsayılan); orta kehribar, düşük gri. Metin
+   rengi zeminle AA kontrastı korur: koyu kehribar ve arduvaz üstünde beyaz. */
+.uyari-bandi.onem-medium { background: var(--uyari); box-shadow: 0 8px 28px var(--uyari-golge), var(--ic-isik-koyu); }
+.uyari-bandi.onem-low { background: var(--metin-2); box-shadow: var(--golge-buyuk), var(--ic-isik-koyu); }
 
 /* anons sayfası */
 .anons-satiri {
@@ -978,6 +987,54 @@ nav a.simgeli, .komuta-menu a.simgeli { gap: 6px; }
 .durum-hapi.durum-reviewed { background: var(--basari-zemin); color: var(--basari-metin); border-color: var(--basari-cizgi); }
 .durum-hapi.durum-false-alarm { background: var(--cam-orta); color: var(--metin-3); border-color: var(--cam-sinir); }
 
+/* --- olay önemi hapı (docs/17 §6.1). Kritik tek DOLU renkli haptır: listede
+   gözün ilk ona gitmesi istenir. Yazı her zaman yanında (renk körlüğü). --- */
+.onem-hapi {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 9px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 0.78rem;
+  font-weight: 700;
+  white-space: nowrap;
+  box-shadow: var(--cam-ic-isik);
+}
+.onem-hapi.onem-critical {
+  background: var(--tehlike); color: var(--dolu-metin); border-color: var(--tehlike);
+  box-shadow: var(--ic-isik-koyu), 0 2px 8px var(--tehlike-golge);
+}
+.onem-hapi.onem-high,
+.onem-hapi.onem-eski { background: var(--tehlike-zemin); color: var(--tehlike-metin); border-color: var(--tehlike-cizgi); }
+.onem-hapi.onem-medium { background: var(--uyari-zemin); color: var(--uyari-metin); border-color: var(--uyari-cizgi); }
+.onem-hapi.onem-low { background: var(--cam-orta); color: var(--metin-2); border-color: var(--cam-sinir); }
+.onem-hapi.onem-system { background: var(--cam-orta); color: var(--metin-3); border-color: var(--cam-sinir); font-weight: 600; }
+
+/* --- olay süreci: "sürüyor · 4 dk" / "bitti · 12 sn" --- */
+.surec-hapi {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.76rem;
+  font-weight: 650;
+  white-space: nowrap;
+}
+.surec-hapi.suruyor {
+  padding: 1px 8px 1px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--tehlike-cizgi);
+  background: var(--tehlike-zemin);
+  color: var(--tehlike-metin);
+}
+.surec-hapi.suruyor .durum-noktasi {
+  width: 7px; height: 7px; border-radius: 50%; flex: none; background: currentColor;
+  animation: nokta-nefes 1.6s ease-in-out infinite;
+}
+.surec-hapi.bitti { color: var(--metin-3); font-weight: 600; }
+@media (prefers-reduced-motion: reduce) {
+  .surec-hapi.suruyor .durum-noktasi { animation: none; }
+}
+
 /* --- bölge tipi çipi: simge, yeni bölge çizerkenki rengini alır --- */
 .bolge-cipi {
   display: inline-flex;
@@ -1007,6 +1064,10 @@ nav a.simgeli, .komuta-menu a.simgeli { gap: 6px; }
    hizalanır; uzun özet iki satıra kırılırsa rozet yukarıda kalır. */
 .ozet-hucresi { display: inline-flex; align-items: flex-start; gap: 9px; }
 .ozet-hucresi > span:last-child { padding-top: 3px; }
+/* "sürüyor · 4 dk" özet metninin ardından, arada gerçek bir boşlukla gelir;
+   satır dar kalırsa hap bütün olarak alt satıra iner ve orada metnin
+   hizasından başlar (kenar payı büyük olsaydı içeriden başlardı). */
+.ozet-hucresi .surec-hapi { margin-left: 2px; vertical-align: 1px; }
 .soluk-metin { color: var(--metin-3); }
 /* Zaman tek satırda kalır: özet sütunu rozetle genişleyince tarih ve saat
    bazı satırlarda ikiye bölünüyor, sütun düzensiz görünüyordu. */

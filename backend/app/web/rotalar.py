@@ -13,6 +13,7 @@ from fastapi.templating import Jinja2Templates
 from app import kaynaklar, veritabani, zaman
 from app.analiz.model_adi import gorunen_model_adi
 from app.hatalar import VeritabaniHatasi
+from app.rules.olay_kodu import IHLAL_ONEMLERI, ONEM_ADLARI
 from app.web.ortak import (
     ANONS_OGELERI,
     BOLGE_SIMGELERI,
@@ -59,6 +60,9 @@ sablonlar.env.globals["BOLGE_SIMGELERI"] = BOLGE_SIMGELERI
 # liste, yeni öğe eklendiğinde kılavuzda eksik kalırdı.
 sablonlar.env.globals["OGE_IHLAL_ADLARI"] = OGE_IHLAL_ADLARI
 sablonlar.env.globals["OLAY_DURUMLARI"] = OLAY_DURUMLARI
+# Önem hapları kılavuzda da aynı makroyla çizilir (bilesen.html onem_hapi)
+sablonlar.env.globals["IHLAL_ONEMLERI"] = IHLAL_ONEMLERI
+sablonlar.env.globals["ONEM_ADLARI"] = ONEM_ADLARI
 
 # GİRİŞ İSTEMEYEN rotalar. Yalnız iki tane vardır ve ikisi de sistem bilgisi
 # taşımaz: tarayıcı simgesi ve canlılık yoklaması. Ayrı bir router olmalarının
