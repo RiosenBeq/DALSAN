@@ -156,16 +156,25 @@ def sifre_kurulu_mu(ayarlar) -> bool:
     return bool(ayarlar.yonetici_sifresi)
 
 
+def oturum_gecerli_mi(istek: Request) -> bool:
+    """İsteğin geçerli bir oturumu var mı (şifre tanımlı değilse her zaman evet).
+
+    Kimliksiz uçların kendi içinde ayrıntıyı oturuma bağlaması için
+    (/saglik?ayrinti=1); korunan rotalar `oturum_gerekli`'yi kullanır.
+    """
+    ayarlar = istek.app.state.ayarlar
+    if not ayarlar.yonetici_sifresi:
+        return True
+    return cerez_gecerli(istek.cookies.get(_CEREZ_ADI), ayarlar.yonetici_sifresi)
+
+
 def oturum_gerekli(istek: Request) -> None:
     """Korunan her rotanın TEK yetki kapısı.
 
     Şifre tanımlı değilse hiçbir şey sormaz: bugünkü yerel kullanım aynen
     devam eder.
     """
-    ayarlar = istek.app.state.ayarlar
-    if not ayarlar.yonetici_sifresi:
-        return
-    if not cerez_gecerli(istek.cookies.get(_CEREZ_ADI), ayarlar.yonetici_sifresi):
+    if not oturum_gecerli_mi(istek):
         raise YetkiHatasi(sonraki_yol=str(istek.url.path))
 
 

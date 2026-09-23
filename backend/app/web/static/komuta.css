@@ -648,15 +648,15 @@
 
 /* Altı sütun dar ekrana sığmaz: tablo KENDİ İÇİNDE yana kayar, sayfa değil. */
 .tablo-kaydirma { overflow-x: auto; }
-.saglik-tablo { min-width: 700px; }
+.saglik-tablo { min-width: 800px; }
 .saglik-tablo .komuta-tablo-basligi,
 .saglik-tablo .komuta-tablo-satiri {
-  grid-template-columns: 1.4fr 1fr 0.8fr 0.9fr 1fr 1.2fr;
+  grid-template-columns: 1.4fr 1fr 0.75fr 0.75fr 0.9fr 1fr 1.2fr;
 }
 .saglik-tablo .satir-adi a { color: inherit; text-decoration: none; }
 .saglik-tablo .satir-adi a:hover { text-decoration: underline; }
 /* Ölçülen hız ayarlanandan belirgin düşük: eşik .env'den gelir (FPS_UYARI_ORANI) */
-.fps-dusuk { color: var(--uyari-metin); font-weight: 640; }
+.fps-dusuk, .islenen-dusuk { color: var(--uyari-metin); font-weight: 640; }
 
 /* ------------------------------------------------------------ dar ekran */
 /* Fabrika sunucusunun ekranı geniştir, ama sistem dizüstünden de açılıyor:

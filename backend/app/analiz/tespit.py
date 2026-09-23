@@ -180,6 +180,9 @@ class Tespitci:
         self.cihaz_uyarisi = ""
         paketler = _ort_paketleri()
         cakisma = len(paketler) > 1
+        # /saglik "ort_paket_cakismasi" (docs/17 §9.1): sistem çalışır ama GPU
+        # sessizce kaybolabilir.
+        self.ort_paket_cakismasi = cakisma
         if cakisma:
             log_al("tespit").warning(
                 "İki ONNX Runtime paketi birlikte kurulu (onnxruntime ve onnxruntime-gpu): "

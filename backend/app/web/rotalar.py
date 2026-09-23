@@ -7,7 +7,13 @@ import sqlite3
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, Request
-from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, Response
+from fastapi.responses import (
+    FileResponse,
+    HTMLResponse,
+    JSONResponse,
+    RedirectResponse,
+    Response,
+)
 from fastapi.templating import Jinja2Templates
 
 from app import kaynaklar, veritabani, zaman
@@ -157,26 +163,59 @@ def favicon():
     return FileResponse(simge, media_type="image/svg+xml")
 
 
-@acik_router.get("/saglik")
-def saglik(istek: Request):
-    """Docker healthcheck ve Kontrol Paneli için UCUZ canlılık kontrolü.
+# "hazir" değerini bozan sorunlar (docs/17 §9.1). Öbürleri (ör.
+# kritik_kural_pasif, ort_paket_cakismasi) listede görünür ama hazırlığı
+# bozmaz: yapılandırma eksiğidir, hizmet arızası değil — Docker healthcheck'i
+# "unhealthy" yapmamalı. Ekran yine kırmızı gösterir.
+HAZIRLIGI_BOZAN_SORUNLAR = frozenset(
+    {
+        "analiz_takildi",
+        "analiz_olu",
+        "model_yuklenemedi",
+        "veritabani_acilamadi",
+        "olay_yazilamadi",
+    }
+)
 
-    Ana sayfa veri/ klasörünün tamamını tarayıp boyut hesaplar; 30 saniyede bir
-    onu çağırmak, olay fotoğrafları biriktikçe diski gereksiz yere okur.
+
+@acik_router.get("/saglik")
+def saglik(istek: Request, ayrinti: int = 0, hazirlik: int = 0):
+    """Docker healthcheck, Kontrol Paneli ve komuta şeridi için sağlık (docs/17 §9.1).
+
+    Her koşulda 200 ve `durum: "calisiyor"` döner: Kontrol Paneli'nin "bu
+    port bizim sunucumuz mu" sorusu (`bizim_sunucumuz_mu`) buna bakar. Tek
+    istisna `?hazirlik=1`: sistem hazır değilse 503 (Docker healthcheck).
+
+    Kimliksiz gövde DARDIR: durum, analiz, model, hazır ve sorun KODLARI.
+    Kamera ölçümleri, disk ve analiz tur yaşı yalnız `?ayrinti=1` ve geçerli
+    oturumla gelir (şifre tanımlı değilse oturum gerekmez). Ucuzdur: ana
+    sayfanın aksine veri/ klasörünü taramaz.
     """
+    from app.web.giris import oturum_gecerli_mi  # döngüsel içe aktarma: giris → rotalar
+
+    ayarlar = istek.app.state.ayarlar
     supervizor = getattr(istek.app.state, "supervizor", None)
-    sorunlar = _saglik_sorunlari(istek.app.state.ayarlar)
-    # Süpervizörün kodları (olay_yazilamadi…). Sağlık ucu hiçbir durumda
-    # düşmemeli: yöntemi olmayan bir nesne de boş liste sayılır.
+    model = getattr(supervizor, "model_durumu", "kapali") if supervizor else "kapali"
+    sorunlar = _saglik_sorunlari(ayarlar)
+    # Sağlık ucu hiçbir durumda düşmemeli: yöntemi olmayan nesne boş liste sayılır
     sorunlar += getattr(supervizor, "sorunlar", list)()
-    return {
+    hazir = (
+        supervizor is not None
+        and model == "hazir"
+        and not HAZIRLIGI_BOZAN_SORUNLAR.intersection(sorunlar)
+    )
+    govde = {
         "durum": "calisiyor",
         "analiz": supervizor is not None,
-        "model": getattr(supervizor, "model_durumu", "kapali") if supervizor else "kapali",
-        # Yalnız KOD: kimliksiz uçta kamera adı ya da ayrıntı verilmez
-        # (docs/17 §9.1). Ayrıntı kurulum listesinde.
+        "model": model,
+        "hazir": hazir,
         "sorunlar": sorunlar,
     }
+    if ayrinti and oturum_gecerli_mi(istek):
+        govde.update(_saglik_ayrintisi(ayarlar, supervizor))
+    if hazirlik and not hazir:
+        return JSONResponse(govde, status_code=503)
+    return govde
 
 
 def _saglik_sorunlari(ayarlar) -> list[str]:
@@ -187,11 +226,27 @@ def _saglik_sorunlari(ayarlar) -> list[str]:
         finally:
             baglanti.close()
     except (sqlite3.Error, VeritabaniHatasi) as hata:
-        # Sağlık ucu her durumda cevap verir; veritabanı okunamıyorsa bu
-        # denetim yapılamamıştır ve bu da söylenir.
+        # Sağlık ucu her durumda cevap verir; veritabanı okunamıyorsa bu da
+        # bir sorundur ve söylenir.
         log_al("sistem").warning(f"Sağlık denetimi veritabanını okuyamadı: {hata}")
-        return ["saglik_dogrulanamadi"]
+        return ["veritabani_acilamadi"]
     return ["kritik_kural_pasif"] if bekleyen else []
+
+
+def _saglik_ayrintisi(ayarlar, supervizor) -> dict:
+    """Oturumlu ayrıntı: kamera ölçümleri (id ile, ad yok), boş disk, tur yaşı."""
+    ayrinti: dict = {"bos_disk_gb": None, "analiz_tur_yasi_sn": None, "kameralar": []}
+    try:
+        ayrinti["bos_disk_gb"] = round(shutil.disk_usage(ayarlar.veri_dizini).free / 1024**3, 1)
+    except OSError as hata:
+        log_al("sistem").warning(f"Boş disk alanı okunamadı: {hata}")
+    if supervizor is not None:
+        try:
+            ayrinti["analiz_tur_yasi_sn"] = supervizor.analiz_tur_yasi()
+            ayrinti["kameralar"] = supervizor.kamera_saglik_ozeti()
+        except Exception as hata:  # noqa: BLE001 — sağlık ucu 200 dönmeye devam etmeli
+            log_al("sistem").error(f"Sağlık ayrıntısı toplanamadı: {hata}", exc_info=hata)
+    return ayrinti
 
 
 @router.post("/yedekle")

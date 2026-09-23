@@ -201,7 +201,13 @@ def olay_inceleme(istek: Request, olay: int | None = None, baglanti=Depends(bagl
 @router.get("/komuta/saglik", response_class=HTMLResponse)
 def kamera_sagligi(istek: Request, baglanti=Depends(baglanti_al)):
     baglam = kabuk_baglami(istek, baglanti, "saglik")
-    baglam.update(saglik_baglami(baglanti, istek.app.state.ayarlar))
+    baglam.update(
+        saglik_baglami(
+            baglanti,
+            istek.app.state.ayarlar,
+            getattr(istek.app.state, "supervizor", None),
+        )
+    )
     return sablonlar.TemplateResponse(istek, "komuta_saglik.html", baglam)
 
 
@@ -807,8 +813,27 @@ def _fps_dusuk_mu(satir, oran: float) -> bool:
     return float(olculen) < float(ayarlanan) * oran
 
 
-def saglik_baglami(baglanti, ayarlar) -> dict:
-    """Üç özet kutusu + kamera başına bir satır."""
+def _isleme_notu(olcum: dict | None) -> str:
+    """İşlenen hız hücresinin açıklaması (title): hedef ve işleme süresi."""
+    if not olcum:
+        return "analiz çalışmıyor"
+    parcalar = []
+    if olcum.get("hedef_fps"):
+        parcalar.append(f"hedef: {_fps_metni(olcum['hedef_fps'])}")
+    if olcum.get("isle_p90_ms") is not None:
+        parcalar.append(f"bir kareyi işleme (p90): {olcum['isle_p90_ms']:g} ms")
+    return " · ".join(parcalar)
+
+
+def saglik_baglami(baglanti, ayarlar, supervizor=None) -> dict:
+    """Üç özet kutusu + kamera başına bir satır.
+
+    Okunan hız veritabanından (kameranın verdiği), işlenen hız çalışan
+    analizden gelir (R12: eskiden ekran "işlenen" deyip okunanı gösteriyordu).
+    Analiz çalışmıyorsa işlenen sütunu "—" kalır.
+    """
+    ozet_al = getattr(supervizor, "kamera_saglik_ozeti", None)
+    olcumler = {o["id"]: o for o in ozet_al()} if ozet_al else {}
     satirlar = baglanti.execute(
         "SELECT c.*, k.calibrated_at FROM cameras c "
         "LEFT JOIN camera_calibrations k ON k.camera_id = c.id "
@@ -818,7 +843,7 @@ def saglik_baglami(baglanti, ayarlar) -> dict:
     ).fetchall()
 
     kameralar = []
-    bagli = sorunlu = pasif = yavas = kalibrasyonsuz = 0
+    bagli = sorunlu = pasif = yavas = kalibrasyonsuz = islenen_yavas = 0
     for satir in satirlar:
         if not satir["enabled"]:
             pasif += 1
@@ -831,6 +856,9 @@ def saglik_baglami(baglanti, ayarlar) -> dict:
         fps_dusuk = _fps_dusuk_mu(satir, ayarlar.fps_uyari_orani)
         yavas += 1 if fps_dusuk else 0
         kalibrasyonsuz += 0 if satir["calibrated_at"] else 1
+        olcum = olcumler.get(satir["id"]) if satir["enabled"] else None
+        islenen_dusuk = bool(olcum and olcum["yavas"])
+        islenen_yavas += 1 if islenen_dusuk else 0
 
         kameralar.append(
             {
@@ -840,6 +868,9 @@ def saglik_baglami(baglanti, ayarlar) -> dict:
                 "fps": _fps_metni(satir["measured_fps"]),
                 "ayarlanan_fps": _fps_metni(satir["sample_fps"]),
                 "fps_dusuk": fps_dusuk,
+                "islenen": _fps_metni(olcum["islenen_fps"]) if olcum else "—",
+                "islenen_dusuk": islenen_dusuk,
+                "isleme_notu": _isleme_notu(olcum),
                 # last_frame_at kamera koptuğunda da KORUNUR: "en son ne zaman
                 # görüntü geldi" bilgisi asıl o zaman lazım olur.
                 "son_kare": (
@@ -876,6 +907,7 @@ def saglik_baglami(baglanti, ayarlar) -> dict:
             },
         ],
         "yavas_kamera": yavas,
+        "islenen_yavas_kamera": islenen_yavas,
         "kalibrasyonsuz_kamera": kalibrasyonsuz,
         # Ekranda "%60" yazabilmek için: eşiğin kendisi .env'den gelir.
         "fps_uyari_yuzdesi": round(ayarlar.fps_uyari_orani * 100),

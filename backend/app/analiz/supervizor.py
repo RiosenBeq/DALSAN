@@ -87,6 +87,13 @@ def _yuzdelik(degerler, yuzde: int) -> float | None:
     return round(sirali[max(0, math.ceil(yuzde / 100 * len(sirali)) - 1)], 1)
 
 
+def _islenen_hedefi(konfig: dict, kaynak) -> float:
+    """İşlenen hızın hedefi: ayarlanan örnekleme hızı ile kameranın gerçekten
+    verdiği hızın küçüğü — saniyede 3 kare veren kameradan 6 kare işlenemez."""
+    ayarlanan = max(float(konfig["sample_fps"]), 0.1)
+    return min(ayarlanan, kaynak.olculen_fps or ayarlanan)
+
+
 def _geri_al(baglanti) -> None:
     """Yarım kalmış işlemi geri alır: sonraki yazmalar temiz bir işlemle başlasın."""
     try:
@@ -876,8 +883,7 @@ class AnalizSupervizoru:
             if konfig is None or kaynak.durum(simdi) != DURUM_ONLINE:
                 self._yavas_baslangic.pop(kid, None)
                 continue
-            ayarlanan = max(float(konfig["sample_fps"]), 0.1)
-            hedef = min(ayarlanan, kaynak.olculen_fps or ayarlanan)
+            hedef = _islenen_hedefi(konfig, kaynak)
             olcum = self._olcumler.get(kid)
             islenen = olcum.islenen_fps(simdi) if olcum is not None else 0.0
             if islenen >= hedef * self.ayarlar.fps_uyari_orani:
@@ -1069,9 +1075,52 @@ class AnalizSupervizoru:
     def sorunlar(self) -> list[str]:
         """/saglik "sorunlar" listesine süpervizörün kodları (docs/17 §9.1)."""
         sorunlar = [self.bekci.sorun] if self.bekci.sorun else []
+        if self.model_durumu == "hata":
+            sorunlar.append("model_yuklenemedi")
         if self.olay_yazma_hatasi:
             sorunlar.append("olay_yazilamadi")
+        if getattr(self.tespitci, "ort_paket_cakismasi", False):
+            sorunlar.append("ort_paket_cakismasi")
         return sorunlar
+
+    def analiz_tur_yasi(self) -> float | None:
+        """Analiz döngüsünün son turu kaç saniye önce başladı (tur yoksa None)."""
+        nabiz = self.nabiz
+        return None if nabiz is None else round(time.monotonic() - nabiz, 1)
+
+    def kamera_saglik_ozeti(self) -> list[dict]:
+        """/saglik?ayrinti=1 ve Komuta → Sağlık için kamera başına ölçüm.
+
+        Okunan hız kameranın verdiği, işlenen hız analizin yetiştirdiğidir
+        (R12: ikisi eskiden karışıyordu). Kamera adı YOK: yalnız id.
+        """
+        simdi = time.monotonic()
+        ozet = []
+        for kid, kaynak in sorted(list(self._kaynaklar.items())):
+            _, kare_zamani = kaynak.son_kare()
+            olcum = self._olcumler.get(kid)
+            konfig = self._kamera_konfig.get(kid)
+            islenen = olcum.islenen_fps(simdi) if olcum else 0.0
+            hedef = _islenen_hedefi(konfig, kaynak) if konfig else None
+            ozet.append(
+                {
+                    "id": kid,
+                    "durum": kaynak.durum(simdi),
+                    "okunan_fps": round(kaynak.olculen_fps, 1),
+                    "islenen_fps": round(islenen, 1),
+                    "hedef_fps": round(hedef, 1) if hedef else None,
+                    # ANALYSIS_DEGRADED ile aynı ölçüt; yalnız görüntü akarken
+                    "yavas": bool(
+                        hedef
+                        and kaynak.durum(simdi) == DURUM_ONLINE
+                        and islenen < hedef * self.ayarlar.fps_uyari_orani
+                    ),
+                    "isle_p50_ms": _yuzdelik(olcum.isle_ms, 50) if olcum else None,
+                    "isle_p90_ms": _yuzdelik(olcum.isle_ms, 90) if olcum else None,
+                    "son_kare_yasi_sn": round(simdi - kare_zamani, 1) if kare_zamani > 0 else None,
+                }
+            )
+        return ozet
 
     def _duyur(self, ihlal, kural_kaydi: dict, simdi: float) -> None:
         # GÖLGE MOD (şema 002): kural çalışır ve olay yazılır, ama hoparlör

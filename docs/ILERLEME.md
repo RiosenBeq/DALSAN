@@ -38,6 +38,23 @@ boşluk sayılmaz), işlenen ve başarısız kare sayısı dakikada bir yazılı
 yazılamazsa birikim kaybolmuyor. Dört yeni ayar Ayarlar → **Analiz sağlığı**
 grubunda.
 
+**2d-3a — `/saglik` ve sağlık ekranı.** `/saglik` artık `hazir` veriyor: analiz
+çalışıyor, model hazır ve hizmeti bozan bir sorun yoksa true. Her durumda 200 ve
+`"calisiyor"` dönüyor (Kontrol Paneli'nin sözleşmesi). `?hazirlik=1` ise hazır
+olmayan sistemde 503 dönüyor; Docker healthcheck buna geçti. Kimliksiz gövde
+dar: durum, analiz, model, hazır ve sorun kodları. Kamera başına okunan ve
+işlenen hız, işleme süresi (p50/p90), son karenin yaşı, boş disk ve analiz
+turunun yaşı `?ayrinti=1` ile ve oturum açıkken geliyor; kamera adı yok,
+yalnız id. Yeni sorun kodları `model_yuklenemedi` ve `ort_paket_cakismasi`.
+Veritabanı okunamazsa kod artık `veritabani_acilamadi` (eskiden
+`saglik_dogrulanamadi`). Kalibrasyon bekleyen kural ve paket çakışması
+`hazir`'ı bozmuyor: yapılandırma eksiği Docker'ı "unhealthy" yapmamalı; ekran
+yine kırmızı gösteriyor. Komuta → Sağlık'ta okunan ve işlenen hız ayrı
+sütunlarda (R12: ekran "işlenen" deyip okunanı gösteriyordu). İşlenen hız
+hedefin altındaysa ▼ ve açıklama çıkıyor; hücrenin ipucunda hedef ve işleme
+süresi (p90) var. `uyari_garantisi` alanı ses kanalı sağlığıyla birlikte 4b'de
+gelecek; bugün hesaplanamıyor. Statik damga `?v=30`.
+
 ## Faz 2c şema 007 ve olay modeli (23.09.2026)
 
 Plan: `docs/17-V2-TASARIM.md` §6, §8.2, §8.4 ve §13 (2c satırı). Alt adımlar

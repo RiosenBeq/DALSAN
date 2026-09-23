@@ -42,7 +42,7 @@
     <div class="tablo-kaydirma">
       <div class="komuta-tablo saglik-tablo">
         <div class="komuta-tablo-basligi">
-          <span>Kamera</span><span>Alan</span><span>fps</span>
+          <span>Kamera</span><span>Alan</span><span>Okunan fps</span><span>İşlenen fps</span>
           <span>Son kare</span><span>Kalibrasyon</span><span>Durum</span>
         </div>
         {% for k in saglik_kameralari %}
@@ -52,6 +52,10 @@
           <span class="sayisal {% if k.fps_dusuk %}fps-dusuk{% endif %}"
                 title="ayarlanan hız: {{ k.ayarlanan_fps }}">
             {{ k.fps }}{% if k.fps_dusuk %} ▼{% endif %}
+          </span>
+          <span class="sayisal {% if k.islenen_dusuk %}islenen-dusuk{% endif %}"
+                title="{{ k.isleme_notu }}">
+            {{ k.islenen }}{% if k.islenen_dusuk %} ▼{% endif %}
           </span>
           <span class="sayisal">{{ k.son_kare }}</span>
           <span>
@@ -68,6 +72,13 @@
     <p class="panel-notu"><b>▼ işaretli {{ yavas_kamera }} kamerada</b> ölçülen hız,
       ayarlanan hızın %{{ fps_uyari_yuzdesi }} sınırının altına indi: kamera ya da ağ
       yavaş; görüntü kalitesi düşebilir ve hızlı geçen bir forklift kaçırılabilir.</p>
+    {% endif %}
+
+    {% if islenen_yavas_kamera %}
+    <p class="panel-notu"><b>İşlenen hızı ▼ işaretli {{ islenen_yavas_kamera }} kamerada</b>
+      analiz yetişemiyor: görüntü geliyor ama kareler istenen hızda işlenmiyor, uyarılar
+      gecikebilir. Kameranın örnekleme hızını düşürün ya da kamera sayısını azaltın; sürerse
+      Olaylar'a “Analiz yavaşladı” düşer.</p>
     {% endif %}
 
     {% if kalibrasyonsuz_kamera %}

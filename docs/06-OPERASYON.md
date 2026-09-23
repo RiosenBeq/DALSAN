@@ -69,7 +69,7 @@ kendiliğinden açılmış mı bakın.
 sudo reboot
 # sunucu açıldıktan ~1 dk sonra:
 docker compose ps            # durum "healthy" olmalı
-curl -fs http://127.0.0.1:8080/saglik
+curl -fs "http://127.0.0.1:8080/saglik?hazirlik=1"   # "hazir": true
 ```
 
 **Docker kullanılmıyorsa** (sistem doğrudan Python ile çalışıyorsa) aynı işi
@@ -180,13 +180,31 @@ Tek servis: `dalsan` (FastAPI + arka planda analiz iş parçacığı).
 | Özellik | Değer |
 |---|---|
 | Restart | `unless-stopped` — sunucu yeniden başlarsa sistem kendiliğinden kalkar (K8) |
-| Healthcheck | `GET /saglik` (30 sn arayla) |
+| Healthcheck | `GET /saglik?hazirlik=1` (30 sn arayla); sistem hazır değilse 503 → "unhealthy" |
 | Veri | `./veri` container dışında bağlı — container silinse de kaybolmaz |
-| Ayarlar | `./.env` salt okunur bağlanır |
+| Ayarlar | `./ayar/.env`, dizinle ve yazılabilir bağlanır (Ayarlar sayfası kaydedebilsin diye, R27) |
 
-`/saglik` ucu bilerek ucuzdur (JSON: çalışıyor mu, analiz açık mı, model durumu).
-Ana sayfa `veri/` klasörünün tamamını tarayıp boyut hesapladığı için sağlık
-kontrolünde kullanılmaz.
+`/saglik` ucu bilerek ucuzdur: ana sayfa `veri/` klasörünün tamamını tarayıp
+boyut hesapladığı için sağlık kontrolünde kullanılmaz. Her durumda 200 ve
+`"durum": "calisiyor"` döner (Kontrol Paneli portun bu sisteme ait olduğunu
+buna bakarak anlar); yalnız `?hazirlik=1` hazır olmayan sistemde 503 döner.
+Docker "unhealthy" container'ı **yeniden başlatmaz** — bu yalnız görünürlüktür;
+takılan analizi bekçi yeniden başlatır (§1.2.1).
+
+Şifresiz gövde yalnız `durum`, `analiz`, `model`, `hazir` ve `sorunlar`
+kodlarını verir. Kamera başına okunan/işlenen hız, işleme süresi (p50/p90), son
+karenin yaşı, boş disk ve analiz turunun yaşı `?ayrinti=1` ile ve oturum açıkken
+gelir (şifre tanımlı değilse oturum gerekmez).
+
+| `sorunlar` kodu | Anlamı | `hazir`'ı bozar |
+|---|---|---|
+| `analiz_takildi` | Görüntü geliyor ama analiz ilerlemiyor (bekçi) | evet |
+| `analiz_olu` | Analiz iş parçacığı çalışmıyor | evet |
+| `model_yuklenemedi` | Tespit modeli yüklenemedi | evet |
+| `veritabani_acilamadi` | Sağlık denetimi veritabanını okuyamadı | evet |
+| `olay_yazilamadi` | Son ihlal kayda geçmedi (anons yine çaldı) | evet |
+| `kritik_kural_pasif` | Mesafe ya da hız kuralı kalibrasyon bekliyor, çalışmıyor | hayır (ekranda kırmızı) |
+| `ort_paket_cakismasi` | İki ONNX Runtime paketi birlikte kurulu; GPU sessizce kaybolabilir | hayır |
 
 ---
 

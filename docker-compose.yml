@@ -34,8 +34,12 @@ services:
       # - ./models:/uygulama/models:ro
     healthcheck:
       # Hafif sağlık ucu: ana sayfa veri/ klasörünün tamamını tarar, 30 saniyede
-      # bir onu çağırmak diski gereksiz meşgul ederdi
-      test: ["CMD", "curl", "-fs", "http://127.0.0.1:8080/saglik"]
+      # bir onu çağırmak diski gereksiz meşgul ederdi. ?hazirlik=1: analiz
+      # hazır değilse (model yüklenemedi, analiz takıldı…) 503 döner ve durum
+      # "unhealthy" görünür. Docker unhealthy container'ı YENİDEN BAŞLATMAZ;
+      # bu yalnız görünürlüktür, yeniden başlatmayı bekçi yapar
+      # (ayar/.env BEKCI_TEPKISI=yeniden_baslat, docs/06 §1.2.1).
+      test: ["CMD", "curl", "-fs", "http://127.0.0.1:8080/saglik?hazirlik=1"]
       interval: 30s
       timeout: 5s
       retries: 3

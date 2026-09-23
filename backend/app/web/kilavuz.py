@@ -69,8 +69,9 @@ EKRAN_ACIKLAMALARI: dict[str, dict[str, str]] = {
     },
     "saglik": {
         "ne": (
-            "Her kameranın bağlı olup olmadığını, saniyede kaç kare işlendiğini ve "
-            "kalibre edilip edilmediğini gösterir."
+            "Her kameranın bağlı olup olmadığını, saniyede kaç kare verdiğini (okunan) "
+            "ve analizin kaçını işleyebildiğini (işlenen), kalibre edilip "
+            "edilmediğini gösterir."
         ),
         "yap": (
             "Sarı veya kırmızı rozetli bir satır varsa o kameranın adını tıklayıp "
