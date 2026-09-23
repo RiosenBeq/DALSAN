@@ -19,9 +19,11 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 
 from app import zaman
 from app.hatalar import DogrulamaHatasi
+from app.olaylar import ekran as ekran_kanali
 from app.olaylar import ses_cihazlari
 from app.olaylar.anons import bolgeleri_sec
 from app.olaylar.kanallar import KANAL_KISA_ADLARI, KANAL_TURLERI, TUM_FABRIKA, kanal_ozeti
+from app.olaylar.teslim import teslim_ozeti
 from app.olaylar.yazici import sistem_olayi_yaz
 from app.rules.motor import KALIBRASYON_GEREKTIREN
 from app.web import kkd_karnesi
@@ -305,10 +307,19 @@ def _kkd_kurallari(baglanti, kural_idler: list[int]) -> tuple[list[int], list[st
 
 
 @router.get("/komuta/anons", response_class=HTMLResponse)
-def anons_sistemi(istek: Request, sonuc: str = "", baglanti=Depends(baglanti_al)):
+def anons_sistemi(
+    istek: Request, sonuc: str = "", gecikme: int = -1, baglanti=Depends(baglanti_al)
+):
     baglam = kabuk_baglami(istek, baglanti, "anons")
     baglam.update(anons_baglami(istek, baglanti))
-    baglam["sonuc_mesaji"] = ANONS_SONUCLARI.get(sonuc, "")
+    mesaj = ANONS_SONUCLARI.get(sonuc, "")
+    if sonuc == "denendi" and 0 <= gecikme < 600_000:
+        # Sayı URL'den gelir ama yalnız tam sayı olarak basılır (ham metin değil)
+        mesaj += (
+            f" Yazılım gecikmesi: {gecikme} ms (sıra + çalıcının başlaması; hoparlörün "
+            "kendi gecikmesi dahil değil)."
+        )
+    baglam["sonuc_mesaji"] = mesaj
     return sablonlar.TemplateResponse(istek, "komuta_anons.html", baglam)
 
 
@@ -1339,7 +1350,26 @@ def _kanal_durumu(satir, secim: bool, bagli_cikislar: set[str] | None) -> tuple[
     return "açık", "yesil", ""
 
 
-def _kanal_satirlari(baglanti, secim: bool, bagli_cikislar: set[str] | None) -> list[dict]:
+def _teslim_metni(sayac: dict[str, int] | None) -> str:
+    """Kanalın son 24 saati: "12 çaldı · 1 çalamadı" (yoksa boş)."""
+    if not sayac:
+        return ""
+    adlar = (
+        ("ok", "çaldı"),
+        ("failed", "çalamadı"),
+        ("preempted", "kesildi"),
+        ("stale", "bayatladı"),
+        ("suppressed_cooldown", "bastırıldı"),
+    )
+    return " · ".join(f"{sayac[kod]} {ad}" for kod, ad in adlar if sayac.get(kod))
+
+
+def _kanal_satirlari(
+    baglanti,
+    secim: bool,
+    bagli_cikislar: set[str] | None,
+    teslim_sayaci: dict[int, dict[str, int]] | None = None,
+) -> list[dict]:
     """speaker_zones satırları, ekrana hazır: adres MASKELİ, son anons insan diliyle.
 
     Bölümlü kanallar önce, "Tüm fabrika" (yedek) sonda.
@@ -1378,6 +1408,7 @@ def _kanal_satirlari(baglanti, secim: bool, bagli_cikislar: set[str] | None) -> 
                 "rozet": rozet,
                 "rozet_rengi": rozet_rengi,
                 "uyari": uyari,
+                "teslim": _teslim_metni((teslim_sayaci or {}).get(satir["id"])),
             }
         )
     return kanallar
@@ -1437,7 +1468,8 @@ def anons_baglami(istek: Request, baglanti) -> dict:
     cihazlar = ses_cihazlari.cihazlari_listele()
     secim = ses_cihazlari.secim_destekleniyor_mu()
     bagli = {c.kimlik for c in cihazlar} if cihazlar else None
-    kanallar = _kanal_satirlari(baglanti, secim, bagli)
+    teslim = teslim_ozeti(baglanti)
+    kanallar = _kanal_satirlari(baglanti, secim, bagli, teslim["kanal_basina"])
     ses_kanali_var = any(k["aktif"] and k["tur"] == "ses_karti" for k in kanallar)
     saatler = saat_sutunlari(damgalar, "anons")
     supervizor = getattr(istek.app.state, "supervizor", None)
@@ -1465,4 +1497,9 @@ def anons_baglami(istek: Request, baglanti) -> dict:
         "anons_bekleme_sn": ayarlar.anons_bekleme_sn,
         "analiz_calisiyor": supervizor is not None,
         "son_sonuc": getattr(supervizor, "_anons", None) and supervizor._anons.son_sonuc,
+        "teslim": teslim,
+        "teslim_orani": (
+            f"%{math.floor(teslim['oran'] * 100)}" if teslim["oran"] is not None else ""
+        ),
+        "izleme_ekrani": ekran_kanali.istemci_sayisi(),
     }

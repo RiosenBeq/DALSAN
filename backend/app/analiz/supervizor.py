@@ -45,7 +45,7 @@ from app.analiz.model_indir import (
 from app.analiz.tespit import ModelHatasi, Tespitci
 from app.ayarlar import Ayarlar
 from app.loglama import log_al
-from app.olaylar.anons import AnonsYoneticisi
+from app.olaylar.anons import AnonsYoneticisi, OlayBilgisi
 from app.olaylar.yazici import acik_olaylari_kapat, ihlal_yaz, olay_kapat, sistem_olayi_yaz
 from app.rules.olay_durumu import ACILDI, HATIRLATMA, KAPANDI, OlayGecisi
 from app.rules.parametreler import KuralParametreHatasi, params_dogrula
@@ -205,6 +205,9 @@ class AnalizSupervizoru:
         self.bekci.durdur()
         self._dur.set()
         self._is_parcacigi.join(timeout=10)
+        # Sırada bekleyen uyarılar en çok birkaç saniye içinde çalınır
+        # (kritik önce, docs/17 §7.3-11); sonra çıkış işçileri durur
+        self._anons.kapat(3.0)
         for kaynak in self._kaynaklar.values():
             kaynak.durdur()
 
@@ -901,7 +904,7 @@ class AnalizSupervizoru:
             # İhlal listesi önizleme çizimi içindir; OLAYLAR geçişlerden doğar
             # (açıldı / hatırlatma / kapandı, rules/olay_durumu.py).
             del ihlaller
-            self._gecisleri_isle(baglanti, hat, simdi)
+            self._gecisleri_isle(baglanti, hat, simdi, kare_zamani)
             self._kkd_ornekle(baglanti, kid, kare, tespitler, hat, simdi)
 
     # ---- analiz sağlığı (docs/17 §3.6) ----
@@ -1029,7 +1032,9 @@ class AnalizSupervizoru:
 
     # ---- olay yaşam döngüsü ----
 
-    def _gecisleri_isle(self, baglanti, hat: KameraHatti, simdi: float) -> None:
+    def _gecisleri_isle(
+        self, baglanti, hat: KameraHatti, simdi: float, kare_zamani: float | None = None
+    ) -> None:
         """Hattın olay geçişlerini veritabanına ve anonsa taşır (docs/17 §6.3).
 
         açıldı → yeni olay satırı (bitişi boş) + anons; hatırlatma → yeni satır
@@ -1038,7 +1043,7 @@ class AnalizSupervizoru:
         """
         for gecis in hat.gecisleri_al():
             try:
-                self._gecisi_isle(baglanti, hat, gecis, simdi)
+                self._gecisi_isle(baglanti, hat, gecis, simdi, kare_zamani)
             except sqlite3.Error as hata:
                 self._log.error(
                     f"Olay geçişi veritabanına yazılamadı ({gecis.asama}, anahtar "
@@ -1046,16 +1051,32 @@ class AnalizSupervizoru:
                     exc_info=hata,
                 )
 
-    def _gecisi_isle(self, baglanti, hat: KameraHatti, gecis: OlayGecisi, simdi: float) -> None:
+    def _gecisi_isle(
+        self,
+        baglanti,
+        hat: KameraHatti,
+        gecis: OlayGecisi,
+        simdi: float,
+        kare_zamani: float | None = None,
+    ) -> None:
         if gecis.asama == KAPANDI:
             self._olayi_kapat(baglanti, gecis)
         elif gecis.asama == HATIRLATMA and gecis.anahtar in self._acik_olaylar:
             olay_id = self._acik_olaylar[gecis.anahtar]
             self._log.info(f"İhlal sürüyor (olay {olay_id}) - anons tekrarlanıyor.")
-            self._duyur(gecis.ihlal, self._kural_kaydini_al(baglanti, gecis.ihlal.kural_id), simdi)
+            self._duyur(
+                gecis.ihlal,
+                self._kural_kaydini_al(baglanti, gecis.ihlal.kural_id),
+                simdi,
+                olay_id=olay_id,
+                asama=HATIRLATMA,
+                kare_zamani=kare_zamani,
+            )
         elif gecis.asama in (ACILDI, HATIRLATMA):
             # Hatırlatma ama satır yok: açılış yazılamamıştı; olay şimdi yazılır
-            olay_id = self._ihlali_kaydet(baglanti, hat, gecis.ihlal, simdi, suruyor=True)
+            olay_id = self._ihlali_kaydet(
+                baglanti, hat, gecis.ihlal, simdi, suruyor=True, kare_zamani=kare_zamani
+            )
             if olay_id is not None:
                 self._acik_olaylar[gecis.anahtar] = olay_id
 
@@ -1084,7 +1105,14 @@ class AnalizSupervizoru:
                 self._log.error(f"Olay kapatılamadı (kamera {kamera_id}): {hata}", exc_info=hata)
 
     def _ihlali_kaydet(
-        self, baglanti, hat: KameraHatti, ihlal, simdi: float, *, suruyor: bool = False
+        self,
+        baglanti,
+        hat: KameraHatti,
+        ihlal,
+        simdi: float,
+        *,
+        suruyor: bool = False,
+        kare_zamani: float | None = None,
     ) -> int | None:
         """İhlali kaydeder ve duyurur; kayıt başarısız olsa da DUYURUR (docs/17 §3.5).
 
@@ -1124,7 +1152,9 @@ class AnalizSupervizoru:
                 f"İhlal kaydedildi (olay {olay_id}, kamera {ihlal.kamera_id}, "
                 f"kural {ihlal.kural_id})"
             )
-        self._duyur(ihlal, kural_kaydi, simdi)
+        # Olay satırı yazılamadıysa olay_id None: teslim kaydı yine yazılır
+        # (event_id NULL, docs/17 §3.5 ve şema 009)
+        self._duyur(ihlal, kural_kaydi, simdi, olay_id=olay_id, kare_zamani=kare_zamani)
         return olay_id
 
     def _kural_kaydini_al(self, baglanti, kural_id: int) -> dict:
@@ -1194,25 +1224,51 @@ class AnalizSupervizoru:
             )
         return ozet
 
-    def _duyur(self, ihlal, kural_kaydi: dict, simdi: float) -> None:
+    def _duyur(
+        self,
+        ihlal,
+        kural_kaydi: dict,
+        simdi: float,
+        *,
+        olay_id: int | None = None,
+        asama: str = ACILDI,
+        kare_zamani: float | None = None,
+    ) -> None:
+        # Kamera konfigürasyonu _atanmis_kameralar()'tan gelen dict'tir;
+        # bölüm adı anonsun HANGİ kanallara gideceğini belirler.
+        konfig = self._kamera_konfig.get(ihlal.kamera_id) or {}
+        anons_id = kural_kaydi.get("announcement_id")
+        olay = OlayBilgisi(
+            olay_id=olay_id,
+            kod=ihlal.kod or None,
+            onem=ihlal.onem or "medium",
+            asama=asama,
+            kare_zamani=kare_zamani,
+        )
         # GÖLGE MOD (şema 002): kural çalışır ve olay yazılır, ama hoparlör
         # susar. Yeni kurulan bir kuralın güvenli deneme yoludur (docs/04 §8.2:
         # KKD 3 gün "aktif ama anonssuz" çalışır, precision ölçülür, sonra anons
         # açılır). Kural motoruna DOKUNULMAZ: karar yine kural motorundan gelir,
         # burada yalnızca duyurma adımı atlanır. Hatırlatma da aynı kapıdan geçer.
+        # "Çalsaydı" hangi kanallardan çalacağı teslim kaydına `shadow` diye düşer.
         if kural_kaydi.get("shadow_mode"):
             self._log.info(f"Kural {ihlal.kural_id} gölge modda - anons çalınmadı.")
+            self._anons.golge_kaydet(
+                ihlal.kamera_id,
+                konfig.get("area", ""),
+                self._anons_mesajlari.get(anons_id) if anons_id else None,
+                olay=olay,
+            )
             return
-        anons_id = kural_kaydi.get("announcement_id")
+        if asama == ACILDI:
+            self._anons.ekran_kaydet(olay)  # ekran kanalı: bilgi, garantiye sayılmaz
         if anons_id:
-            # Kamera konfigürasyonu _atanmis_kameralar()'tan gelen dict'tir;
-            # bölüm adı anonsun HANGİ hoparlöre gideceğini belirler.
-            konfig = self._kamera_konfig.get(ihlal.kamera_id) or {}
             self._anons.duyur(
                 ihlal.kamera_id,
                 konfig.get("area", ""),
                 simdi,
                 self._anons_mesajlari.get(anons_id),
+                olay=olay,
             )
 
     def _kural_kaydi(self, baglanti, kural_id: int) -> dict:
@@ -1446,6 +1502,9 @@ class AnalizSupervizoru:
             "DELETE FROM events WHERE event_type = 'system' AND occurred_at < ?",
             (zaman.gun_once_utc(a.sistem_olay_saklama_gun),),
         ).rowcount
+        # Teslim kaydı olayla birlikte gider (ON DELETE CASCADE); olay satırı
+        # olmayanlar (fail-safe, test sesi) ihlal saklama süresiyle silinir.
+        baglanti.execute("DELETE FROM alert_deliveries WHERE queued_at < ?", (sinir,))
         baglanti.commit()
 
         silinen_foto = self._eski_dosyalari_sil(

@@ -313,6 +313,7 @@ def test_windows_ses_yolu_komut_metnine_girmez(monkeypatch):
     monkeypatch.setattr(sys, "platform", "win32")
     monkeypatch.setitem(sys.modules, "winsound", _SahteWinsound)
     monkeypatch.setattr(anons.subprocess, "run", lambda *a, **k: pytest.fail("süreç açıldı"))
+    monkeypatch.setattr(anons.subprocess, "Popen", lambda *a, **k: pytest.fail("süreç açıldı"))
     yol = "C:/Ali'nin Sesleri/baret'; Remove-Item C:/ -Recurse; '.wav"
     anons.SesKartiAnonscu().cal("helmet", "Baret takınız", yol)
     assert cagrilar == [yol]

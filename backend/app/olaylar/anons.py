@@ -24,25 +24,48 @@ import ipaddress
 import json
 import shutil
 import socket
-import sqlite3
 import subprocess
 import sys
 import threading
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from dataclasses import dataclass
 
-from app import veritabani, zaman
+from app import zaman
 from app.ayarlar import Ayarlar
 from app.loglama import adres_maskele, log_al
+from app.olaylar import ekran
+from app.olaylar.dagitici import (
+    ASAMA_ACILDI,
+    ASAMA_TEST,
+    SONUC_BASARISIZ,
+    SONUC_BASTIRILDI,
+    SONUC_DINLEYEN_YOK,
+    SONUC_GOLGE,
+    SONUC_KESILDI,
+    SONUC_TAMAM,
+    CikisIscisi,
+    UyariOgesi,
+)
 from app.olaylar.kanallar import kanal_ozeti
+from app.olaylar.teslim import TeslimKaydedici, teslim_satiri
 from app.rules.cooldown import Cooldown
 
 _log = log_al("anons")
 
+# Ses çalıcısı bu sürede bitmezse sonlandırılır; kesme bu aralıkla yoklanır
+_CALMA_ZAMAN_ASIMI_SN = 20
+_KESME_YOKLAMA_SN = 0.1
+
 
 class AnonsHatasi(Exception):
     """Ses çalınamadı - sebebi Anons sayfasında gösterilir."""
+
+
+class AnonsKesildi(AnonsHatasi):
+    """Çalan ses, kritik bir uyarıya yer açmak için kesildi (docs/17 §7.3-3)."""
 
 
 def _ses_komutu(ses_dosyasi: str, cihaz: str = "") -> list[str] | None:
@@ -77,6 +100,55 @@ def _ses_komutu(ses_dosyasi: str, cihaz: str = "") -> list[str] | None:
         if calici.endswith("aplay"):
             return [calici, "-D", cihaz, ses_dosyasi]
     return [calici, ses_dosyasi]
+
+
+def _windows_durdur() -> None:
+    """Windows'ta çalan sesi keser (PlaySound süreç başına tek sestir)."""
+    import winsound  # yalnız Windows'ta vardır
+
+    winsound.PlaySound(None, 0)
+
+
+def _sonlandir(surec: subprocess.Popen) -> None:
+    surec.terminate()
+    try:
+        surec.communicate(timeout=2)
+    except subprocess.TimeoutExpired:
+        surec.kill()
+        surec.communicate()
+
+
+def _sureci_calistir(komut: list[str], ses_dosyasi: str, kes: threading.Event | None) -> None:
+    """Çalıcıyı başlatır ve biter, kesilir ya da zaman aşar diye 100 ms'de bir yoklar.
+
+    `subprocess.run` yerine `Popen`: kritik bir uyarı gelince çalan düşük
+    öncelikli ses sonlandırılabilsin (docs/17 §7.3-3). Sonuç yine BEKLENİR:
+    beklenmezse komut hemen başarısız olsa bile "çalındı" yazardı.
+    """
+    try:
+        surec = subprocess.Popen(komut, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+    except (OSError, subprocess.SubprocessError) as hata:
+        raise AnonsHatasi(f"Ses çalınamadı ({ses_dosyasi}): {hata}") from hata
+    son = time.monotonic() + _CALMA_ZAMAN_ASIMI_SN
+    while True:
+        try:
+            _, hata_metni = surec.communicate(timeout=_KESME_YOKLAMA_SN)
+            break
+        except subprocess.TimeoutExpired:
+            if kes is not None and kes.is_set():
+                _sonlandir(surec)
+                raise AnonsKesildi("Kritik bir uyarıya yer açmak için kesildi.") from None
+            if time.monotonic() > son:
+                _sonlandir(surec)
+                raise AnonsHatasi(
+                    f"Ses çalınamadı ({ses_dosyasi}): {_CALMA_ZAMAN_ASIMI_SN} sn içinde bitmedi."
+                ) from None
+    if surec.returncode != 0:
+        ayrinti = (hata_metni or b"").decode("utf-8", "replace").strip()[:200]
+        raise AnonsHatasi(
+            f"Ses çalınamadı ({ses_dosyasi}). "
+            + (f"Sebep: {ayrinti}" if ayrinti else "Dosya biçimi desteklenmiyor olabilir.")
+        )
 
 
 def _windows_cal(ses_dosyasi: str) -> None:
@@ -126,7 +198,14 @@ class SesKartiAnonscu:
                 "Anons sayfasından kapatın."
             )
 
-    def cal(self, anahtar: str, metin: str, ses_dosyasi: str | None) -> None:
+    def cal(
+        self,
+        anahtar: str,
+        metin: str,
+        ses_dosyasi: str | None,
+        kes: threading.Event | None = None,
+    ) -> None:
+        """Sesi çalar; `kes` kurulursa (kritik uyarı geldi) çalmayı keser."""
         if not self._kullanilabilir:
             raise AnonsHatasi("Bu bilgisayarda ses çalma komutu bulunamadı (afplay/aplay/paplay).")
         if not ses_dosyasi:
@@ -136,24 +215,17 @@ class SesKartiAnonscu:
             )
         if sys.platform == "win32":
             _windows_cal(ses_dosyasi)
+            # Kesme Windows'ta PlaySound(None) ile yapılır; çağrı normal döner
+            if kes is not None and kes.is_set():
+                raise AnonsKesildi("Kritik bir uyarıya yer açmak için kesildi.")
             _log.info(f"Anons çalındı: {metin}")
             return
         komut = _ses_komutu(ses_dosyasi, self.cihaz)
         if komut is None:
             raise AnonsHatasi(f"Ses çalma komutu bulunamadı: {ses_dosyasi}")
-        # Bu çağrı zaten ayrı bir iş parçacığındadır (AnonsYoneticisi), bu
-        # yüzden sonucu BEKLEYEBİLİRİZ. Beklemezsek komut hemen başarısız olsa
-        # bile "gönderildi" yazardı ve 'Anonsu Dene' düğmesi yalan söylerdi.
-        try:
-            sonuc = subprocess.run(komut, capture_output=True, timeout=20)
-        except (OSError, subprocess.SubprocessError) as hata:
-            raise AnonsHatasi(f"Ses çalınamadı ({ses_dosyasi}): {hata}") from hata
-        if sonuc.returncode != 0:
-            ayrinti = (sonuc.stderr or b"").decode("utf-8", "replace").strip()[:200]
-            raise AnonsHatasi(
-                f"Ses çalınamadı ({ses_dosyasi}). "
-                + (f"Sebep: {ayrinti}" if ayrinti else "Dosya biçimi desteklenmiyor olabilir.")
-            )
+        # Bu çağrı zaten ayrı bir iş parçacığındadır (çıkış işçisi, olaylar/
+        # dagitici.py), bu yüzden sonucu BEKLEYEBİLİRİZ.
+        _sureci_calistir(komut, ses_dosyasi, kes)
         _log.info(f"Anons çalındı: {metin}")
 
 
@@ -301,7 +373,14 @@ class HttpAnonscu:
     def bicim(self) -> str:
         return self._bicim
 
-    def cal(self, anahtar: str, metin: str, ses_dosyasi: str | None) -> None:
+    def cal(
+        self,
+        anahtar: str,
+        metin: str,
+        ses_dosyasi: str | None,
+        kes: threading.Event | None = None,
+    ) -> None:
+        # HTTP isteği kesilemez; kritik uyarı yalnız sırada öne geçer (§7.3-3)
         http_gonder(self._adres, anahtar, metin, self._bicim)
 
 
@@ -343,13 +422,52 @@ def kanal_anonscu(kanal: dict, http_bicimi: str = "json"):
     return HttpAnonscu(kanal.get("address") or "", http_bicimi)
 
 
-class AnonsYoneticisi:
-    """Anons cooldown'unu uygular ve mesajı kanallara iletir.
+def cikis_anahtari(kanal: dict) -> tuple:
+    """Kanalın ÇIKIŞI: aynı çıkışı gösteren iki satır tek işçiyi paylaşır ki
+    aynı hoparlörde iki ses üst üste binmesin (docs/17 §7.3-2)."""
+    if kanal.get("kind") == "ses_karti":
+        return ("ses_karti", (kanal.get("device") or "").strip())
+    return ("http", (kanal.get("address") or "").strip())
 
-    Anons çağrısı HER ZAMAN ayrı bir iş parçacığında yapılır: HTTP anons
-    sunucusu kapalıysa urlopen 5 saniye bekler ve o süre boyunca TEK analiz
-    iş parçacığı durduğu için TÜM kameralar kör kalırdı. Bir hoparlörün
-    gecikmesi, fabrikanın izlenmemesine yol açmamalı.
+
+def _cikislara_gore_tekille(kanallar: list[dict]) -> list[dict]:
+    """Aynı çıkışa giden ikinci satır aynı sesi ikinci kez çaldırmasın."""
+    gorulen: set[tuple] = set()
+    tekil = []
+    for kanal in kanallar:
+        anahtar = cikis_anahtari(kanal)
+        if anahtar not in gorulen:
+            gorulen.add(anahtar)
+            tekil.append(kanal)
+    return tekil
+
+
+@dataclass(frozen=True)
+class OlayBilgisi:
+    """Uyarının ait olduğu olay: öncelik, bastırma ve teslim kaydı için."""
+
+    olay_id: int | None = None  # None: olay satırı YAZILAMADI (fail-safe) ya da yok
+    kod: str | None = None
+    onem: str = "medium"
+    asama: str = ASAMA_ACILDI
+    kare_zamani: float | None = None  # kare yakalama anı (time.monotonic)
+
+
+class AnonsYoneticisi:
+    """Uyarıyı kanallara dağıtır (docs/17 §7.3).
+
+    Olay, kameranın bölümündeki bütün açık kanallara (yoksa "Tüm fabrika"
+    kanallarına) gider. Her ÇIKIŞIN tek işçisi ve öncelikli kuyruğu vardır
+    (olaylar/dagitici.py): analiz iş parçacığı hiçbir sesi ya da HTTP isteğini
+    BEKLEMEZ; bir hoparlörün 5 saniyelik zaman aşımı fabrikanın izlenmemesine
+    yol açmaz.
+
+    Tekrar bastırması (kamera, mesaj, kanal) başınadır ve YALNIZ başarılı
+    çalmada tüketilir (R20): çalamayan bir hoparlör, bir sonraki ihlalde yeniden
+    denenir. Kritik bir olayın AÇILIŞI bastırılmaz: aynı kamerada ikinci, ayrı
+    bir araç-yaya yakınlığı sesli duyurulmadan kalmamalı. Bastırılan deneme
+    `suppressed_cooldown` diye iz bırakır. Her deneme `alert_deliveries`'e
+    yazılır (olaylar/teslim.py).
     """
 
     def __init__(self, ayarlar: Ayarlar) -> None:
@@ -358,9 +476,17 @@ class AnonsYoneticisi:
         self._goruntu_koku = ayarlar.kok_dizin
         self._veritabani_yolu = ayarlar.veritabani_yolu
         self._cooldown = Cooldown()
+        self._bastirma_kilidi = threading.Lock()
+        # Kuyrukta ya da çalmakta olan bastırma anahtarları: aynı uyarı
+        # sonucu belli olmadan ikinci kez sıraya girmesin
+        self._yoldakiler: set[tuple] = set()
         # Kanal satırları (speaker_zones, dict). Süpervizör yapılandırma her
         # değiştiğinde yeniler; yeniden başlatma gerekmez.
         self._bolgeler: list[dict] = []
+        self._iscilar: dict[tuple, CikisIscisi] = {}
+        self._iscilar_kilidi = threading.Lock()
+        self._kayit = TeslimKaydedici(ayarlar.veritabani_yolu)
+        self._kapandi = False
         self.son_sonuc: str = "Henüz anons denenmedi."
 
     @property
@@ -376,33 +502,115 @@ class AnonsYoneticisi:
         """İhlalin olduğu bölümün ilk kanalı (bkz. modül düzeyindeki bolge_sec)."""
         return bolge_sec(self._bolgeler, kamera_alani)
 
+    # ------------------------------------------------------------ duyurma
+
     def duyur(
-        self, kamera_id: int, kamera_alani: str | None, zaman_s: float, mesaj: dict | None
+        self,
+        kamera_id: int,
+        kamera_alani: str | None,
+        zaman_s: float,
+        mesaj: dict | None,
+        *,
+        olay: OlayBilgisi | None = None,
     ) -> None:
-        """mesaj: announcement_messages satırı (dict) veya None."""
+        """Olayı kanallara sıraya koyar ve HEMEN döner.
+
+        mesaj: announcement_messages satırı (dict) veya None. zaman_s: bastırma
+        saati (çağıranın saati; süpervizörde time.monotonic).
+        """
         if mesaj is None or not mesaj.get("enabled", 1):
             return
-        anahtar = ("anons", kamera_id, mesaj["id"])
-        if not self._cooldown.izinli_mi(anahtar, zaman_s, float(self._bekleme_sn)):
+        olay = olay or OlayBilgisi()
+        anahtar, metin = mesaj.get("key", ""), mesaj.get("text", "")
+        kanallar = _cikislara_gore_tekille(bolgeleri_sec(self._bolgeler, kamera_alani))
+        if not kanallar:
+            # Kanal yoksa ses çalmaz; bu bir hata değil, kurulum eksiğidir
+            self._cal_ve_kaydet(anahtar, metin, None)
             return
-        kanallar = bolgeleri_sec(self._bolgeler, kamera_alani)
-        for kanal in kanallar or [None]:
-            self.hemen_cal(mesaj, kanal)
+        ses_yolu, ses_hatasi = self._ses_yolu(mesaj)
+        # Kritik olayın açılışı bastırmadan muaftır (docs/17 §7.3-7a)
+        muaf = olay.onem == "critical" and olay.asama == ASAMA_ACILDI
+        for kanal in kanallar:
+            oge = UyariOgesi(
+                kanal=dict(kanal),
+                anahtar=anahtar,
+                metin=metin,
+                ses_yolu=ses_yolu,
+                ses_hatasi=ses_hatasi,
+                onem=olay.onem,
+                asama=olay.asama,
+                olay_id=olay.olay_id,
+                olay_kodu=olay.kod,
+                kamera_id=kamera_id,
+                kare_zamani=olay.kare_zamani,
+            )
+            bastirma = ("anons", kamera_id, mesaj.get("id"), kanal.get("id"))
+            with self._bastirma_kilidi:
+                # Muaf olan (kritik açılış) denetlenmez ama başarılı çalınca
+                # bastırmayı yine başlatır: arkasından gelen aynı uyarı susar.
+                bastirildi = not muaf and (
+                    bastirma in self._yoldakiler
+                    or self._cooldown.bekliyor_mu(bastirma, zaman_s, float(self._bekleme_sn))
+                )
+                if not bastirildi:
+                    self._yoldakiler.add(bastirma)
+            if bastirildi:
+                oge.sonuc = SONUC_BASTIRILDI
+                oge.ayrinti = (
+                    f"aynı kamera ve mesaj bu kanaldan son {self._bekleme_sn} sn "
+                    "içinde duyuruldu ya da sırada"
+                )
+                self._teslimi_kaydet(oge)
+                continue
+            oge.bastirma, oge.bastirma_zamani = bastirma, zaman_s
+            self._siraya_koy(oge)
+
+    def golge_kaydet(
+        self,
+        kamera_id: int,
+        kamera_alani: str | None,
+        mesaj: dict | None,
+        *,
+        olay: OlayBilgisi | None = None,
+    ) -> None:
+        """Gölge moddaki kural: ses ÇALMAZ; "çalsaydı" hangi kanallardan
+        çalacağı `shadow` diye yazılır (docs/17 §7.3-9)."""
+        if mesaj is None or not mesaj.get("enabled", 1):
+            return
+        olay = olay or OlayBilgisi()
+        for kanal in _cikislara_gore_tekille(bolgeleri_sec(self._bolgeler, kamera_alani)):
+            oge = UyariOgesi(
+                kanal=dict(kanal),
+                anahtar=mesaj.get("key", ""),
+                metin=mesaj.get("text", ""),
+                onem=olay.onem,
+                asama=olay.asama,
+                olay_id=olay.olay_id,
+                olay_kodu=olay.kod,
+                kamera_id=kamera_id,
+                sonuc=SONUC_GOLGE,
+                ayrinti="kural gölge modda: anons çalınmadı",
+            )
+            self._teslimi_kaydet(oge)
+
+    def ekran_kaydet(self, olay: OlayBilgisi) -> None:
+        """Ekran kanalı: açık izleme ekranı var mıydı (bilgi; garantiye sayılmaz)."""
+        sayi = ekran.istemci_sayisi()
+        self._kayit.teslim(
+            teslim_satiri(
+                kanal="ekran",
+                asama=olay.asama,
+                sonuc=SONUC_TAMAM if sayi else SONUC_DINLEYEN_YOK,
+                kuyruga_giris_utc=zaman.simdi_utc(),
+                olay_id=olay.olay_id,
+                olay_kodu=olay.kod,
+                ayrinti=f"{sayi} izleme ekranı açık",
+            )
+        )
 
     def hemen_cal(self, mesaj: dict, bolge: dict | None = None) -> None:
-        """Cooldown'suz çalar. Kanal verilmezse "Tüm fabrika" kanallarından
-        (arayüzdeki 'Anonsu Dene' düğmesi bunu kullanır)."""
-        ses = mesaj.get("audio_file")
-        ses_yolu = None
-        if ses:
-            # Yol her çalışta yeniden doğrulanır: veritabanı başka bir yoldan
-            # düzenlenmiş ya da sürücü harfli mutlak bir değer girmiş olabilir.
-            kok = self._goruntu_koku.resolve()
-            tam = (kok / ses).resolve()
-            if not tam.is_relative_to(kok):
-                _log.error(f"Anons ses dosyası proje klasörünün dışında, çalınmadı: {ses}")
-                return
-            ses_yolu = str(tam)
+        """Bastırmasız çalar. Kanal verilmezse "Tüm fabrika" kanallarından
+        (arayüzdeki 'Anonsu Dene' düğmesi). Deneme gerçek uyarının önüne geçmez."""
         kanallar = [bolge] if bolge is not None else bolgeleri_sec(self._bolgeler, "")
         if not kanallar and any(k.get("enabled") for k in self._bolgeler):
             # Kanal VAR ama hepsi bir bölüme bağlı: "sesli kanal yok" demek yanlış olurdu
@@ -412,21 +620,180 @@ class AnonsYoneticisi:
                 "düğmesiyle sınayın."
             )
             return
-        for kanal in kanallar or [None]:
-            threading.Thread(
-                target=self._cal_ve_kaydet,
-                args=(mesaj.get("key", ""), mesaj.get("text", ""), ses_yolu, kanal),
-                name="anons",
-                daemon=True,
-            ).start()
+        if not kanallar:
+            self._cal_ve_kaydet(mesaj.get("key", ""), mesaj.get("text", ""), None)
+            return
+        ses_yolu, ses_hatasi = self._ses_yolu(mesaj)
+        for kanal in _cikislara_gore_tekille(kanallar):
+            self._siraya_koy(
+                UyariOgesi(
+                    kanal=dict(kanal),
+                    anahtar=mesaj.get("key", ""),
+                    metin=mesaj.get("text", ""),
+                    ses_yolu=ses_yolu,
+                    ses_hatasi=ses_hatasi,
+                    onem="low",
+                    asama=ASAMA_TEST,
+                )
+            )
+
+    def kanali_dene(
+        self,
+        kanal: dict,
+        anahtar: str,
+        metin: str,
+        ses_yolu: str | None,
+        zaman_asimi: float = 25.0,
+    ) -> tuple[str, str, int | None]:
+        """Kanal satırının "Dene"si, çıkışın kuyruğundan geçerek (analiz açıkken
+        gerçek uyarıyla üst üste binmesin). Sonucu bekler: (sonuç, ayrıntı,
+        kuyruktan başlamaya ms)."""
+        oge = UyariOgesi(
+            kanal=dict(kanal),
+            anahtar=anahtar,
+            metin=metin,
+            ses_yolu=ses_yolu,
+            onem="low",
+            asama=ASAMA_TEST,
+            bitti=threading.Event(),
+        )
+        self._siraya_koy(oge)
+        if not oge.bitti.wait(zaman_asimi):
+            mesgul = "Deneme sırası gelmedi: çıkış meşgul, biraz sonra yineleyin."
+            return SONUC_BASARISIZ, mesgul, None
+        return oge.sonuc, oge.ayrinti, oge.kuyruktan_baslamaya_ms
+
+    # ------------------------------------------------------------ yaşam döngüsü
+
+    def bosalt(self, zaman_asimi: float = 5.0) -> bool:
+        """Bütün kuyruklar ve kayıt boşalana kadar bekler (testler, kapanış)."""
+        son = time.monotonic() + zaman_asimi
+        with self._iscilar_kilidi:
+            iscilar = list(self._iscilar.values())
+        bos = all(isci.bosalt(max(0.0, son - time.monotonic())) for isci in iscilar)
+        return self._kayit.bosalt(max(0.0, son - time.monotonic())) and bos
+
+    def kapat(self, zaman_asimi: float = 3.0) -> None:
+        """Süreç kapanırken kuyrukları en çok `zaman_asimi` sn boşaltır (kritik
+        önce; sıra zaten öncelikli), sonra işçileri durdurur (docs/17 §7.3-11)."""
+        self._kapandi = True
+        son = time.monotonic() + zaman_asimi
+        with self._iscilar_kilidi:
+            iscilar = list(self._iscilar.values())
+        for isci in iscilar:
+            isci.durdur(max(0.0, son - time.monotonic()))
+        self._kayit.durdur(max(0.5, son - time.monotonic()))
+
+    def kuyruk_durumu(self) -> dict[str, int]:
+        """Çıkış başına bekleyen öğe sayısı (sağlık ayrıntısı için)."""
+        with self._iscilar_kilidi:
+            return {isci.ad: isci.bekleyen for isci in self._iscilar.values()}
+
+    # ------------------------------------------------------------ iç işler
+
+    def _ses_yolu(self, mesaj: dict) -> tuple[str | None, str]:
+        """Mesajın WAV yolu (proje köküne göre) ve kullanılamıyorsa sebebi.
+
+        Yol her çalışta yeniden doğrulanır: veritabanı başka bir yoldan
+        düzenlenmiş ya da sürücü harfli mutlak bir değer girmiş olabilir.
+        Sebep yalnız ses çıkışı kanalını durdurur; IP hoparlöre metin gider.
+        """
+        ses = mesaj.get("audio_file")
+        if not ses:
+            return None, ""
+        kok = self._goruntu_koku.resolve()
+        tam = (kok / ses).resolve()
+        if not tam.is_relative_to(kok):
+            _log.error(f"Anons ses dosyası proje klasörünün dışında, çalınmadı: {ses}")
+            return None, f"Ses dosyası proje klasörünün dışında: {ses}"
+        return str(tam), ""
+
+    def _siraya_koy(self, oge: UyariOgesi) -> None:
+        if self._kapandi:
+            oge.sonuc, oge.ayrinti = SONUC_BASARISIZ, "sistem kapanıyordu"
+            self._bitince(oge)
+            if oge.bitti is not None:
+                oge.bitti.set()
+            return
+        self._isci(oge.kanal).ekle(oge)
+
+    def _isci(self, kanal: dict) -> CikisIscisi:
+        anahtar = cikis_anahtari(kanal)
+        with self._iscilar_kilidi:
+            isci = self._iscilar.get(anahtar)
+            if isci is None:
+                durdurucu = (
+                    _windows_durdur
+                    if sys.platform == "win32" and anahtar[0] == "ses_karti"
+                    else None
+                )
+                isci = CikisIscisi(
+                    ad=f"{anahtar[0]}-{len(self._iscilar) + 1}",
+                    isle=self._isle,
+                    bitince=self._bitince,
+                    bekleme_sn=float(self._bekleme_sn),
+                    durdurucu=durdurucu,
+                )
+                self._iscilar[anahtar] = isci
+        return isci
+
+    def _isle(self, oge: UyariOgesi, kes: threading.Event) -> None:
+        """Çıkış işçisinin çağırdığı: çal ve sonucu öğeye yaz."""
+        oge.baslama = time.monotonic()
+        oge.baslama_utc = zaman.simdi_utc()
+        if oge.ses_hatasi and oge.kanal.get("kind") == "ses_karti":
+            oge.sonuc, oge.ayrinti = SONUC_BASARISIZ, oge.ses_hatasi
+            nereye = oge.kanal.get("name", "")
+            self.son_sonuc = f"Son anons ÇALINAMADI ({nereye}) - {oge.ses_hatasi}"
+        else:
+            oge.sonuc, oge.ayrinti = self._cal_ve_kaydet(
+                oge.anahtar, oge.metin, oge.ses_yolu, oge.kanal, kes=kes
+            )
+        oge.bitis_utc = zaman.simdi_utc()
+
+    def _bitince(self, oge: UyariOgesi) -> None:
+        """Öğe bitti (çaldı, çalamadı, kesildi ya da bayat): bastırma, kayıt."""
+        if oge.bastirma is not None:
+            with self._bastirma_kilidi:
+                self._yoldakiler.discard(oge.bastirma)
+                # Bastırma YALNIZ başarıda tüketilir (R20)
+                if oge.sonuc == SONUC_TAMAM:
+                    self._cooldown.kaydet(oge.bastirma, oge.bastirma_zamani)
+        if oge.sonuc == SONUC_TAMAM and oge.kanal.get("id") is not None:
+            self._son_anonsu_yaz(int(oge.kanal["id"]))
+        self._teslimi_kaydet(oge)
+
+    def _teslimi_kaydet(self, oge: UyariOgesi) -> None:
+        self._kayit.teslim(
+            teslim_satiri(
+                kanal=oge.kanal.get("kind") or "http",
+                asama=oge.asama,
+                sonuc=oge.sonuc,
+                kuyruga_giris_utc=oge.kuyruga_giris_utc,
+                olay_id=oge.olay_id,
+                olay_kodu=oge.olay_kodu,
+                kanal_id=oge.kanal.get("id"),
+                ayrinti=oge.ayrinti,
+                baslama_utc=oge.baslama_utc,
+                bitis_utc=oge.bitis_utc,
+                kareden_baslamaya_ms=oge.kareden_baslamaya_ms,
+            )
+        )
 
     def _hedef_anonscu(self, bolge: dict):
         """Kanal satırının adaptörü (HTTP biçimi .env'den, tek yerde)."""
         return kanal_anonscu(bolge, self._http_bicimi)
 
     def _cal_ve_kaydet(
-        self, anahtar: str, metin: str, ses_yolu: str | None, bolge: dict | None = None
-    ) -> None:
+        self,
+        anahtar: str,
+        metin: str,
+        ses_yolu: str | None,
+        bolge: dict | None = None,
+        *,
+        kes: threading.Event | None = None,
+    ) -> tuple[str, str]:
+        """Tek kanalda eşzamanlı çalar, `son_sonuc`u yazar; (sonuç, ayrıntı) döner."""
         if bolge is None:
             # Kanal yoksa ses çalmaz; bu bir hata değil, kurulum eksiğidir
             self.son_sonuc = (
@@ -435,38 +802,27 @@ class AnonsYoneticisi:
                 "verilir."
             )
             _log.info(f"Anons çalınmadı (sesli kanal yok): {metin}")
-            return
+            return SONUC_BASARISIZ, "sesli kanal tanımlı değil"
         nereye = f" ({bolge.get('name', '')})"
         try:
-            self._hedef_anonscu(bolge).cal(anahtar, metin, ses_yolu)
-            self.son_sonuc = f"Son anons ÇALINDI{nereye}: {metin}"
-            if bolge.get("id") is not None:
-                self._son_anonsu_yaz(int(bolge["id"]))
+            self._hedef_anonscu(bolge).cal(anahtar, metin, ses_yolu, kes=kes)
+        except AnonsKesildi as hata:
+            self.son_sonuc = f"Son anons KESİLDİ{nereye}: {hata}"
+            _log.info(f"Anons kesildi{nereye}: {metin}")
+            return SONUC_KESILDI, str(hata)
         except AnonsHatasi as hata:
             # Bilinen sebep: kullanıcıya olduğu gibi göster
             self.son_sonuc = f"Son anons ÇALINAMADI{nereye} - {hata}"
             _log.error(f"Anons çalınamadı: {hata}")
+            return SONUC_BASARISIZ, str(hata)
         except Exception as hata:  # noqa: BLE001 - anons hatası sistemi durdurmaz
             self.son_sonuc = f"Son anons ÇALINAMADI{nereye} - beklenmeyen hata: {hata}"
             _log.error(f"Anons çalınamadı: {hata}", exc_info=hata)
+            return SONUC_BASARISIZ, f"beklenmeyen hata: {hata}"
+        self.son_sonuc = f"Son anons ÇALINDI{nereye}: {metin}"
+        return SONUC_TAMAM, ""
 
     def _son_anonsu_yaz(self, bolge_id: int) -> None:
-        """Bölgenin 'son anons' damgasını günceller.
-
-        Anons ayrı bir iş parçacığında çalıştığı için burada KENDİ kısa ömürlü
-        bağlantısı açılır; süpervizörün bağlantısı başka bir iş parçacığına
-        aittir ve paylaşılamaz. Yazma başarısız olursa anons yine çalmıştır:
-        ekrandaki "son anons" bilgisi eksik kalır, sistem durmaz.
-        """
-        try:
-            baglanti = veritabani.baglanti_ac(self._veritabani_yolu)
-            try:
-                baglanti.execute(
-                    "UPDATE speaker_zones SET last_announced_at = ? WHERE id = ?",
-                    (zaman.simdi_utc(), bolge_id),
-                )
-                baglanti.commit()
-            finally:
-                baglanti.close()
-        except (sqlite3.Error, OSError) as hata:
-            _log.error(f"Hoparlör bölgesinin son anons zamanı yazılamadı ({bolge_id}): {hata}")
+        """Kanalın 'son anons' damgası; kayıt iş parçacığı yazar. Yazılamazsa
+        anons yine çalmıştır: ekrandaki bilgi eksik kalır, sistem durmaz."""
+        self._kayit.son_anons(bolge_id, zaman.simdi_utc())

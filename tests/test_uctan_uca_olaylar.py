@@ -88,6 +88,12 @@ class _SenaryoDedektoru:
 
 
 class _SessizAnons:
+    def golge_kaydet(self, *args, **kwargs) -> None:
+        pass
+
+    def ekran_kaydet(self, *args, **kwargs) -> None:
+        pass
+
     def duyur(self, *args, **kwargs) -> None:
         pass
 

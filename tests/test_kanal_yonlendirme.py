@@ -50,27 +50,16 @@ def test_kanal_turune_gore_adaptor():
     assert (http.adres, http.bicim) == ("http://10.0.0.2/anons", "get")
 
 
-class _EsZamanliIsParcacigi:
-    """Anons iş parçacığını hemen, aynı iş parçacığında çalıştırır (deterministik)."""
-
-    def __init__(self, target, args=(), **_):
-        self._hedef, self._arg = target, args
-
-    def start(self):
-        self._hedef(*self._arg)
-
-
 @pytest.fixture
 def calinanlar(monkeypatch):
     kayit: list[tuple] = []
 
-    def _ses_cal(self, anahtar, metin, ses):
+    def _ses_cal(self, anahtar, metin, ses, kes=None):
         kayit.append(("ses_karti", self.cihaz, anahtar))
 
-    def _http_cal(self, anahtar, metin, ses):
+    def _http_cal(self, anahtar, metin, ses, kes=None):
         kayit.append(("http", self.adres, anahtar))
 
-    monkeypatch.setattr(anons.threading, "Thread", _EsZamanliIsParcacigi)
     monkeypatch.setattr(anons.SesKartiAnonscu, "cal", _ses_cal)
     monkeypatch.setattr(anons.HttpAnonscu, "cal", _http_cal)
     monkeypatch.setattr(AnonsYoneticisi, "_son_anonsu_yaz", lambda *_: None)
@@ -90,7 +79,9 @@ def test_olay_bolumun_her_kanalindan_duyurulur(test_ayarlari, calinanlar):
         ]
     )
     yonetici.duyur(7, "Sevkiyat", 0.0, MESAJ)
-    assert calinanlar == [
+    assert yonetici.bosalt()
+    # İki kanal ayrı çıkışlardır: kendi işçilerinde, sırası belirsiz çalar
+    assert sorted(calinanlar) == [
         ("http", "http://10.0.0.1/anons", "helmet"),
         ("ses_karti", "alsa_output.pci", "helmet"),
     ]
@@ -109,6 +100,7 @@ def test_anonsu_dene_tum_fabrika_kanallarindan_calar(test_ayarlari, calinanlar):
     yonetici = AnonsYoneticisi(test_ayarlari)
     yonetici.bolgeleri_yukle([_kanal(1, "Sevkiyat"), _kanal(2, "")])
     yonetici.hemen_cal(MESAJ)
+    assert yonetici.bosalt()
     assert calinanlar == [("http", "http://10.0.0.2/anons", "helmet")]
 
 
@@ -149,4 +141,5 @@ def test_aktarimdan_sonra_ayni_cikis_calar(test_ayarlari, calinanlar, env, bekle
     yonetici = AnonsYoneticisi(test_ayarlari)
     yonetici.bolgeleri_yukle(satirlar)
     yonetici.duyur(7, "Sevkiyat", 0.0, MESAJ)
+    assert yonetici.bosalt()
     assert calinanlar == [beklenen]

@@ -17,6 +17,7 @@ from fastapi.responses import (
 
 from app import veritabani, zaman
 from app.hatalar import DogrulamaHatasi
+from app.olaylar import ekran
 from app.rules.olay_kodu import IHLAL_ONEMLERI, ONEM_ADLARI
 from app.web.ortak import (
     OLAY_DURUMLARI,
@@ -169,6 +170,8 @@ async def olay_akisi(istek: Request):
 
     async def uret():
         baglanti = veritabani.baglanti_ac(ayarlar.veritabani_yolu)
+        # Ekran kanalı sayacı (docs/17 §7.2): bilgi içindir, garantiye sayılmaz
+        ekran.baglandi()
         try:
             son = baglanti.execute("SELECT COALESCE(MAX(id), 0) AS m FROM events").fetchone()
             son_id = son["m"]
@@ -194,6 +197,7 @@ async def olay_akisi(istek: Request):
                 yield ": ping\n\n"  # ara bağlantı canlı tutma
                 await asyncio.sleep(1.0)
         finally:
+            ekran.ayrildi()
             baglanti.close()
 
     return StreamingResponse(

@@ -21,6 +21,16 @@ class Cooldown:
         self._son[anahtar] = zaman_s
         return True
 
+    def bekliyor_mu(self, anahtar: Anahtar, zaman_s: float, sure_s: float) -> bool:
+        """Bastırma süresi içinde mi? KAYDETMEZ (bastırmanın ancak başarıyla
+        tüketildiği yerler için: uyarı dağıtıcısı, docs/17 §7.3-7)."""
+        son = self._son.get(anahtar)
+        return son is not None and (zaman_s - son) < sure_s
+
+    def kaydet(self, anahtar: Anahtar, zaman_s: float) -> None:
+        """Bastırmayı `zaman_s` anından başlatır (başarılı uyarıdan sonra)."""
+        self._son[anahtar] = zaman_s
+
     def temizle(self, esik_zaman_s: float) -> None:
         """Uzun süredir görülmeyen anahtarları at (bellek büyümesin)."""
         self._son = {a: z for a, z in self._son.items() if z >= esik_zaman_s}

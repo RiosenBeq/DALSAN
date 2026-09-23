@@ -28,9 +28,17 @@ class _AnonsCasusu:
 
     def __init__(self) -> None:
         self.cagrilar: list[tuple] = []
+        self.olaylar: list = []
 
-    def duyur(self, kamera_id, kamera_alani, zaman_s, mesaj):
+    def duyur(self, kamera_id, kamera_alani, zaman_s, mesaj, *, olay=None):
         self.cagrilar.append((kamera_id, kamera_alani, mesaj))
+        self.olaylar.append(olay)
+
+    def golge_kaydet(self, *a, **kw) -> None:
+        pass
+
+    def ekran_kaydet(self, olay) -> None:
+        pass
 
     def bolgeleri_yukle(self, satirlar) -> None:
         list(satirlar)
@@ -179,3 +187,39 @@ def test_saglik_olay_yazilamadi_der(istemci, test_ayarlari):
     assert yanit.status_code == 200
     assert yanit.json()["durum"] == "calisiyor"
     assert "olay_yazilamadi" in yanit.json()["sorunlar"]
+
+
+# ------------------------------------------------ dağıtıcıya giden olay bilgisi
+
+
+def test_dagiticiya_olay_kimligi_kod_ve_onem_gecer(ortam):
+    """Teslim kaydı olaya bağlanır; öncelik olayın öneminden gelir (docs/17 §7.3)."""
+    supervizor, baglanti = ortam
+    ihlal = _ihlal()
+    ihlal.kod, ihlal.onem = "VEHICLE_PERSON_PROXIMITY", "critical"
+    olay_id = supervizor._ihlali_kaydet(baglanti, _HatCasusu(), ihlal, 100.0, kare_zamani=99.5)
+    [olay] = supervizor._anons.olaylar
+    assert (olay.olay_id, olay.kod, olay.onem, olay.asama, olay.kare_zamani) == (
+        olay_id,
+        "VEHICLE_PERSON_PROXIMITY",
+        "critical",
+        "acildi",
+        99.5,
+    )
+
+
+def test_olay_yazilamazsa_dagiticiya_bos_kimlik_gider(ortam, monkeypatch):
+    supervizor, baglanti = ortam
+    monkeypatch.setattr(supervizor_modulu, "ihlal_yaz", _kilitli)
+    supervizor._ihlali_kaydet(baglanti, _HatCasusu(), _ihlal(), 100.0)
+    [olay] = supervizor._anons.olaylar
+    assert olay.olay_id is None
+
+
+def test_golge_kural_calsaydi_kaydi_birakir(ortam):
+    supervizor, baglanti = ortam
+    golgeler: list = []
+    supervizor._anons.golge_kaydet = lambda *a, **kw: golgeler.append(kw["olay"])
+    supervizor._ihlali_kaydet(baglanti, _HatCasusu(), _ihlal(2), 100.0)
+    assert supervizor._anons.cagrilar == [], "gölge modda anons çalmamalı"
+    assert len(golgeler) == 1 and golgeler[0].olay_id is not None

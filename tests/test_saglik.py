@@ -23,7 +23,15 @@ from app.analiz.supervizor import AnalizSupervizoru, _KameraOlcumu
 from app.uygulama import uygulama_olustur
 
 DAR_ALANLAR = {"durum", "analiz", "model", "hazir", "sorunlar"}
-AYRINTI_ALANLARI = {"kameralar", "bos_disk_gb", "analiz_tur_yasi_sn"}
+AYRINTI_ALANLARI = {
+    "kameralar",
+    "bos_disk_gb",
+    "analiz_tur_yasi_sn",
+    # F4a: uyarı gecikmesi (yazılım, 24 sa), açık izleme ekranı, çıkış kuyrukları
+    "uyari_gecikmesi",
+    "ekran_istemci",
+    "uyari_kuyrugu",
+}
 
 
 class _HazirAnaliz:

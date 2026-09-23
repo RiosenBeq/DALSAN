@@ -60,8 +60,15 @@ class _AnonsCasusu:
     def __init__(self):
         self.cagrilar = []
 
-    def duyur(self, kamera_id, kamera_alani, zaman_s, mesaj):
+    def duyur(self, kamera_id, kamera_alani, zaman_s, mesaj, *, olay=None):
         self.cagrilar.append((kamera_id, kamera_alani, (mesaj or {}).get("key")))
+        self.olaylar = [*getattr(self, "olaylar", []), olay]
+
+    def golge_kaydet(self, *a, **kw):
+        pass
+
+    def ekran_kaydet(self, olay):
+        pass
 
 
 class _Hat:

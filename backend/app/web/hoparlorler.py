@@ -13,6 +13,10 @@ olan kanaldan duyurulur.
 
 from __future__ import annotations
 
+import tempfile
+import time
+from pathlib import Path
+
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import RedirectResponse
 
@@ -20,7 +24,9 @@ from app import zaman
 from app.hatalar import DogrulamaHatasi
 from app.olaylar import ses_cihazlari, test_sesi
 from app.olaylar.anons import AnonsHatasi, hoparlor_adresini_dogrula, http_gonder
+from app.olaylar.dagitici import ASAMA_TEST, SONUC_BASARISIZ, SONUC_TAMAM
 from app.olaylar.kanallar import KANAL_TURLERI
+from app.olaylar.teslim import teslim_satiri, teslim_yaz
 from app.web.ortak import baglanti_al, maskeyi_coz, rtsp_maskele
 
 router = APIRouter()
@@ -153,38 +159,92 @@ def hoparlor_dene(istek: Request, hoparlor_id: int, baglanti=Depends(baglanti_al
     çıkışına üretilmiş bip sesi (docs/17 §7.8). Ses, kaydedilmiş satırın
     kendi çıkışından ve adresinden çıkar (R39).
 
+    Analiz çalışıyorsa deneme o çıkışın uyarı kuyruğundan geçer: gerçek bir
+    uyarıyla aynı hoparlörde üst üste binmez, kritik bir uyarı gelirse ona yer
+    açar. Sonuç ve yazılım gecikmesi teslim kaydına `test` diye yazılır.
+
     Rota senkron tanımlıdır: FastAPI senkron rotaları threadpool'da çalıştırır,
     böylece hoparlör 5 saniye yanıt vermezse arayüzün geri kalanı donmaz.
     """
     satir = baglanti.execute("SELECT * FROM speaker_zones WHERE id = ?", (hoparlor_id,)).fetchone()
     if satir is None:
         raise DogrulamaHatasi("Kanal bulunamadı. Silinmiş olabilir; sayfayı yenileyin.")
-    if satir["kind"] == "ses_karti":
-        hata = test_sesi.cal(satir["device"])
-        if hata:
-            raise DogrulamaHatasi(f"'{satir['name']}' kanalından test sesi çalınamadı. {hata}")
+    kanal = dict(satir)
+    kuyruga_giris = zaman.simdi_utc()
+    supervizor = getattr(istek.app.state, "supervizor", None)
+    if supervizor is not None:
+        sonuc, ayrinti, gecikme = _kuyruktan_dene(supervizor, kanal)
     else:
-        try:
-            # Biçim .env'den GEÇİRİLİR. Geçirilmezse deneme her zaman JSON gönderir
-            # ve GET bekleyen bir hoparlörde "deneme başarılı" yazarken gerçek
-            # anons sessizce başarısız olurdu - anons.http_gonder'ın uyardığı tuzak.
-            http_gonder(
-                satir["address"],
-                DENEME_ANAHTARI,
-                DENEME_METNI,
-                istek.app.state.ayarlar.anons_http_bicimi,
-            )
-        except AnonsHatasi as hata:
-            # Adres MASKELİ gösterilir: hata ekranı da bir ekrandır, şifre oraya
-            # da basılmamalı (docs/01 §3.6).
-            raise DogrulamaHatasi(
-                f"'{satir['name']}' hoparlörü denenemedi "
-                f"({rtsp_maskele(satir['address'])}). {hata} "
-                "Adresi kanal listesinden düzeltebilirsiniz."
-            ) from hata
+        sonuc, ayrinti, gecikme = _dogrudan_dene(istek, kanal)
+        # Kuyruktan geçen denemeyi dağıtıcı kaydeder; burada yalnız doğrudan olan
+        teslim_yaz(
+            baglanti,
+            teslim_satiri(
+                kanal=kanal["kind"],
+                asama=ASAMA_TEST,
+                sonuc=sonuc,
+                kuyruga_giris_utc=kuyruga_giris,
+                kanal_id=hoparlor_id,
+                ayrinti=ayrinti,
+                baslama_utc=kuyruga_giris,
+                bitis_utc=zaman.simdi_utc(),
+            ),
+        )
+    if sonuc != SONUC_TAMAM:
+        if kanal["kind"] == "ses_karti":
+            raise DogrulamaHatasi(f"'{kanal['name']}' kanalından test sesi çalınamadı. {ayrinti}")
+        # Adres MASKELİ gösterilir: hata ekranı da bir ekrandır, şifre oraya da
+        # basılmamalı (docs/01 §3.6).
+        raise DogrulamaHatasi(
+            f"'{kanal['name']}' hoparlörü denenemedi "
+            f"({rtsp_maskele(kanal['address'])}). {ayrinti} "
+            "Adresi kanal listesinden düzeltebilirsiniz."
+        )
     baglanti.execute(
         "UPDATE speaker_zones SET last_announced_at = ? WHERE id = ?",
         (zaman.simdi_utc(), hoparlor_id),
     )
     baglanti.commit()
-    return RedirectResponse(f"/komuta/anons?sonuc=denendi&hoparlor={hoparlor_id}", status_code=303)
+    return RedirectResponse(
+        f"/komuta/anons?sonuc=denendi&hoparlor={hoparlor_id}&gecikme={gecikme or 0}",
+        status_code=303,
+    )
+
+
+def _deneme_icerigi(kanal: dict) -> tuple[str, str]:
+    if kanal["kind"] == "ses_karti":
+        return "test", "Test sesi"
+    return DENEME_ANAHTARI, DENEME_METNI
+
+
+def _kuyruktan_dene(supervizor, kanal: dict) -> tuple[str, str, int | None]:
+    anahtar, metin = _deneme_icerigi(kanal)
+    wav: Path | None = None
+    if kanal["kind"] == "ses_karti":
+        wav = Path(tempfile.gettempdir()) / f"nextgen-kanal-{kanal['id']}-test.wav"
+        try:
+            test_sesi.wav_uret(wav)
+        except (OSError, ValueError) as hata:
+            return SONUC_BASARISIZ, f"Test sesi üretilemedi: {hata}", None
+    try:
+        return supervizor._anons.kanali_dene(kanal, anahtar, metin, str(wav) if wav else None)
+    finally:
+        if wav is not None:
+            wav.unlink(missing_ok=True)
+
+
+def _dogrudan_dene(istek: Request, kanal: dict) -> tuple[str, str, int]:
+    """Analiz kapalıyken: kuyruk yok, doğrudan çalar."""
+    baslangic = time.monotonic()
+    if kanal["kind"] == "ses_karti":
+        hata = test_sesi.cal(kanal["device"])
+        return (SONUC_BASARISIZ, hata, 0) if hata else (SONUC_TAMAM, "", 0)
+    anahtar, metin = _deneme_icerigi(kanal)
+    try:
+        # Biçim .env'den GEÇİRİLİR. Geçirilmezse deneme her zaman JSON gönderir
+        # ve GET bekleyen bir hoparlörde "deneme başarılı" yazarken gerçek
+        # anons sessizce başarısız olurdu - anons.http_gonder'ın uyardığı tuzak.
+        http_gonder(kanal["address"], anahtar, metin, istek.app.state.ayarlar.anons_http_bicimi)
+    except AnonsHatasi as hata:
+        return SONUC_BASARISIZ, str(hata), round((time.monotonic() - baslangic) * 1000)
+    return SONUC_TAMAM, "", 0

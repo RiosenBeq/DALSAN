@@ -128,6 +128,7 @@
         <span class="satir-adi">{{ k.ad }}</span>
         <span class="panel-notu kanal-hedef">{{ k.alan_adi }} · {{ k.tur_kisa }} · {{ k.hedef }}</span>
         {% if k.uyari %}<span class="panel-notu kanal-uyarisi">{{ k.uyari }}</span>{% endif %}
+        {% if k.teslim %}<span class="panel-notu">son 24 saat: {{ k.teslim }}</span>{% endif %}
         {% if k.aciklama %}<span class="panel-notu">{{ k.aciklama }}</span>{% endif %}
       </span>
       <span class="sayisal" title="son anons">{{ k.son_anons }}</span>
@@ -220,6 +221,46 @@
   {% elif son_sonuc %}
   <p class="panel-notu">{{ son_sonuc }}</p>
   {% endif %}
+</section>
+
+{# --- teslim kaydı ------------------------------------------------------- #}
+{# alert_deliveries (şema 009, docs/17 §7.3-10, §7.10). Oran yalnız gerçek
+   uyarıların sesli/uzak kanal denemelerinden hesaplanır; deneme yoksa
+   "ölçülemedi" yazılır, %100 değil. Gecikme yalnız YAZILIM kısmıdır. #}
+<section class="komuta-panel" id="teslim">
+  <div class="panel-basligi">
+    <h2>Teslim kaydı</h2>
+    <span class="panel-notu">son {{ teslim.saat }} saat · her uyarı denemesi bir satır</span>
+  </div>
+  <div class="komuta-sayilar">
+    <div class="sayi-karti">
+      <span class="sayi-etiketi">Teslim oranı</span>
+      <span class="sayi-degeri yazi {{ '' if teslim.oran is none or teslim.oran >= 0.95 else 'dikkat' }}">
+        {{ teslim_orani or "ölçülemedi" }}</span>
+      <span class="sayi-alt">{% if teslim.deneme %}{{ teslim.caldi }} / {{ teslim.deneme }} deneme çaldı{% else %}sesli kanala giden uyarı yok{% endif %}</span>
+    </div>
+    <div class="sayi-karti">
+      <span class="sayi-etiketi">Kare → ses (yazılım)</span>
+      <span class="sayi-degeri yazi">{% if teslim.p50_ms is not none %}{{ teslim.p50_ms }} ms{% else %}ölçülemedi{% endif %}</span>
+      <span class="sayi-alt">{% if teslim.p90_ms is not none %}p50 · p90 {{ teslim.p90_ms }} ms ({{ teslim.olculen }} ölçüm){% else %}çalan uyarı olmadan ölçülmez{% endif %}</span>
+    </div>
+    <div class="sayi-karti">
+      <span class="sayi-etiketi">Bastırılan · bayat · kesilen</span>
+      <span class="sayi-degeri yazi">{{ teslim.sayilar.get('suppressed_cooldown', 0) }} · {{ teslim.sayilar.get('stale', 0) }} · {{ teslim.sayilar.get('preempted', 0) }}</span>
+      <span class="sayi-alt">gölge modda "çalsaydı": {{ teslim.golge }}</span>
+    </div>
+    <div class="sayi-karti">
+      <span class="sayi-etiketi">İzleme ekranı</span>
+      <span class="sayi-degeri yazi">{{ izleme_ekrani }} açık</span>
+      <span class="sayi-alt">{% if teslim.ekran_olay %}{{ teslim.ekran_dinleyen_yok }} / {{ teslim.ekran_olay }} olayda açık ekran yoktu{% else %}bilgi; uyarı garantisine sayılmaz{% endif %}</span>
+    </div>
+  </div>
+  <p class="panel-notu">Yazılım gecikmesi, kamera karesinin alındığı andan çalıcının ya da
+    isteğin başladığı ana kadardır. Bluetooth'un ve hoparlörün kendi tamponu yazılımdan
+    ölçülemez; sahada telefon videosuyla ölçülür (docs/06). "Bastırılan": aynı kamera ve
+    mesaj o kanaldan son {{ anons_bekleme_sn }} sn içinde zaten duyurulmuştu. "Bayat":
+    sırada {{ anons_bekleme_sn }} sn'den uzun bekledi ve geçmiş bir durumu anlatacağı için
+    çalınmadı. "Kesilen": kritik bir uyarıya yer açtı.</p>
 </section>
 
 {# --- anonsun saatlere dağılımı ----------------------------------------- #}

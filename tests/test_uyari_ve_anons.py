@@ -203,7 +203,7 @@ def test_anons_bloklamadan_calar(test_ayarlari, monkeypatch):
         ]
     )
 
-    def yavas_cal(self, anahtar, metin, ses):
+    def yavas_cal(self, anahtar, metin, ses, kes=None):
         time.sleep(1.5)
 
     monkeypatch.setattr(anons.HttpAnonscu, "cal", yavas_cal)

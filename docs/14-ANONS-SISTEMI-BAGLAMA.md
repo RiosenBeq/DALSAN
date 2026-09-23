@@ -255,6 +255,30 @@ bir kanalı sonradan silerseniz geri gelmez.
 
 ---
 
+### 4.2 Uyarılar hangi sırayla çalar
+
+Her ÇIKIŞIN (bir ses çıkışı ya da bir IP hoparlör adresi) kendi sırası vardır:
+aynı hoparlörde iki ses üst üste binmez, farklı hoparlörler birbirini beklemez.
+İki bölümün kanalı aynı hoparlörü gösteriyorsa onların sesi de sıraya girer.
+
+- **Önem sırası:** Kritik (araç-yaya yakınlığı) önce, sonra Yüksek, Orta, Düşük.
+  Aynı önemde gelen önce çalar. "Dene" düğmeleri gerçek bir uyarının önüne geçmez.
+- **Kesme:** kritik bir uyarı gelince, ses çıkışında o an çalan daha düşük
+  önemli ses kesilir ve kritik olan hemen çalar. IP hoparlöre giden istek
+  kesilemez; kritik olan yalnız sırada öne geçer.
+- **Bayat uyarı çalınmaz:** sırada tekrar aralığından (Ayarlar → Anons, varsayılan
+  30 sn) uzun bekleyen kritik olmayan uyarı atılır; geçmiş bir durumu anlatan
+  anons da yanlış alarmdır.
+- **Tekrar bastırma:** aynı kamera ve mesaj, aynı kanaldan tekrar aralığı içinde
+  bir kez çalar. Bastırma yalnız ses **gerçekten çaldıysa** başlar: çalamayan bir
+  hoparlör bir sonraki ihlalde yeniden denenir. Kritik bir olayın açılışı
+  bastırılmaz: aynı kamerada ikinci, ayrı bir yakınlık da duyurulur.
+
+Her deneme **teslim kaydına** yazılır (Anons sistemi → Teslim kaydı): son 24
+saatte kaç deneme çaldı, kaçı bastırıldı, bayatladı ya da kesildi ve kare → ses
+yazılım gecikmesi (p50/p90). Gölge moddaki kural için "çalsaydı" kaydı da
+tutulur; hoparlör susar.
+
 ## 5. Devreye alma sırası - bu sırayı bozmayın
 
 Yeni kurulan bir kuralı ilk günden anonsa açmak, sistem henüz ayarlanmamışken

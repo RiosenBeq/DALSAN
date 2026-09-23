@@ -54,6 +54,26 @@ Bluetooth hoparlör, `kind='ses_karti'`, `device`) ya da bir IP hoparlör
   daha `.env`'e yazılmaz, R14 yapı gereği kapanır); kurulum listesinin anons
   adımı açık kanal sayar. docs/14 kanal ekranına göre yeniden yazıldı.
 
+**4a-3 - uyarı dağıtıcısı (§7.3).** Her çıkışın (ses çıkışı ya da IP hoparlör
+adresi) tek işçisi ve öncelikli kuyruğu var (`olaylar/dagitici.py`): aynı
+hoparlörde iki ses üst üste binmez, farklı hoparlörler birbirini beklemez;
+aynı çıkışı gösteren iki satır tek ses çalar. Sıra önem sonra geliş; deneme en
+sonda. Kritik uyarı çalan kritik olmayan sesi keser (çalıcı `Popen` + 100 ms
+yoklama, Windows'ta `PlaySound(None)`); HTTP yalnız sırada öne geçer. Tekrar
+aralığından uzun bekleyen kritik olmayan öğe `stale`. Bastırma (kamera, mesaj,
+kanal) başına ve yalnız başarılı çalmada tükenir (R20); kritik açılış
+denetlenmez. Her deneme `alert_deliveries`'e tek bir kayıt iş parçacığından
+yazılır (`olaylar/teslim.py`): `ok`, `failed`, `preempted`, `stale`,
+`suppressed_cooldown`, gölge kural için `shadow`, ekran kanalı için `ok` ya da
+`no_listener` (SSE istemci sayacı, `olaylar/ekran.py`; bilgi, garantiye
+sayılmaz). Olay satırı yazılamadıysa `event_id` boş kalır. Kare → çalıcı
+başlangıcı `frame_to_start_ms`. Anons ekranında "Teslim kaydı" (24 saat: oran,
+p50/p90, bastırılan/bayat/kesilen, izleme ekranı) ve kanal başına sayılar;
+`/saglik?ayrinti=1` gecikme, ekran ve kuyruk sayısı verir. Kanal "Dene"si analiz
+açıkken çıkışın kuyruğundan geçer ve sonucu yazılım gecikmesiyle gösterir.
+Kapanışta kuyruklar en çok 3 sn boşaltılır. Eski kayıtlar bakımda ihlal
+saklama süresiyle silinir.
+
 ## Faz 3 KKD (23.09.2026)
 
 Plan: `docs/17-V2-TASARIM.md` §5 ve §13 (3a-3e satırları). Operatör Faz 3 ve Faz 4

@@ -220,3 +220,45 @@ def test_dene_hatasi_kanal_adiyla_turkce(istemci, test_ayarlari, linux, monkeypa
     hata = yanit.json()["hata"]
     assert "Rampa hoparlörü" in hata and "Ses çalıcı bulunamadı." in hata
     assert _satirlar(test_ayarlari)[0]["last_announced_at"] is None
+
+
+# ------------------------------------------------------------ teslim kaydı
+
+
+def test_deneme_teslim_kaydina_test_diye_yazilir(istemci, test_ayarlari, monkeypatch):
+    """Analiz kapalıyken deneme doğrudan çalar ve kaydı web isteği yazar."""
+    import urllib.request
+
+    class _Yanit:
+        status = 200
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+    monkeypatch.setattr(urllib.request, "urlopen", lambda *a, **k: _Yanit())
+    _kanal_ekle(istemci, kind="http", address="http://10.0.0.9/anons")
+    [satir] = _satirlar(test_ayarlari)
+    yanit = istemci.post(f"/hoparlorler/{satir['id']}/dene", follow_redirects=False)
+    assert yanit.status_code == 303
+    assert "gecikme=0" in yanit.headers["location"]
+    baglanti = veritabani.baglanti_ac(test_ayarlari.veritabani_yolu)
+    try:
+        kayit = baglanti.execute(
+            "SELECT channel, stage, result, speaker_zone_id, event_id FROM alert_deliveries"
+        ).fetchone()
+    finally:
+        baglanti.close()
+    assert tuple(kayit) == ("http", "test", "ok", satir["id"], None)
+    sayfa = istemci.get(yanit.headers["location"]).text
+    assert "Yazılım gecikmesi: 0 ms" in sayfa
+
+
+def test_teslim_paneli_veri_yokken_olculemedi_der(istemci):
+    metin = istemci.get("/komuta/anons").text
+    assert "Teslim kaydı" in metin
+    panel = metin.split('id="teslim"')[1].split("</section>")[0]
+    assert "ölçülemedi" in panel
+    assert "%100" not in panel

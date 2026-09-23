@@ -106,6 +106,7 @@ def _windows(monkeypatch, sahte: _SahteWinsound) -> None:
     monkeypatch.setitem(sys.modules, "winsound", sahte)
     # Windows'ta süreç AÇILMAZ; açılırsa test kırılsın.
     monkeypatch.setattr(anons.subprocess, "run", lambda *a, **k: pytest.fail("süreç açıldı"))
+    monkeypatch.setattr(anons.subprocess, "Popen", lambda *a, **k: pytest.fail("süreç açıldı"))
 
 
 def test_windows_cihaz_bayragi_almaz(monkeypatch):

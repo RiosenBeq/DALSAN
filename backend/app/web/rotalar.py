@@ -20,7 +20,9 @@ from app import kaynaklar, veritabani, zaman
 from app.analiz.model_adi import gorunen_model_adi
 from app.hatalar import VeritabaniHatasi
 from app.loglama import log_al
+from app.olaylar import ekran
 from app.olaylar.kanallar import acik_kanal_sayisi, kanal_ozeti
+from app.olaylar.teslim import teslim_ozeti
 from app.rules.olay_kodu import IHLAL_ONEMLERI, ONEM_ADLARI
 from app.web.kilavuz import kalibrasyon_bekleyen_kurallar
 from app.web.ortak import (
@@ -244,16 +246,41 @@ def _saglik_sorunlari(ayarlar) -> list[str]:
 
 
 def _saglik_ayrintisi(ayarlar, supervizor) -> dict:
-    """Oturumlu ayrıntı: kamera ölçümleri (id ile, ad yok), boş disk, tur yaşı."""
-    ayrinti: dict = {"bos_disk_gb": None, "analiz_tur_yasi_sn": None, "kameralar": []}
+    """Oturumlu ayrıntı: kamera ölçümleri (id ile, ad yok), boş disk, tur yaşı,
+    uyarı gecikmesi (yazılım, son 24 saat; docs/17 §7.10) ve açık izleme ekranı."""
+    ayrinti: dict = {
+        "bos_disk_gb": None,
+        "analiz_tur_yasi_sn": None,
+        "kameralar": [],
+        "uyari_gecikmesi": None,
+        "ekran_istemci": ekran.istemci_sayisi(),
+        "uyari_kuyrugu": {},
+    }
     try:
         ayrinti["bos_disk_gb"] = round(shutil.disk_usage(ayarlar.veri_dizini).free / 1024**3, 1)
     except OSError as hata:
         log_al("sistem").warning(f"Boş disk alanı okunamadı: {hata}")
+    try:
+        baglanti = veritabani.baglanti_ac(ayarlar.veritabani_yolu)
+        try:
+            ozet = teslim_ozeti(baglanti)
+        finally:
+            baglanti.close()
+        ayrinti["uyari_gecikmesi"] = {
+            "p50_ms": ozet["p50_ms"],
+            "p90_ms": ozet["p90_ms"],
+            "olculen": ozet["olculen"],
+            "teslim_orani": ozet["oran"],
+        }
+    except (sqlite3.Error, VeritabaniHatasi) as hata:
+        log_al("sistem").warning(f"Uyarı teslim özeti okunamadı: {hata}")
     if supervizor is not None:
         try:
             ayrinti["analiz_tur_yasi_sn"] = supervizor.analiz_tur_yasi()
             ayrinti["kameralar"] = supervizor.kamera_saglik_ozeti()
+            anonscu = getattr(supervizor, "_anons", None)
+            if anonscu is not None:
+                ayrinti["uyari_kuyrugu"] = anonscu.kuyruk_durumu()
         except Exception as hata:  # noqa: BLE001 - sağlık ucu 200 dönmeye devam etmeli
             log_al("sistem").error(f"Sağlık ayrıntısı toplanamadı: {hata}", exc_info=hata)
     return ayrinti

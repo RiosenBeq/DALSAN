@@ -454,8 +454,14 @@ def test_golge_modda_olay_yazilir_ama_anons_calmaz(test_ayarlari, tmp_path):
 class _AnonsCasusu:
     """duyur() çağrılarını kaydeder; hiçbir ses çalmaz."""
 
-    def duyur(self, kamera_id, kamera_alani, zaman_s, mesaj):
+    def duyur(self, kamera_id, kamera_alani, zaman_s, mesaj, *, olay=None):
         self._kayit.append((kamera_id, kamera_alani, mesaj))
+
+    def golge_kaydet(self, *a, **kw):
+        pass
+
+    def ekran_kaydet(self, olay):
+        pass
 
     def __init__(self, kayit):
         self._kayit = kayit
