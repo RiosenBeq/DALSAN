@@ -19,10 +19,12 @@ from app.rules.parametreler import params_dogrula
 from app.web.ortak import (
     BOLGE_TIPLERI,
     BOLGE_ZORUNLU_KURALLAR,
+    EK_HAZIR_KURALLAR,
     HAZIR_KURALLAR,
     KURAL_TIPLERI,
     SINIFLAR,
     VARSAYILAN_COOLDOWN_SN,
+    ayni_hazir_kural_var,
     baglanti_al,
     guvenli_json,
     hazir_kural_cooldown,
@@ -206,6 +208,7 @@ def _kural_kaydet_islemi(baglanti, form):
 @router.post("/kurallar/hazir")
 def hazir_kural_ekle(
     zone_id: int = Form(...),
+    ek: str = Form(""),
     baglanti=Depends(baglanti_al),
 ):
     """Tek tıkla, bölge tipine uygun kuralı kurar (docs/03 eşlemesi).
@@ -218,22 +221,29 @@ def hazir_kural_ekle(
     app/rules/parametreler.py'den gelir (docs/03 tabloları, tek kaynak).
 
     Kurulan kural sıradan bir kuraldır: Kurallar sayfasından düzenlenebilir.
+    `ek` verilirse bölge tipinin EK hazır kuralı kurulur (EK_HAZIR_KURALLAR:
+    yaya yolunda araç, araç yolunda yaya); ekler gölge modda doğar.
     """
     bolge = baglanti.execute(
         "SELECT id, camera_id, zone_type, name FROM zones WHERE id = ?", (zone_id,)
     ).fetchone()
     if bolge is None:
         raise DogrulamaHatasi("Bölge bulunamadı. Silinmiş olabilir; sayfayı yenileyin.")
-    hazir = HAZIR_KURALLAR.get(bolge["zone_type"])
+    if ek:
+        hazir = next(
+            (h for h in EK_HAZIR_KURALLAR.get(bolge["zone_type"], ()) if h.anahtar == ek), None
+        )
+    else:
+        hazir = HAZIR_KURALLAR.get(bolge["zone_type"])
     if hazir is None:
         raise DogrulamaHatasi(
             f"'{BOLGE_TIPLERI.get(bolge['zone_type'], bolge['zone_type'])}' tipindeki bölge "
-            "için hazır kural yok. Kurallar sayfasından elle tanımlayabilirsiniz."
+            "için bu hazır kural yok. Kurallar sayfasından elle tanımlayabilirsiniz."
         )
-    mevcut = baglanti.execute("SELECT 1 FROM rules WHERE zone_id = ?", (zone_id,)).fetchone()
-    if mevcut is not None:
+    if ayni_hazir_kural_var(baglanti, zone_id, hazir):
         raise DogrulamaHatasi(
-            f"'{bolge['name']}' bölgesinde zaten bir kural var. Kurallar sayfasından düzenleyin."
+            f"'{bolge['name']}' bölgesinde zaten bir kural var: {hazir.kisa_ad}. "
+            "Kurallar sayfasından düzenleyin."
         )
 
     anons_id = None
@@ -245,7 +255,8 @@ def hazir_kural_ekle(
 
     baglanti.execute(
         "INSERT INTO rules (camera_id, rule_type, zone_id, target_classes, params, "
-        "cooldown_s, announcement_id, enabled, updated_at) VALUES (?,?,?,?,?,?,?,1,?)",
+        "cooldown_s, announcement_id, enabled, shadow_mode, updated_at) "
+        "VALUES (?,?,?,?,?,?,?,1,?,?)",
         (
             bolge["camera_id"],
             hazir.kural_tipi,
@@ -254,6 +265,7 @@ def hazir_kural_ekle(
             json.dumps(hazir_kural_params(hazir)),
             hazir_kural_cooldown(hazir),
             anons_id,
+            1 if hazir.golge else 0,
             zaman.simdi_utc(),
         ),
     )

@@ -35,6 +35,10 @@ class BolgeIhlaliParams(BaseModel):
     mode: Literal["inside", "outside"] = "inside"
     min_dwell_s: float = Field(default=2.0, ge=0, le=600)
     bitis_s: float = _bitis_alani()
+    # Ayak noktası aynı kameradaki etkin bir yaya-araç geçidindeyse (crossing)
+    # ihlal sayılmaz (docs/17 §6.3): araç yolunu geçitten geçen yaya, geçitten
+    # geçen forklift uyarı üretmez.
+    gecit_haric: bool = True
 
 
 class MesafeParams(BaseModel):
@@ -47,6 +51,10 @@ class MesafeParams(BaseModel):
     require_moving_vehicle: bool = True
     min_speed_mps: float = Field(default=0.3, ge=0, le=20)
     bitis_s: float = _bitis_alani()
+    # Çıkış eşiği: açılmış olay, mesafe distance_m + histerezis_m'yi aşınca
+    # biter (docs/17 §6.3). Eşiğin hemen üstünde gidip gelen çift tek olay kalır.
+    # Açılışı etkilemez.
+    histerezis_m: float = Field(default=0.5, ge=0, le=50)
 
 
 class KkdParams(BaseModel):

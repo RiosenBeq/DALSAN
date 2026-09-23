@@ -500,6 +500,12 @@ class HazirKural:
     cooldown_s: int | None  # None → VARSAYILAN_COOLDOWN_SN[kural_tipi]
     kisa_ad: str  # düğme metni: '"Ad" için {kisa_ad} ekle'
     aciklama: str  # {param} yer tutucuları çözülmüş params ile doldurulur
+    # Gölge modda doğar (şema 002): olay yazılır, anons çalmaz. Sahada yanlış
+    # alarm oranı ölçülmemiş yeni bir kural hoparlörü boşuna konuşturmasın;
+    # operatör ölçtükten sonra Kurallar sayfasından gölgeyi kapatır.
+    golge: bool = False
+    # EK_HAZIR_KURALLAR'da düğmenin gönderdiği anahtar; birincil kuralda boş
+    anahtar: str = ""
 
 
 # docs/03: kural tipine göre varsayılan cooldown (saniye)
@@ -527,17 +533,19 @@ HAZIR_KURALLAR: dict[str, HazirKural] = {
             "«Lütfen yaya yolunu kullanınız.» anonsu geçilir."
         ),
     ),
-    # docs/03 §1 — yasak bölgede olmak ihlaldir (mode=inside, varsayılan)
+    # docs/03 §1 — yasak bölgede olmak ihlaldir (mode=inside, varsayılan).
+    # Şema 007'nin "restricted_entry" mesajına bağlanır (docs/17 §8.2).
     "restricted": HazirKural(
         kural_tipi="zone_intrusion",
         hedef_siniflar=("person",),
         params={"mode": "inside"},
-        anons_anahtari=None,
+        anons_anahtari="restricted_entry",
         cooldown_s=None,
         kisa_ad="yasak bölge kuralı",
         aciklama=(
             "Yasak bölgeye girip {min_dwell_s:g} saniyeden uzun kalan kişi uyarı üretir. "
-            "Bu kurala hazır bir anons bağlanmaz; uyarı ekranda ve olay listesinde görünür."
+            "Hoparlörden «Bu alana giriş yasaktır.» anonsu geçilir; metni Anons "
+            "sayfasından değiştirebilirsiniz."
         ),
     ),
     # docs/03 §1 tablosu — "Yükleme alanında yaya": inside / person
@@ -595,6 +603,79 @@ HAZIR_KURALLAR: dict[str, HazirKural] = {
         ),
     ),
 }
+
+
+# Bir bölge tipinin BİRİNCİL kuralına ek olarak kurulabilen kurallar (docs/17
+# §6.1, §8.2). İkisi de gölge modda doğar ve şema 007'nin mesajlarına bağlanır;
+# kalış süreleri docs/17 §4.5'ten. Geçitteki (crossing) yaya ya da araç ihlal
+# sayılmaz (kuralın `gecit_haric` varsayılanı açık).
+EK_HAZIR_KURALLAR: dict[str, tuple[HazirKural, ...]] = {
+    "pedestrian_path": (
+        HazirKural(
+            kural_tipi="zone_intrusion",
+            hedef_siniflar=("forklift", "truck"),
+            params={"mode": "inside", "min_dwell_s": 1.0},
+            anons_anahtari="vehicle_on_walkway",
+            cooldown_s=None,
+            kisa_ad="yaya yolunda araç kuralı",
+            aciklama=(
+                "Yaya yolunun İÇİNDE {min_dwell_s:g} saniyeden uzun kalan forklift ya da tır "
+                "uyarı üretir; yaya-araç geçidindeki araç uyarı üretmez. Gölge modda "
+                "kurulur: olay yazılır, hoparlör susar. Yanlış alarmları gördükten sonra "
+                "Kurallar sayfasından gölge modu kapatınca «Dikkat, yaya yolunda araç var.» "
+                "anonsu çalar."
+            ),
+            golge=True,
+            anahtar="yaya_yolunda_arac",
+        ),
+    ),
+    "vehicle_area": (
+        HazirKural(
+            kural_tipi="zone_intrusion",
+            hedef_siniflar=("person",),
+            params={"mode": "inside", "min_dwell_s": 1.5},
+            anons_anahtari="person_in_vehicle_lane",
+            cooldown_s=None,
+            kisa_ad="araç yolunda yaya kuralı",
+            aciklama=(
+                "Araç sahasının İÇİNDE {min_dwell_s:g} saniyeden uzun kalan kişi uyarı "
+                "üretir; o anda sahada bir araç da varsa önemi Yüksek olur. Yaya-araç "
+                "geçidindeki kişi uyarı üretmez. Gölge modda kurulur: olay yazılır, "
+                "hoparlör susar; gölge modu Kurallar sayfasından kapatınca «Lütfen araç "
+                "yolundan çıkınız.» anonsu çalar."
+            ),
+            golge=True,
+            anahtar="arac_yolunda_yaya",
+        ),
+    ),
+}
+
+
+def bolge_hazir_kurallari(bolge_tipi: str) -> list[HazirKural]:
+    """Bölge tipinin kurulabilir bütün hazır kuralları: birincil + ekler."""
+    birincil = HAZIR_KURALLAR.get(bolge_tipi)
+    return ([birincil] if birincil else []) + list(EK_HAZIR_KURALLAR.get(bolge_tipi, ()))
+
+
+def ayni_hazir_kural_var(baglanti, zone_id: int, hazir: HazirKural) -> bool:
+    """Bölgede bu hazır kuralın AYNISI (tip, yön, hedef sınıflar) kurulu mu?
+
+    "Bölgede herhangi bir kural var mı" sorusu yetmez: yaya yolunda "yolun
+    dışındaki kişi" ile "yoldaki araç" iki ayrı kuraldır.
+    """
+    for satir in baglanti.execute(
+        "SELECT rule_type, target_classes, params FROM rules WHERE zone_id = ?", (zone_id,)
+    ):
+        if satir["rule_type"] != hazir.kural_tipi:
+            continue
+        if hazir.kural_tipi != "zone_intrusion":
+            return True
+        yon = _sozluk(satir["params"]).get("mode", "inside")
+        if yon == hazir.params.get("mode", "inside") and set(
+            _liste(satir["target_classes"])
+        ) == set(hazir.hedef_siniflar):
+            return True
+    return False
 
 
 def hazir_kural_params(hazir: HazirKural) -> dict:

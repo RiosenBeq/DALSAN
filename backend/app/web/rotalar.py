@@ -13,7 +13,9 @@ from fastapi.templating import Jinja2Templates
 from app import kaynaklar, veritabani, zaman
 from app.analiz.model_adi import gorunen_model_adi
 from app.hatalar import VeritabaniHatasi
+from app.loglama import log_al
 from app.rules.olay_kodu import IHLAL_ONEMLERI, ONEM_ADLARI
+from app.web.kilavuz import kalibrasyon_bekleyen_kurallar
 from app.web.ortak import (
     ANONS_OGELERI,
     BOLGE_SIMGELERI,
@@ -167,7 +169,25 @@ def saglik(istek: Request):
         "durum": "calisiyor",
         "analiz": supervizor is not None,
         "model": getattr(supervizor, "model_durumu", "kapali") if supervizor else "kapali",
+        # Yalnız KOD: kimliksiz uçta kamera adı ya da ayrıntı verilmez
+        # (docs/17 §9.1). Ayrıntı kurulum listesinde.
+        "sorunlar": _saglik_sorunlari(istek.app.state.ayarlar),
     }
+
+
+def _saglik_sorunlari(ayarlar) -> list[str]:
+    try:
+        baglanti = veritabani.baglanti_ac(ayarlar.veritabani_yolu)
+        try:
+            bekleyen = kalibrasyon_bekleyen_kurallar(baglanti)
+        finally:
+            baglanti.close()
+    except (sqlite3.Error, VeritabaniHatasi) as hata:
+        # Sağlık ucu her durumda cevap verir; veritabanı okunamıyorsa bu
+        # denetim yapılamamıştır ve bu da söylenir.
+        log_al("sistem").warning(f"Sağlık denetimi veritabanını okuyamadı: {hata}")
+        return ["saglik_dogrulanamadi"]
+    return ["kritik_kural_pasif"] if bekleyen else []
 
 
 @router.post("/yedekle")

@@ -23,7 +23,8 @@ class MesafeDegerlendirici:
         self._aktif: set[tuple] = set()
 
     def aktif_anahtarlar(self) -> set[tuple]:
-        """Son değerlendirmede hâlâ yakın olan çiftler (olay_durumu çıkış eşiği).
+        """Son değerlendirmede hâlâ yakın olan çiftler (olay_durumu çıkış eşiği):
+        mesafe distance_m + histerezis_m'yi aşmadıkça olay sürer.
 
         Hareket şartı yalnız GİRİŞTE aranır (park etmiş aracın yanındaki şoför
         olay açmaz); açılmış olay, araç durduğu için değil, çift ayrıldığı ya da
@@ -42,7 +43,15 @@ class MesafeDegerlendirici:
             self._ardisik.clear()
             return []
 
-        bolge = baglam.bolgeler.get(self.kural.bolge_id) if self.kural.bolge_id else None
+        # R21: bölgeye bağlı kural, bölgesi kapalıysa ya da yüklenemediyse
+        # ÇALIŞMAZ — diğer kurallar gibi. Eskiden kapalı bölgenin poligonu
+        # kullanılıyor, bölge hiç yoksa kural bütün kareye yayılıyordu.
+        bolge = None
+        if self.kural.bolge_id is not None:
+            bolge = baglam.bolgeler.get(self.kural.bolge_id)
+            if bolge is None or not bolge.aktif:
+                self._ardisik.clear()
+                return []
 
         ihlaller: list[Ihlal] = []
         aktif_ciftler: set[tuple[int, int]] = set()
@@ -63,7 +72,7 @@ class MesafeDegerlendirici:
                     max(ozne.takip_id, nesne.takip_id),
                 )
                 aktif_ciftler.add(cift)
-                if mesafe_m < self.params.distance_m:
+                if mesafe_m <= self.params.distance_m + self.params.histerezis_m:
                     self._aktif.add((self.kural.id, self.kural.kamera_id) + cift)
 
                 # Park halindeki aracın yanındaki şoför gerçek risk değildir —

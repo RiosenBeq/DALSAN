@@ -79,6 +79,21 @@ işareti süreye dönüyor, **kritik uyarı bandı kendiliğinden kaybolmuyor**,
 bitince ya da tıklanınca kapanıyor. Önem (`severity`) artık kural imzasında;
 önem değişikliği yeniden başlatmadan uygulanıyor. Statik damga `?v=28`.
 
+**2c-4 — geçit, histerezis, ek hazır kurallar.** Yaya-araç geçidindeki
+(crossing) ayak noktası bölge ihlali sayılmıyor (`gecit_haric`, varsayılan
+açık): geçitten karşıya geçen yaya ya da forklift uyarı üretmez. Açılmış
+mesafe olayı, mesafe `distance_m + histerezis_m` (varsayılan 0,5 m) aşılınca
+bitiyor; eşiğin hemen üstünde gidip gelen çift tek olay. R21: bölgeye bağlı
+mesafe kuralı, bölgesi kapalıyken kapalı bölgenin poligonunu kullanıyor,
+bölge yüklenemezse bütün kareye yayılıyordu; artık çalışmıyor. Kamera
+sayfasına iki **ek hazır kural** geldi — **yaya yolunda araç** ve **araç
+yolunda yaya**; birincil kuralın yanına kurulur, **gölge modda** doğar ve
+şema 007'nin mesajlarına bağlanır. Yasak bölgenin hazır kuralı artık
+«Bu alana giriş yasaktır.» anonsuna bağlı (eskiden anonssuzdu; mevcut
+kurallar değişmedi). Kalibrasyonsuz kamerada etkin bir güvenli mesafe ya da
+hız kuralı varsa kurulum listesinde kırmızı **"Kalibrasyon bekleniyor"**
+maddesi çıkıyor ve `/saglik` `"sorunlar": ["kritik_kural_pasif"]` veriyor.
+
 Tasarımda açık kalan iki nokta kodda şöyle kapandı: `ZONE_INTRUSION`'ın
 varsayılan önemi **Orta** (tasarım "kural satırından" diyordu ama bütün
 satırlar `warning`); kapanış sebeplerine `kamera_degisti` eklendi. Bitiş hiçbir

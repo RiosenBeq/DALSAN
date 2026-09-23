@@ -17,11 +17,12 @@ from app.rules.kalibrasyon import homografi_hesapla
 from app.rules.tipler import BOLGE_TIPI_KODLARI
 from app.web.ortak import (
     BOLGE_TIPLERI,
-    HAZIR_KURALLAR,
     KURAL_TIPLERI,
     OGELER,
     SINIFLAR,
+    ayni_hazir_kural_var,
     baglanti_al,
+    bolge_hazir_kurallari,
     guvenli_json,
     hazir_kural_aciklamasi,
     olay_ogesi,
@@ -137,11 +138,19 @@ def kamera_detay(istek: Request, kamera_id: int, duzenle: int = 0, baglanti=Depe
             baglanti.execute("SELECT 1 FROM rules WHERE zone_id = ?", (bolge["id"],)).fetchone()
             is not None
         )
-        # Bölge tipinin tek tıkla kurulabilen kural karşılığı (docs/03 eşlemesi)
-        hazir = HAZIR_KURALLAR.get(bolge["zone_type"])
-        bolge["hazir_kisa_ad"] = hazir.kisa_ad if hazir else ""
-        bolge["hazir_aciklama"] = hazir_kural_aciklamasi(hazir) if hazir else ""
-        bolge["hazir_kural_tipi"] = hazir.kural_tipi if hazir else ""
+        # Bölge tipinin tek tıkla kurulabilen kuralları (birincil + ekler); kurulmuş
+        # olan listeye girmez (docs/03 eşlemesi, EK_HAZIR_KURALLAR).
+        bolge["hazirlar"] = [
+            {
+                "ek": hazir.anahtar,
+                "kisa_ad": hazir.kisa_ad,
+                "aciklama": hazir_kural_aciklamasi(hazir),
+                "kural_tipi": hazir.kural_tipi,
+                "golge": hazir.golge,
+            }
+            for hazir in bolge_hazir_kurallari(bolge["zone_type"])
+            if not ayni_hazir_kural_var(baglanti, bolge["id"], hazir)
+        ]
         bolgeler.append(bolge)
 
     # Düzenlenen bölge tuvale "çizilmekte olan bölge" olarak yüklenir; kayıtlı

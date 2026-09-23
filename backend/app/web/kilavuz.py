@@ -19,6 +19,7 @@ import riski yok.
 from __future__ import annotations
 
 from app.analiz.model_adi import gorunen_model_adi
+from app.rules.motor import KALIBRASYON_GEREKTIREN
 
 # ---------------------------------------------------------------------------
 # EKRAN AÇIKLAMALARI
@@ -184,6 +185,63 @@ def _model_adimi(supervizor, ayarlar) -> dict:
     }
 
 
+def kalibrasyon_bekleyen_kurallar(baglanti) -> list[dict]:
+    """Etkin olduğu halde kalibrasyon olmadığı için ÇALIŞMAYAN kurallar.
+
+    Güvenli mesafe ve hız kuralları metre ister (rules/motor.py
+    KALIBRASYON_GEREKTIREN); kalibrasyonsuz kamerada sessizce pasif kalırlar.
+    Bu yalnız kural sayfasındaki rozette kalmamalı (docs/17 §6.4): kurulum
+    listesi ve /saglik da söyler.
+    """
+    yer = ",".join("?" * len(KALIBRASYON_GEREKTIREN))
+    return [
+        dict(satir)
+        for satir in baglanti.execute(
+            "SELECT r.id, r.rule_type, c.id AS kamera_id, c.name AS kamera_adi "
+            "FROM rules r JOIN cameras c ON c.id = r.camera_id "
+            "LEFT JOIN camera_calibrations k ON k.camera_id = r.camera_id "
+            f"WHERE r.enabled = 1 AND c.enabled = 1 AND r.rule_type IN ({yer}) "
+            "AND k.camera_id IS NULL ORDER BY c.name, r.id",
+            tuple(sorted(KALIBRASYON_GEREKTIREN)),
+        )
+    ]
+
+
+def _ve_ile(ogeler: list[str]) -> str:
+    """Türkçe sayım: "A", "A ve B", "A, B ve C"."""
+    return " ve ".join(filter(None, [", ".join(ogeler[:-1]), ogeler[-1]]))
+
+
+def _kalibrasyon_adimi(bekleyenler: list[dict]) -> dict:
+    """Kalibrasyon bekleyen kritik kural varsa kırmızı madde (docs/17 §6.4).
+
+    Yalnız böyle bir kural varken listede görünür. Zorunlu sayılır: güvenli
+    mesafe kuralı kurulmuş ama çalışmıyorsa sistem "hazır" değildir.
+    """
+    kameralar = sorted({b["kamera_adi"] for b in bekleyenler})
+    adlar = {"safe_distance": "güvenli mesafe", "vehicle_speed": "hız"}
+    turler = _ve_ile(sorted({adlar.get(b["rule_type"], b["rule_type"]) for b in bekleyenler}))
+    tek_kamera = len(kameralar) == 1
+    return {
+        "no": 8,
+        "baslik": "Mesafe ve hız kuralları çalışıyor mu?",
+        "tamam": False,
+        "hal": "sorun",
+        "aciklama": (
+            f"Kalibrasyon bekleniyor: {_ve_ile(kameralar)} "
+            f"{'kamerasındaki' if tek_kamera else 'kameralarındaki'} {turler} "
+            f"{'kuralı' if len(bekleyenler) == 1 else 'kuralları'}, "
+            f"{'kamera' if tek_kamera else 'kameralar'} kalibre edilmeden ÇALIŞMAZ ve "
+            "uyarı üretmez. Kamera sayfasında “Gelişmiş araçlar”a basıp “Mesafe "
+            "kalibrasyonu” bölümünde zeminde ölçülü dört nokta işaretleyin."
+        ),
+        "bag": f"/kameralar/{bekleyenler[0]['kamera_id']}",
+        "bag_yazi": "Kamerayı aç",
+        "istege_bagli": False,
+        "engeller": False,
+    }
+
+
 def _ham_adimlar(baglanti, supervizor, ayarlar) -> list[dict]:
     """Altı adımın ham cevabı — hepsi veritabanından ve sistem durumundan."""
     kamera_sayisi = baglanti.execute("SELECT COUNT(*) AS n FROM cameras").fetchone()["n"]
@@ -331,6 +389,9 @@ def _ham_adimlar(baglanti, supervizor, ayarlar) -> list[dict]:
             "engeller": False,
         },
     ]
+    bekleyenler = kalibrasyon_bekleyen_kurallar(baglanti)
+    if bekleyenler:
+        adimlar.append(_kalibrasyon_adimi(bekleyenler))
     # Numaraya göre sırala: şifre adımı yukarıda anonsun ÖNÜNE yazıldı ama
     # ekranda kurulum sırasına göre (…6, 7) görünmeli.
     return sorted(adimlar, key=lambda a: a["no"])

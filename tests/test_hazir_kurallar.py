@@ -35,7 +35,8 @@ from app.web.ortak import (
 #   bölge tipi -> (kural tipi, hedef sınıflar, mode, anons anahtarı)
 DOKUMAN_ESLEMESI = {
     "pedestrian_path": ("zone_intrusion", ["person"], "outside", "pedestrian_path"),
-    "restricted": ("zone_intrusion", ["person"], "inside", None),
+    # Şema 007'nin mesajına bağlandı (docs/17 §8.2): eskiden anonssuzdu.
+    "restricted": ("zone_intrusion", ["person"], "inside", "restricted_entry"),
     "loading_area": ("zone_intrusion", ["person"], "inside", None),
     "truck_parking": ("zone_intrusion", ["truck"], "outside", "vehicle_position"),
     "vehicle_area": ("safe_distance", ["person", "forklift", "truck"], None, "safe_distance"),

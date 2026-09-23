@@ -44,6 +44,16 @@ class BolgeIhlaliDegerlendirici:
 
         ihlaller: list[Ihlal] = []
         gorulenler: set[int] = set()
+        # Aynı kameranın etkin geçitleri (Baglam değişmez: bölgelerin hepsi
+        # tipleriyle zaten orada). Kuralın KENDİ bölgesi geçitse istisna
+        # uygulanmaz — o kural geçidin kendisini izliyor.
+        gecitler = [
+            b.poligon
+            for b in baglam.bolgeler.values()
+            if b.tip == "crossing" and b.aktif and b.id != bolge.id
+        ]
+        if not self.params.gecit_haric:
+            gecitler = []
 
         for tespit in baglam.tespitler:
             if tespit.sinif not in self.kural.hedef_siniflar:
@@ -54,6 +64,8 @@ class BolgeIhlaliDegerlendirici:
             ayak_norm = (ayak[0] / baglam.kare_boyutu[0], ayak[1] / baglam.kare_boyutu[1])
             icinde = nokta_poligonda(ayak_norm, bolge.poligon)
             kosul = icinde if self.params.mode == "inside" else not icinde
+            if kosul and any(nokta_poligonda(ayak_norm, g) for g in gecitler):
+                kosul = False  # geçitte: bölgeden çıkmış gibi (kalış sıfırlanır)
 
             if not kosul:
                 # Koşulu bozan GERÇEK gözlem: kişi bölgeden çıktı → anında sıfırla

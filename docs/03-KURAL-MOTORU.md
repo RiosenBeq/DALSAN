@@ -27,6 +27,7 @@ Ortak filtre: cooldown. Ortak ilke: **kare değil, track bazlı karar.**
 | `min_dwell_s` | 2.0 | Bölgede minimum kalış |
 | `cooldown_s` | 120 | Track başına tekrar bastırma |
 | `bitis_s` | 3.0 | Olayın bitmesi için koşulun görülmediği süre (§5.3; dört tipte ortak) |
+| `gecit_haric` | true | Ayak noktası etkin bir **yaya-araç geçidindeyse** (bölge tipi `crossing`) ihlal sayılmaz |
 
 **`mode` neden var:** "Yaya yolunu kullan" kuralı aslında "yaya yolu **dışında** insan"
 kuralıdır. Tek parametreyle üç senaryo çözülür:
@@ -38,6 +39,12 @@ kuralıdır. Tek parametreyle üç senaryo çözülür:
 | Tır yanlış konumda | truck_parking | truck | outside |
 
 **Karar noktası:** bbox alt-orta noktası (zemin teması) poligonun içinde mi.
+
+**Geçit istisnası:** aynı kamerada çizilmiş etkin bir yaya-araç geçidi
+(`crossing`) poligonundaki ayak noktası, bölgeden çıkmış gibi sayılır: araç
+yolunu geçitten geçen yaya, yaya yolunu geçitten geçen forklift ve "yolun
+dışında" kuralında yolu geçitten karşıya geçen kişi uyarı üretmez. Kuralın
+kendi bölgesi geçitse istisna uygulanmaz.
 
 ---
 
@@ -53,8 +60,9 @@ kuralıdır. Tek parametreyle üç senaryo çözülür:
 | `min_frames` | 5 | Ardışık kaç değerlendirmede eşik altında olmalı |
 | `require_moving_vehicle` | true | Araç duruyorsa uyarı üretme |
 | `min_speed_mps` | 0.3 | "Hareket halinde" eşiği |
-| `zone_id` | nullable | Boşsa tüm kare |
+| `zone_id` | nullable | Boşsa tüm kare. Verilmişse ve bölge kapalıysa ya da yoksa kural çalışmaz (R21) |
 | `cooldown_s` | 90 | Track çifti başına |
+| `histerezis_m` | 0.5 | Açılmış olay, mesafe `distance_m + histerezis_m`'yi aşınca biter (§5.3); açılışı etkilemez |
 
 **Kalibrasyon zorunluluğu:** Kamera kalibre edilmemişse bu kural **çalışmaz** —
 sessizce yaklaşık bir sonuç üretmez, açıkça pasif kalır ve arayüzde "kalibrasyon
@@ -272,6 +280,29 @@ sonra geri açar ve `PRAGMA foreign_key_check` ile bağlantıların sağlam kald
 doğrular.
 
 ---
+
+## Ek — Hazır kurallar
+
+Kamera sayfasındaki "Hazır kurallar" düğmeleri bölge tipine uyan kuralı tek
+tıkla kurar (`web/ortak.py` `HAZIR_KURALLAR`, `EK_HAZIR_KURALLAR`). Eşikler
+şemadan (`rules/parametreler.py`) gelir; aşağıda yalnız farklı olanlar var.
+
+| Bölge tipi | Kural | Hedef · yön | Anons mesajı | Gölge |
+|---|---|---|---|---|
+| Yaya yolu | yaya yolu kuralı | kişi · dışında (kalış 5 sn) | `pedestrian_path` | hayır |
+| Yaya yolu | **yaya yolunda araç** (ek) | forklift, tır · içinde (kalış 1 sn) | `vehicle_on_walkway` | **evet** |
+| Araç sahası | güvenli mesafe | kişi ↔ forklift, tır | `safe_distance` | hayır |
+| Araç sahası | **araç yolunda yaya** (ek) | kişi · içinde (kalış 1,5 sn) | `person_in_vehicle_lane` | **evet** |
+| Yasak bölge | yasak bölge kuralı | kişi · içinde | `restricted_entry` (şema 007) | hayır |
+| Yükleme alanı | yükleme alanı kuralı | kişi · içinde | — | hayır |
+| Tır park alanı | tır konumlanma | tır · dışında | `vehicle_position` | hayır |
+| KKD zorunlu alan | KKD (baret/yelek) | kişi | kullanıcı seçer | hayır |
+
+Ek kurallar **gölge modda** doğar: olay yazılır, hoparlör susar. Sahada yanlış
+alarm oranı görülmeden yeni bir kural anons yapmasın diye; operatör Kurallar
+sayfasından gölgeyi kapatır. Aynı bölgede aynı kural (tip, yön, hedef) ikinci
+kez kurulmaz; birincil ve ek kural yan yana durur. Yaya-araç geçidi ve KKD
+muaf alan başka kuralların istisnasıdır, hazır kuralları yoktur.
 
 ## Ek — Yaya yolu (yürüyüş yolu) kuralı
 

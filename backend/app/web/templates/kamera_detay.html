@@ -155,28 +155,31 @@
       Adım adım anlatım: <a href="/komuta/kilavuz#bolge">Bölge nasıl çizilir →</a></p>
     {% endif %}
 
-    {# Her bölge tipinin tek tıkla kurulan bir kural karşılığı var (docs/03).
-       Kural kurulunca bölge bu listeden düşer. #}
-    {% set kuralsiz = bolgeler | rejectattr("kurali_var") | selectattr("hazir_kisa_ad") | list %}
-    {% if kuralsiz %}
+    {# Her bölge tipinin tek tıkla kurulan kuralları var (docs/03; yaya yolu ve
+       araç sahasında birer EK kural). Kurulan kural bu listeden düşer. #}
+    {% set hazirli = bolgeler | selectattr("hazirlar") | list %}
+    {% if hazirli %}
     <div class="hazir-kural">
       <h4>Hazır kurallar</h4>
       <p class="not">Çizilen bölge tek başına uyarı üretmez; bir kurala bağlanması gerekir.
         Aşağıdaki düğme, bölge tipine uyan kuralı hazır değerlerle kurar.
         Sonradan Kurallar sayfasından değiştirebilirsiniz.</p>
-      {% for b in kuralsiz %}
+      {% for b in hazirli %}
+      {% for h in b.hazirlar %}
       <div class="hazir-satir">
-        <p class="not"><b>{{ b.name }}</b> ({{ b.tip_adi }}): {{ b.hazir_aciklama }}
-          {% if b.hazir_kural_tipi == 'safe_distance' and not kalibrasyon_var %}
+        <p class="not"><b>{{ b.name }}</b> ({{ b.tip_adi }}): {{ h.aciklama }}
+          {% if h.kural_tipi == 'safe_distance' and not kalibrasyon_var %}
           <b>Bu kamera henüz kalibre edilmedi — kural kurulur ama kalibrasyon yapılana
             kadar çalışmaz (aşağıdaki "Mesafe kalibrasyonu" bölümü).</b>
           {% endif %}
         </p>
         <form method="post" action="/kurallar/hazir" class="satir-form">
           <input type="hidden" name="zone_id" value="{{ b.id }}">
-          <button class="dugme">"{{ b.name }}" için {{ b.hazir_kisa_ad }} ekle</button>
+          {% if h.ek %}<input type="hidden" name="ek" value="{{ h.ek }}">{% endif %}
+          <button class="dugme{% if h.golge %} ikincil{% endif %}">"{{ b.name }}" için {{ h.kisa_ad }} ekle{% if h.golge %} (gölge modda){% endif %}</button>
         </form>
       </div>
+      {% endfor %}
       {% endfor %}
     </div>
     {% endif %}
