@@ -696,6 +696,34 @@ body.ses-cipi-var { padding-bottom: 72px; }
 .kkd-model-karti th { text-align: left; padding: 2px 12px 2px 0; color: var(--metin-3); font-weight: 600; }
 .kkd-model-karti td { padding: 2px 0; overflow-wrap: anywhere; }
 
+/* Gölge karnesi ve anons kapısı (docs/17 §5.7): kalem başına bir kutu; kapı
+   açıksa yeşil, kapalıysa sarı kenar. Şart satırı yalnız renkle değil
+   simgeyle de söyler (renk körlüğü). Uyarı zincirinde de aynı sınıflar. */
+.karne-kalemleri {
+  display: grid; gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+}
+.karne-kalemi {
+  display: grid; gap: 8px; align-content: start;
+  padding: 12px 14px; border-radius: var(--radius-kucuk);
+  border: 1px solid var(--cam-sinir); border-left: 4px solid var(--uyari);
+  background: var(--cam-hafif);
+}
+.karne-kalemi.acik { border-left-color: var(--basari); }
+.karne-kalemi h4 { margin: 0; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.karne-ozet { margin: 0; font-size: 0.86rem; }
+.surum-adi { white-space: nowrap; }
+.karne-sartlari { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.karne-sartlari li {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px;
+  align-items: center; font-size: 0.84rem;
+}
+.karne-sartlari li b { font-variant-numeric: tabular-nums; text-align: right; }
+.karne-sartlari li.tamam .simge { color: var(--basari); }
+.karne-sartlari li.eksik .simge { color: var(--uyari-metin); }
+.karne-sartlari li.eksik b { color: var(--uyari-metin); }
+.karne-kalemi p.kucuk-metin { margin: 0; }
+
 /* hazır kural kutusu */
 .hazir-kural {
   margin-top: 14px; padding: 12px 14px; border-radius: var(--radius-kucuk);

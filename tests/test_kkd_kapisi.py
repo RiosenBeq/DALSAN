@@ -11,6 +11,7 @@ Kapı sunucuda denetlenir; açık onayla aşılırsa PPE_GATE_OVERRIDDEN yazıl�
 from __future__ import annotations
 
 import json
+import re
 from types import SimpleNamespace
 
 import pytest
@@ -217,6 +218,11 @@ def yuklu_model(istemci):
         istemci.app.state.supervizor = None
 
 
+def _duz(html: str) -> str:
+    """Ekranda okunan metin: etiketler atılır, boşluklar teke iner."""
+    return re.sub(r"\s+", " ", re.sub(r"<[^>]+>", "", html))
+
+
 def _satirlar(test_ayarlari, sorgu: str, parametreler: tuple = ()) -> list[dict]:
     baglanti = veritabani.baglanti_ac(test_ayarlari.veritabani_yolu)
     try:
@@ -331,3 +337,60 @@ def test_golgeye_almak_kapiya_takilmaz(istemci, test_ayarlari, yuklu_model):
     )
     assert yanit.status_code == 303
     assert _kural(test_ayarlari, kural_id)["shadow_mode"] == 1
+
+
+# ------------------------------------------------------------------ web: ekranlar
+
+
+def test_uyari_zinciri_kapali_kapiyi_ve_eksik_sartlari_gosterir(
+    istemci, test_ayarlari, yuklu_model
+):
+    _kkd_kurali(istemci, test_ayarlari)
+    metin = istemci.get("/komuta/uyari").text
+    duz = _duz(metin)
+    assert "Precision: ölçülecek (bu model sürümüyle henüz olay yok, model kkd-test)" in duz
+    assert (
+        "Anons kapısı kapalı. Baret: bu model sürümüyle henüz olay yok; "
+        "Yelek: bu model sürümüyle henüz olay yok." in duz
+    )
+    assert 'name="olcmeden"' in metin and "Ölçülmeden açıyorum" in metin
+    assert "kapi-kapali" in metin
+    # Gölge mod panelindeki kapı cümlesi eşikleri ayarlardan yazar
+    assert "precision en az 0,90, en az 3 gün, en az 30 incelenmiş olay" in duz
+
+
+def test_uyari_zinciri_acik_kapida_onay_istemez(istemci, test_ayarlari, yuklu_model):
+    _kkd_kurali(istemci, test_ayarlari)
+    _kapiyi_gecir(test_ayarlari)
+    metin = istemci.get("/komuta/uyari").text
+    assert "Precision: 1,00 (30 incelenmiş olay, kapsama %100, model kkd-test)" in _duz(metin)
+    assert "Anons kapısı açık" in metin
+    assert 'name="olcmeden"' not in metin and "kapi-kapali" not in metin
+
+
+def test_model_yokken_zincir_olculecek_yazar(istemci, test_ayarlari):
+    _kkd_kurali(istemci, test_ayarlari)
+    metin = istemci.get("/komuta/uyari").text
+    assert "KKD modeli yüklü değil: precision ölçülecek." in metin
+    assert kkd_karnesi.MODEL_YOK in metin
+
+
+def test_kkd_sayfasinda_karne(istemci, test_ayarlari, yuklu_model):
+    baglanti = veritabani.baglanti_ac(test_ayarlari.veritabani_yolu)
+    try:
+        _kkd_olaylari(baglanti, "PPE_NO_HELMET", 28)
+        _kkd_olaylari(baglanti, "PPE_NO_HELMET", 2, durum="false_alarm")
+        _kkd_olaylari(baglanti, "PPE_NO_VEST", 4, surum="kkd-eski")
+    finally:
+        baglanti.close()
+    metin = istemci.get("/kkd").text
+    assert 'id="golge-karnesi"' in metin
+    assert "Precision: 0,93 (30 incelenmiş olay, kapsama %100, model kkd-test)" in _duz(metin)
+    assert "kapı açık" in metin  # baret: 28/30, 4 gün, 30 olay, bekleyen yok
+    assert "kapı kapalı" in metin  # yelek: bu sürümle olay yok
+    assert "Başka model sürümlerinin 4 KKD olayı" in metin
+
+
+def test_kkd_sayfasi_model_yokken_karne_bos(istemci):
+    metin = istemci.get("/kkd").text
+    assert "Model yüklü değil: karne" in metin

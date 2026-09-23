@@ -9,6 +9,7 @@
 {% extends "komuta_temel.html" %}
 {% block icerik %}
 {% from "ipucu.html" import ipucu %}
+{% from "bilesen.html" import karne_ozeti, oge_rozeti %}
 
 {% if not zincir %}
   <section class="komuta-panel">
@@ -41,6 +42,11 @@
         </div>
 
         {% for z in zincir %}
+        {# KKD satırında kapı kapalıysa "Anonsu aç" gri durur ve yalnız
+           "ölçülmeden açıyorum" onayıyla gönderilir (docs/17 §5.7). Kapı
+           sunucuda da denetlenir; buradaki gri yalnız önceden söyler. #}
+        {% set form_kimligi = "golge-" ~ loop.index %}
+        {% set kapi_kapali = z.golge and z.kkd and z.kkd.eksikler %}
         <div class="zincir-satiri {% if z.golge %}golge{% elif z.kapali %}kapali{% endif %}">
           <span class="zincir-hucre">
             <span class="satir-adi">{{ z.kural }}</span>
@@ -67,17 +73,43 @@
           <span class="zincir-hucre sag">
             <span class="rozet {{ z.rozet_rengi }}">{{ z.rozet }}</span>
             {% if not z.kapali %}
-            <form method="post" action="/komuta/uyari/golge" class="satir-form">
+            <form method="post" action="/komuta/uyari/golge" class="satir-form" id="{{ form_kimligi }}">
               {% for kural_id in z.kural_idler %}
               <input type="hidden" name="kural_idler" value="{{ kural_id }}">
               {% endfor %}
               <input type="hidden" name="golge" value="{% if z.golge %}0{% else %}1{% endif %}">
-              <button type="submit" class="dugme ikincil kucuk">
+              <button type="submit" class="dugme ikincil kucuk{% if kapi_kapali %} kapi-kapali{% endif %}"
+                      {% if kapi_kapali %}title="Anons kapısı kapalı: {{ z.kkd.eksik_ozeti }}"{% endif %}>
                 {% if z.golge %}Anonsu aç{% else %}Gölge moda al{% endif %}
               </button>
             </form>
             {% endif %}
           </span>
+
+          {% if z.kkd %}
+          {# Gölge karnesi: kalem başına precision, incelenmiş olay, kapsama ve
+             model sürümü. Ölçülmeyen sayı yazılmaz, "ölçülecek" yazar. #}
+          <div class="zincir-karne">
+            {% for k in z.kkd.kalemler %}
+            <span class="karne-satiri {{ 'acik' if k.acik else 'kapali' }}">
+              {{- oge_rozeti(OGELER[k.oge], "kucuk") }}
+              <span><b class="karne-adi">{{ k.ad }}</b> · {{ karne_ozeti(k) }}</span></span>
+            {% else %}
+            <span class="karne-satiri kapali">KKD modeli yüklü değil: precision ölçülecek.</span>
+            {% endfor %}
+            {% if z.golge %}
+              {% if z.kkd.eksikler %}
+              <span class="zincir-uyari">Anons kapısı kapalı. {{ z.kkd.eksik_ozeti }}.</span>
+              <label class="karne-onayi"><input type="checkbox" name="olcmeden" value="1"
+                     form="{{ form_kimligi }}" required>
+                Ölçülmeden açıyorum. Bu karar Olaylar'a yazılır.</label>
+              {% else %}
+              <span class="karne-satiri acik">Anons kapısı açık: dört şart da sağlandı.</span>
+              {% endif %}
+            {% endif %}
+            <a class="karne-baglanti" href="/kkd#golge-karnesi">Karnenin ayrıntısı →</a>
+          </div>
+          {% endif %}
         </div>
         {% endfor %}
       </div>
@@ -146,6 +178,12 @@
     <p class="panel-notu">İlk günden anonsla başlamak, henüz ayarlanmamış bir kuralın
       çalışanı boşuna uyarmasına yol açar — bir kez kaybedilen güven geri gelmez.
       KKD kuralının devreye alınması bu yüzden zaten gölge modla başlar.</p>
+    <p class="panel-notu">KKD kuralının anonsu bir <b>kapıdan</b> geçer: baret ve yelek
+      için ayrı ayrı, yüklü model sürümüyle precision en az
+      {{ kkd_kapi.precision }}, en az {{ kkd_kapi.gun }} gün, en az
+      {{ kkd_kapi.en_az_olay }} incelenmiş olay ve incelenmemiş olay kalmamış olmalı.
+      Şartlar sağlanmadan "Anonsu aç" gri durur; açık onayla yine açılabilir, onay
+      Olaylar'a yazılır.</p>
     <div class="komuta-kutu">
       <span class="sayi-etiketi">Şu an gölge modda</span>
       <span class="sayi-degeri orta {% if golge_sayisi %}dikkat{% endif %}">{{ golge_sayisi }}</span>

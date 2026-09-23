@@ -767,6 +767,21 @@
 .zincir-hucre.soluk { color: var(--metin-3); }
 .zincir-hucre.sag { justify-items: end; gap: 8px; }
 .zincir-uyari { font-size: 11.5px; color: var(--uyari-metin); font-weight: 600; }
+/* KKD satırının karnesi satırın altında TAM GENİŞLİKTE durur: dar durum
+   sütununa sıkışsaydı eksik şartlar okunmazdı. Onay kutusu düğmenin
+   formuna `form=` özniteliğiyle bağlıdır. */
+.zincir-karne {
+  grid-column: 1 / -1;
+  display: grid; gap: 5px; justify-items: start;
+  padding-top: 10px; border-top: 1px dashed var(--cam-sinir);
+}
+.zincir-satiri.golge .zincir-karne { border-top-color: var(--uyari-cizgi); }
+.karne-satiri { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; }
+.karne-satiri.acik .karne-adi { color: var(--basari-metin); }
+.karne-onayi { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--metin); cursor: pointer; }
+.karne-baglanti { font-size: 11.5px; }
+/* Kapı kapalıyken "Anonsu aç" gri: basılabilir ama ancak onay kutusuyla */
+.dugme.kapi-kapali { background: transparent; color: var(--metin-3); box-shadow: none; border-style: dashed; }
 
 /* Tırmandırma: kurulu olan adım normal, kurulmayanlar soluk ve kesik çizgili
    — "burada bir şey var ama çalışmıyor" ekranda görünsün. */

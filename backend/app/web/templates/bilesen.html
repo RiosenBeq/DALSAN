@@ -18,6 +18,13 @@
 <span class="oge-rozeti oge-{{ oge.anahtar }}{% if boyut %} {{ boyut }}{% endif %}" title="{{ oge.ad }}">{{ simge(oge.simge) }}</span>
 {%- endmacro %}
 
+{# KKD gölge karnesinin tek satırlık özeti (docs/17 §5.7), Uyarı zinciri ve KKD
+   sayfasında aynı: "Precision: 0,93 (30 incelenmiş olay, kapsama %100, model
+   kkd-…)". Model sürümü tek parça durur; tireden bölünüp iki satıra dağılmaz. #}
+{% macro karne_ozeti(k) -%}
+Precision: <b>{{ k.precision }}</b> ({{ k.aciklama }}, <span class="surum-adi">model {{ k.model }})</span>
+{%- endmacro %}
+
 {# Olay durumu hapı: yeni (mavi nokta) · incelendi (yeşil tik) · yanlış alarm (gri çarpı).
    Durum yalnız renkle anlatılmaz: simge ve yazı da değişir (renk körlüğü). #}
 {% macro durum_hapi(durum, ad) -%}

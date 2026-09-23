@@ -20,6 +20,7 @@ from app.egitim import veri_seti
 from app.hatalar import DogrulamaHatasi
 from app.loglama import log_al
 from app.olaylar.yazici import sistem_olayi_yaz
+from app.web import kkd_karnesi
 from app.web.ortak import OGELER, baglanti_al
 from app.web.rotalar import sablonlar
 
@@ -142,6 +143,10 @@ def kkd_sayfasi(istek: Request, baglanti=Depends(baglanti_al)):
             "saat_limiti": istek.app.state.ayarlar.kkd_ornek_saat_limit,
             "zor_ornekler": veri_seti.ZOR_ORNEKLER,
             "model": kkd_model_durumu(istek),
+            # Gölge karnesi ve anons kapısı (docs/17 §5.7): yüklü sürüm başına
+            "karne": kkd_karnesi.karne_hesapla(
+                baglanti, istek.app.state.ayarlar, kkd_karnesi.yuklu_surum(istek)
+            ),
             "veri_seti": veri_seti.ozet(veri_seti.etiketli_ornekler(baglanti)),
         },
     )

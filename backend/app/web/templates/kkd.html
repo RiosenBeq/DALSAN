@@ -1,6 +1,6 @@
 {% extends "temel.html" %}
 {% from "simge.html" import simge %}
-{% from "bilesen.html" import oge_rozeti %}
+{% from "bilesen.html" import karne_ozeti, oge_rozeti %}
 {% block baslik %}KKD Verisi — DALSAN İSG{% endblock %}
 {% block icerik %}
   <h2>KKD (Baret / Yelek) Verisi</h2>
@@ -41,6 +41,44 @@
     <table class="kkd-model-karti">
       {% for anahtar, deger in model.kart.items() %}<tr><th>{{ anahtar }}</th><td>{{ deger }}</td></tr>{% endfor %}
     </table>
+    {% endif %}
+  </section>
+
+  {# Gölge karnesi ve anons kapısı (docs/17 §5.7): kalem başına, yüklü model
+     sürümüyle üretilen olaylardan. Ölçülmeyen sayı yazılmaz. #}
+  <section class="kart" id="golge-karnesi">
+    <h3>Gölge karnesi ve anons kapısı</h3>
+    <p class="not">KKD kuralı gölge modda doğar: olay yazılır, hoparlör susar. Olayları
+      <a href="/komuta/inceleme">inceleme kuyruğunda</a> “İncelendi” ya da “Yanlış alarm”
+      diye işaretledikçe karne dolar. Anons, kalemin dört şartı da sağlanınca Komuta →
+      <a href="/komuta/uyari">Uyarı zinciri</a>'nden açılır. Sayaçlar model sürümü
+      başınadır: yeni model sıfırdan başlar.</p>
+    {% if karne.model %}
+    <div class="karne-kalemleri">
+      {% for k in karne.kalemler.values() %}
+      <div class="karne-kalemi {{ 'acik' if k.acik else 'kapali' }}">
+        <h4>{{ oge_rozeti(OGELER[k.oge], "kucuk") }}{{ k.ad }}
+          <span class="rozet {{ 'yesil' if k.acik else 'sari' }}">kapı {{ 'açık' if k.acik else 'kapalı' }}</span></h4>
+        <p class="karne-ozet">{{ karne_ozeti(k) }}</p>
+        <ul class="karne-sartlari">
+          {% for s in k.sartlar %}
+          <li class="{{ 'tamam' if s.tamam else 'eksik' }}">{{ simge('basarili' if s.tamam else 'hata') }}
+            <span>{{ s.ad }}</span><b>{{ s.durum }}</b></li>
+          {% endfor %}
+        </ul>
+        <p class="kucuk-metin">{{ k.sayac.olay }} olay · {{ k.sayac.dogru }} doğru ·
+          {{ k.sayac.yanlis }} yanlış alarm · {{ k.sayac.bekleyen }} bekliyor</p>
+      </div>
+      {% endfor %}
+    </div>
+    {% if karne.baska_surum_olay %}
+    <p class="not">Başka model sürümlerinin {{ karne.baska_surum_olay }} KKD olayı bu karneye
+      girmez: her sürüm kendi ölçümüyle açılır.</p>
+    {% endif %}
+    {% else %}
+    <p class="bos">Model yüklü değil: karne, model yüklenip KKD kuralı gölge modda olay
+      üretmeye başlayınca dolar. Model yokken anons ancak “ölçülmeden açıyorum” onayıyla
+      açılır.</p>
     {% endif %}
   </section>
 
