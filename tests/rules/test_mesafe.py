@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
+
 from yardimci import KALIBRASYON_10M, KARE, bolge, kural, tespit
 
 from app.rules.motor import KuralMotoru
@@ -24,7 +26,9 @@ def _motor(params: dict | None = None, cooldown_s: float = 60.0):
     return motor
 
 
-def _hareketli_senaryo(motor, adim_sayisi: int, arac_hizli: bool = True):
+def _hareketli_senaryo(
+    motor, adim_sayisi: int, arac_hizli: bool = True, kalibrasyon=KALIBRASYON_10M
+):
     """İnsan sabit (0.5, 0.5); araç her 0.2 sn'de yaklaşır (hızlı ise).
 
     Adım başına 0.01 normalize birim = 0.1 m → 0.5 m/sn (eşik 0.3'ün üstü).
@@ -37,7 +41,7 @@ def _hareketli_senaryo(motor, adim_sayisi: int, arac_hizli: bool = True):
             tespit(ayak=(0.5, 0.5), takip_id=1),
             tespit(sinif="truck", ayak=(arac_x, 0.5), takip_id=2),
         ]
-        ihlaller.extend(motor.degerlendir(zaman, KARE, tespitler, [bolge()], KALIBRASYON_10M))
+        ihlaller.extend(motor.degerlendir(zaman, KARE, tespitler, [bolge()], kalibrasyon))
     return ihlaller
 
 
@@ -59,6 +63,17 @@ def test_yakin_ve_hareketli_arac_ihlal_uretir():
     assert sorted(ihlal.takip_idler) == [1, 2]
     assert ihlal.olculen is not None and ihlal.olculen < 3.0
     assert ihlal.detaylar["arac_sinifi"] == "truck"
+
+
+def test_dogrulanmamis_kalibrasyonun_metresi_isaretlenir():
+    """K26: şeritle kontrol ölçümü yoksa (S7, kodlanmadı) olay metre iddiasının
+    doğrulanmadığını kendisi söyler; ekran bu işaretle "≈" yazar."""
+    ihlal = _hareketli_senaryo(_motor(), adim_sayisi=8)[0]
+    assert ihlal.detaylar["kalibrasyon_dogrulanmadi"] is True
+
+    dogrulanmis = replace(KALIBRASYON_10M, dogrulandi=True)
+    ihlal = _hareketli_senaryo(_motor(), adim_sayisi=8, kalibrasyon=dogrulanmis)[0]
+    assert ihlal.detaylar["kalibrasyon_dogrulanmadi"] is False
 
 
 def test_duran_arac_ihlal_uretmez():

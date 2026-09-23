@@ -11,6 +11,8 @@ Kamera YOK, model YOK: hız değerleri elle verilir. Sınanan sözler:
 
 from __future__ import annotations
 
+from dataclasses import replace
+
 from app.rules.cooldown import Cooldown
 from app.rules.hiz import HizDegerlendirici
 from app.rules.motor import Baglam
@@ -109,6 +111,18 @@ def test_kmh_karsiligi_da_yazilir():
     assert detay["hiz_kmh"] == 18.0
     assert detay["limit_mps"] == 2.5
     assert detay["limit_kmh"] == 9.0
+
+
+def test_hiz_olayi_dogrulanmamis_kalibrasyonu_isaretler():
+    """K26: hız da kalibrasyonun metresinden türer; kontrol ölçümü yoksa olay
+    "kalibrasyon_dogrulanmadi" taşır."""
+    d = HizDegerlendirici(_hiz_kurali({"speed_limit_mps": 2.5, "window_size": 5}))
+    assert _kareler(d, [5.0] * 5)[0].detaylar["kalibrasyon_dogrulanmadi"] is True
+
+    d = HizDegerlendirici(_hiz_kurali({"speed_limit_mps": 2.5, "window_size": 5}))
+    dogrulanmis = replace(KALIBRASYON_10M, dogrulandi=True)
+    detay = _kareler(d, [5.0] * 5, kalibrasyon=dogrulanmis)[0].detaylar
+    assert detay["kalibrasyon_dogrulanmadi"] is False
 
 
 def test_hiz_olculemeyen_kare_pencereyi_bozmaz():

@@ -151,7 +151,7 @@ def test_kuyruk_gercek_veriden_ve_rozetler(istemci, test_ayarlari):
         assert rozet in metin
     assert "Rampa A · Sevkiyat" in metin
     # Özet cümlesi olay listesindekiyle aynı kaynaktan gelir
-    assert "Güvenli mesafe - 1,4 m" in metin
+    assert "Güvenli mesafe - ≈ 1,4 m" in metin  # K26: kontrol ölçümü yok
 
 
 def test_bekleyen_olaylar_kuyrugun_basinda(istemci, test_ayarlari):
@@ -202,10 +202,26 @@ def test_mesafe_olayinda_olculen_deger_ve_kural_esigi(istemci, test_ayarlari):
         detaylar={"mesafe_m": 1.85, "arac_sinifi": "forklift", "arac_hiz_mps": 1.4},
     )
     metin = istemci.get(f"/komuta/inceleme?olay={olay}").text
-    assert "Ölçülen mesafe" in metin and "1,85 m" in metin
+    assert "Ölçülen mesafe" in metin and "≈ 1,85 m" in metin
     assert "Kural eşiği" in metin and "3 m" in metin
+    assert "≈ 3 m" not in metin  # eşik ayardır, ölçüm değil: yaklaşık yazılmaz
     assert "Forklift" in metin
-    assert "1,4 m/s" in metin
+    assert "≈ 1,4 m/s" in metin
+    # K26: ekran kalibrasyonun doğrulanmadığını ayrıca söyler
+    assert "Kalibrasyon" in metin and "doğrulanmadı" in metin
+
+
+def test_dogrulanmis_kalibrasyonda_not_ve_yaklasik_isaret_yok(istemci, test_ayarlari):
+    kamera = _kamera_ekle(istemci, "Rampa A", "Sevkiyat")
+    olay = _ihlal_ekle(
+        test_ayarlari,
+        kamera,
+        params={"distance_m": 3.0},
+        detaylar={"mesafe_m": 1.85, "kalibrasyon_dogrulanmadi": False},
+    )
+    metin = istemci.get(f"/komuta/inceleme?olay={olay}").text
+    assert "1,85 m" in metin and "≈ 1,85" not in metin
+    assert "doğrulanmadı" not in metin
 
 
 def test_kkd_olayinda_uc_durumlu_karar_gosterilir(istemci, test_ayarlari):

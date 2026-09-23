@@ -69,6 +69,13 @@ sessizce yaklaşık bir sonuç üretmez, açıkça pasif kalır ve arayüzde "ka
 bekleniyor" olarak görünür. Kalibre edilmemiş piksel mesafesi perspektifle
 kat kat değişir; üretilen sayı yanıltıcı olur.
 
+**Doğrulanmamış kalibrasyon (K26):** kalibrasyonun şeritle kontrol ölçümü
+(docs/17 §6.4) S7'ye bağlıdır ve kodlanmadı; bu yüzden bugün her kalibrasyon
+doğrulanmamıştır. Mesafe ve hız olayı `details`'e `kalibrasyon_dogrulanmadi:
+true` yazar; ekran (olay özeti, liste, CSV, inceleme kutuları) metreyi ve hızı
+"≈ 1,85 m" diye yaklaşık gösterir, inceleme ekranında "Kalibrasyon: doğrulanmadı"
+kutusu çıkar. Kural eşiği bir ayar olduğu için yaklaşık yazılmaz.
+
 **`require_moving_vehicle` neden var:** Park halindeki tırın yanında duran şoför,
 mesafe kuralını sürekli ihlal eder ama gerçek risk yoktur. Bu tek parametre,
 sevkiyat alanındaki yanlış alarmların büyük kısmını keser.

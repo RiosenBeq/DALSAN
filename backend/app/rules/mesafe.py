@@ -103,6 +103,8 @@ class MesafeDegerlendirici:
                             "mesafe_m": round(mesafe_m, 2),
                             "arac_sinifi": nesne.sinif,
                             "arac_hiz_mps": round(nesne.hiz_mps or 0.0, 2),
+                            # K26: metre iddiası doğrulanmamış kalibrasyondan
+                            "kalibrasyon_dogrulanmadi": not baglam.kalibrasyon.dogrulandi,
                         },
                     )
                 )

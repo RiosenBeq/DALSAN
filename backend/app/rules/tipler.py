@@ -103,6 +103,10 @@ class Kalibrasyon:
     """Normalize görüntü düzlemi → zemin düzlemi (metre) homografisi."""
 
     homografi: list[list[float]]  # 3x3
+    # Şeritle kontrol ölçümü yapıldı mı (docs/17 §6.4, K26). Kontrol ölçümü
+    # S7'ye koşullu ve kodlanmadı: bugün her kalibrasyon doğrulanmamıştır ve
+    # mesafe/hız olayı "kalibrasyon_dogrulanmadi" işaretini taşır.
+    dogrulandi: bool = False
 
 
 @dataclass

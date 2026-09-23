@@ -228,6 +228,27 @@ def sayi_metni(deger, birim: str = "", basamak: int = 1) -> str:
     return f"{metin.replace('.', ',')} {birim}".strip()
 
 
+def kalibrasyon_dogrulanmadi(detay: dict) -> bool:
+    """Olayın metre ya da hız değeri doğrulanmamış kalibrasyona mı dayanıyor (K26)?
+
+    Şeritle kontrol ölçümü (docs/17 §6.4) S7'ye koşullu ve kodlanmadı: bugün
+    her kalibrasyon doğrulanmamıştır. İşaretten önce yazılmış olayda anahtar
+    yoktur; o olayların kalibrasyonu da doğrulanmamıştı, onlar da öyle sayılır.
+    """
+    return detay.get("kalibrasyon_dogrulanmadi", True) is not False
+
+
+def olcum_metni(deger, birim: str, basamak: int, detay: dict) -> str:
+    """Kalibrasyondan türeyen ölçüm: doğrulanmamışsa "≈ 1,85 m" (K26).
+
+    Metre iddiası ya ölçülmüş hataya dayanır ya da açıkça yaklaşık yazılır.
+    """
+    metin = sayi_metni(deger, birim, basamak)
+    if metin and kalibrasyon_dogrulanmadi(detay):
+        return f"≈ {metin}"
+    return metin
+
+
 # ----------------------------------------------------------- yoğunluk çubukları
 #
 # Komuta panosu, anons ekranı ve rapor AYNI çubukları çizer. Üç ayrı yerde
@@ -438,11 +459,11 @@ def _ihlal_ozeti(olay: dict) -> str:
     if eksik:
         return f"{ad} - {', '.join(eksik)} yok"
     if detay.get("mesafe_m") is not None:
-        return f"{ad} - {sayi_metni(detay['mesafe_m'], 'm', 2)}"
+        return f"{ad} - {olcum_metni(detay['mesafe_m'], 'm', 2, detay)}"
     if detay.get("hiz_kmh") is not None:
         # Hız km/sa yazılır: fabrika hız levhaları da km/sa'dır. Ayarın
         # kendisi m/sn tutulur (Tespit.hiz_mps ile aynı birim).
-        return f"{ad} - {sayi_metni(detay['hiz_kmh'], 'km/sa', 1)}"
+        return f"{ad} - {olcum_metni(detay['hiz_kmh'], 'km/sa', 1, detay)}"
     if detay.get("bolge_tipi") in BOLGE_TIPLERI:
         # Yedek kod (ZONE_INTRUSION): olayın ne olduğunu bölge tipi söyler
         return f"{ad} - {BOLGE_TIPLERI[detay['bolge_tipi']]}"

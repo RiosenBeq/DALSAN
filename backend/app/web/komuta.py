@@ -39,8 +39,10 @@ from app.web.ortak import (
     SINIFLAR,
     baglanti_al,
     cubuk_yuzdesi,
+    kalibrasyon_dogrulanmadi,
     olay_hazirla,
     olay_ogesi,
+    olcum_metni,
     rtsp_maskele,
     saat_sutunlari,
     sayi_metni,
@@ -731,6 +733,16 @@ def _gozlem_penceresi(params: dict) -> str:
     return f"{en_az} / {pencere} gözlem"
 
 
+def _kalibrasyon_notu(detay: dict, anahtar: str) -> str:
+    """Ölçüm kutusunun yanındaki K26 notu: değer doğrulanmamış kalibrasyondan.
+
+    Ölçülen değer yoksa not da çizilmez (açıklayacağı bir sayı yok).
+    """
+    if detay.get(anahtar) is None or not kalibrasyon_dogrulanmadi(detay):
+        return ""
+    return "doğrulanmadı"
+
+
 def _inceleme_kutulari(olay: dict) -> list[dict]:
     """Seçili olayın ölçülen değerleri + olay anındaki kural eşiği.
 
@@ -751,10 +763,11 @@ def _inceleme_kutulari(olay: dict) -> list[dict]:
 
     if tip == "safe_distance":
         kutular = [
-            ("Ölçülen mesafe", sayi_metni(detay.get("mesafe_m"), "m", 2)),
+            ("Ölçülen mesafe", olcum_metni(detay.get("mesafe_m"), "m", 2, detay)),
             ("Kural eşiği", sayi_metni(params.get("distance_m"), "m")),
             ("Araç", SINIFLAR.get(detay.get("arac_sinifi", ""), "")),
-            ("Araç hızı", sayi_metni(detay.get("arac_hiz_mps"), "m/s", 2)),
+            ("Araç hızı", olcum_metni(detay.get("arac_hiz_mps"), "m/s", 2, detay)),
+            ("Kalibrasyon", _kalibrasyon_notu(detay, "mesafe_m")),
         ]
     elif tip == "zone_intrusion":
         yonler = {"inside": "bölgenin içinde", "outside": "bölgenin dışında"}
@@ -766,10 +779,11 @@ def _inceleme_kutulari(olay: dict) -> list[dict]:
         ]
     elif tip == "vehicle_speed":
         kutular = [
-            ("Ölçülen hız", sayi_metni(detay.get("hiz_kmh"), "km/sa", 1)),
+            ("Ölçülen hız", olcum_metni(detay.get("hiz_kmh"), "km/sa", 1, detay)),
             ("Hız sınırı", sayi_metni(detay.get("limit_kmh"), "km/sa", 1)),
             ("Araç", SINIFLAR.get(detay.get("arac_sinifi", ""), "")),
             ("Kaç ölçümün ortancası", _olcum_sayisi(detay, params)),
+            ("Kalibrasyon", _kalibrasyon_notu(detay, "hiz_kmh")),
         ]
     elif tip == "ppe_violation":
         ppe = detay.get("ppe") or {}

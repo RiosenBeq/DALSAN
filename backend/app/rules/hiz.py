@@ -113,6 +113,8 @@ class HizDegerlendirici:
                         "limit_kmh": round(self.params.speed_limit_mps * MPS_KMH, 1),
                         "arac_sinifi": tespit.sinif,
                         "olcum_sayisi": len(pencere),
+                        # K26: hız da kalibrasyonun metresinden türer
+                        "kalibrasyon_dogrulanmadi": not baglam.kalibrasyon.dogrulandi,
                     },
                 )
             )

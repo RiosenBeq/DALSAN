@@ -115,7 +115,33 @@ def test_olcum_kodun_adina_eklenir(baglanti):
             detay={"mesafe_m": 1.42},
         ),
     )
-    assert olay["ozet"] == "Araç-yaya yakınlığı - 1,42 m"
+    # K26: kontrol ölçümü yok, metre yaklaşık yazılır (işaretsiz eski olay da)
+    assert olay["ozet"] == "Araç-yaya yakınlığı - ≈ 1,42 m"
+
+
+def test_dogrulanmis_kalibrasyonda_metre_duz_yazilir(baglanti):
+    """K26'nın öbür dalı: kontrol ölçümü yapılmış kalibrasyonun olayı (bugün
+    üretilmez, S7) "≈" taşımaz. Hız olayı da aynı işarete bakar."""
+    mesafe = _hazirla(
+        baglanti,
+        _olay_ekle(
+            baglanti,
+            kod="VEHICLE_PERSON_PROXIMITY",
+            onem="critical",
+            kural_tipi="safe_distance",
+            detay={"mesafe_m": 1.42, "kalibrasyon_dogrulanmadi": False},
+        ),
+    )
+    assert mesafe["ozet"] == "Araç-yaya yakınlığı - 1,42 m"
+    hiz = _hazirla(
+        baglanti,
+        _olay_ekle(
+            baglanti,
+            kural_tipi="vehicle_speed",
+            detay={"hiz_kmh": 18.0, "kalibrasyon_dogrulanmadi": True},
+        ),
+    )
+    assert hiz["ozet"].endswith("≈ 18 km/sa")
 
 
 def test_yedek_kodda_bolge_tipi_yazilir(baglanti):
