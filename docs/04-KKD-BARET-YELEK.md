@@ -362,16 +362,49 @@ yüklenmez; Olaylar'a "Model yüklenemedi" düşer ve KKD sayfası sebebini yaza
 2. Özeti `models/SHA256SUMS`'a eklenir: `sha256sum kkd.onnx >> SHA256SUMS`. Özet
    satırı yoksa ya da tutmuyorsa model **yüklenmez**. Docker imajı da derlenirken
    aynı satırı denetler.
-3. Sistem yeniden başlatılır; Docker kurulumunda önce imaj yeniden derlenir
+3. Model, sahaya konmadan önce veri setinin test günlerinde değerlendirilir (§6.7)
+   ve HTML rapor İSG ile birlikte incelenir.
+4. Sistem yeniden başlatılır; Docker kurulumunda önce imaj yeniden derlenir
    (`docker compose build`, sonra `up -d`). KKD sayfasında "Model: kkd-<ilk 12 hane>,
    doğrulandı" yazar. Aynı sürüm adı her KKD olayına `details.ppe.model_version`
    olarak girer.
-4. `python -m tests.hiz_kiyas --kkd` sınıflandırıcının hedef donanımdaki süresini
+5. `python -m tests.hiz_kiyas --kkd` sınıflandırıcının hedef donanımdaki süresini
    ölçer. Bütçe aşılırsa önce KKD kadansı büyütülür, sonra GPU gerekir.
 
 **Model değişince** anonsu açık KKD kuralları kendiliğinden gölge moda döner ve
 Olaylar'a "KKD modeli değişti" düşer: yeni sürümün isabeti ölçülmeden hoparlör
 çalmaz (docs/03 §3, docs/17 §5.7).
+
+### 6.7 Değerlendirme raporu (Faz 3e)
+
+Tek komut, tek HTML dosyası (docs/09 #7). Depo kökünden:
+
+```bash
+PYTHONPATH=backend .venv/bin/python -m app.egitim.degerlendirme dalsan-kkd-veri-seti-2026-10-01.zip \
+    --model models/kkd.onnx
+```
+
+- **Girdi:** KKD sayfasından indirilen veri seti ve değerlendirilecek model. Veri
+  setindeki her dosya manifest'in sha256'sıyla, model de `SHA256SUMS` ve §6.6
+  sözleşmesiyle denetlenir; model sahadaki yoldan (`KkdSiniflandirici`) yüklenir.
+- **Küme:** varsayılan **test** günleri (§5.4). `--kume val|train|tum` seçilebilir;
+  eğitim günlerindeki sayı ezberi ölçer ve rapor bunu yazar.
+- **Güven eşiği:** `--min-guven` (varsayılan KKD kuralının `min_confidence`'ı, 0,7).
+  Altı belirsiz sayılır, sahadaki kural gibi.
+- **Rapor:** kalem başına var / yok / görünmüyor karışıklık tablosu; "yok" için
+  precision (paydası "yok" tahminleri: görünmüyor etiketine "yok" demek de yanlış
+  alarmdır) ve recall (paydası "yok" etiketleri: belirsiz kalan "yok" da kaçmıştır);
+  belirsiz oranı; en kötü 50 hatanın görüntü ızgarası (önce yanlış "yok", sonra
+  kaçan, sonra belirsiz kalan "yok"; türün içinde modelin en emin olduğu önce);
+  kamera, gün ve zor örnek kırılımı; model kartı. Oranlar aşağı yuvarlanır;
+  paydası olmayan oran "ölçülemedi" yazar.
+- **Ne değildir:** sahadaki olay precision'ı. Saha kararı zamansal oylamadan çıkar
+  (§7.1); onu KKD sayfasındaki gölge karnesi ölçer ve anons kapısı ona bakar
+  (docs/17 §5.7).
+
+Rapor dosyası veri setinin yanına `kkd-degerlendirme-<sürüm>-<küme>.html` adıyla
+yazılır (`--cikti` ile değişir). Görüntüler dosyanın içindedir: kişi görüntüsü
+taşır, veri setiyle aynı özenle saklanır ve paylaşılır.
 
 ---
 

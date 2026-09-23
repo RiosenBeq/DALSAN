@@ -103,6 +103,21 @@ işaretli sayısı hücrenin ipucunda ve CSV'de. CSV'ye "Kapsama" sütunu eklend
 Dar ekranda kırılım tablolarının başlığı bir sütun kayıktı ("İhlal" başlığı
 Pay sütununun üstündeydi); düzeldi. Statik damga `?v=37`.
 
+**3e-3 — değerlendirme raporu.** `app/egitim/degerlendirme.py` veri seti zip'ini
+ve modeli alıp tek HTML dosyası yazıyor (docs/04 §6.7). Model sahadaki yoldan
+yükleniyor (özet ve sözleşme denetimi), veri setindeki her dosya manifest'le
+doğrulanıyor, düşük güven kuraldaki gibi belirsiz sayılıyor. Raporda şunlar var:
+- baret ve yelek için var / yok / görünmüyor karışıklık tablosu;
+- "yok" precision ve recall, belirsiz oranı;
+- en kötü 50 hatanın görüntüleri (önce yanlış "yok");
+- kamera, gün ve zor örnek kırılımı;
+- model kartı.
+
+Görüntüler dosyanın içinde; dışa bağlantı yok. Testler sahte ORT oturumu ve
+gerçek JPEG'lerle kurulan bir veri setiyle beklenen karışıklık tablosunu
+sınıyor; bozuk dosya, boş test kümesi, zip olmayan dosya ve özeti tutmayan
+model anlaşılır hatayla duruyor.
+
 ## Faz 5d kalan güvenlik (23.09.2026)
 
 Plan: `docs/17-V2-TASARIM.md` §10.5 (R16, R18, R31, R32) ve §13 (5d satırı).

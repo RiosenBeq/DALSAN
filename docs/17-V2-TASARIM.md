@@ -673,7 +673,9 @@ karar belirsize dönerse olayın kapandığını (süresinin ihlal olarak uzamad
 - `egitim/degerlendirme.py` test bölümünde ORT ile koşar ve **tek HTML rapor** üretir: kalem başına
   var/yok/görünmüyor karışıklık tablosu, "yok" için precision ve recall, belirsiz oranı, en kötü
   50 örneğin ızgarası, kamera/gün/zor örnek kırılımı (docs/09 #7). Operatör sayı okumak yerine
-  bakarak karar verir.
+  bakarak karar verir. **Uygulandı (F3e-3):** `python -m app.egitim.degerlendirme <zip>`
+  (docs/04 §6.7). Model sahadaki yoldan yüklenir (özet + sözleşme), veri seti manifest'le
+  doğrulanır, düşük güven kuraldaki gibi belirsizdir; rapor tek dosya, görüntüler gömülü.
 - Saha precision'ı gölge moddaki inceleme işaretlerinden (§5.7). Rapor sayfasına olay kodu
   başına "yanlış alarm oranı" kırılımı eklenir; yanında inceleme kapsamı %.
   **Uygulandı (F3e-2):** "Olay koduna göre" kırılımı; baret ve yelek ayrı satırdır. Kodsuz
