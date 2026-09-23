@@ -195,10 +195,18 @@ buna bakarak anlar); yalnız `?hazirlik=1` hazır olmayan sistemde 503 döner.
 Docker "unhealthy" container'ı **yeniden başlatmaz** - bu yalnız görünürlüktür;
 takılan analizi bekçi yeniden başlatır (§1.2.1).
 
-Şifresiz gövde yalnız `durum`, `analiz`, `model`, `hazir` ve `sorunlar`
-kodlarını verir. Kamera başına okunan/işlenen hız, işleme süresi (p50/p90), son
-karenin yaşı, boş disk ve analiz turunun yaşı `?ayrinti=1` ile ve oturum açıkken
-gelir (şifre tanımlı değilse oturum gerekmez).
+Şifresiz gövde yalnız `durum`, `analiz`, `model`, `hazir`, `uyari_garantisi` ve
+`sorunlar` kodlarını verir. Kamera başına okunan/işlenen hız, işleme süresi
+(p50/p90), son karenin yaşı, boş disk, analiz turunun yaşı, uyarı gecikmesi ve
+kanalların adı/türü/sağlığı (`kanallar`) `?ayrinti=1` ile ve oturum açıkken gelir
+(şifre tanımlı değilse oturum gerekmez).
+
+`uyari_garantisi` (docs/17 §7.4): şu an en az bir sesli/uzak kanal (ses çıkışı ya
+da IP hoparlör) bağlı mı. `true` bağlı · `false` kanal yok ya da hepsi koptu ·
+`null` doğrulanamıyor (bir kanalın durumu okunamıyor, ör. Windows'ta her zaman;
+ya da analiz kapalı). Ekran kanalı sayılmaz: izleme penceresinin açık olması
+"uyarı duyuluyor" demek değildir. Kontrol Paneli `false`'ta kırmızı, `null`'da
+gri satır gösterir.
 
 | `sorunlar` kodu | Anlamı | `hazir`'ı bozar |
 |---|---|---|
@@ -207,7 +215,11 @@ gelir (şifre tanımlı değilse oturum gerekmez).
 | `model_yuklenemedi` | Tespit modeli yüklenemedi | evet |
 | `veritabani_acilamadi` | Sağlık denetimi veritabanını okuyamadı | evet |
 | `olay_yazilamadi` | Son ihlal kayda geçmedi (anons yine çaldı) | evet |
+| `uyari_ulasmiyor` | Son uyarı hiçbir sesli/uzak kanala ulaşmadı (`ALERT_UNDELIVERED` yazıldı); sonraki ulaşan uyarı ya da başarılı bir kanal denemesi siler | evet |
 | `kritik_kural_pasif` | Mesafe ya da hız kuralı kalibrasyon bekliyor, çalışmıyor | hayır (ekranda kırmızı) |
+| `sesli_kanal_yok` | Açık sesli kanal yok: uyarılar hoparlörden duyulmaz | hayır (ekranda kırmızı) |
+| `tek_kanal_bluetooth` | Sesli uyarı yalnız Bluetooth hoparlöre dayanıyor (GÖREV §7); Bluetooth dışında bağlı kanal yok | hayır (ekranda kırmızı) |
+| `yedek_ses_kanali_yok` | Bölümlü kanal var ama "Tüm fabrika" kanalı yok: kanalı olmayan ya da kanalı kopan bölüm susar | hayır (Kontrol Paneli sarı) |
 | `ort_paket_cakismasi` | İki ONNX Runtime paketi birlikte kurulu; GPU sessizce kaybolabilir | hayır |
 
 ---

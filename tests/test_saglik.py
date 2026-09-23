@@ -22,7 +22,8 @@ from app.analiz.kamera import DURUM_ONLINE
 from app.analiz.supervizor import AnalizSupervizoru, _KameraOlcumu
 from app.uygulama import uygulama_olustur
 
-DAR_ALANLAR = {"durum", "analiz", "model", "hazir", "sorunlar"}
+# F4b: uyarı garantisi kimliksiz de verilir (Kontrol Paneli kırmızı/gri satırı)
+DAR_ALANLAR = {"durum", "analiz", "model", "hazir", "uyari_garantisi", "sorunlar"}
 AYRINTI_ALANLARI = {
     "kameralar",
     "bos_disk_gb",
@@ -31,6 +32,8 @@ AYRINTI_ALANLARI = {
     "uyari_gecikmesi",
     "ekran_istemci",
     "uyari_kuyrugu",
+    # F4b: kanal adı, türü ve sağlığı (docs/17 §9.1)
+    "kanallar",
 }
 
 
@@ -64,7 +67,20 @@ class _HazirAnaliz:
 
 
 @pytest.fixture
-def supervizorlu(istemci):
+def supervizorlu(istemci, test_ayarlari):
+    """Analizli istemci; bağlı bir "Tüm fabrika" kanalıyla (yoksa her gövdede
+    "sesli_kanal_yok" olurdu; o durum tests/test_kanal_sagligi.py'de)."""
+    baglanti = veritabani.baglanti_ac(test_ayarlari.veritabani_yolu)
+    try:
+        baglanti.execute(
+            "INSERT INTO speaker_zones (name, area, address, kind, enabled, health, "
+            "created_at, updated_at) VALUES ('Tüm fabrika', '', 'http://10.0.0.9/a', 'http', "
+            "1, 'ok', '2026-09-23', '2026-09-23')"
+        )
+        baglanti.commit()
+    finally:
+        baglanti.close()
+
     def kur(analiz):
         istemci.app.state.supervizor = analiz
         return istemci
@@ -90,12 +106,13 @@ def test_hazirlik_sorgusu_hazir_degilse_503(istemci):
 def test_hazir_sistem(supervizorlu):
     istemci = supervizorlu(_HazirAnaliz())
     govde = istemci.get("/saglik").json()
-    assert (govde["hazir"], govde["sorunlar"]) == (True, [])
+    assert (govde["hazir"], govde["sorunlar"], govde["uyari_garantisi"]) == (True, [], True)
     assert istemci.get("/saglik?hazirlik=1").status_code == 200
 
 
 @pytest.mark.parametrize(
-    "sorun", ["analiz_takildi", "analiz_olu", "model_yuklenemedi", "olay_yazilamadi"]
+    "sorun",
+    ["analiz_takildi", "analiz_olu", "model_yuklenemedi", "olay_yazilamadi", "uyari_ulasmiyor"],
 )
 def test_hizmet_arizasi_hazirligi_bozar(supervizorlu, sorun):
     istemci = supervizorlu(_HazirAnaliz(sorunlar=(sorun,)))
@@ -254,7 +271,9 @@ def test_hazirligi_bozan_sorunlar_basta(supervizorlu, monkeypatch):
     (süpervizörden): ekranlar metinleri bu sırayla birleştirir."""
     from app.web import rotalar
 
-    monkeypatch.setattr(rotalar, "_saglik_sorunlari", lambda ayarlar: ["kritik_kural_pasif"])
+    monkeypatch.setattr(
+        rotalar, "_saglik_sorunlari", lambda ayarlar, canli: (["kritik_kural_pasif"], None)
+    )
     istemci = supervizorlu(_HazirAnaliz(model="hata", sorunlar=("model_yuklenemedi",)))
     govde = istemci.get("/saglik").json()
     assert govde["sorunlar"] == ["model_yuklenemedi", "kritik_kural_pasif"]

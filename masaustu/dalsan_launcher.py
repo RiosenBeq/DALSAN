@@ -340,7 +340,15 @@ SAGLIK_SORUN_METINLERI = {
     "olay_yazilamadi": "Olaylar kaydedilemiyor (anons yine çalıyor)",
     "kritik_kural_pasif": "Mesafe/hız kuralı kalibrasyon bekliyor",
     "ort_paket_cakismasi": "İki ONNX Runtime paketi kurulu (GPU kaybolabilir)",
+    "uyari_ulasmiyor": "Son uyarı hiçbir hoparlöre ulaşmadı",
+    "sesli_kanal_yok": "Sesli uyarı kanalı yok (hoparlörden ses çıkmıyor)",
+    "yedek_ses_kanali_yok": "“Tüm fabrika” sesli kanalı yok (yedek yok)",
+    "tek_kanal_bluetooth": "Sesli uyarı yalnız Bluetooth hoparlöre dayanıyor",
 }
+
+# Kirmizi gosterilen yapilandirma sorunlari (docs/17 §7.4, S32): sistem calisir
+# ama sesli uyari duyulmayabilir. Digerleri (kalibrasyon, yedek kanal) sari.
+KIRMIZI_SORUNLAR = frozenset({"uyari_ulasmiyor", "sesli_kanal_yok", "tek_kanal_bluetooth"})
 
 
 def analiz_satiri(govde: dict | None) -> tuple[str, str]:
@@ -361,9 +369,11 @@ def analiz_satiri(govde: dict | None) -> tuple[str, str]:
         if not govde.get("analiz"):
             return "Analiz çalışmıyor - uyarı üretilmiyor", "hata"
         return metin or "Hazır değil - uyarı üretilemiyor", "hata"
-    garanti = govde.get("uyari_garantisi", "yok")  # alan Faz 4'te gelir
-    if garanti is False:
-        return "Sesli uyarı hiçbir kanala ulaşmıyor", "hata"
+    garanti = govde.get("uyari_garantisi", "yok")  # eski sunucuda alan yok
+    if garanti is False and "sesli_kanal_yok" not in sorunlar:
+        metin = "; ".join(m for m in ("Sesli uyarı hiçbir kanala ulaşmıyor", metin) if m)
+    if garanti is False or KIRMIZI_SORUNLAR.intersection(sorunlar):
+        return metin, "hata"
     if metin:
         return metin, "uyari"
     if garanti is None:

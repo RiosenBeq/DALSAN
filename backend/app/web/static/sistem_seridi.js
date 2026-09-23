@@ -3,9 +3,10 @@
 //
 // Kırmızı: uyarı üretilmiyor ya da kaydedilmiyor (analiz takıldı / durdu, model
 // yüklenemedi, olay yazılamıyor), kritik bir kural çalışmıyor, bir kameradan
-// görüntü gelmiyor; Faz 4'te sesli uyarı hiçbir kanala ulaşmıyor.
-// Gri: durum doğrulanamıyor (sunucuya ulaşılamıyor, model yükleniyor; Faz 4'te
-// sesli uyarının ulaştığı doğrulanamıyor).
+// görüntü gelmiyor, sesli uyarı hiçbir kanala ulaşmıyor (uyari_garantisi false,
+// sesli kanal yok, yalnız Bluetooth).
+// Gri: durum doğrulanamıyor (sunucuya ulaşılamıyor, model yükleniyor, sesli
+// uyarının ulaştığı doğrulanamıyor: uyari_garantisi null).
 //
 // Her şey yolundayken GİZLİDİR ve yeşile dönmez: ekranın kendisi uyarı
 // garantisine sayılmaz; bakan bir tarayıcının varlığı "sorun yok" demek değil.
@@ -67,8 +68,10 @@
       return k.durum === "offline";
     }).length;
     if (kopuk) kirmizi.push(kopuk + " kameradan görüntü gelmiyor");
-    // uyari_garantisi Faz 4'te gelir; yokken (undefined) hiçbir şey söylenmez
-    if (govde.uyari_garantisi === false) kirmizi.push("Sesli uyarı hiçbir kanala ulaşmıyor");
+    // Kanal hiç yoksa "sesli_kanal_yok" cümlesi zaten söyledi; aynı şey iki kez yazılmaz
+    if (govde.uyari_garantisi === false && sorunlar.indexOf("sesli_kanal_yok") === -1) {
+      kirmizi.push("Sesli uyarı hiçbir kanala ulaşmıyor");
+    }
     if (govde.uyari_garantisi === null) gri.push("Sesli uyarının ulaştığı doğrulanamıyor");
     if (kirmizi.length) return [kirmizi.concat(gri).join(" · "), "kirmizi"];
     if (gri.length) return [gri.join(" · "), "gri"];

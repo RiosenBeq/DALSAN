@@ -402,12 +402,14 @@ def test_basarili_kanal_denemesi_bayragi_siler(yonetici, http_calanlar, db):
 
 def test_supervizor_ulasmiyor_sorununu_bildirir(test_ayarlari):
     from app.analiz.supervizor import AnalizSupervizoru
+    from app.web.rotalar import HAZIRLIGI_BOZAN_SORUNLAR
 
     supervizor = AnalizSupervizoru(test_ayarlari)
     try:
         assert "uyari_ulasmiyor" not in supervizor.sorunlar()
         supervizor._anons.ulasmiyor = True
         assert "uyari_ulasmiyor" in supervizor.sorunlar()
+        assert "uyari_ulasmiyor" in HAZIRLIGI_BOZAN_SORUNLAR
     finally:
         supervizor._anons.kapat(1.0)
 
@@ -460,3 +462,51 @@ def test_bolum_kanali_var_yedek_yoksa_sorun(db):
     assert kanal_sagligi_ozeti(db, canli=True)["sorunlar"] == ["yedek_ses_kanali_yok"]
     _kanal_ekle(db, 2, health="ok")
     assert kanal_sagligi_ozeti(db, canli=True)["sorunlar"] == []
+
+
+class _HazirAnaliz:
+    model_durumu = "hazir"
+
+    def sorunlar(self) -> list[str]:
+        return []
+
+    def analiz_tur_yasi(self) -> float:
+        return 0.1
+
+    def kamera_saglik_ozeti(self) -> list[dict]:
+        return []
+
+
+@pytest.fixture
+def analizli(istemci):
+    istemci.app.state.supervizor = _HazirAnaliz()
+    yield istemci
+    istemci.app.state.supervizor = None
+
+
+def test_saglik_dar_govdede_garanti_ve_kanal_sorunlari(analizli, db):
+    govde = analizli.get("/saglik").json()
+    assert govde["uyari_garantisi"] is False and "sesli_kanal_yok" in govde["sorunlar"]
+    assert govde["hazir"] is True, "yapılandırma eksiği hazırlığı bozmaz; kırmızı görünür"
+    _kanal_ekle(db, 1, tur="ses_karti", device=BT, health="ok")
+    govde = analizli.get("/saglik").json()
+    assert govde["uyari_garantisi"] is True
+    assert govde["sorunlar"] == ["tek_kanal_bluetooth"]
+    assert "kanallar" not in govde, "kanal adları yalnız oturumlu ayrıntıda"
+
+
+def test_saglik_ayrintisinda_kanallar(analizli, db):
+    _kanal_ekle(db, 1, name="Rampa hoparlörü", alan="Sevkiyat", health="down")
+    _kanal_ekle(db, 2, name="Tüm fabrika", health="unknown")
+    govde = analizli.get("/saglik?ayrinti=1").json()
+    assert govde["kanallar"] == [
+        {"ad": "Rampa hoparlörü", "tur": "http", "saglik": "down"},
+        {"ad": "Tüm fabrika", "tur": "http", "saglik": "unknown"},
+    ]
+    assert govde["uyari_garantisi"] is None, "biri bilinmiyorsa doğrulanamaz"
+
+
+def test_analiz_kapaliyken_saglik_garantisi(istemci, db):
+    assert istemci.get("/saglik").json()["uyari_garantisi"] is False  # kanal yok
+    _kanal_ekle(db, 1, health="ok")
+    assert istemci.get("/saglik").json()["uyari_garantisi"] is None

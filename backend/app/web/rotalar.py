@@ -21,7 +21,7 @@ from app.analiz.model_adi import gorunen_model_adi
 from app.hatalar import VeritabaniHatasi
 from app.loglama import log_al
 from app.olaylar import ekran
-from app.olaylar.kanallar import acik_kanal_sayisi, kanal_ozeti
+from app.olaylar.kanallar import acik_kanal_sayisi, kanal_ozeti, kanal_sagligi_ozeti
 from app.olaylar.teslim import teslim_ozeti
 from app.rules.olay_kodu import IHLAL_ONEMLERI, ONEM_ADLARI
 from app.web.kilavuz import kalibrasyon_bekleyen_kurallar
@@ -182,6 +182,8 @@ HAZIRLIGI_BOZAN_SORUNLAR = frozenset(
         "model_yuklenemedi",
         "veritabani_acilamadi",
         "olay_yazilamadi",
+        # Son uyarı hiçbir sesli/uzak kanala ulaşmadı (docs/17 K21, §7.4-a)
+        "uyari_ulasmiyor",
     }
 )
 sablonlar.env.globals["HAZIRLIGI_BOZAN_SORUNLAR"] = sorted(HAZIRLIGI_BOZAN_SORUNLAR)
@@ -195,17 +197,20 @@ def saglik(istek: Request, ayrinti: int = 0, hazirlik: int = 0):
     port bizim sunucumuz mu" sorusu (`bizim_sunucumuz_mu`) buna bakar. Tek
     istisna `?hazirlik=1`: sistem hazır değilse 503 (Docker healthcheck).
 
-    Kimliksiz gövde DARDIR: durum, analiz, model, hazır ve sorun KODLARI.
-    Kamera ölçümleri, disk ve analiz tur yaşı yalnız `?ayrinti=1` ve geçerli
-    oturumla gelir (şifre tanımlı değilse oturum gerekmez). Ucuzdur: ana
-    sayfanın aksine veri/ klasörünü taramaz.
+    Kimliksiz gövde DARDIR: durum, analiz, model, hazır, uyarı garantisi ve
+    sorun KODLARI. Kamera ölçümleri, kanal adları, disk ve analiz tur yaşı yalnız
+    `?ayrinti=1` ve geçerli oturumla gelir (şifre tanımlı değilse oturum
+    gerekmez). Ucuzdur: ana sayfanın aksine veri/ klasörünü taramaz.
+
+    `uyari_garantisi` (docs/17 §7.4): şu an en az bir sesli/uzak kanal bağlı mı;
+    True / False / None (doğrulanamıyor). Ekran kanalı sayılmaz.
     """
     from app.web.giris import oturum_gecerli_mi  # döngüsel içe aktarma: giris → rotalar
 
     ayarlar = istek.app.state.ayarlar
     supervizor = getattr(istek.app.state, "supervizor", None)
     model = getattr(supervizor, "model_durumu", "kapali") if supervizor else "kapali"
-    sorunlar = _saglik_sorunlari(ayarlar)
+    sorunlar, kanal = _saglik_sorunlari(ayarlar, canli=supervizor is not None)
     # Sağlık ucu hiçbir durumda düşmemeli: yöntemi olmayan nesne boş liste sayılır
     sorunlar += getattr(supervizor, "sorunlar", list)()
     # Hazırlığı bozanlar başa: şerit ve Kontrol Paneli metinleri bu sırayla
@@ -221,28 +226,32 @@ def saglik(istek: Request, ayrinti: int = 0, hazirlik: int = 0):
         "analiz": supervizor is not None,
         "model": model,
         "hazir": hazir,
+        "uyari_garantisi": kanal["uyari_garantisi"] if kanal else None,
         "sorunlar": sorunlar,
     }
     if ayrinti and oturum_gecerli_mi(istek):
         govde.update(_saglik_ayrintisi(ayarlar, supervizor))
+        govde["kanallar"] = kanal["kanallar"] if kanal else []
     if hazirlik and not hazir:
         return JSONResponse(govde, status_code=503)
     return govde
 
 
-def _saglik_sorunlari(ayarlar) -> list[str]:
+def _saglik_sorunlari(ayarlar, canli: bool) -> tuple[list[str], dict | None]:
+    """(veritabanından okunan sorun kodları, kanal özeti ya da okunamadıysa None)."""
     try:
         baglanti = veritabani.baglanti_ac(ayarlar.veritabani_yolu)
         try:
             bekleyen = kalibrasyon_bekleyen_kurallar(baglanti)
+            kanal = kanal_sagligi_ozeti(baglanti, canli)
         finally:
             baglanti.close()
     except (sqlite3.Error, VeritabaniHatasi) as hata:
         # Sağlık ucu her durumda cevap verir; veritabanı okunamıyorsa bu da
         # bir sorundur ve söylenir.
         log_al("sistem").warning(f"Sağlık denetimi veritabanını okuyamadı: {hata}")
-        return ["veritabani_acilamadi"]
-    return ["kritik_kural_pasif"] if bekleyen else []
+        return ["veritabani_acilamadi"], None
+    return (["kritik_kural_pasif"] if bekleyen else []) + kanal["sorunlar"], kanal
 
 
 def _saglik_ayrintisi(ayarlar, supervizor) -> dict:

@@ -752,10 +752,12 @@ def hazir_kural_cooldown(hazir: HazirKural) -> int:
 
 # /saglik "sorunlar" kodlarının komuta ekranlarındaki sistem şeridi metni
 # (static/sistem_seridi.js; docs/06 §2 tablosu). Şeritte yalnız bu kodlar
-# görünür ve hepsi kırmızıdır: uyarının üretilmediğini ya da kaydedilmediğini
-# söylerler. ort_paket_cakismasi bilerek yok: teknik bir kurulum notudur,
-# /saglik ve Kontrol Paneli söyler. Kontrol Paneli'nin kendi metinleri
-# masaustu/dalsan_launcher.py'dedir (ayrı program, uygulamayı içe aktarmaz).
+# görünür ve hepsi kırmızıdır: uyarının üretilmediğini, kaydedilmediğini ya da
+# duyulmadığını söylerler. ort_paket_cakismasi bilerek yok: teknik bir kurulum
+# notudur, /saglik ve Kontrol Paneli söyler. yedek_ses_kanali_yok da yok: bir
+# eksik yedektir, Anons sayfasının "Tüm fabrika" kutusu ve Kontrol Paneli söyler.
+# Kontrol Paneli'nin kendi metinleri masaustu/dalsan_launcher.py'dedir (ayrı
+# program, uygulamayı içe aktarmaz).
 SAGLIK_SORUN_METINLERI: dict[str, str] = {
     "analiz_takildi": "Analiz takıldı - görüntü geliyor ama uyarı üretilmiyor",
     "analiz_olu": "Analiz durdu - uyarı üretilmiyor",
@@ -763,4 +765,9 @@ SAGLIK_SORUN_METINLERI: dict[str, str] = {
     "veritabani_acilamadi": "Veritabanı okunamıyor - olaylar kaydedilemeyebilir",
     "olay_yazilamadi": "Son ihlal kaydedilemedi - anons yine de çaldı",
     "kritik_kural_pasif": "Mesafe ya da hız kuralı çalışmıyor - kalibrasyon bekleniyor",
+    "uyari_ulasmiyor": "Son uyarı hiçbir hoparlöre ulaşmadı - Anons sayfasındaki kanallara bakın",
+    "sesli_kanal_yok": "Sesli uyarı kanalı yok - uyarılar hoparlörden duyulmuyor",
+    "tek_kanal_bluetooth": (
+        "Sesli uyarı yalnız Bluetooth hoparlöre dayanıyor - kablolu ya da IP hoparlör ekleyin"
+    ),
 }

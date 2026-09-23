@@ -107,13 +107,18 @@ def test_bilinmeyen_ek_kural_reddedilir(istemci, test_ayarlari):
 # ------------------------------------------------------------------ kalibrasyon bekleyen
 
 
+def _kalibrasyon_sorunu(istemci) -> list[str]:
+    # Kanal sorunları (sesli_kanal_yok) bu testin konusu değil: tests/test_kanal_sagligi.py
+    return [k for k in istemci.get("/saglik").json()["sorunlar"] if k == "kritik_kural_pasif"]
+
+
 def test_kalibrasyonsuz_mesafe_kurali_kurulum_listesinde_ve_saglikta(istemci, test_ayarlari):
-    assert istemci.get("/saglik").json()["sorunlar"] == []
+    assert _kalibrasyon_sorunu(istemci) == []
 
     kamera_id, bolge_id = _kamera_ve_bolge(istemci, test_ayarlari, "vehicle_area", "Saha")
     istemci.post("/kurallar/hazir", data={"zone_id": str(bolge_id)}, follow_redirects=False)
 
-    assert istemci.get("/saglik").json()["sorunlar"] == ["kritik_kural_pasif"]
+    assert _kalibrasyon_sorunu(istemci) == ["kritik_kural_pasif"]
     komuta = istemci.get("/komuta").text
     assert "Mesafe ve hız kuralları çalışıyor mu?" in komuta
     assert "Kalibrasyon bekleniyor: Rampa kamerasındaki güvenli mesafe kuralı" in komuta
@@ -129,7 +134,7 @@ def test_kalibrasyonsuz_mesafe_kurali_kurulum_listesinde_ve_saglikta(istemci, te
         baglanti.commit()
     finally:
         baglanti.close()
-    assert istemci.get("/saglik").json()["sorunlar"] == []
+    assert _kalibrasyon_sorunu(istemci) == []
     assert "Mesafe ve hız kuralları çalışıyor mu?" not in istemci.get("/komuta").text
 
 

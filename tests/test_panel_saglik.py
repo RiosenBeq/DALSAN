@@ -69,6 +69,48 @@ def panel():
             "gri",
             "doğrulanamıyor",
         ),
+        # Kanal hiç yoksa aynı şey iki kez söylenmez; kırmızıdır (docs/17 Ç39)
+        (
+            {
+                "analiz": True,
+                "model": "hazir",
+                "hazir": True,
+                "uyari_garantisi": False,
+                "sorunlar": ["sesli_kanal_yok"],
+            },
+            "hata",
+            "Sesli uyarı kanalı yok",
+        ),
+        # Tek Bluetooth çalar ama kırmızıdır (S32); garanti o an sağlansa bile
+        (
+            {
+                "analiz": True,
+                "model": "hazir",
+                "hazir": True,
+                "uyari_garantisi": True,
+                "sorunlar": ["tek_kanal_bluetooth"],
+            },
+            "hata",
+            "Bluetooth",
+        ),
+        # Eksik yedek bir yapılandırma notudur: sarı
+        (
+            {
+                "analiz": True,
+                "model": "hazir",
+                "hazir": True,
+                "uyari_garantisi": True,
+                "sorunlar": ["yedek_ses_kanali_yok"],
+            },
+            "uyari",
+            "Tüm fabrika",
+        ),
+        # Ulaşmayan uyarı hazırlığı bozar (K21)
+        (
+            {"analiz": True, "model": "hazir", "hazir": False, "sorunlar": ["uyari_ulasmiyor"]},
+            "hata",
+            "hiçbir hoparlöre ulaşmadı",
+        ),
         # Tanınmayan kod uydurulmaz, olduğu gibi yazılır
         (
             {"analiz": True, "model": "hazir", "hazir": True, "sorunlar": ["yeni_kod"]},
@@ -87,7 +129,13 @@ def test_her_saglik_kodunun_panel_metni_var(panel):
     """docs/06 §2 tablosundaki kodların hepsi panelde Türkçe yazılır."""
     from app.web.rotalar import HAZIRLIGI_BOZAN_SORUNLAR
 
-    kodlar = HAZIRLIGI_BOZAN_SORUNLAR | {"kritik_kural_pasif", "ort_paket_cakismasi"}
+    kodlar = HAZIRLIGI_BOZAN_SORUNLAR | {
+        "kritik_kural_pasif",
+        "ort_paket_cakismasi",
+        "sesli_kanal_yok",
+        "yedek_ses_kanali_yok",
+        "tek_kanal_bluetooth",
+    }
     assert kodlar <= set(panel.SAGLIK_SORUN_METINLERI)
 
 
