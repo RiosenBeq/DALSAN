@@ -1266,25 +1266,17 @@ class AnalizSupervizoru:
         # açılır). Kural motoruna DOKUNULMAZ: karar yine kural motorundan gelir,
         # burada yalnızca duyurma adımı atlanır. Hatırlatma da aynı kapıdan geçer.
         # "Çalsaydı" hangi kanallardan çalacağı teslim kaydına `shadow` diye düşer.
+        mesaj = self._anons_mesajlari.get(anons_id) if anons_id else None
         if kural_kaydi.get("shadow_mode"):
             self._log.info(f"Kural {ihlal.kural_id} gölge modda - anons çalınmadı.")
-            self._anons.golge_kaydet(
-                ihlal.kamera_id,
-                konfig.get("area", ""),
-                self._anons_mesajlari.get(anons_id) if anons_id else None,
-                olay=olay,
-            )
+            self._anons.golge_kaydet(ihlal.kamera_id, konfig.get("area", ""), mesaj, olay=olay)
             return
         if asama == ACILDI:
             self._anons.ekran_kaydet(olay)  # ekran kanalı: bilgi, garantiye sayılmaz
-        if anons_id:
-            self._anons.duyur(
-                ihlal.kamera_id,
-                konfig.get("area", ""),
-                simdi,
-                self._anons_mesajlari.get(anons_id),
-                olay=olay,
-            )
+        # Mesajı bağlanmamış kuralın olayı da duyurulur: dağıtıcı olayın adıyla
+        # uyarı tonu çalar ve garantiyi arar (docs/17 K21, operatör 23.09.2026).
+        # Eskiden burada `if anons_id:` vardı ve o olaylar hoparlöre hiç gitmiyordu.
+        self._anons.duyur(ihlal.kamera_id, konfig.get("area", ""), simdi, mesaj, olay=olay)
 
     def _kural_kaydi(self, baglanti, kural_id: int) -> dict:
         satir = baglanti.execute("SELECT * FROM rules WHERE id = ?", (kural_id,)).fetchone()

@@ -327,14 +327,29 @@ BT_HOPARLOR = "bluez_output.AA_BB_CC_DD_EE_FF.1"
 @pytest.mark.skipif(
     sys.platform == "win32", reason="Windows'ta çalıcı süreci yok (winsound); sunucu Linux"
 )
-def test_forklift_yakinliginda_bagli_hoparlor_calar(test_ayarlari, tmp_path, monkeypatch):
+@pytest.mark.parametrize(
+    ("anons", "sebep"),
+    [
+        # Hazır kuralın mesajı; mesaja ses dosyası bağlanmamış (ilk kurulumdaki gibi)
+        (
+            "(SELECT id FROM announcement_messages WHERE key = 'safe_distance')",
+            "mesaja ses dosyası bağlanmamış",
+        ),
+        # Kurala hiç mesaj seçilmemiş: eskiden hoparlör burada TAMAMEN susuyordu
+        ("NULL", "kurala anons mesajı bağlanmamış"),
+    ],
+    ids=["mesajli", "mesajsiz"],
+)
+def test_forklift_yakinliginda_bagli_hoparlor_calar(
+    test_ayarlari, tmp_path, monkeypatch, anons, sebep
+):
     """Operatör isteği (23.09.2026): risk anında bağlı hoparlörden uyarı.
 
     Uçtan uca: forklift yayanın 2,4 m yanından geçer → güvenli mesafe kuralı
-    (hazır kuralın anonsuyla) → olay satırı → GERÇEK AnonsYoneticisi →
-    "Tüm fabrika" ses çıkışı kanalı (Bluetooth hoparlör) → çalıcı o hoparlörün
-    adıyla başlar ve teslim kaydı olaya bağlı "ok" olur. Mesaja ses dosyası
-    bağlanmamıştır (ilk kurulumdaki gibi): hoparlör susmaz, uyarı tonu çalar.
+    → olay satırı → GERÇEK AnonsYoneticisi → "Tüm fabrika" ses çıkışı kanalı
+    (Bluetooth hoparlör) → çalıcı o hoparlörün adıyla başlar ve teslim kaydı
+    olaya bağlı "ok" olur. İki durumda da hoparlör susmaz, uyarı tonu çalar:
+    mesajın ses dosyası yokken de, kurala hiç mesaj seçilmemişken de (K21).
     Gerçek ses çalınmaz; çalıcı komutu kaydedilir.
     """
     from app.olaylar import anons as anons_modulu
@@ -347,10 +362,7 @@ def test_forklift_yakinliginda_bagli_hoparlor_calar(test_ayarlari, tmp_path, mon
 
     def hazirla(baglanti):
         simdi = zaman.simdi_utc()
-        baglanti.execute(
-            "UPDATE rules SET announcement_id = "
-            "(SELECT id FROM announcement_messages WHERE key = 'safe_distance')"
-        )
+        baglanti.execute(f"UPDATE rules SET announcement_id = {anons}")
         baglanti.execute(
             "INSERT INTO speaker_zones (name, area, address, kind, device, enabled, "
             "created_at, updated_at) VALUES ('Tüm fabrika', '', '', 'ses_karti', ?, 1, ?, ?)",
@@ -393,6 +405,7 @@ def test_forklift_yakinliginda_bagli_hoparlor_calar(test_ayarlari, tmp_path, mon
     assert teslim["stage"] == "acildi"
     assert teslim["olay_kodu"] == "VEHICLE_PERSON_PROXIMITY"
     assert "uyarı tonu" in teslim["detail"]
+    assert sebep in teslim["detail"]
 
 
 def test_her_senaryo_belgeli():

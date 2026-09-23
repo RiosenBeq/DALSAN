@@ -121,9 +121,10 @@
         olarak ekleyin. <a href="/komuta/anons">Anons sistemi →</a></p>
       {% endif %}
       {% if anonssuz_sayisi %}
-      <p class="panel-notu">{{ anonssuz_sayisi }} satırda anons mesajı seçilmemiş: o kural
-        ihlalde olay yazar ve ekranda uyarı verir, ama hoparlör susar. Mesajı kuralın
-        düzenleme sayfasından seçebilirsiniz.</p>
+      <p class="panel-notu">{{ anonssuz_sayisi }} satırda anons mesajı seçilmemiş: o
+        kuralın ihlalinde hoparlör SUSMAZ, sözlü mesaj yerine uyarı tonu çalar (IP
+        hoparlör olayın adını okur). Sözlü mesajı kuralın düzenleme sayfasından
+        seçebilirsiniz; kuralı tamamen susturmak için gölge modu kullanın.</p>
       {% endif %}
       <p class="panel-notu">"Bildirim" sütunu her satırda <b>kurulmadı</b> yazar: sistemde
         e-posta, SMS ve mobil bildirim altyapısı <b>yoktur</b>. Bu, unutulmuş bir eksik

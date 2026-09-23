@@ -13,6 +13,7 @@ Tasarımın örnek satırları ("Ani hareket · forklift hızı", "12 kamera · 
 from __future__ import annotations
 
 import json
+import re
 import shutil
 from datetime import UTC, datetime, timedelta
 
@@ -297,11 +298,17 @@ def test_anons_mesaji_ve_yolu_gercek(istemci, test_ayarlari):
 
 
 def test_anonssuz_kural_sessizce_gecistirilmiyor(istemci, test_ayarlari):
+    """Mesajı seçilmemiş kural SUSMAZ (docs/17 K21, operatör 23.09.2026):
+    ekran bunu olduğu gibi söyler, "hoparlör susar" demez."""
     kamera = _kamera_ekle(istemci, "Rampa 1", "Sevkiyat")
     _kural_ekle(test_ayarlari, kamera, anons_id=None)
     metin = istemci.get("/komuta/uyari").text
-    assert "anons yok" in metin
+    assert "mesaj yok - uyarı tonu çalar" in metin
     assert "anons mesajı seçilmemiş" in metin
+    assert "hoparlör SUSMAZ" in metin
+    # Eski not: "ekranda uyarı verir, ama hoparlör susar" (gölge modun kendi
+    # açıklamasındaki "hoparlör susar" doğrudur, o kalır)
+    assert "ekranda uyarı verir, ama hoparlör susar" not in metin
 
 
 def test_kalibrasyonsuz_mesafe_kurali_ekranda_uyariyor(istemci, test_ayarlari):
@@ -527,12 +534,15 @@ def test_bugunku_sayi_gercek_olaylardan_golge_haric(istemci, test_ayarlari):
         _ihlal_ekle(test_ayarlari, kamera, {"announcement_id": anons, "shadow_mode": 0})
     # Gölge moddaki kuralın olayı SAYILMAZ: hoparlör hiç çalmadı
     _ihlal_ekle(test_ayarlari, kamera, {"announcement_id": anons, "shadow_mode": 1})
-    # Anonsu olmayan kuralın olayı da sayılmaz
+    # Mesajı olmayan kuralın olayı SAYILIR: hoparlörden uyarı tonu çaldı (K21)
     _ihlal_ekle(test_ayarlari, kamera, {"announcement_id": None})
 
     metin = istemci.get("/komuta/anons").text
-    assert "Bugün anons tetikleyen ihlal" in metin
-    assert ">3</span>" in metin
+    sayi = re.search(
+        r'Bugün anons tetikleyen ihlal</span>\s*<span class="sayi-degeri[^"]*">(\d+)</span>',
+        metin,
+    )
+    assert sayi is not None and sayi.group(1) == "4"
     # Sayının ne OLMADIĞI da yazıyor
     assert "hoparlörün kaç kez bağırdığını değil" in metin
 

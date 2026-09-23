@@ -356,6 +356,10 @@ ONE_CIKAN_KAMERA = 4
 # yarıya indirir - 24 kameralı bir kurulumda saniyede 24 yerine 12 kare.
 KARE_TAZELEME_MS = 2000
 
+# Uyarı zincirinde mesajı seçilmemiş kuralın "Anons" hücresi. Böyle bir kural
+# SUSMAZ: hoparlörden uyarı tonu çalar, IP hoparlör olayın adını okur (docs/17 K21).
+MESAJSIZ_ANONS = "mesaj yok - uyarı tonu çalar"
+
 
 # Olay satırının rengi ÖNEMDEN gelir (docs/17 §11; önem şema 007'den beri
 # her olayda var, rules/olay_kodu.py):
@@ -1139,7 +1143,7 @@ def _zincir(baglanti, ayarlar, hoparlorler: list[dict]) -> list[dict]:
                 "alanlar": [],
                 "kural_idler": [],
                 "kalibrasyonsuz": 0,
-                "anons": satir["anons_metni"] or "anons yok",
+                "anons": satir["anons_metni"] or MESAJSIZ_ANONS,
                 "anons_kapali": bool(satir["anons_id"]) and not satir["anons_aktif"],
                 "ses_dosyasi": satir["audio_file"],
                 "bildirim": BILDIRIM_METNI,
@@ -1191,7 +1195,7 @@ def uyari_baglami(baglanti, ayarlar, kkd_surumu: str = "") -> dict:
     return {
         "zincir": zincir,
         "golge_sayisi": sum(1 for z in zincir if z["golge"]),
-        "anonssuz_sayisi": sum(1 for z in zincir if z["anons"] == "anons yok"),
+        "anonssuz_sayisi": sum(1 for z in zincir if z["anons"] == MESAJSIZ_ANONS),
         "sesli_kanal_yok": not any(h["enabled"] for h in hoparlorler),
         "anons_bekleme_sn": ayarlar.anons_bekleme_sn,
         # Gölge mod panelindeki kapı cümlesi; eşikler ayarlardan (KKD_KAPI_*)
@@ -1253,7 +1257,8 @@ def _anons_tetikleyen_olaylar(baglanti) -> tuple[dict[int, int], list[str]]:
     Sayım, olayın KURAL ANLIK GÖRÜNTÜSÜNDEN (events.rule_snapshot) okunur:
     kuralın anonsu sonradan değiştirilmişse geçmiş olaylar eski mesaja yazılı
     kalır. Gölge moddaki kuralın olayı SAYILMAZ - o kural hoparlörü hiç
-    çalıştırmamıştır.
+    çalıştırmamıştır. Mesajı olmayan kuralın olayı SAYILIR: hoparlörden uyarı
+    tonu çalar (docs/17 K21); mesaj başına sayıma ise girmez.
 
     DİKKAT - bu sayı "hoparlör kaç kez bağırdı" DEĞİLDİR: aynı kamera ve mesaj
     için ANONS_BEKLEME_SN dolmadan tekrar çalınmaz, yani gerçek anons sayısı
@@ -1275,9 +1280,8 @@ def _anons_tetikleyen_olaylar(baglanti) -> tuple[dict[int, int], list[str]]:
         if kural.get("shadow_mode"):
             continue
         anons_id = kural.get("announcement_id")
-        if not anons_id:
-            continue
-        sayilar[anons_id] = sayilar.get(anons_id, 0) + 1
+        if anons_id:
+            sayilar[anons_id] = sayilar.get(anons_id, 0) + 1
         damgalar.append(satir["occurred_at"])
     return sayilar, damgalar
 

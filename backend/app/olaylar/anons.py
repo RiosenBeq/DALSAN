@@ -74,6 +74,43 @@ _CALMA_ZAMAN_ASIMI_SN = 20
 _KESME_YOKLAMA_SN = 0.1
 
 
+# Anons mesajı bağlanmamış kuralın olayına kurulan mesajın anahtarı. IP
+# hoparlörün adres şablonundaki {anahtar} bununla dolar.
+GENEL_UYARI_ANAHTARI = "uyari"
+
+
+def genel_uyari_mesaji(kod: str | None, sebep: str) -> dict:
+    """Kurala anons mesajı bağlanmamışsa (ya da mesaj kapatılmış, silinmişse)
+    olayın kendi mesajı.
+
+    Gölgede olmayan her güvenlik olayı en az bir sesli kanala ulaşmalıdır
+    (docs/17 K21) ve operatör risk anında hoparlörün SUSMAMASINI istedi
+    (23.09.2026). Eskiden bu olaylar dağıtıcıya hiç gelmiyordu: hoparlör
+    susuyor, "uyarı ulaşmadı" alarmı da çıkmıyordu. Susturmanın tasarlanmış
+    yolu gölge moddur. Mesajın ses dosyası yoktur: ses çıkışında uyarı tonu
+    çalar (ton.py), IP hoparlör olayın Türkçe adını okur. Bastırma anahtarı
+    olay koduna göredir: aynı koddaki olaylar bekleme süresince birbirini
+    susturur, farklı kodlar susturmaz.
+    """
+    bilgi = OLAY_KODLARI.get(kod or "")
+    return {
+        "id": f"kod:{kod or 'genel'}",
+        "key": GENEL_UYARI_ANAHTARI,
+        "text": bilgi.ad if bilgi else "Güvenlik uyarısı",
+        "audio_file": None,
+        "enabled": 1,
+        "ses_yok_sebebi": sebep,
+    }
+
+
+def _mesaj_ya_da_genel(mesaj: dict | None, kod: str | None) -> dict:
+    if mesaj is None:
+        return genel_uyari_mesaji(kod, "kurala anons mesajı bağlanmamış")
+    if not mesaj.get("enabled", 1):
+        return genel_uyari_mesaji(kod, "kuralın anons mesajı kapalı")
+    return mesaj
+
+
 class AnonsHatasi(Exception):
     """Ses çalınamadı - sebebi Anons sayfasında gösterilir."""
 
@@ -578,12 +615,12 @@ class AnonsYoneticisi:
     ) -> None:
         """Olayı kanallara sıraya koyar ve HEMEN döner.
 
-        mesaj: announcement_messages satırı (dict) veya None. zaman_s: bastırma
-        saati (çağıranın saati; süpervizörde time.monotonic).
+        mesaj: announcement_messages satırı (dict) veya None. None ya da kapalı
+        mesajda olay SUSMAZ, olayın adıyla duyurulur (genel_uyari_mesaji).
+        zaman_s: bastırma saati (çağıranın saati; süpervizörde time.monotonic).
         """
-        if mesaj is None or not mesaj.get("enabled", 1):
-            return
         olay = olay or OlayBilgisi()
+        mesaj = _mesaj_ya_da_genel(mesaj, olay.kod)
         anahtar, metin = mesaj.get("key", ""), mesaj.get("text", "")
         hedefler, atlananlar = self._hedefleri_sec(kamera_alani)
         kanallar = _cikislara_gore_tekille(hedefler)
@@ -660,10 +697,10 @@ class AnonsYoneticisi:
         olay: OlayBilgisi | None = None,
     ) -> None:
         """Gölge moddaki kural: ses ÇALMAZ; "çalsaydı" hangi kanallardan
-        çalacağı `shadow` diye yazılır (docs/17 §7.3-9)."""
-        if mesaj is None or not mesaj.get("enabled", 1):
-            return
+        çalacağı `shadow` diye yazılır (docs/17 §7.3-9). Mesajı olmayan kural
+        da çalardı (uyarı tonuyla), o yüzden onun da kaydı düşer."""
         olay = olay or OlayBilgisi()
+        mesaj = _mesaj_ya_da_genel(mesaj, olay.kod)
         for kanal in _cikislara_gore_tekille(bolgeleri_sec(self._bolgeler, kamera_alani)):
             oge = UyariOgesi(
                 kanal=dict(kanal),
@@ -1008,7 +1045,8 @@ class AnonsYoneticisi:
         """
         ses = mesaj.get("audio_file")
         if not ses:
-            return None, ""
+            # Kurala mesaj bağlanmamışsa sebep onu söyler (uyarı tonu çalar)
+            return None, mesaj.get("ses_yok_sebebi", "")
         kok = self._goruntu_koku.resolve()
         tam = (kok / ses).resolve()
         if not tam.is_relative_to(kok):

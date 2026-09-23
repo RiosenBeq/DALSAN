@@ -357,6 +357,52 @@ def test_her_sey_koptuysa_yine_denenir(yonetici, http_calanlar, db):
     assert [adres for adres, _ in kayit] == ["http://10.0.0.1/anons"]
 
 
+# ------------------------------------------------- mesajı olmayan kural (K21)
+
+
+def test_mesaji_olmayan_kuralin_olayi_da_duyurulur(yonetici, http_calanlar, db):
+    """Eskiden süpervizör mesajsız kuralın olayını dağıtıcıya hiç vermiyordu:
+    hoparlör susuyor, garanti aranmıyordu (tanıtımda 1364 ekran teslimine
+    karşı sıfır hoparlör). Artık olay kendi adıyla duyurulur."""
+    kayit, _ = http_calanlar
+    _kanal_ekle(db, 1)
+    _yukle(yonetici, db)
+    olay = OlayBilgisi(olay_id=None, kod="PERSON_IN_LOADING_AREA")
+    yonetici.duyur(7, "Sevkiyat", 0.0, None, olay=olay)
+    assert yonetici.bosalt(5.0)
+    ad = anons.OLAY_KODLARI["PERSON_IN_LOADING_AREA"].ad
+    assert kayit == [("http://10.0.0.1/anons", ad)]
+    assert _teslimler(db) == [(1, "ok")]
+
+
+def test_kapali_mesajin_kurali_da_susmaz(yonetici, http_calanlar, db):
+    kayit, _ = http_calanlar
+    _kanal_ekle(db, 1)
+    _yukle(yonetici, db)
+    kapali = {**_mesaj(), "enabled": 0}
+    yonetici.duyur(7, "", 0.0, kapali, olay=OlayBilgisi(olay_id=None, kod="PPE_NO_HELMET"))
+    assert yonetici.bosalt(5.0)
+    assert len(kayit) == 1 and kayit[0][1] == anons.OLAY_KODLARI["PPE_NO_HELMET"].ad
+
+
+def test_mesaji_olmayan_kuralda_da_garanti_aranir(yonetici, db):
+    """Sesli kanal yoksa mesajsız kuralın olayı da "ulaşmadı" alarmı üretir."""
+    olay = OlayBilgisi(olay_id=None, kod="PPE_NO_HELMET")
+    yonetici.duyur(7, "Sevkiyat", 0.0, None, olay=olay)
+    assert yonetici.bosalt(5.0)
+    assert yonetici.ulasmiyor is True
+    assert _olaylar(db, "ALERT_UNDELIVERED")
+
+
+def test_genel_uyari_mesaji_ses_dosyasizdir_ve_sebebini_soyler():
+    mesaj = anons.genel_uyari_mesaji("PPE_NO_HELMET", "kurala anons mesajı bağlanmamış")
+    assert mesaj["audio_file"] is None and mesaj["enabled"] == 1
+    assert mesaj["key"] == anons.GENEL_UYARI_ANAHTARI
+    assert mesaj["text"] == anons.OLAY_KODLARI["PPE_NO_HELMET"].ad
+    assert mesaj["id"] == "kod:PPE_NO_HELMET"  # bastırma olay koduna göre
+    assert anons.genel_uyari_mesaji(None, "x")["text"] == "Güvenlik uyarısı"
+
+
 # ------------------------------------------------------------ garanti
 
 

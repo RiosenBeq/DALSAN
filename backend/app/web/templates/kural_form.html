@@ -236,7 +236,7 @@
 
       <label>Anons mesajı <span class="not">(anons sistemi bağlıysa çalar)</span>
         <select name="announcement_id">
-          <option value="">- anons yok -</option>
+          <option value="">- mesaj yok: uyarı tonu çalar -</option>
           {% for a in anonslar %}
           <option value="{{ a.id }}" {% if kural and kural.announcement_id == a.id %}selected{% endif %}>{{ a.text }}</option>
           {% endfor %}
