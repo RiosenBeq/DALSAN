@@ -57,6 +57,6 @@ services:
     #           capabilities: [gpu]
 
     # --- Anons için ses kartı (yalnızca Linux) ---
-    # .env dosyasında ANONS=ses_karti ise açın:
+    # Bu bilgisayarın ses çıkışı bir uyarı kanalıysa (Anons sistemi ekranı) açın:
     # devices:
     #   - "/dev/snd:/dev/snd"

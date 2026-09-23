@@ -35,6 +35,7 @@ import urllib.request
 from app import veritabani, zaman
 from app.ayarlar import Ayarlar
 from app.loglama import adres_maskele, log_al
+from app.olaylar.kanallar import kanal_ozeti
 from app.rules.cooldown import Cooldown
 
 _log = log_al("anons")
@@ -365,8 +366,7 @@ class AnonsYoneticisi:
     @property
     def ad(self) -> str:
         """Ana sayfadaki kısa durum: kaç açık sesli kanal var."""
-        adet = sum(1 for b in self._bolgeler if b.get("enabled"))
-        return f"{adet} sesli kanal" if adet else "sesli kanal yok"
+        return kanal_ozeti(sum(1 for b in self._bolgeler if b.get("enabled")))
 
     def bolgeleri_yukle(self, satirlar) -> None:
         """Kanal satırlarını tazeler (speaker_zones)."""

@@ -3,36 +3,47 @@
 Anons sistemi sahaya bağlanmadan önce burada denenir (docs/08 R3). Kullanıcı
 "Anonsu Dene"ye basar; hoparlörden ses gelmiyorsa sebebi aynı sayfada yazar.
 Böylece fabrikada "acaba çalışıyor mu" belirsizliği kalmaz.
+
+Sesin hangi KANALDAN çıkacağı (ses çıkışı, Bluetooth hoparlör, IP hoparlör)
+bu sayfada değil, Komuta → Anons ekranındaki kanal listesinde tanımlanır ve
+denenir (web/hoparlorler.py, docs/17 K22). Burada yalnız özeti görünür.
 """
 
 from __future__ import annotations
 
 from pathlib import Path, PurePosixPath
-from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
-from app import ayarlar as ayarlar_modulu
 from app import zaman
-from app.hatalar import AyarHatasi, DogrulamaHatasi
-from app.olaylar import ses_cihazlari, test_sesi
-from app.web.ortak import baglanti_al, rtsp_maskele
+from app.hatalar import DogrulamaHatasi
+from app.olaylar.kanallar import KANAL_KISA_ADLARI, TUM_FABRIKA
+from app.web.ortak import baglanti_al
 from app.web.rotalar import sablonlar
 
 router = APIRouter()
-
-# Anons yolları .env'deki ANONS ayarına göre; burada yalnızca gösterilir
-ANONS_ACIKLAMALARI = {
-    "null": "Kapalı — yalnızca ekran uyarısı verilir, hoparlörden ses çıkmaz.",
-    "ses_karti": "Bu bilgisayarın ses kartı — hoparlör/amfi doğrudan bilgisayara bağlı.",
-    "http": "IP hoparlör / anons sunucusu — ihlalde adrese HTTP isteği gönderilir.",
-}
 
 # "Anonsu Dene" hangi ekrandan basıldıysa oraya döner. Ham yol DEĞİL anahtar
 # alınır: dışarıdan verilen bir adrese yönlendirme (açık yönlendirme açığı)
 # mümkün olmasın (olaylar_web.py'deki DONUS_YOLLARI ile aynı desen).
 DONUS_YOLLARI = {"anons": "/anons?sonuc=denendi", "komuta": "/komuta/anons?sonuc=denendi"}
+
+
+def kanal_durumu(baglanti) -> dict:
+    """Açık kanalların sayısı, türlere göre dökümü ve "Tüm fabrika" var mı."""
+    satirlar = baglanti.execute("SELECT kind, area FROM speaker_zones WHERE enabled = 1").fetchall()
+    turler = [
+        f"{sum(1 for s in satirlar if s['kind'] == tur)} {ad}"
+        for tur, ad in KANAL_KISA_ADLARI.items()
+        if any(s["kind"] == tur for s in satirlar)
+    ]
+    return {
+        "kanal_sayisi": len(satirlar),
+        "kanal_dokumu": " · ".join(turler),
+        "tum_fabrika_var": any(not s["area"] for s in satirlar),
+        "tum_fabrika": TUM_FABRIKA,
+    }
 
 
 @router.get("/anons", response_class=HTMLResponse)
@@ -53,84 +64,13 @@ def anons_sayfasi(istek: Request, sonuc: str = "", baglanti=Depends(baglanti_al)
         {
             "aktif_sekme": "anons",
             "mesajlar": mesajlar,
-            "anons_yolu": ayarlar.anons,
-            "anons_aciklamasi": ANONS_ACIKLAMALARI.get(ayarlar.anons, ayarlar.anons),
-            "anons_adresi": rtsp_maskele(ayarlar.anons_http_adresi),  # R18
             "bekleme_sn": ayarlar.anons_bekleme_sn,
             "son_sonuc": getattr(supervizor, "_anons", None) and supervizor._anons.son_sonuc,
             "analiz_calisiyor": supervizor is not None,
             "sonuc_mesaji": sonuc,
-            **ses_cikisi_baglami(ayarlar),
+            **kanal_durumu(baglanti),
         },
     )
-
-
-def ses_cikisi_baglami(ayarlar) -> dict:
-    """ "Ses çıkışı" bölümünün verisi: hangi çıkışlar var, hangisi seçili, bağlı mı.
-
-    Kendi fonksiyonunda: hem bu sayfa hem komuta kabuğundaki anons ekranı
-    aynı tabloyu göstermeli. İki ayrı yerde üretilseydi biri hoparlörü bağlı,
-    diğeri kopmuş gösterebilirdi.
-    """
-    cihazlar = ses_cihazlari.cihazlari_listele()
-    secili = ayarlar.anons_ses_cihazi
-    return {
-        "ses_cihazlari": cihazlar,
-        "secili_ses_cihazi": secili,
-        "ses_secimi_destekleniyor": ses_cihazlari.secim_destekleniyor_mu(),
-        # True = bağlı · False = seçili cihaz listede yok (koptu) · None = öğrenilemedi
-        "ses_cihazi_bagli": ses_cihazlari.cihaz_bagli_mi(secili),
-        "ses_cihazlari_okunabildi": bool(cihazlar),
-    }
-
-
-@router.post("/anons/ses-cikisi")
-def ses_cikisini_kaydet(istek: Request, ses_cihazi: str = Form("")):
-    """Seçilen ses çıkışını .env'e yazar (ANONS_SES_CIHAZI).
-
-    Neden burada, Ayarlar sayfasında değil: seçenekler SABİT DEĞİL, o anda
-    bilgisayara bağlı olan cihazlardan üretiliyor ve yanında "bağlı mı" ile
-    "Test sesi çal" duruyor. Bunları Ayarlar sayfasının statik alan listesine
-    sığdırmak, hoparlör kurulumunu iki ekrana bölerdi.
-
-    Değer DOĞRULANMAZ (serbest metin): Bluetooth hoparlör o an kapalıysa
-    listede görünmez; kullanıcının daha önce seçtiği adı silmek, hoparlörü
-    açtığında ayarının kaybolmuş olması demekti.
-    """
-    ayarlar = istek.app.state.ayarlar
-    degisiklik = {"ANONS_SES_CIHAZI": ses_cihazi.strip()}
-    # Serbest metin ama TEK SATIR: satır sonu taşıyan bir ad .env'e yeni bir
-    # satır (ör. boş YONETICI_SIFRESI) eklerdi (docs/AUDIT.md R14).
-    try:
-        ayarlar_modulu.env_degisikliklerini_dogrula(degisiklik)
-    except AyarHatasi as hata:
-        raise DogrulamaHatasi(
-            "Ses çıkışının adı satır sonu ya da görünmeyen karakter içeremez; "
-            "listeden yeniden seçin."
-        ) from hata
-    ayarlar_modulu.env_dosyasina_yaz(ayarlar.env_yolu, degisiklik)
-    return RedirectResponse("/anons?sonuc=ses_cikisi", status_code=303)
-
-
-@router.post("/anons/test-sesi")
-def test_sesi_cal(istek: Request):
-    """Mesaj kurmadan, doğrudan seçili çıkışa kısa bir test sesi çalar.
-
-    Ayrı bir düğme: "Anonsu Dene" bir MESAJA ve ona bağlı bir .wav dosyasına
-    ihtiyaç duyar. Hoparlörü ilk kez bağlayan kullanıcının elinde henüz ikisi
-    de yoktur; "önce ses dosyası hazırlayın" demek, kurulumun ilk adımında
-    duvara toslamaktır. Ses dosyası burada ÜRETİLİR (stdlib `wave`).
-    """
-    ayarlar = istek.app.state.ayarlar
-    if ayarlar.anons != "ses_karti":
-        raise DogrulamaHatasi(
-            "Test sesi yalnızca “Bu bilgisayarın ses kartı” seçiliyken çalınır. "
-            "IP hoparlör için mesajın yanındaki “Anonsu Dene” düğmesini kullanın."
-        )
-    hata = test_sesi.cal(ayarlar.anons_ses_cihazi)
-    if hata:
-        return RedirectResponse(f"/anons?sonuc=test_hata&ayrinti={quote(hata)}", status_code=303)
-    return RedirectResponse("/anons?sonuc=test_calindi", status_code=303)
 
 
 @router.post("/anons/{mesaj_id}/kaydet")

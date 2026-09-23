@@ -127,40 +127,11 @@ AYAR_GRUPLARI: tuple[AyarGrubu, ...] = (
     AyarGrubu(
         baslik="Anons (hoparlör)",
         aciklama=(
-            "İhlalde sesin nereden çıkacağını belirler. Mesajların metnini ve "
-            "hangi bölümde hangi hoparlörün konuşacağını Anons sistemi sayfasından "
-            "ayarlarsınız."
+            "Sesin hangi kanaldan çıkacağı (bu bilgisayarın ses çıkışı, Bluetooth "
+            "hoparlör, IP hoparlör) burada değil, Anons sistemi ekranındaki kanal "
+            "listesinde tanımlanır. Buradaki iki ayar bütün kanallar için ortaktır."
         ),
         alanlar=(
-            AyarAlani(
-                anahtar="ANONS",
-                alan="anons",
-                etiket="Anons yolu",
-                tur="secim",
-                secenekler=(
-                    ("null", "Kapalı — yalnızca ekran uyarısı"),
-                    ("ses_karti", "Bu bilgisayarın ses kartı"),
-                    ("http", "IP hoparlör / anons sunucusu"),
-                ),
-                aciklama=(
-                    "“Kapalı” seçiliyken hoparlörden hiç ses çıkmaz; ihlal yine "
-                    "ekranda görünür ve kaydedilir."
-                ),
-            ),
-            AyarAlani(
-                anahtar="ANONS_HTTP_ADRESI",
-                alan="anons_http_adresi",
-                etiket="IP hoparlör adresi",
-                tur="metin",
-                maskeli=True,
-                ipucu="http://10.0.0.9:8080/anons",
-                aciklama=(
-                    "Yalnızca “IP hoparlör” seçiliyken kullanılır ve http:// veya "
-                    "https:// ile başlamalıdır. Bölüm bazlı hoparlörler Anons "
-                    "sistemi sayfasından tanımlanır; burası onların hiçbirine "
-                    "uymayan ihlaller için kullanılan adrestir."
-                ),
-            ),
             AyarAlani(
                 anahtar="ANONS_HTTP_BICIMI",
                 alan="anons_http_bicimi",
@@ -174,7 +145,7 @@ AYAR_GRUPLARI: tuple[AyarGrubu, ...] = (
                 aciklama=(
                     "IP hoparlörler isteği aynı biçimde beklemez; cihazınızın "
                     "belgesinde yazan biçimi seçin. “Yalnızca adres” seçilirse "
-                    "adreste {anahtar} yer tutucusu bulunmalıdır — örnek: "
+                    "kanalın adresinde {anahtar} yer tutucusu bulunmalıdır; örnek: "
                     "http://10.0.0.9/play?file={anahtar} · Hangi cihaz için "
                     "hangisi: docs/14-ANONS-SISTEMI-BAGLAMA.md"
                 ),
@@ -618,9 +589,10 @@ def _anlasilir_hata(mesaj: str) -> str:
     büyük harfli anahtar görmesi kafa karıştırır.
     """
     metin = mesaj.replace(".env dosyasında ", "")
-    # UZUN anahtar önce: "ANONS" kısa adı, "ANONS_HTTP_ADRESI"nin içinde de
-    # geçer. Kısa olan önce değiştirilirse uzun anahtar ortasından bölünür ve
-    # ekranda "“Anons yolu”_HTTP_ADRESI" gibi bir metin çıkardı.
+    # UZUN anahtar önce: bir anahtar başka bir anahtarın içinde geçebilir
+    # (eskiden "ANONS" ile "ANONS_HTTP_ADRESI"). Kısa olan önce değiştirilirse
+    # uzun anahtar ortasından bölünür ve ekranda "“Etiket”_HTTP_ADRESI" gibi
+    # bir metin çıkardı.
     for alan in sorted(TUM_ALANLAR, key=lambda a: len(a.anahtar), reverse=True):
         metin = metin.replace(alan.anahtar, f"“{alan.etiket}”")
     return "Ayarlar kaydedilmedi. " + metin

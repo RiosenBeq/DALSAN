@@ -21,7 +21,7 @@ from app import zaman
 from app.hatalar import DogrulamaHatasi
 from app.olaylar import ses_cihazlari
 from app.olaylar.anons import bolgeleri_sec
-from app.olaylar.kanallar import KANAL_TURLERI, TUM_FABRIKA
+from app.olaylar.kanallar import KANAL_KISA_ADLARI, KANAL_TURLERI, TUM_FABRIKA, kanal_ozeti
 from app.olaylar.yazici import sistem_olayi_yaz
 from app.rules.motor import KALIBRASYON_GEREKTIREN
 from app.web import kkd_karnesi
@@ -126,8 +126,7 @@ def _alt_baslik(ekran: str, istek: Request, baglanti, toplam: int, bolum: int) -
             "SELECT (SELECT COUNT(*) FROM speaker_zones WHERE enabled = 1) AS kanal, "
             "(SELECT COUNT(*) FROM announcement_messages WHERE enabled = 1) AS mesaj"
         ).fetchone()
-        kanal = f"{sayi['kanal']} sesli kanal" if sayi["kanal"] else "sesli kanal yok"
-        return f"{kanal} · {sayi['mesaj']} hazır mesaj"
+        return f"{kanal_ozeti(sayi['kanal'])} · {sayi['mesaj']} hazır mesaj"
     if ekran == "nesneler":
         # Gerçek sayılar: kaç nesne tanıtıldı, toplam kaç referans fotoğraf var.
         sayi = baglanti.execute(
@@ -1020,10 +1019,6 @@ def _zincir_rozeti(satir) -> tuple[str, str]:
     if satir["shadow_mode"]:
         return ("gölge mod", "sari")
     return ("aktif", "yesil")
-
-
-# Kanal türünün satır içindeki kısa adı ("IP hoparlör · Sevkiyat rampaları")
-KANAL_KISA_ADLARI = {"http": "IP hoparlör", "ses_karti": "ses çıkışı"}
 
 
 def _kanal_etiketi(kanal: dict) -> str:

@@ -36,11 +36,15 @@ def test_sayi_bozuksa_hata(tmp_path):
     assert "alti" in hata.value.kullanici_mesaji
 
 
-def test_anons_http_secilip_adres_bos_ise_hata(tmp_path):
-    _env_yaz(tmp_path, "ANONS=http\n")
-    with pytest.raises(AyarHatasi) as hata:
-        ayarlari_yukle(tmp_path)
-    assert "ANONS_HTTP_ADRESI" in hata.value.kullanici_mesaji
+def test_eski_anons_anahtarlari_acilisi_durdurmaz(tmp_path):
+    """ANONS / ANONS_SES_CIHAZI / ANONS_HTTP_ADRESI emekli: kanal tanımı artık
+    veritabanındadır (docs/17 K22). Eski .env satırları ilk açılışta bir kez
+    aktarılır (olaylar/kanallar.py), ayar olarak okunmaz; eskiden açılışı
+    durduran bozuk değer de artık durdurmaz."""
+    _env_yaz(tmp_path, "ANONS=http\nANONS_HTTP_ADRESI=10.0.0.9/anons\nANONS_SES_CIHAZI=x\n")
+    ayarlar = ayarlari_yukle(tmp_path)
+    for eski in ("anons", "anons_ses_cihazi", "anons_http_adresi"):
+        assert not hasattr(ayarlar, eski)
 
 
 def test_gecersiz_secenek_hata(tmp_path):

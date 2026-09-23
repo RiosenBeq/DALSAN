@@ -194,7 +194,7 @@ def test_mac_uygulama_paketinin_yanindaki_klasor(monkeypatch, tmp_path):
 # ------------------------------------------------------------------ .env dosyası
 
 
-ORNEK_ENV = "OLAY_SAKLAMA_GUN=30\nANONS=null\n"
+ORNEK_ENV = "OLAY_SAKLAMA_GUN=30\nANONS_BEKLEME_SN=30\n"
 
 
 def test_paketlenmis_calismada_env_ornekten_bir_kez_olusturulur(sahte_paket, tmp_path):

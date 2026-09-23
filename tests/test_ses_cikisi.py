@@ -246,71 +246,40 @@ def test_test_sesi_diske_kalici_dosya_birakmaz(monkeypatch, tmp_path):
 
 
 # ------------------------------------------------------------------ ekran
+#
+# Ses çıkışı artık bir kanal satırıdır (speaker_zones, docs/17 K22): seçimi,
+# kopma uyarısı ve test sesi Komuta → Anons ekranındaki kanal listesindedir
+# (tests/test_kanal_ekrani.py). Eski /anons sayfasında yalnız özet kalır.
 
 
-def _ses_kartina_al(istemci, test_ayarlari):
-    """Ayarları "ses kartı" yoluna çevirir (kart yalnızca o yolda görünür)."""
-    object.__setattr__(test_ayarlari, "anons", "ses_karti")
-    return istemci
+def _kanal(istemci, **alanlar):
+    veri = {"name": "Genel", "kind": "ses_karti", "device": "hoparlor-1", "enabled": "1"}
+    return istemci.post("/hoparlorler/kaydet", data={**veri, **alanlar})
 
 
-def test_ses_karti_yolunda_cikis_karti_gorunur(istemci, test_ayarlari):
-    _ses_kartina_al(istemci, test_ayarlari)
+def test_eski_sayfa_kanal_ozetini_gosterir(istemci, monkeypatch):
+    monkeypatch.setattr(ses_cihazlari, "secim_destekleniyor_mu", lambda: True)
     sayfa = istemci.get("/anons").text
-    assert "Ses çıkışı" in sayfa
-    assert "Test sesi çal" in sayfa
-
-
-def test_ip_hoparlor_yolunda_cikis_karti_gizli(istemci, test_ayarlari):
-    """IP hoparlörde ses bilgisayardan HİÇ çıkmaz; çıkış cihazı diye bir
-    kavram yoktur ve kart gösterilse kullanıcıyı yanıltırdı."""
-    object.__setattr__(test_ayarlari, "anons", "http")
-    assert "Ses çıkışı" not in istemci.get("/anons").text
-
-
-def test_kopmus_hoparlor_ekranda_kirmizi_yaziyor(istemci, test_ayarlari, monkeypatch):
-    """Sessiz kalması, anonsun hiçbir yere gitmediğini kimsenin bilmemesi demekti."""
-    object.__setattr__(test_ayarlari, "anons", "ses_karti")
-    object.__setattr__(test_ayarlari, "anons_ses_cihazi", "kapali-hoparlor")
-    monkeypatch.setattr(
-        ses_cihazlari,
-        "cihazlari_listele",
-        lambda: [ses_cihazlari.SesCihazi(kimlik="baska", ad="Başka")],
-    )
+    assert "Sesli kanal yok" in sayfa
+    assert "/komuta/anons#kanallar" in sayfa
+    _kanal(istemci, area="Sevkiyat")
+    _kanal(istemci, name="Depo", kind="http", address="http://10.0.0.9/a", area="")
     sayfa = istemci.get("/anons").text
-    assert "seçili cihaz bağlı değil" in sayfa
-    assert "anonslar duyulmaz" in sayfa
-    # Kapalı cihaz seçenek olarak KALMALI: kalmazsa form kaydedilince ayar
-    # sessizce silinir ve kullanıcı hoparlörü açtığında seçimi kaybolmuş olur.
-    assert "kapali-hoparlor" in sayfa
+    assert "2 açık kanal" in sayfa and "1 ses çıkışı · 1 IP hoparlör" in sayfa
+    # Ses çıkışı seçimi bu sayfada YOK: iki tanım yeri olsaydı hangisinin
+    # geçerli olduğu anlaşılmazdı
+    assert 'name="ses_cihazi"' not in sayfa
 
 
-def test_secim_desteklenmeyen_platformda_ne_yapilacagi_yaziyor(istemci, test_ayarlari, monkeypatch):
-    object.__setattr__(test_ayarlari, "anons", "ses_karti")
-    monkeypatch.setattr(ses_cihazlari, "secim_destekleniyor_mu", lambda: False)
-    sayfa = istemci.get("/anons").text
-    assert "sistem ayarlarından" in sayfa
-    assert "Bluetooth" in sayfa
-    assert 'name="ses_cihazi"' not in sayfa, "çalışmayan bir seçim kutusu gösterilmemeli"
+def test_tum_fabrika_yoksa_eski_sayfa_soyler(istemci, monkeypatch):
+    monkeypatch.setattr(ses_cihazlari, "secim_destekleniyor_mu", lambda: True)
+    _kanal(istemci, area="Sevkiyat")
+    assert "kanalı yok: bölümünde kanal olmayan olay sesli duyurulmaz" in istemci.get("/anons").text
 
 
-def test_cikis_kaydedilince_yeniden_baslatma_soyleniyor(istemci, test_ayarlari):
-    """Ayarlar açılışta bir kez okunur; söylenmezse "kaydettim ama değişmedi"."""
-    object.__setattr__(test_ayarlari, "anons", "ses_karti")
-    yanit = istemci.post(
-        "/anons/ses-cikisi", data={"ses_cihazi": "hoparlor-1"}, follow_redirects=False
-    )
-    assert yanit.status_code == 303
-    assert "ANONS_SES_CIHAZI=hoparlor-1" in test_ayarlari.env_yolu.read_text(encoding="utf-8")
-    assert "yeniden başlat" in istemci.get("/anons?sonuc=ses_cikisi").text
-
-
-def test_test_sesi_yanlis_yolda_reddedilir(istemci, test_ayarlari):
-    object.__setattr__(test_ayarlari, "anons", "http")
-    yanit = istemci.post("/anons/test-sesi", follow_redirects=False)
-    assert yanit.status_code == 400
-    assert "Anonsu Dene" in yanit.text
-
-
-# Komuta kabuğundaki anons ekranı artık ses çıkışını kanal satırında gösterir;
-# kopuk çıkış uyarısı ve form tests/test_kanal_ekrani.py'de.
+@pytest.mark.parametrize("yol", ["/anons/ses-cikisi", "/anons/test-sesi"])
+def test_env_ses_cikisi_uclari_kalkti(istemci, test_ayarlari, yol):
+    """Ses çıkışı .env'e yazılmaz; test sesi kanalın kendi satırından çalar."""
+    yanit = istemci.post(yol, data={"ses_cihazi": "hoparlor-1"}, follow_redirects=False)
+    assert yanit.status_code == 404
+    assert not test_ayarlari.env_yolu.exists()

@@ -107,8 +107,6 @@ def _girisli(istemci: TestClient, sifre: str) -> None:
 
 
 TAM_FORM = {
-    "ANONS": "null",
-    "ANONS_HTTP_ADRESI": "",
     "ANONS_BEKLEME_SN": "30",
     "TESPIT_INSAN_GUVEN_ESIGI": "0.28",
     "TESPIT_GUVEN_ESIGI": "0.35",
@@ -441,15 +439,28 @@ def test_izinli_adlar_ayarlar_sayfasindan_yazilir(test_ayarlari):
 
 def test_ses_cikisi_adi_env_dosyasina_satir_ekleyemez(test_ayarlari):
     """Ses çıkışı adı serbest metindir (kapalı Bluetooth hoparlör listede
-    görünmez). 'hdmi\\nYONETICI_SIFRESI=' dosyaya yeni bir satır ekliyor ve
-    python-dotenv son satırı okuduğu için ŞİFREYİ SİLİYORDU — çalıştırılarak
-    doğrulandı."""
-    env = f"YONETICI_SIFRESI={SIFRE}\nSUNUCU_ADRESI=127.0.0.1\nANONS_SES_CIHAZI=\n"
+    görünmez). Eskiden .env'e yazılıyordu ve 'hdmi\\nYONETICI_SIFRESI=' dosyaya
+    yeni bir satır ekleyip, python-dotenv son satırı okuduğu için ŞİFREYİ
+    SİLİYORDU (R14; çalıştırılarak doğrulandı). Ad artık kanal satırındadır
+    (speaker_zones, docs/17 K22): .env'e yazan uç yoktur ve satır sonu taşıyan
+    ad kanal formunda da reddedilir."""
+    env = f"YONETICI_SIFRESI={SIFRE}\nSUNUCU_ADRESI=127.0.0.1\n"
     with _istemci(test_ayarlari, SIFRE, env) as istemci:
         _girisli(istemci, SIFRE)
-        yanit = istemci.post(
+        eski_uc = istemci.post(
             "/anons/ses-cikisi",
             data={"ses_cihazi": "hdmi\nYONETICI_SIFRESI="},
+            follow_redirects=False,
+        )
+        assert eski_uc.status_code == 404
+        yanit = istemci.post(
+            "/hoparlorler/kaydet",
+            data={
+                "name": "Genel",
+                "kind": "ses_karti",
+                "device": "hdmi\nYONETICI_SIFRESI=",
+                "enabled": "1",
+            },
             follow_redirects=False,
         )
         assert yanit.status_code == 400
@@ -459,11 +470,11 @@ def test_ses_cikisi_adi_env_dosyasina_satir_ekleyemez(test_ayarlari):
 @pytest.mark.parametrize(
     "kotu",
     [
-        "http://10.0.0.9/a\r\nSUNUCU_ADRESI=0.0.0.0",
+        "10.0.0.9\r\nSUNUCU_ADRESI=0.0.0.0",
         # str.splitlines() bunu da satır sonu sayar: bir SONRAKİ kayıtta
         # aynı enjeksiyon doğardı.
-        "http://10.0.0.9/a SUNUCU_ADRESI=0.0.0.0",
-        "http://10.0.0.9/a\x00",
+        "10.0.0.9 SUNUCU_ADRESI=0.0.0.0",
+        "10.0.0.9\x00",
     ],
 )
 def test_ayarlar_sayfasi_kontrol_karakterini_reddeder(test_ayarlari, kotu):
@@ -471,7 +482,7 @@ def test_ayarlar_sayfasi_kontrol_karakterini_reddeder(test_ayarlari, kotu):
         _girisli(istemci, SIFRE)
         yanit = istemci.post(
             "/ayarlar/kaydet",
-            data={**TAM_FORM, "ANONS_HTTP_ADRESI": kotu},
+            data={**TAM_FORM, "IZINLI_SUNUCU_ADLARI": kotu},
             follow_redirects=False,
         )
         assert yanit.status_code == 400

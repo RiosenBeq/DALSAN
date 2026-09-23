@@ -1,4 +1,4 @@
-"""Ayarlar sayfası: eşikleri ve anons adresini ekrandan değiştirme.
+"""Ayarlar sayfası: eşikleri ve anons ayarlarını ekrandan değiştirme.
 
 NEDEN GEREKLİ: paketlenmiş programda `.env` dosyası kullanıcı profilindeki,
 gözle bulunamayan bir klasörde durur ve kullanıcı yazılım bilmiyor. Bu sayfa
@@ -35,16 +35,15 @@ CIKARIM_CIHAZI=cpu          # cpu | cuda   (fabrikada: cuda)
 TESPIT_GUVEN_ESIGI=0.35
 TESPIT_INSAN_GUVEN_ESIGI=0.28
 
-# --- Anons: null | ses_karti | http ---
-ANONS=null
-ANONS_HTTP_ADRESI=
+# --- Anons ---
+ANONS_HTTP_BICIMI=json
+ANONS_BEKLEME_SN=30
 """
 
 # Formun tamamı gönderilir (tarayıcı da böyle yapar); testler yalnızca
 # ilgilendikleri alanı değiştirir.
 TAM_FORM = {
-    "ANONS": "null",
-    "ANONS_HTTP_ADRESI": "",
+    "ANONS_HTTP_BICIMI": "json",
     "ANONS_BEKLEME_SN": "30",
     "TESPIT_INSAN_GUVEN_ESIGI": "0.28",
     "TESPIT_GUVEN_ESIGI": "0.35",
@@ -215,33 +214,15 @@ def test_gecersiz_deger_mesaji_anahtar_degil_ekran_adini_soyluyor(ayarli_istemci
     assert ".env" not in govde
 
 
-def test_anons_http_secilip_adres_bos_birakilirsa_kaydedilmez(ayarli_istemci):
-    """Açılışta durduran kural, kaydetme anında da geçerlidir."""
-    istemci, ayarlar = ayarli_istemci
-    onceki = ayarlar.env_yolu.read_text(encoding="utf-8")
-
-    yanit = istemci.post(
-        "/ayarlar/kaydet",
-        data=_form(ANONS="http", ANONS_HTTP_ADRESI=""),
-        headers={"accept": "text/html"},
-    )
-
-    assert yanit.status_code == 400
-    assert ayarlar.env_yolu.read_text(encoding="utf-8") == onceki
-
-
-def test_anons_adresi_semasiz_yazilirsa_kaydedilmez(ayarli_istemci):
-    istemci, ayarlar = ayarli_istemci
-    onceki = ayarlar.env_yolu.read_text(encoding="utf-8")
-
-    yanit = istemci.post(
-        "/ayarlar/kaydet",
-        data=_form(ANONS="http", ANONS_HTTP_ADRESI="10.0.0.9/anons"),
-        headers={"accept": "text/html"},
-    )
-
-    assert yanit.status_code == 400
-    assert ayarlar.env_yolu.read_text(encoding="utf-8") == onceki
+def test_anons_kanali_ayarlar_sayfasinda_yok(ayarli_istemci):
+    """Kanal (ses çıkışı, IP hoparlör adresi) Anons sistemi ekranında tanımlanır
+    (docs/17 K22); Ayarlar'da ikinci bir tanım yeri olsaydı hangisinin geçerli
+    olduğu anlaşılmazdı."""
+    istemci, _ = ayarli_istemci
+    govde = istemci.get("/ayarlar").text
+    assert 'name="ANONS"' not in govde
+    assert 'name="ANONS_HTTP_ADRESI"' not in govde
+    assert 'name="ANONS_HTTP_BICIMI"' in govde
 
 
 def test_kaydedilen_deger_sistemin_acilisinda_gecerli_oluyor(ayarli_istemci, tmp_path):
@@ -249,14 +230,11 @@ def test_kaydedilen_deger_sistemin_acilisinda_gecerli_oluyor(ayarli_istemci, tmp
     from app.ayarlar import ayarlari_yukle
 
     istemci, ayarlar = ayarli_istemci
-    istemci.post(
-        "/ayarlar/kaydet",
-        data=_form(ANONS="http", ANONS_HTTP_ADRESI="http://10.0.0.9:8080/anons"),
-    )
+    istemci.post("/ayarlar/kaydet", data=_form(ANONS_HTTP_BICIMI="form", ANONS_BEKLEME_SN="45"))
 
     yeniden = ayarlari_yukle(ayarlar.kok_dizin)
-    assert yeniden.anons == "http"
-    assert yeniden.anons_http_adresi == "http://10.0.0.9:8080/anons"
+    assert yeniden.anons_http_bicimi == "form"
+    assert yeniden.anons_bekleme_sn == 45
 
 
 def test_env_dosyasi_yoksa_kayit_yine_de_calisir(test_ayarlari):
@@ -298,23 +276,23 @@ def test_env_guncelle_olmayan_anahtari_sona_ekliyor():
     assert "B=2" in yeni
 
 
-def test_anons_hata_mesajinda_iki_ayar_da_dogru_adiyla_geciyor(ayarli_istemci):
-    """ "ANONS" kısa adı, "ANONS_HTTP_ADRESI"nin İÇİNDE de geçer.
+def test_hata_mesajinda_ic_ice_anahtar_dogru_adiyla_geciyor(ayarli_istemci):
+    """ "OLAY_SAKLAMA_GUN", "SISTEM_OLAY_SAKLAMA_GUN"un İÇİNDE de geçer.
 
     Kısa anahtar önce değiştirilirse uzun anahtar ortasından bölünür ve ekranda
-    "“Anons yolu”_HTTP_ADRESI" gibi bozuk bir metin çıkar.
+    "SISTEM_“İhlal kayıtları (gün)”" gibi bozuk bir metin çıkar.
     """
     istemci, _ = ayarli_istemci
 
     govde = istemci.post(
         "/ayarlar/kaydet",
-        data=_form(ANONS="http", ANONS_HTTP_ADRESI=""),
+        data=_form(SISTEM_OLAY_SAKLAMA_GUN="0"),
         headers={"accept": "text/html"},
     ).text
 
-    assert "IP hoparlör adresi" in govde
-    assert "_HTTP_ADRESI" not in govde
-    assert "ANONS" not in govde
+    assert "Sistem olayları (gün)" in govde
+    assert "SISTEM_" not in govde
+    assert "SAKLAMA_GUN" not in govde
 
 
 @pytest.mark.parametrize(
@@ -330,11 +308,11 @@ def test_yazilan_deger_aynen_geri_okunuyor(tmp_path, deger):
     from app.ayarlar import env_degerlerini_oku, env_dosyasina_yaz
 
     env_yolu = tmp_path / ".env"
-    env_yolu.write_text("ANONS_HTTP_ADRESI=\n", encoding="utf-8")
+    env_yolu.write_text("IZINLI_SUNUCU_ADLARI=\n", encoding="utf-8")
 
-    env_dosyasina_yaz(env_yolu, {"ANONS_HTTP_ADRESI": deger})
+    env_dosyasina_yaz(env_yolu, {"IZINLI_SUNUCU_ADLARI": deger})
 
-    assert env_degerlerini_oku(env_yolu)["ANONS_HTTP_ADRESI"] == deger
+    assert env_degerlerini_oku(env_yolu)["IZINLI_SUNUCU_ADLARI"] == deger
 
 
 def test_tirnakli_degerin_ici_aciklama_sanilmiyor():

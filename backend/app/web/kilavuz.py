@@ -371,21 +371,20 @@ def _ham_adimlar(baglanti, supervizor, ayarlar) -> list[dict]:
         {
             "no": 6,
             "baslik": "Sesli anons kuruldu mu?",
-            "tamam": ayarlar.anons != "null",
+            # Kanal tanımı veritabanındadır (speaker_zones, docs/17 K22)
+            "tamam": hoparlor_sayisi > 0,
             "hal": "",
             "aciklama": (
-                (
-                    "Anons açık"
-                    + (f", {hoparlor_sayisi} hoparlör bölgesi tanımlı." if hoparlor_sayisi else ".")
-                )
-                if ayarlar.anons != "null"
+                f"{hoparlor_sayisi} açık sesli kanal tanımlı."
+                if hoparlor_sayisi
                 else (
-                    "Anons kapalı: uyarılar ekranda ve olay listesinde görünür, ama "
-                    "hoparlörden ses çıkmaz. Sistemi anonssuz da kullanabilirsiniz."
+                    "Sesli kanal yok: uyarılar ekranda ve olay listesinde görünür, ama "
+                    "hoparlörden ses çıkmaz. Bu bilgisayarın ses çıkışını ya da bir IP "
+                    "hoparlörü kanal olarak ekleyin; sistemi anonssuz da kullanabilirsiniz."
                 )
             ),
             "bag": "/komuta/anons",
-            "bag_yazi": "Anonsu aç",
+            "bag_yazi": "Kanal ekle",
             "istege_bagli": True,
             "engeller": False,
         },

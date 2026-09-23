@@ -14,7 +14,6 @@ günlüğe yazıyordu. Şimdi:
 
 from __future__ import annotations
 
-import dataclasses
 import json
 import logging
 
@@ -183,29 +182,30 @@ ANONS_ADRESI = "http://kul:ayar-sifresi@10.0.0.9/anons"
 
 @pytest.fixture
 def anonslu_istemci(test_ayarlari):
-    ayarlar = dataclasses.replace(test_ayarlari, anons="http", anons_http_adresi=ANONS_ADRESI)
-    ayarlar.env_yolu.write_text(f"ANONS=http\nANONS_HTTP_ADRESI={ANONS_ADRESI}\n", encoding="utf-8")
-    with TestClient(uygulama_olustur(ayarlar, analiz=False)) as istemci:
-        yield istemci, ayarlar
+    """Eski kurulum: IP hoparlör adresi .env'de, kullanıcı adı ve şifresiyle.
+    İlk açılışta "Tüm fabrika" kanalına aktarılır (docs/17 K22)."""
+    test_ayarlari.env_yolu.write_text(
+        f"ANONS=http\nANONS_HTTP_ADRESI={ANONS_ADRESI}\n", encoding="utf-8"
+    )
+    with TestClient(uygulama_olustur(test_ayarlari, analiz=False)) as istemci:
+        yield istemci, test_ayarlari
 
 
 @pytest.mark.parametrize("yol", ["/ayarlar", "/anons", "/komuta/anons"])
-def test_anons_adresi_hicbir_sayfada_sifreli_basilmaz(anonslu_istemci, yol):
+def test_aktarilan_anons_adresi_hicbir_sayfada_sifreli_basilmaz(anonslu_istemci, yol):
     istemci, _ = anonslu_istemci
-    metin = istemci.get(yol).text
-    assert "ayar-sifresi" not in metin
-    assert "http://••••@10.0.0.9/anons" in metin
+    assert "ayar-sifresi" not in istemci.get(yol).text
 
 
-def test_ayarlar_maskeli_adresle_kaydedince_sifre_korunur(anonslu_istemci):
-    istemci, ayarlar = anonslu_istemci
-    yanit = istemci.post(
-        "/ayarlar/kaydet",
-        data={"ANONS": "http", "ANONS_HTTP_ADRESI": "http://••••@10.0.0.9/anons"},
-        follow_redirects=False,
-    )
+def test_aktarilan_adres_kanal_listesinde_maskeli(anonslu_istemci, test_ayarlari):
+    istemci, _ = anonslu_istemci
+    assert "http://••••@10.0.0.9/anons" in istemci.get("/komuta/anons").text
+    # Maskeli adresle kaydetmek kayıtlı kimliği korur (formdaki •••• geri çözülür)
+    kanal_id, adres = _hoparlor_adresi(test_ayarlari)
+    assert adres == ANONS_ADRESI
+    yanit = _hoparlor_kaydet(istemci, "http://••••@10.0.0.9/anons", hoparlor_id=kanal_id)
     assert yanit.status_code == 303
-    assert f"ANONS_HTTP_ADRESI={ANONS_ADRESI}" in ayarlar.env_yolu.read_text(encoding="utf-8")
+    assert _hoparlor_adresi(test_ayarlari) == (kanal_id, ANONS_ADRESI)
 
 
 # ------------------------------------------------------------------ günlük

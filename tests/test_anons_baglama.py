@@ -103,43 +103,47 @@ def test_yer_tutucusuz_adres_degismez():
 
 
 def test_hoparlor_bolgesi_bicimi_korur(test_ayarlari, yakalanan):
-    """Bölgeye giden anons da .env'deki biçimi kullanmalı."""
-    ayarlar = type(test_ayarlari)(
-        **{
-            **test_ayarlari.__dict__,
-            "anons": "http",
-            "anons_http_adresi": "http://varsayilan/{anahtar}",
-            "anons_http_bicimi": "get",
-        }
-    )
+    """Kanala giden anons da .env'deki biçimi (ANONS_HTTP_BICIMI) kullanmalı."""
+    ayarlar = type(test_ayarlari)(**{**test_ayarlari.__dict__, "anons_http_bicimi": "get"})
     yonetici = anons.AnonsYoneticisi(ayarlar)
     hedef = yonetici._hedef_anonscu({"address": "http://sevkiyat/{anahtar}", "name": "Sevkiyat"})
     assert hedef.bicim == "get"
     assert hedef.adres == "http://sevkiyat/{anahtar}"
 
 
-def test_get_bicimi_yer_tutucusuz_adresi_reddeder(tmp_path):
-    """Yer tutucusuz GET adresi HER ihlalde aynı sesi çalardı; açılışta durdurulur."""
-    from app.ayarlar import AyarHatasi, ayarlari_yukle
+def _get_bicimli_istemci(test_ayarlari):
+    import dataclasses
 
-    (tmp_path / ".env").write_text(
-        "ANONS=http\nANONS_HTTP_BICIMI=get\nANONS_HTTP_ADRESI=http://10.0.0.9/play\n",
-        encoding="utf-8",
+    from fastapi.testclient import TestClient
+
+    from app.uygulama import uygulama_olustur
+
+    ayarlar = dataclasses.replace(test_ayarlari, anons_http_bicimi="get")
+    return TestClient(uygulama_olustur(ayarlar, analiz=False))
+
+
+def _ip_kanali(istemci, adres: str):
+    return istemci.post(
+        "/hoparlorler/kaydet",
+        data={"name": "Rampa", "kind": "http", "address": adres, "enabled": "1"},
+        follow_redirects=False,
     )
-    with pytest.raises(AyarHatasi) as hata:
-        ayarlari_yukle(tmp_path)
-    assert "{anahtar}" in str(hata.value.kullanici_mesaji)
 
 
-def test_get_bicimi_yer_tutuculu_adresi_kabul_eder(tmp_path):
-    from app.ayarlar import ayarlari_yukle
+def test_get_bicimi_yer_tutucusuz_adresi_reddeder(test_ayarlari):
+    """Yer tutucusuz GET adresi HER ihlalde aynı sesi çalardı; kanal formu kaydetmez.
 
-    (tmp_path / ".env").write_text(
-        "ANONS=http\nANONS_HTTP_BICIMI=get\nANONS_HTTP_ADRESI=http://10.0.0.9/play?f={anahtar}\n",
-        encoding="utf-8",
-    )
-    ayarlar = ayarlari_yukle(tmp_path)
-    assert ayarlar.anons_http_bicimi == "get"
+    Eskiden bu denetim .env'deki tek adres için açılışta yapılırdı; adres artık
+    kanal satırındadır (docs/17 K22)."""
+    with _get_bicimli_istemci(test_ayarlari) as istemci:
+        yanit = _ip_kanali(istemci, "http://10.0.0.9/play")
+        assert yanit.status_code == 400
+        assert "{anahtar}" in yanit.json()["hata"]
+
+
+def test_get_bicimi_yer_tutuculu_adresi_kabul_eder(test_ayarlari):
+    with _get_bicimli_istemci(test_ayarlari) as istemci:
+        assert _ip_kanali(istemci, "http://10.0.0.9/play?f={anahtar}").status_code == 303
 
 
 def test_deneme_dugmesi_ayarlardaki_bicimi_kullanir():

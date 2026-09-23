@@ -26,11 +26,23 @@ KANAL_TURLERI = {
     "ses_karti": "Ses çıkışı (kablolu ya da Bluetooth)",
     "http": "IP hoparlör",
 }
+# Satır içindeki kısa ad ("IP hoparlör · Sevkiyat rampaları")
+KANAL_KISA_ADLARI = {"ses_karti": "ses çıkışı", "http": "IP hoparlör"}
 TUM_FABRIKA = "Tüm fabrika"  # area = '' satırının ekrandaki adı
 
 # sema_surumu'na yazılan adım adı. Betik değildir (.sql değil); semayi_uygula
 # yalnız .sql dosyalarını uyguladığı için karışmaz. MAX(surum) "009_…sql"de kalır.
 AKTARIM_ADIMI = "009_uyari_kanallari.env_aktarimi"
+
+
+def kanal_ozeti(acik_kanal: int) -> str:
+    """Kısa durum metni ("3 sesli kanal" / "sesli kanal yok"). Ana sayfa, komuta
+    alt başlığı ve anons yöneticisi aynı cümleyi kullanır."""
+    return f"{acik_kanal} sesli kanal" if acik_kanal else "sesli kanal yok"
+
+
+def acik_kanal_sayisi(baglanti: sqlite3.Connection) -> int:
+    return baglanti.execute("SELECT COUNT(*) FROM speaker_zones WHERE enabled = 1").fetchone()[0]
 
 
 def _aktarim_gerekli_mi(baglanti: sqlite3.Connection) -> bool:

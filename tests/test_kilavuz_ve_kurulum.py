@@ -237,10 +237,31 @@ def test_kurulum_bitince_liste_rozete_donuyor(istemci, test_ayarlari):
 
 
 def test_anons_istege_bagli_kurulumu_engellemiyor(istemci, test_ayarlari):
-    """Test ayarlarında ANONS kapalıdır; sistem yine de "hazır" sayılmalı."""
+    """Sesli kanal tanımlı değil; sistem yine de "hazır" sayılmalı."""
     _kurulumu_tamamla(istemci, test_ayarlari)
-    assert istemci.app.state.ayarlar.anons == "null"
     assert "Sistem hazır." in istemci.get("/komuta").text
+
+
+def test_anons_adimi_kanal_eklenince_tamamlanir(istemci, test_ayarlari):
+    """Adım .env'e değil kanal satırlarına bakar (docs/17 K22)."""
+    from app.web.kilavuz import kurulum_durumu
+
+    def _anons_adimi() -> dict:
+        baglanti = veritabani.baglanti_ac(test_ayarlari.veritabani_yolu)
+        try:
+            adimlar = kurulum_durumu(baglanti, None, test_ayarlari)["adimlar"]
+        finally:
+            baglanti.close()
+        return next(a for a in adimlar if a["no"] == 6)
+
+    assert _anons_adimi()["durum"] != "tamam"
+    assert "Sesli kanal yok" in _anons_adimi()["aciklama"]
+    istemci.post(
+        "/hoparlorler/kaydet",
+        data={"name": "Genel", "kind": "http", "address": "http://10.0.0.9/a", "enabled": "1"},
+    )
+    assert _anons_adimi()["durum"] == "tamam"
+    assert "1 açık sesli kanal" in _anons_adimi()["aciklama"]
 
 
 def test_anons_adimi_istege_bagli_etiketli(istemci):

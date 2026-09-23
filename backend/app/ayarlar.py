@@ -27,7 +27,6 @@ from app.hatalar import AyarHatasi
 # güvenmez (Kontrol Paneli uvicorn'u backend/ içinden başlatır) ve paketlenmiş
 # çalışmada veri klasörünün nereye taşındığını da bilmek zorunda değildir.
 
-_ANONS_SECENEKLERI = ("null", "ses_karti", "http")
 
 # IP hoparlörlerin/anons sunucularının HTTP arayüzü tek tip DEĞİLDİR: kimi
 # JSON gövde bekler, kimi form alanı, kimi de yalnızca adrese bir GET ister.
@@ -77,12 +76,11 @@ class Ayarlar:
     # 0.0.0.0 = ağdaki diğer cihazlar da erişebilir (uzaktan erişimin ön koşulu).
     # Şifresiz bir sistemin ağa açılması AÇILIŞTA REDDEDİLİR — bkz. ayarlari_yukle.
     sunucu_adresi: str
-    anons: str
-    # ANONS=ses_karti iken hangi ses ÇIKIŞINA çalınacağı. Boş = işletim
-    # sisteminin varsayılanı. Yalnızca Linux'ta uygulanır; sebebi
-    # olaylar/ses_cihazlari.py başında.
-    anons_ses_cihazi: str
-    anons_http_adresi: str
+    # Uyarı KANALLARI (ses çıkışı, IP hoparlör) .env'de değil, veritabanında
+    # tanımlanır (speaker_zones; Komuta → Anons, docs/17 K22). Eski ANONS /
+    # ANONS_SES_CIHAZI / ANONS_HTTP_ADRESI satırları ilk açılışta bir kez
+    # "Tüm fabrika" kanalına aktarılır (olaylar/kanallar.py) ve sonra okunmaz.
+    # Biçim bütün IP hoparlörler için ortaktır.
     anons_http_bicimi: str
     anons_bekleme_sn: int
     model_dosyasi: Path
@@ -355,36 +353,11 @@ def ayarlari_coz(
             "Uzaktan erişim tarifi: docs/15-UZAKTAN-ERISIM.md"
         )
 
-    anons = _secenek(degerler, "ANONS", varsayilan="null", secenekler=_ANONS_SECENEKLERI)
-    anons_http_adresi = degerler.get("ANONS_HTTP_ADRESI", "")
+    # IP hoparlör adresleri kanal satırlarındadır ve kanal formunda doğrulanır
+    # (şema, GET yer tutucusu, R30: web/hoparlorler.py).
     anons_http_bicimi = _secenek(
         degerler, "ANONS_HTTP_BICIMI", varsayilan="json", secenekler=_ANONS_BICIM_SECENEKLERI
     )
-    if anons == "http":
-        if not anons_http_adresi:
-            raise AyarHatasi(
-                ".env dosyasında ANONS=http seçilmiş ama ANONS_HTTP_ADRESI boş. "
-                "Anons sunucusunun adresini yazın veya ANONS=null yapın."
-            )
-        # Şemasız adres (ör. '10.0.0.5/anons') urllib'de her ihlalde ValueError
-        # fırlatırdı; hatayı açılışta ve anlaşılır biçimde ver.
-        if not anons_http_adresi.startswith(("http://", "https://")):
-            raise AyarHatasi(
-                ".env dosyasında ANONS_HTTP_ADRESI http:// veya https:// ile başlamalı; "
-                f"şu an '{anons_http_adresi}' yazıyor. Örnek: http://10.0.0.9:8080/anons"
-            )
-        # GET biçiminde mesaj GÖVDEDE gönderilemez; adresin hangi mesajın
-        # çalınacağını taşıması gerekir. Yer tutucusuz bir adres, her ihlalde
-        # AYNI sesi çalardı ve kullanıcı bunu ancak sahada fark ederdi.
-        if anons_http_bicimi == "get" and not any(
-            yer in anons_http_adresi for yer in ("{anahtar}", "{metin}")
-        ):
-            raise AyarHatasi(
-                ".env dosyasında ANONS_HTTP_BICIMI=get seçilmiş ama ANONS_HTTP_ADRESI "
-                "hangi mesajın çalınacağını taşımıyor. Adrese {anahtar} yer tutucusunu "
-                "ekleyin. Örnek: http://10.0.0.9/play?file={anahtar}. "
-                "Ayrıntı: docs/14-ANONS-SISTEMI-BAGLAMA.md"
-            )
 
     return Ayarlar(
         kok_dizin=kok,
@@ -427,12 +400,6 @@ def ayarlari_coz(
         ),
         yonetici_sifresi=yonetici_sifresi,
         sunucu_adresi=sunucu_adresi,
-        anons=anons,
-        # Cihaz adı DOĞRULANMAZ: Bluetooth hoparlör o an kapalıysa listede
-        # görünmez ve doğrulama, sistemin hoparlör yüzünden HİÇ AÇILMAMASINA
-        # yol açardı. Bağlı olup olmadığı Anons sayfasında gösterilir.
-        anons_ses_cihazi=_metin(degerler, "ANONS_SES_CIHAZI", ""),
-        anons_http_adresi=anons_http_adresi,
         anons_http_bicimi=anons_http_bicimi,
         # Anons, ekran uyarısından bağımsız ve daha seyrek çalar (docs/02 §7):
         # hoparlör aynı kamera+mesaj için bu süre dolmadan tekrar bağırmaz.

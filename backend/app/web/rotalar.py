@@ -20,6 +20,7 @@ from app import kaynaklar, veritabani, zaman
 from app.analiz.model_adi import gorunen_model_adi
 from app.hatalar import VeritabaniHatasi
 from app.loglama import log_al
+from app.olaylar.kanallar import acik_kanal_sayisi, kanal_ozeti
 from app.rules.olay_kodu import IHLAL_ONEMLERI, ONEM_ADLARI
 from app.web.kilavuz import kalibrasyon_bekleyen_kurallar
 from app.web.ortak import (
@@ -107,7 +108,8 @@ def ana_sayfa(istek: Request, yedek: str = "", baglanti=Depends(baglanti_al)):
     supervizor = getattr(istek.app.state, "supervizor", None)
     if supervizor is None:
         model_durumu, model_hatasi = "kapali", "analiz başlatılmadı"
-        anons_durumu = "—"
+        # Analiz kapalıyken de kanal durumu bilinir: tanım veritabanındadır
+        anons_durumu = kanal_ozeti(acik_kanal_sayisi(baglanti))
     else:
         # yukleniyor | indiriliyor | hazir | hata (supervizor.model_durumu)
         model_durumu = supervizor.model_durumu
@@ -300,7 +302,7 @@ def _ayar_satirlari(ayarlar) -> list[tuple[str, str]]:
         ("Çıkarım cihazı", ayarlar.cikarim_cihazi),
         ("Kare örnekleme", f"{ayarlar.kare_ornekleme_fps} fps"),
         ("Tespit modeli", gorunen_model_adi(ayarlar.model_dosyasi.name)),
-        ("Anons", ayarlar.anons),
+        ("Anons tekrar aralığı", f"{ayarlar.anons_bekleme_sn} sn"),
     ]
 
 
