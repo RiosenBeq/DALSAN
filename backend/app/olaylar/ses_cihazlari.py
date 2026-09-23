@@ -161,6 +161,22 @@ def guncel_cikis(beklenen: str, cihazlar: list[SesCihazi]) -> str:
     return beklenen
 
 
+def ses_sunucusu_durumu() -> bool | None:
+    """Linux'ta ses sunucusuna (PulseAudio ya da PipeWire'ın pipewire-pulse'u)
+    bağlanılabiliyor mu: True/False; `pactl` yoksa ya da cevap alınamadıysa None.
+
+    Container'da `paplay` vardır ama host'un ses soketi bağlanmamışsa hiçbir
+    çıkışa çalamaz (docs/14 §2.4). Bu durum "liste okunamadı" (bilinmiyor)
+    sayılsaydı kanal gri kalır, 30 sn sonra "koptu" olmazdı (docs/17 §7.6).
+    """
+    if sys.platform in ("darwin", "win32") or not shutil.which("pactl"):
+        return None
+    try:
+        return bool(_calistir(["pactl", "info"]).strip())
+    except (OSError, subprocess.SubprocessError):
+        return None
+
+
 def bluetooth_mu(cikis_adi: str) -> bool:
     """Çıkış Bluetooth mu? Linux'ta sink adı ("bluez…"), öbür sistemlerde ad ipucu."""
     return _bluetooth_mu(cikis_adi)

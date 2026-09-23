@@ -833,10 +833,11 @@ class AnonsYoneticisi:
         self._son_cihazlar = cihazlar
         secim = ses_cihazlari.secim_destekleniyor_mu()
         calici_var = sys.platform == "win32" or _ses_komutu("deneme") is not None
+        sunucu = ses_cihazlari.ses_sunucusu_durumu() if ses_var else None
         for kanal in kanallar:
             if self._saglik_dur.is_set():
                 return  # kapanış: süpervizörün kapanış kayıtlarından sonra olay yazılmasın
-            self._kanali_yokla(baglanti, kanal, cihazlar, secim, calici_var, simdi)
+            self._kanali_yokla(baglanti, kanal, cihazlar, secim, calici_var, sunucu, simdi)
         # Silinen ya da kapatılan kanalın açık "koptu" olayı asılı kalmasın
         acik_idler = {int(k["id"]) for k in kanallar}
         with self._haller_kilidi:
@@ -860,6 +861,7 @@ class AnonsYoneticisi:
         cihazlar: list[ses_cihazlari.SesCihazi],
         secim: bool,
         calici_var: bool,
+        sunucu: bool | None,
         simdi: float,
     ) -> None:
         kid = int(kanal["id"])
@@ -881,6 +883,7 @@ class AnonsYoneticisi:
             secim=secim,
             calici_var=calici_var,
             adres_dogrula=hoparlor_adresini_dogrula,
+            ses_sunucusu=sunucu,
         )
         with self._haller_kilidi:
             kod = ilerle(hali, sonuc, simdi, self._kopuk_esigi)

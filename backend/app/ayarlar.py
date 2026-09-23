@@ -311,6 +311,10 @@ def ayarlari_coz(
     # kullanıcının kendi dosyasıdır - kendiliğinden silinmemelidir.
     video_klasoru = kok / _metin(degerler, "VIDEO_KLASORU", "veri/videolar")
     log_dosyasi = veri_dizini / "loglar" / "sistem.log"
+    # Anons WAV'larının yeri (docs/14 §2.3): veri/ altında olduğu için yedeğe
+    # girer ve Docker'da container'a bağlı klasörde durur. Yol ayar değildir;
+    # her mesajın dosya yolu Anons sayfasında yazılır.
+    ses_klasoru = veri_dizini / "sesler"
 
     for klasor in (
         veritabani_yolu.parent,
@@ -319,6 +323,7 @@ def ayarlari_coz(
         nesne_tarama_klasoru,
         video_klasoru,
         log_dosyasi.parent,
+        ses_klasoru,
     ):
         _klasor_olustur(klasor)
 

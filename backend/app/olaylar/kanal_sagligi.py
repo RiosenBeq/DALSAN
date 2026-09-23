@@ -20,7 +20,9 @@ kopma eşiği dolana kadar son karar (çoğunlukla "ok") korunur. Böylece ekran
 Ne yoklanır:
   ses çıkışı (Linux)  satırın çıkışı `pactl` listesinde mi (Bluetooth'ta aynı
                       adres de sayılır, profil soneki değişebilir); çalıcı yoksa
-                      (container, R36) False; çıkış adı boşsa None (R37)
+                      (container, R36) ya da ses sunucusuna bağlanılamıyorsa
+                      (container'a ses soketi bağlanmamış) False; çıkış adı
+                      boşsa None (R37)
   ses çıkışı (macOS)  varsayılan çıkış satırın beklediği mi; okunamazsa None
   ses çıkışı (Windows) her zaman None: varsayılan çıkış ek modülsüz okunamaz
   IP hoparlör         adresin host:port'una ≤3 sn TCP bağlantısı; R30 reddi False.
@@ -128,11 +130,13 @@ def kanal_yokla(
     calici_var: bool,
     adres_dogrula=None,
     platform: str | None = None,
+    ses_sunucusu: bool | None = None,
 ) -> tuple[bool | None, str]:
     """Kanal şu an bağlı mı: (sonuç, açıklama). İstisna fırlatmaz.
 
     `cihazlar` bu turda bir kez okunmuş çıkış listesidir (boş = okunamadı).
     `adres_dogrula`: IP hoparlör adresinin R30 denetimi (olaylar/anons.py).
+    `ses_sunucusu`: bu turun ses_cihazlari.ses_sunucusu_durumu() sonucu.
     `platform`: yalnız testler için (varsayılan sys.platform).
     """
     if kanal.get("kind") == "ses_karti":
@@ -142,6 +146,7 @@ def kanal_yokla(
             secim,
             calici_var,
             platform or sys.platform,
+            ses_sunucusu,
         )
     return _ip_hoparlor_yokla((kanal.get("address") or "").strip(), adres_dogrula)
 
@@ -152,6 +157,7 @@ def _ses_cikisi_yokla(
     secim: bool,
     calici_var: bool,
     platform: str,
+    ses_sunucusu: bool | None = None,
 ) -> tuple[bool | None, str]:
     if platform == "win32":
         return None, "Windows'ta çıkışın durumu ek modül olmadan okunamıyor"
@@ -166,6 +172,12 @@ def _ses_cikisi_yokla(
         return False, f"varsayılan çıkış başka bir cihaz: {varsayilan.ad}"
     if not calici_var:
         return False, "ses çalıcı yok (paplay/aplay); container'da ses yolu kurulmamış olabilir"
+    if ses_sunucusu is False:
+        return (
+            False,
+            "ses sunucusuna (PulseAudio/PipeWire) bağlanılamadı; container'da ses "
+            "soketi bağlanmamış olabilir (docs/14 §2.4)",
+        )
     if not cihaz:
         return None, "çıkış seçilmemiş (eski kayıt)"
     if not cihazlar:

@@ -56,7 +56,10 @@ services:
     #           count: 1
     #           capabilities: [gpu]
 
-    # --- Anons için ses kartı (yalnızca Linux) ---
-    # Bu bilgisayarın ses çıkışı bir uyarı kanalıysa (Anons sistemi ekranı) açın:
-    # devices:
-    #   - "/dev/snd:/dev/snd"
+    # --- Anons için bu bilgisayarın ses çıkışı (kablolu amfi ya da Bluetooth) ---
+    # Ses çıkışı bir uyarı kanalıysa (Anons sistemi ekranı) bu dosyayla birlikte
+    # docker-compose.ses.yml kullanılır; tarif o dosyanın başında ve docs/14 §2.4'te:
+    #   docker compose -f docker-compose.yml -f docker-compose.ses.yml up -d
+    # Eskiden burada önerilen /dev/snd (ALSA) Bluetooth hoparlörü görmez ve
+    # imajda ALSA çalıcısı yoktur; kullanılmaz. Ses yolu kurulmadan bir ses
+    # çıkışı kanalı açılırsa kanal 30 sn sonra "koptu" görünür (docs/17 §7.6).

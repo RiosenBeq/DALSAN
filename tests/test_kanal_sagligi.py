@@ -115,6 +115,28 @@ def test_calici_yoksa_koptu_liste_okunamazsa_bilinmiyor():
     assert _yokla(_ses(BT), ())[0] is None
 
 
+def test_ses_sunucusuna_baglanilamiyorsa_koptu():
+    """Container'da paplay var ama host'un ses soketi bağlanmamış (docs/14 §2.4):
+    "liste okunamadı" (gri) değil, "koptu" (docs/17 §7.6: sessiz kalmaz)."""
+    sonuc, neden = _yokla(_ses(BT), (), ses_sunucusu=False)
+    assert sonuc is False and "ses sunucusuna" in neden
+    assert _yokla(_ses(BT), (), ses_sunucusu=None)[0] is None, "öğrenemedik ≠ koptu"
+    assert _yokla(_ses(BT), _cihazlar(BT), ses_sunucusu=True)[0] is True
+
+
+def test_ses_sunucusu_durumu_pactl_info_ile(monkeypatch):
+    from app.olaylar import ses_cihazlari
+
+    monkeypatch.setattr(ses_cihazlari.sys, "platform", "linux")
+    monkeypatch.setattr(ses_cihazlari.shutil, "which", lambda ad: None)
+    assert ses_cihazlari.ses_sunucusu_durumu() is None, "pactl yoksa bilinmiyor"
+    monkeypatch.setattr(ses_cihazlari.shutil, "which", lambda ad: f"/usr/bin/{ad}")
+    monkeypatch.setattr(ses_cihazlari, "_calistir", lambda komut: "")
+    assert ses_cihazlari.ses_sunucusu_durumu() is False
+    monkeypatch.setattr(ses_cihazlari, "_calistir", lambda komut: "Server Name: PulseAudio\n")
+    assert ses_cihazlari.ses_sunucusu_durumu() is True
+
+
 def test_windows_her_zaman_bilinmiyor_macos_varsayilana_bakar():
     assert _yokla(_ses("Hoparlör"), platform="win32")[0] is None
     varsayilan = [SesCihazi(kimlik="JBL Flip", ad="JBL Flip", varsayilan=True)]

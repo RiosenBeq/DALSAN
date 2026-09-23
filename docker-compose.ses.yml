@@ -1,0 +1,46 @@
+# DALSAN İSG - container'dan bu bilgisayarın ses çıkışına anons
+# (docs/17 §7.6 yol A; tarif ve sorun giderme: docs/14 §2.4).
+#
+# Ses çıkışı (kablolu amfi ya da Bluetooth hoparlör) bir uyarı kanalıysa
+# docker-compose.yml ile BİRLİKTE kullanılır:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.ses.yml up -d
+#
+# Ne yapar: host'ta çalışan ses sunucusunun (PulseAudio ya da PipeWire'ın
+# pipewire-pulse'u) soketini container'a bağlar ve container'ı o soketin sahibi
+# olan kullanıcının numarasıyla çalıştırır: ses sunucusu kendi kullanıcısına
+# çalar. Bluetooth hoparlör de o ses sunucusunda bir çıkıştır; container
+# Bluetooth'a doğrudan dokunmaz, eşleştirme host'ta bir kez yapılır.
+#
+# VERİLMEYENLER (docs/16 §4): privileged, host ağı, NET_ADMIN, NET_RAW,
+# /dev/snd. Bluetooth yeniden bağlanma bekçisi yazılmadığı için (S9) D-Bus da
+# bağlanmaz.
+#
+# Önce bir kez, host'ta sesin çalacağı kullanıcıyla:
+#   id -u ; id -g        kullanıcı ve grup numarası (çoğu kurulumda 1000)
+#   pactl info           "Server Name" satırı ses sunucusunun çalıştığını gösterir
+#   sudo chown -R "$(id -u):$(id -g)" veri ayar
+#                        container artık root değil: eski dosyalar yazılabilsin
+# Numara 1000 değilse komutun başına yazın:
+#   DALSAN_UID=1001 DALSAN_GID=1001 docker compose -f docker-compose.yml \
+#       -f docker-compose.ses.yml up -d
+#
+# DOĞRULANMADI: bu yol hedef sunucuda henüz derlenip denenmedi (docs/17 §7.6).
+# Denendiğinde sonucu docs/14 §2.4'e yazın.
+
+services:
+  dalsan:
+    user: "${DALSAN_UID:-1000}:${DALSAN_GID:-1000}"
+    environment:
+      PULSE_SERVER: "unix:/run/dalsan-ses/native"
+      # Numarası passwd'de olmayan kullanıcının ev dizini yoktur; ses istemcisi
+      # kendi ayar klasörünü burada arar
+      HOME: "/tmp"
+    volumes:
+      - type: bind
+        source: "/run/user/${DALSAN_UID:-1000}/pulse/native"
+        target: /run/dalsan-ses/native
+        bind:
+          # Soket yoksa (ses sunucusu çalışmıyor) Docker onun yerine boş bir
+          # klasör açmasın: container açılmaz, sebebi `up` çıktısında yazar
+          create_host_path: false

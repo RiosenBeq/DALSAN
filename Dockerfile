@@ -7,8 +7,14 @@ FROM python:3.12-slim
 #  libsm6, libxext6      → bazı OpenCV yapılarının bağımlılığı
 #  ffmpeg                → RTSP akışının çözülmesi
 # curl: sağlık kontrolü (healthcheck) için
+# pulseaudio-utils: paplay ve pactl. "Ses çıkışı" uyarı kanalı (kablolu amfi ya
+#   da Bluetooth hoparlör) container'dan host'un ses sunucusuna çalar
+#   (docker-compose.ses.yml; docs/17 §7.6 yol A, docs/14 §2.4). Ses sunucusu
+#   imajda YOKTUR, yalnız istemci araçları. Bluetooth yeniden bağlanma bekçisi
+#   yazılmadığı için bluez istemcisi eklenmez (docs/17 §7.5-3, S9).
+#   Paket adı bu depoda imaj derlenerek denenmedi (DOĞRULANMADI).
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        libgl1 libglib2.0-0 libsm6 libxext6 ffmpeg curl \
+        libgl1 libglib2.0-0 libsm6 libxext6 ffmpeg curl pulseaudio-utils \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /uygulama
