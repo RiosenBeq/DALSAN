@@ -1196,6 +1196,25 @@
   .nesne-tablo .komuta-tablo-satiri { grid-template-columns: 34px 1fr 62px; }
 }
 
+/* Kılavuzdaki simge sözlüğü: öğe rozeti · adı · ürettiği ihlal. OGELER
+   tablosundan üretilir; yeni öğe eklenince kılavuz kendiliğinden güncellenir. */
+.simge-sozlugu {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px 16px;
+  margin: 6px 0 14px;
+}
+.simge-sozlugu-ogesi {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 11px;
+  align-items: center;
+  font-size: 13px;
+  line-height: 1.35;
+}
+.simge-sozlugu-ogesi b { display: block; font-weight: 640; }
+.durum-ornekleri { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+
 /* Kılavuzdaki karar tabloları ("sizde hangi altyapı var", "hangi sayı neyi
    söyler"). Düz metin yerine tablo: kullanıcı kendi durumunu satırda bulup
    karşısındaki cevabı okur, paragraf taramak zorunda kalmaz. */

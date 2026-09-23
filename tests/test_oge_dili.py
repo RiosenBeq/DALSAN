@@ -325,3 +325,17 @@ def test_kamera_sayfasinda_bolge_cipi_ve_kural_rozeti(istemci, test_ayarlari):
     assert 'class="bolge-cipi bolge-pedestrian-path"' in metin
     assert 'class="oge-rozeti oge-yaya-yolu kucuk" title="Yaya yolu"' in metin
     assert "#s-yaya-yolu" in metin
+
+
+def test_kilavuz_her_ogeyi_aciklamasiyla_gosterir(istemci):
+    """Sözlük OGELER'den üretilir: yeni öğe eklenince kılavuzda eksik kalmaz,
+    ama açıklaması yoksa boş satır çıkar — bu test onu yakalar."""
+    metin = istemci.get("/komuta/kilavuz").text
+    sozluk = metin.split('class="simge-sozlugu"', 1)[1].split('class="durum-ornekleri"', 1)[0]
+    for oge in OGELER.values():
+        assert f'class="oge-rozeti oge-{oge.anahtar}" title="{oge.ad}"' in sozluk, oge.anahtar
+    aciklamalar = re.findall(r'<span class="soluk-metin">([^<]*)</span>', sozluk)
+    assert len(aciklamalar) == len(OGELER)
+    assert all(a.strip() for a in aciklamalar)
+    for durum in ("new", "reviewed", "false-alarm"):
+        assert f'class="durum-hapi durum-{durum}"' in metin

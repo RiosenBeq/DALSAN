@@ -16,7 +16,9 @@ from app.hatalar import VeritabaniHatasi
 from app.web.ortak import (
     ANONS_OGELERI,
     BOLGE_SIMGELERI,
+    OGE_IHLAL_ADLARI,
     OGELER,
+    OLAY_DURUMLARI,
     SINIF_OGELERI,
     SINIFLAR,
     baglanti_al,
@@ -53,6 +55,10 @@ sablonlar.env.globals["OGELER"] = OGELER
 sablonlar.env.globals["SINIF_OGELERI"] = SINIF_OGELERI
 sablonlar.env.globals["ANONS_OGELERI"] = ANONS_OGELERI
 sablonlar.env.globals["BOLGE_SIMGELERI"] = BOLGE_SIMGELERI
+# Kılavuzun simge sözlüğü bu iki tablodan üretilir; elle yazılmış bir
+# liste, yeni öğe eklendiğinde kılavuzda eksik kalırdı.
+sablonlar.env.globals["OGE_IHLAL_ADLARI"] = OGE_IHLAL_ADLARI
+sablonlar.env.globals["OLAY_DURUMLARI"] = OLAY_DURUMLARI
 
 # GİRİŞ İSTEMEYEN rotalar. Yalnız iki tane vardır ve ikisi de sistem bilgisi
 # taşımaz: tarayıcı simgesi ve canlılık yoklaması. Ayrı bir router olmalarının

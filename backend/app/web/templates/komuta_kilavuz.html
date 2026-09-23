@@ -7,6 +7,7 @@
    Sayfadaki tek değişken sayı, üstteki kurulum satırıdır; o da gerçek
    veritabanı durumundan gelir. Geri kalanı sabit metindir — uydurma sayı yok. #}
 {% extends "komuta_temel.html" %}
+{% from "bilesen.html" import oge_rozeti, durum_hapi %}
 {% block icerik %}
 
 <div class="kilavuz-duzen">
@@ -297,6 +298,29 @@
         ölçebildiğimiz tek veri budur; hangi kuralın hangi kamerada yanıldığı ancak
         böyle görünür ve eşikler ona göre düzeltilir. Yanlış uyarı biriken bir sistem,
         bir süre sonra hiç kimsenin dinlemediği bir sisteme dönüşür.</p>
+
+      <h3>Simgeler: uyarı neyle ilgili?</h3>
+      <p>Her olayın yanında, neyle ilgili olduğunu gösteren renkli bir simge durur.
+        Aynı simge her ekranda aynı anlama gelir: forklift her yerde turuncu,
+        yelek her yerde sarıdır. Simge tek başına durmaz, yanında yazısı vardır.</p>
+      {# Liste OGELER tablosundan üretilir (web/ortak.py); alt satır, öğenin
+         ürettiği ihlalin adıdır. İhlal üretmeyen üç öğe için kısa açıklama. #}
+      {% set ek_aciklama = {
+           "insan": "Tanınan kişi",
+           "kamera": "Kamera sorunu: görüntü gelmiyor",
+           "sistem": "Sistem olayı: başladı, durdu",
+         } %}
+      <div class="simge-sozlugu">
+        {% for oge in OGELER.values() %}
+        <div class="simge-sozlugu-ogesi">
+          {{ oge_rozeti(oge) }}
+          <span><b>{{ oge.ad }}</b>
+            <span class="soluk-metin">{{ OGE_IHLAL_ADLARI.get(oge.anahtar) or ek_aciklama.get(oge.anahtar, "") }}</span></span>
+        </div>
+        {% endfor %}
+      </div>
+      <p class="durum-ornekleri">Olayın durumu:
+        {% for anahtar, ad in OLAY_DURUMLARI.items() %}{{ durum_hapi(anahtar, ad) }}{% endfor %}</p>
       <p class="kilavuz-bag">
         <a class="dugme" href="/komuta/inceleme">Olay incelemeyi aç</a>
         <a href="/olaylar">Tüm olaylar →</a>
