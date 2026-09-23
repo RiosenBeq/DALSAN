@@ -68,6 +68,21 @@ Yeni bir araç, kütüphane, servis veya çalışma zamanı eklemeden önce sor:
 > Yeni bir CSS/JS **çatısı** (Tailwind, Bootstrap, React…) bu istisnaya
 > GİRMEZ ve hâlâ yasaktır. Lisanslar: `static/vendor/LISANSLAR.md`.
 
+> **`pywebview` istisnası (operatör isteği 23.09.2026: "tarayıcı da açılmaması
+> lazım").** Paketlenmiş uygulamada izleme ekranı, işletim sisteminin kendi web
+> görünümüyle (Windows'ta WebView2, macOS'ta WKWebView) programın kendi
+> penceresinde açılır; aracı `pywebview`'dir. Bu da "yeni kütüphane" yasağının
+> bilinçli ve SINIRLI bir istisnasıdır:
+>
+> * **Yalnız pakete girer** (`paketleme/requirements-paketleme.txt`). Sunucunun
+>   bağımlılığı değildir; `backend/` onu hiç import etmez.
+> * **Olmasa sistem yine çalışır**: ekran tarayıcının adres çubuksuz uygulama
+>   penceresine düşer. Olağan tarayıcı sekmesi hiçbir yoldan açılmaz.
+> * Arayüz yine Jinja2 + sade JS'tir. Masaüstü çatısı (Electron, Qt, Tauri) bu
+>   istisnaya GİRMEZ ve hâlâ yasaktır.
+>
+> Ayrıntı: `docs/13-UYGULAMA-PAKETLEME.md` §3.1.
+
 Gerekçeler: `docs/09-BASITLESTIRME-KARARLARI.md`
 
 ---

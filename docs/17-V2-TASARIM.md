@@ -1790,6 +1790,13 @@ docs/07'ye satır olur.
   mesajında uzun çizgi (U+2014), orta çizgi (U+2013), eksi işareti (U+2212) ve benzeri
   tipografik çizgiler kullanılmaz; yerine düz tire yazılır. Depodaki 1893 çizgi bir kez
   çevrildi; kural CLAUDE.md §7'de, bekçisi `tests/test_yazim_kurallari.py`.
+- **23.09.2026, izleme penceresi:** operatör "zaten exe olarak olması lazım tarayıcı da
+  açılmaması lazım ve bunu en iyi uygulama şeklinde yap fabrikada olacağı için" dedi.
+  İzleme ekranı artık işletim sisteminin web görünümüyle (WebView2 / WKWebView) programın
+  kendi penceresinde açılır; aracı `pywebview` 6.2.1'dir ve yalnız pakete girer (CLAUDE.md §4
+  istisnası). Yedek, Edge/Chrome/Brave uygulama kipidir; olağan tarayıcı sekmesine düşüş
+  kaldırıldı. pywebview'ün WebView2 yokken Internet Explorer motoruna düşmesi reddedilir.
+  Uygulama `masaustu/uygulama_penceresi.py`, docs/13 §3.1.
 
 | # | GÖREV | Soru | Neden önemli | Varsayılan seçenek | Gerektiği an |
 |---|---|---|---|---|---|

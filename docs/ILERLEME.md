@@ -1,5 +1,44 @@
 # İlerleme
 
+## İzleme ekranı kendi penceresinde, tarayıcısız (23.09.2026)
+
+Operatör: *"zaten exe olarak olması lazım tarayıcı da açılmaması lazım ve bunu
+en iyi uygulama şeklinde yap fabrikada olacağı için"*.
+
+- **Asıl yol:** işletim sisteminin web görünümü (Windows'ta WebView2, Mac'te
+  WKWebView), `pywebview` 6.2.1 ile; yalnız pakete girer (CLAUDE.md §4
+  istisnası). Pencere programın ayrı bir kopyasıdır (`--izleme-penceresi`) ve
+  Kontrol Paneli ile iki satırlık bir dil konuşur: sayfa yüklenince `HAZIR`,
+  düğmeye basılınca `GOSTER` (açık pencere öne gelir, ikincisi açılmaz). Panel
+  kapanınca ya da çökünce kanal kapanır, pencere de kapanır. Pencerenin
+  açılışı arka planda beklenir; panel donmaz.
+- **Yedek:** web görünümü kurulamazsa Edge/Chrome/Brave uygulama kipi (adres
+  çubuğu yok). Olağan tarayıcı sekmesine düşüş **kaldırıldı**; ikisi de
+  olmazsa günlük ne yapılacağını yazar (WebView2 Runtime kur).
+- **pywebview 6.2.1'in kaynağında bulunan dört tuzak:** (1) WebView2 yoksa
+  Windows'ta sessizce Internet Explorer motoruna düşer; izleme ekranı orada
+  çalışmaz, `initialized` olayında reddedilir. (2) Varsayılan ayarda yeni
+  pencere isteyen bağlantılar TARAYICIYI açar; kapatıldı. (3) İndirmeler
+  varsayılan olarak kapalıdır; açıldı (kaydetme penceresi). (4) `settings`
+  bir `dict` değil (`UserDict`): `isinstance(..., dict)` ile korunan bir atama
+  hiç çalışmazdı; ilk taslakta bu hata vardı, testle görüldü.
+- **Mac'te CSV:** `download` işareti olmayan bağlantı WKWebView'de dosyayı
+  indirmez, pencerede düz metin olarak açar ve geri düğmesi yoktur. Üç CSV
+  bağlantısına işaret kondu; test tüm şablonları korur.
+- **Yapılmayan:** ekran bipinin tıklamasız çalması için WebView2'ye
+  `--autoplay-policy` bayrağı verilmedi. Microsoft bu bayrakları deneme
+  içindir diye tarif ediyor ve üründe kaldırılmasını istiyor. Ses çipi
+  tıklama gerektiğini gösterir; hoparlör uyarıları buna bağlı değil.
+- **Doğrulanan:** süreç dili gerçek borularla, pywebview'ün davranışını taklit
+  eden sahte bir kütüphaneyle sınandı: açılış, öne getirme, panelle kapanış,
+  kullanıcı kapatınca sürecin bitmesi, IE motorunun reddi, yükleme zaman
+  aşımı, pywebview yokken yedek. İki bilerek bozma denemesini (arka plan işini
+  daemon olmayan yapmak, IE reddini kaldırmak) testler yakaladı. PyInstaller
+  6.22.2 kurulu Python 3.12'de paketleme testleri 92/92 geçti.
+- **DOĞRULANMADI:** gerçek Windows/Mac penceresi bu ortamda açılamaz (Linux,
+  ekran yok). Paketin pencere bileşenini gerçekten içerdiği, uygulamanın
+  Windows/Mac'te üretilip `--pencere-denetimi` ile sınanmasıyla görülecek.
+
 ## Yazım kuralı: çizgi işareti (23.09.2026)
 
 Operatör kararı: sistem genelinde çizgi işareti olarak yalnız düz tire (`-`)

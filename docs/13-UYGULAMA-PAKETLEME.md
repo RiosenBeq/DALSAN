@@ -85,7 +85,8 @@ gönderebilirsiniz.
 
 ## 3.1 Teslim edilen uygulama nasıl görünür
 
-Çift tıklayınca **iki pencere** vardır ve ikisi de uygulama penceresidir:
+Çift tıklayınca **iki pencere** vardır ve ikisi de programın kendi
+penceresidir; **tarayıcı hiçbir yoldan açılmaz** (operatör isteği 23.09.2026):
 
 1. **Kontrol Paneli** - başlat/durdur ve sistem günlüğü. Windows'ta görev
    çubuğunda kendi simgesiyle, ayrı bir uygulama olarak durur (Python'un
@@ -93,20 +94,31 @@ gönderebilirsiniz.
 2. **İzleme Ekranı** - asıl kullanılan ekran. Adres çubuğu, sekme şeridi ve
    yer imleri **yoktur**; sistem başlar başlamaz kendiliğinden açılır.
 
-İzleme penceresi, bilgisayarda zaten kurulu olan **Chrome / Edge / Brave**'in
-uygulama kipiyle açılır. Bu, pakete başka bir şey eklemeden uygulama penceresi
-elde etmenin en az parçalı yoludur:
+İzleme Ekranı'nı işletim sisteminin **kendi web görünümü** çizer: Windows'ta
+WebView2 (Windows 10 ve 11 ile gelir), Mac'te WKWebView (macOS'un parçası).
+Aracı `pywebview`'dir ve uygulamanın içinde gelir; karşı tarafın hiçbir şey
+kurması gerekmez. Pencere programın ayrı bir kopyasında açılır ve Kontrol
+Paneli'ne bağlıdır:
 
-* Windows'ta **Edge her kurulumda vardır ve kaldırılamaz** - yani karşı taraf
-  hiçbir şey indirmeden uygulama penceresini görür.
-* Üçünden hiçbiri yoksa (yalnız Safari'nin bulunduğu bir Mac) ekran olağan
-  tarayıcıda açılır, Kontrol Paneli günlüğüne tek satır not düşer ve sistem
-  tam olarak çalışmaya devam eder.
+* "İzleme Ekranını Aç" pencere açıkken ikinci bir pencere açmaz, açık olanı
+  öne getirir (küçültülmüşse eski boyutuna döner).
+* Kontrol Paneli kapanınca (ya da çökünce) izleme penceresi de kapanır:
+  sunucusu durmuş boş bir ekran ortada kalmaz.
+* CSV ve veri seti indirmeleri pencerede çalışır: "Kaydet" penceresi açılır.
+* Ekranın kendi bip sesi, web görünümü izin vermezse bir tıklama ister; ses
+  çipi bunu "etkinleştirmek için tıklayın" diye gösterir (docs/17 R41).
+  Hoparlör uyarıları sunucudan çalar, buna bağlı değildir.
 
-Bu pencere, kullanıcının açık tarayıcı oturumundan **ayrı bir profille**
-açılır (`tarayici-profili` klasörü). Böylece kullanıcı tarayıcısını kapatınca
-sistem ekranı kapanmaz, görev çubuğunda tarayıcıyla aynı simgenin altına
-gruplanmaz ve tarayıcı eklentileri sistemin sayfasına karışmaz. O klasör
+Web görünümü kurulamazsa (Windows'ta WebView2 kaldırılmış ya da bozuk) ekran
+bilgisayardaki **Edge / Chrome / Brave**'in uygulama kipinde açılır: yine
+adres çubuğu ve sekme yoktur, Windows'ta Edge her kurulumda vardır. O da
+yoksa olağan tarayıcı sekmesi **açılmaz**; Kontrol Paneli günlüğü neyin eksik
+olduğunu ve ne yapılacağını yazar (Windows'ta Microsoft'un sitesinden ücretsiz
+"WebView2 Runtime" kurulur). Sistem ve uyarı kanalları bu sırada çalışmaya
+devam eder.
+
+Pencerenin verisi (giriş çerezi, ekranın ses tercihi) kullanıcının tarayıcı
+oturumundan ayrı, `tarayici-profili` klasöründe durur. O klasör
 **yedeklenmez**: içinde kullanıcı verisi değil, önbellek vardır.
 
 ---
@@ -281,6 +293,21 @@ terminale de yazılır:
 "/Applications/NextGen Detector.app/Contents/MacOS/NextGen Detector"
 ```
 
+### İzleme penceresi açılmıyorsa
+Kontrol Paneli günlüğü sebebi yazar (örneğin "işletim sisteminin web görünümü
+açılamadı"). Pencere bileşeninin pakette olduğunu ve bu bilgisayarda
+yüklendiğini uygulamanın kendisi sınar; pencere açmaz, sonucu tek satırla
+söyler ve 0 koduyla biter:
+
+```
+NextGen Detector.exe --pencere-denetimi | Out-String        (Windows, PowerShell)
+"/Applications/NextGen Detector.app/Contents/MacOS/NextGen Detector" --pencere-denetimi
+```
+
+Windows'ta satırdaki `motor edgechromium` WebView2'nin kurulu olduğunu,
+`motor mshtml` kurulu olmadığını söyler: o durumda ekran yedek pencerede
+açılır, WebView2 Runtime kurulunca kendi penceresine döner.
+
 ---
 
 ## 8. Üretimi yapan dosyalar (ne nerede)
@@ -293,7 +320,7 @@ terminale de yazılır:
 | `paketleme/NextGenDetector-mac.spec` | macOS'a özel olanlar (`.app` kabuğu, kamera izni, OpenSSL düzeltmesi) |
 | `paketleme/NextGenDetector-windows.spec` | Windows'a özel olanlar (`.ico` simge, gizli konsol, açılış kancası) |
 | `paketleme/acilis_kancasi.py` | Gizli konsolun yuttuğu hataları görünür kılar (§7) |
-| `paketleme/requirements-paketleme.txt` | Paketleme aracının kendisi |
+| `paketleme/requirements-paketleme.txt` | Paketleme aracı ve pakete giren pencere bileşeni (`pywebview`) |
 
 Ortak bölümün ayrı bir dosyada olması bilinçlidir: iki tarif aynı listeleri
 kopyala-yapıştır taşısaydı zamanla ayrışır, biri güncellenip diğeri
@@ -313,6 +340,7 @@ ama üretimin sınanabilir her parçası `pytest` ile sınanıyor:
 | Paketten sistem **gerçekten açılıyor** | Tarifin listesi geçici bir klasöre kopyalanır, `sys._MEIPASS` oraya kurulur ve sistem ayrı bir süreçte açılıp sayfaları istenir |
 | Kayıtlar **pakete yazılmıyor** | Aynı testte: veritabanı ve `.env` kullanıcı klasöründe, paket klasörü el değmemiş olmalı |
 | `.env.example` **eksiksiz** | Sistemin okuduğu her ayar örnekte yazıyor mu; örnekte okunmayan ayar var mı |
+| İzleme penceresi **tarayıcı açmıyor** | Pencere süreci sahte bir `pywebview` ile gerçekten başlatılır: açılış, öne getirme, panelle kapanış, IE motorunun reddi ve yükleme zaman aşımı gerçek borularla sınanır; kodda `webbrowser` kullanımı yasaktır (`tests/test_uygulama_penceresi.py`) |
 
 Bu testler yalnızca **PyInstaller kuruluysa** çalışır (araç bilerek
 `backend/requirements.txt`'te değildir); kurulu değilse atlanır, kırılmaz.
