@@ -10,6 +10,9 @@ set -e
 cd "$(dirname "$0")"
 
 YAYIN="https://github.com/Megvii-BaseDetection/YOLOX/releases/download/0.1.1rc0"
+# Forklift tanıyan modeller bu deponun kendi yayınındadır (egitim/forklift,
+# docs/17 §12.3); backend/app/analiz/model_indir.py DALSAN_MODELLERI ile aynı.
+DALSAN_YAYINI="https://github.com/RiosenBeq/DALSAN/releases/download"
 
 # Dosya, SHA256SUMS'taki kendi satırıyla tutuyor mu? (Linux: sha256sum,
 # Mac: shasum - ikisi de işletim sistemiyle gelir.) Denetlenen dosya adı
@@ -25,8 +28,11 @@ ozet_tutuyor_mu() {
   fi
 }
 
+# indir <dosya> [<DALSAN yayın etiketi>/<yayın dosyası>]: ikinci argüman yoksa
+# dosya YOLOX'un resmi yayınından, aynı adla iner.
 indir() {
   ad="$1"
+  if [ -n "${2:-}" ]; then adres="$DALSAN_YAYINI/$2"; else adres="$YAYIN/$ad"; fi
   if [ -s "$ad" ]; then
     if ozet_tutuyor_mu "$ad" "$ad"; then
       echo "✓ $ad zaten var ve doğrulandı, atlandı"
@@ -37,7 +43,7 @@ indir() {
     echo "✗ $ad doğrulanamadı (bozuk ya da farklı bir sürüm): $ad.eski olarak kenara alındı."
   fi
   echo "▶ $ad indiriliyor..."
-  curl -L --fail --progress-bar -o "$ad.part" "$YAYIN/$ad"
+  curl -L --fail --progress-bar -o "$ad.part" "$adres"
   if ! ozet_tutuyor_mu "$ad" "$ad.part"; then
     rm -f "$ad.part"
     echo "✗ $ad indirildi ama doğrulanamadı: dosya eksik, bozuk ya da yolda değiştirilmiş." >&2

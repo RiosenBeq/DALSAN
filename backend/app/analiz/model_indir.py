@@ -2,7 +2,8 @@
 
 Model ağırlıkları depoya girmez (CLAUDE.md §7). Kullanıcı terminal komutu
 çalıştırmasın diye (CLAUDE.md §8) eksik model, sistem açılırken BİR KEZ
-indirilir. Yalnızca YOLOX'un resmi yayın dosyaları bilinir; başka bir ad
+indirilir. Yalnızca bilinen dosyalar iner (YOLOX'un resmi yayını ve bu deponun
+forklift modeli yayını), ikisi de SHA-256 ile doğrulanır; başka bir ad
 verilmişse indirilmez, kullanıcıya dosyayı kendisinin koyması söylenir.
 """
 
@@ -21,6 +22,16 @@ from app.hatalar import DalsanHata
 # ADR-002: Apache-2.0 lisanslı YOLOX resmi yayınları (models/indir.sh ile aynı)
 _YAYIN_ADRESI = "https://github.com/Megvii-BaseDetection/YOLOX/releases/download/0.1.1rc0/"
 
+# Forklift tanıyan modeller (egitim/forklift, docs/17 §12.3): resmi YOLOX modeli
+# ile LOCO (CC0 1.0) verisinden eğitilen ek baş, tek ONNX'te. Bu deponun kendi
+# yayınından (GitHub Release) iner. Yerel dosya adı sürüm taşır: yeni eğitim yeni
+# ad demektir; var olan dosya yeniden indirilmediği için diskte kalan eski sürüm
+# böylece yeni sürüm sanılmaz.
+DALSAN_YAYINI = "https://github.com/RiosenBeq/DALSAN/releases/download/"
+# Yerel dosya adı -> yayındaki yeri "<etiket>/<yayın dosyası>"
+# (models/indir.sh'teki `indir <ad> <etiket>/<yayın dosyası>` satırı)
+DALSAN_MODELLERI: dict[str, str] = {}
+
 # Dosya adı → SHA-256. İndirilen dosya bu özetle karşılaştırılır; tutmazsa
 # kullanılmaz (docs/17 §10.5 R17). Değerler 23.09.2026'da resmi yayından iki
 # ayrı indirmeyle ölçüldü ve aynı çıktı; models/indir.sh aynı değerleri taşır
@@ -38,6 +49,12 @@ class ModelIndirmeHatasi(DalsanHata):
     Kullanıcı mesajında indirme adresi YOKTUR (bkz. `_indirme_hata_metinleri`);
     tam adres `teknik_ayrinti` üzerinden sistem.log'a gider.
     """
+
+
+def indirme_adresi(ad: str) -> str:
+    """Dosyanın indirileceği adres: DALSAN yayını ya da YOLOX'un resmi yayını."""
+    yayindaki_yeri = DALSAN_MODELLERI.get(ad)
+    return DALSAN_YAYINI + yayindaki_yeri if yayindaki_yeri else _YAYIN_ADRESI + ad
 
 
 def indirilebilir_mi(model_dosyasi: Path) -> bool:
@@ -91,7 +108,7 @@ def modeli_indir(model_dosyasi: Path, ilerleme: Callable[[int, int], None] | Non
     TUTMAYAN dosya da (bozuk, eksik ya da yolda değiştirilmiş) sanılmaz."""
     if not indirilebilir_mi(model_dosyasi):
         raise ozel_model_hatasi(model_dosyasi)
-    adres = _YAYIN_ADRESI + model_dosyasi.name
+    adres = indirme_adresi(model_dosyasi.name)
     gecici = model_dosyasi.with_suffix(model_dosyasi.suffix + ".part")
     ozet = hashlib.sha256()
     try:

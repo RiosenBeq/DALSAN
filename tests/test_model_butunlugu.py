@@ -38,7 +38,11 @@ def test_uc_kaynaktaki_ozetler_ayni():
     betik = (KOK / "models" / "indir.sh").read_text(encoding="utf-8")
     assert "SHA256SUMS" in betik
     for ad in BILINEN_MODELLER:
-        assert f"indir {ad}" in betik, ad
+        yer = model_indir.DALSAN_MODELLERI.get(ad)
+        # DALSAN yayınındaki model yayındaki yeriyle, YOLOX modeli yalnız adıyla indirilir
+        satir = f"indir {ad} {yer}\n" if yer else f"indir {ad}\n"
+        assert satir in betik, ad
+    assert set(model_indir.DALSAN_MODELLERI) <= set(BILINEN_MODELLER)
     assert "sha256sum -c --ignore-missing SHA256SUMS" in (KOK / "Dockerfile").read_text(
         encoding="utf-8"
     )
@@ -87,6 +91,29 @@ def test_eksik_inen_dosya_da_kullanilmaz(tmp_path, monkeypatch):
     assert not hedef.exists()
 
 
+def test_forklift_modeli_dalsan_yayinindan_iner(tmp_path, monkeypatch):
+    """Forklift modeli bu deponun kendi yayınındadır (egitim/forklift); adres
+    etiketten kurulur, özet yine zorunludur. Hazır YOLOX modeli değişmez."""
+    veri = b"forklift-model" * 1000
+    ad = "nextgen_forklift_tiny_r0.onnx"
+    monkeypatch.setitem(model_indir.BILINEN_MODELLER, ad, hashlib.sha256(veri).hexdigest())
+    monkeypatch.setitem(model_indir.DALSAN_MODELLERI, ad, "forklift-r0/tiny-v1-k1.onnx")
+    istenen = []
+
+    def _ac(adres, **_):
+        istenen.append(adres)
+        return _SahteYanit(veri)
+
+    monkeypatch.setattr(urllib.request, "urlopen", _ac)
+    modeli_indir(tmp_path / "models" / ad)
+    assert istenen == [
+        "https://github.com/RiosenBeq/DALSAN/releases/download/forklift-r0/tiny-v1-k1.onnx"
+    ]
+    assert model_indir.indirme_adresi("yolox_tiny.onnx").startswith(
+        "https://github.com/Megvii-BaseDetection/YOLOX/releases/download/0.1.1rc0/"
+    )
+
+
 def test_ozeti_tutan_indirme_yerine_konur(tmp_path, monkeypatch):
     veri = b"gercek-model" * 1000
     monkeypatch.setitem(
@@ -116,20 +143,25 @@ def _betik_kur(tmp_path: Path, sunulan: bytes) -> tuple[Path, dict]:
     klasor = tmp_path / "models"
     klasor.mkdir()
     shutil.copy(KOK / "models" / "indir.sh", klasor / "indir.sh")
-    s_verisi = b"s-model"
-    (klasor / "yolox_s.onnx").write_bytes(s_verisi)
-    (klasor / "SHA256SUMS").write_text(
-        f"{hashlib.sha256(b'dogru-tiny').hexdigest()}  yolox_tiny.onnx\n"
-        f"{hashlib.sha256(s_verisi).hexdigest()}  yolox_s.onnx\n",
-        encoding="utf-8",
-    )
+    # tiny dışındaki her bilinen model (s, forklift modelleri) "var ve doğru" kurulur
+    satirlar = [f"{hashlib.sha256(b'dogru-tiny').hexdigest()}  yolox_tiny.onnx\n"]
+    for ad in BILINEN_MODELLER:
+        if ad == "yolox_tiny.onnx":
+            continue
+        verisi = f"{ad}-model".encode()
+        (klasor / ad).write_bytes(verisi)
+        satirlar.append(f"{hashlib.sha256(verisi).hexdigest()}  {ad}\n")
+    (klasor / "SHA256SUMS").write_text("".join(satirlar), encoding="utf-8")
     bin_klasoru = tmp_path / "bin"
     bin_klasoru.mkdir()
     (tmp_path / "sunulan").write_bytes(sunulan)
     sahte_curl = bin_klasoru / "curl"
-    # Argümanlardaki '-o <dosya>' ile yazılacak yeri bulur.
+    # Argümanlardaki '-o <dosya>' ile yazılacak yeri bulur; istenen adresi
+    # (son argüman) adresler dosyasına ekler.
     sahte_curl.write_text(
-        '#!/bin/bash\nwhile [ $# -gt 0 ]; do [ "$1" = "-o" ] && cikti="$2"; shift; done\n'
+        "#!/bin/bash\nfor son; do :; done\n"
+        f'echo "$son" >> "{tmp_path / "adresler"}"\n'
+        'while [ $# -gt 0 ]; do [ "$1" = "-o" ] && cikti="$2"; shift; done\n'
         f'cat "{tmp_path / "sunulan"}" > "$cikti"\n',
         encoding="utf-8",
     )
@@ -172,3 +204,21 @@ def test_betik_bozuk_eski_dosyayi_silmeden_kenara_alir(tmp_path):
     assert sonuc.returncode == 0, sonuc.stderr
     assert (klasor / "yolox_tiny.onnx.eski").read_bytes() == b"bozuk-eski"
     assert (klasor / "yolox_tiny.onnx").read_bytes() == b"dogru-tiny"
+
+
+@bash_gerekli
+@pytest.mark.parametrize(("ad", "yer"), sorted(model_indir.DALSAN_MODELLERI.items()))
+def test_betik_forklift_modelini_dalsan_yayinindan_indirir(tmp_path, ad, yer):
+    """indir.sh ile uygulamanın otomatik indirmesi aynı adrese gider."""
+    veri = b"forklift"
+    klasor, ortam = _betik_kur(tmp_path, veri)
+    (klasor / "yolox_tiny.onnx").write_bytes(b"dogru-tiny")  # yalnız forklift insin
+    (klasor / ad).unlink()
+    ozetler = (klasor / "SHA256SUMS").read_text(encoding="utf-8").splitlines()
+    ozetler = [s for s in ozetler if not s.endswith(f"  {ad}")]
+    ozetler.append(f"{hashlib.sha256(veri).hexdigest()}  {ad}")
+    (klasor / "SHA256SUMS").write_text("\n".join(ozetler) + "\n", encoding="utf-8")
+    sonuc = _calistir(klasor, ortam)
+    adresler = (tmp_path / "adresler").read_text(encoding="utf-8").splitlines()
+    assert model_indir.DALSAN_YAYINI + yer in adresler, sonuc.stdout + sonuc.stderr
+    assert (klasor / ad).read_bytes() == veri
