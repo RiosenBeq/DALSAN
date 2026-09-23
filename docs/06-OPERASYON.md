@@ -28,10 +28,18 @@ Ayrıntı: `NASIL-CALISIR.md`.
 git clone <depo-adresi> && cd DALSAN
 mkdir -p ayar && cp .env.example ayar/.env
                            # ayar/.env: YONETICI_SIFRESI (ZORUNLU), saklama süreleri,
-                           # ANONS, tespit eşikleri - anons tarifi: docs/14
+                           # tespit eşikleri. Uyarı kanalları ekrandan eklenir (docs/14)
 bash models/indir.sh       # model ağırlıkları repoda yoktur; indirilen dosya doğrulanır
 docker compose up -d
 docker compose ps          # tek servis: dalsan - durum "healthy" olmalı
+```
+
+Anons bu sunucunun **ses çıkışından** (kablolu amfi ya da Bluetooth hoparlör)
+çalacaksa container'a ses yolu açılır; ayrıntı ve ön koşullar docs/14 §2.4:
+
+```bash
+sudo chown -R "$(id -u):$(id -g)" veri ayar
+docker compose -f docker-compose.yml -f docker-compose.ses.yml up -d
 ```
 
 Erişim: `http://127.0.0.1:8080` (compose varsayılanı sunucunun kendisine açar).
@@ -384,6 +392,10 @@ görünmelidir.
 - [ ] Test ihlali ≤ 2 sn içinde ekrana düşüyor (K4)
 - [ ] Olay kaydı + kanıt fotoğrafı doğru, filtre çalışıyor (K5)
 - [ ] Anons: **Anons sayfasından denendi**, çalışıyor veya "altyapı uygun değil" olarak yazılı kayıt altında (K6)
+- [ ] Her bölümde test anonsu duyuldu: Anons sistemi → her kanal satırında **▶ Dene**, sahada bir kişi dinledi; Teslim kaydında "çaldı"
+- [ ] Sesli kanalların hepsi Bluetooth değil (kurulum listesinde "Sesli anons" adımı yeşil; GÖREV §7)
+- [ ] Bluetooth hoparlör kapatıldı: ~30-40 sn içinde rozet "koptu", Olaylar'da "Ses kanalı koptu"; bu sırada üretilen test ihlali "Tüm fabrika" kanalından **duyuldu**; hoparlör açılınca "tekrar bağlandı" (kendiliğinden bağlanmadıysa bu tutanağa yazıldı, docs/14 §2.1.1)
+- [ ] Hoparlör gecikmesi telefon videosuyla ölçüldü ve tutanağa yazıldı (§8.1)
 - [ ] Yedek alındı, **geri yükleme prova edildi** (K7)
 - [ ] KKD gölge modda ≥ 3 gün çalıştı, precision ölçüldü, eşikler ayarlandı (K10, K11)
 - [ ] KKD anonsu ancak precision kabul edildikten **sonra** açıldı: KKD sayfasındaki
@@ -394,3 +406,27 @@ görünmelidir.
 - [ ] **Giriş şifresi geri eklendi** (`docs/07` #0) - ağa açık kurulumda zorunlu
 - [ ] Kullanım dokümanı teslim edildi, kullanıcı eğitimi yapıldı (K9)
 - [ ] Kabul tutanağı: K1-K11 madde madde işaretlendi
+
+### 8.1 Uyarı gecikmesini ölçmek (telefon videosu)
+
+Yazılımın payı ekranda ölçülür: Anons sistemi → Teslim kaydı "kare → ses
+(yazılım) p50 / p90" ve `/saglik?ayrinti=1` → `uyari_gecikmesi`. Bu sayı
+kameradan gelen karenin yakalandığı andan çalıcının ya da HTTP isteğinin
+başladığı ana kadardır. Bluetooth'un (A2DP) ve hoparlörün kendi tamponu
+yazılımdan **ölçülemez**; "100-250 ms" gibi bir sayı ölçüm değildir, yazılmaz
+(docs/17 §7.10). Toplam gecikme sahada şöyle ölçülür:
+
+1. Kural gölge modda **değil**, anonsu açık bir kamera seçin; bir kişi yasak
+   alanın ya da yaya yolunun dışında beklesin.
+2. Telefonu, **aynı karede** hem izleme ekranını hem hoparlörü görecek (ve
+   duyacak) biçimde koyun; mümkünse 60 kare/sn ile video kaydı başlatın.
+3. Kişi alana adım atsın; uyarı çalana kadar kayda devam edin.
+4. Videoyu kare kare ilerletin: ekranda uyarı bandının çıktığı kare ile
+   sesin ilk duyulduğu (ses dalgasında yükseldiği) kare arasındaki kare
+   sayısını sayın. Kare sayısı ÷ kare hızı = ekran → ses gecikmesi (60 kare/sn'de
+   her kare yaklaşık 17 ms).
+5. Kişinin alana girdiği kare ile uyarı bandının çıktığı kare arasını da
+   sayın: bu, kameranın, ağın ve analizin payıdır.
+6. Her kanal türü için (kablolu, Bluetooth, IP hoparlör) en az 5 deneme yapın;
+   en kötüsünü ve ortancasını tutanağa yazın, Teslim kaydının p90'ını yanına
+   ekleyin.

@@ -15,7 +15,7 @@ Sıralama beklenen faydaya göre.
 | 1 | **Olay video klibi** (öncesi/sonrası 5+5 sn) | Yanlış alarm incelemesinde ve İSG eğitiminde snapshot'tan çok daha güçlü. En sık istenecek özellik. | Orta |
 | 2 | **KKD geri besleme döngüsü** | MVP'nin "Yanlış alarm" işaretleri + snapshot'ları zaten veri seti. Kalan iş: periyodik yeniden eğitim betiği + model sürüm yönetimi. Precision'ı zamanla yükseltir. | Orta |
 | 3 | **Raporlamanın kalanı: vardiya karşılaştırması ve eğilim** | Dönem raporu YAPILDI (aşağıdaki kapananlar). Açık kalan: vardiya (08-16 / 16-24 / 24-08) kırılımı ve dönemler arası eğilim ("geçen aya göre %18 azaldı"). İkisi de vardiya tanımını sisteme sokmayı gerektirir; bugün sistemde vardiya kavramı YOK ve uydurulmadı. | Orta |
-| 4 | **Bildirim kanalları** (e-posta, SMS/WhatsApp, mobil push) | Kritik ihlalin ekran başında kimse yokken duyulması. `EventSink` arayüzüne yeni sink. | Küçük-orta |
+| 4 | **Bildirim kanalları** (e-posta, SMS/WhatsApp, mobil push, webhook) | Kritik ihlalin ekran başında kimse yokken duyulması. Webhook (imzalı JSON, adresi R30 denetiminden geçer) yalnız alıcı sistem varsa yazılır (docs/17 §7.2, 4c, S4); yazılırsa uyarı garantisine "uzak kanal" olarak girer. | Küçük-orta |
 | 5 | **Kullanıcı yönetimi ve roller** (İSG yöneticisi / operatör / izleyici) | Birden çok departman kullanmaya başladığında; kim neyi değiştirdi izlenebilirliği. Auth zaten tek dependency'de. | Orta |
 | 6 | **Yüz bulanıklaştırma** (snapshot'ta) | KVKK açısından değerli; KKD kapsamı genişledikçe önemi artar. Kişi bbox'ının üst bölgesine blur. | Küçük |
 | 7 | **Tarayıcıda canlı görüntü** (overlay'li) | Operatörün NVR istemcisi ile sistem arasında geçiş yapmasını bitirir. | Orta |
@@ -31,7 +31,8 @@ Sıralama beklenen faydaya göre.
 | 19 | **Sayımın kalıcı kaydı** (vardiya/gün raporu) | Bölge sayımı bugün BELLEKTE tutulur: sistem yeniden başlayınca "giren" sıfırlanır ve geçmiş gün karşılaştırılamaz. Kalıcı olması için sayaçları düzenli aralıkla yazan bir tablo gerekir. Bilerek ertelendi: önce sayının sahada DOĞRU olduğu görülmeli; yanlış bir sayıyı kalıcı kaydetmek, yanlışı rapora taşımaktır. | Küçük-orta |
 | 20 | **Çizgi geçiş sayımı** (kapıdan kaç kişi geçti) | Bugün sayım BÖLGE bazlıdır: "içeride kaç var" ve "kaç tanesi girdi". Yön bilgisi (içeri mi çıktı mı) için çizgi ve geçiş yönü gerekir. Bölge sayımı çoğu İSG sorusuna yettiği için önce o yapıldı. | Orta |
 | 21 | **Alan tanımada boya dışı ipuçları** | `alan_bulucu` bugün yalnız SARI ve BEYAZ boyayı arar. Zemini boyasız fabrikada hiçbir şey bulamaz. Bariyer, korkuluk, raf sırası gibi ipuçları için ayrı bir yaklaşım (çizgi/derinlik analizi) gerekir ve yanlış öneri oranı ölçülmeden açılmamalı. | Orta |
-| 16 | **Anons kayıt defteri** (hoparlör gerçekten kaç kez çaldı) | Anons ekranı bugün "anons tetikleyen ihlal" sayıyor; tekrar aralığı bir kısmını bastırdığı için gerçek anons sayısı bundan azdır ve ekran bunu açıkça yazıyor. Kesin sayı için her başarılı/başarısız anonsu yazan küçük bir tablo gerekir. | Küçük |
+| 22 | **Bluetooth yeniden bağlanma bekçisi** (koşullu, docs/17 §7.5-3, S9) | Hoparlör kapatılıp açılınca kendiliğinden bağlanmıyorsa program `bluetoothctl info/connect` ile 1 → 2 → 4 … en çok 60 sn aralıkla yeniden bağlar. Yalnız sahada bu görülürse **ve** ses yolu (A) ya da host kurulumu seçildiyse yazılır; container'a `/run/dbus:ro` ve `bluez` istemcisi eklenir. Bugün kopma algılanır, "koptu" gösterilir ve uyarı yedek kanala düşer (docs/14 §4.3). | Küçük |
+| 23 | **Anons hız sınırı ve birleştirme** (koşullu, docs/17 §7.3-5/6, S23) | `ANONS_DAKIKA_SINIRI` (kanal başına, kritik muaf) ve `ANONS_BIRLESTIRME_SN` (aynı mesaj tek anons; metin taşıyan kanal "2 kişi baretsiz" der, WAV sayıyı söyleyemez). Değer verilmedi; bugün tekrar bastırma (kamera, mesaj, kanal) var. | Küçük |
 
 ---
 
@@ -48,6 +49,7 @@ Sıralama beklenen faydaya göre.
 | Raporlama: PDF/Excel çıktı (#3'ün ana kısmı) | **Kapandı:** Komuta → Rapor. Kamera / kural / bölge / bölüm kırılımı, saatlik ve günlük dağılım. PDF için yeni kütüphane KURULMADI: sayfa yazdırmaya hazır (`@media print`), tarayıcının "PDF olarak kaydet" adımı yeterli. Excel çıktısı noktalı virgüllü + BOM'lu CSV. Kamera başına analiz edilen süre ve yanlış alarm / saat de raporda (Faz 2e-3; yalnız incelemesi tam günlerden, `17-V2-TASARIM.md` §14). Vardiya ve eğilim kırılımı hâlâ açık - #3. |
 | Dördüncü kural tipi: forklift hızı (#15) | **Kapandı:** `vehicle_speed`. Ertelemenin sebebi olan şema kısıtı `backend/sema/005_arac_hizi_kurali.sql` ile güvenli biçimde aşıldı - yabancı anahtar işlem dışında kapatılıp geri açılıyor ve `PRAGMA foreign_key_check` ile olay geçmişinin sağlam kaldığı doğrulanıyor. Karar mantığı `rules/hiz.py`, davranış tanımı `03-KURAL-MOTORU.md` §4. |
 | "Kaç kişi geçti" sorusu | Kısmen: bölge bazlı canlı sayım eklendi (`rules/sayim.py`). Kalıcı kayıt ve yön bilgisi hâlâ açık - #19 ve #20. |
+| Anons kayıt defteri (#16) | **Kapandı (Faz 4a-3):** her deneme `alert_deliveries`'e yazılır (şema 009): çaldı, çalamadı, bastırıldı, bayatladı, kesildi, gölgede "çalsaydı". Anons sistemi → Teslim kaydı son 24 saati ve kanal başına sayıları gösterir; hoparlörün gerçekten kaç kez çaldığı artık kesin (duyulduğu değil, docs/14 §4.3). |
 
 ## 2. Phase 3 - Alçı Stokholü
 

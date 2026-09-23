@@ -103,6 +103,34 @@ soneki değişirse ses aynı adresli sink'in bugünkü adına çalınır (4d'nin
 (30), `ULASMAYAN_UYARI_ARALIGI_SN` (300). Belgeler: docs/14 §2.1.1, §4, §4.3,
 §7; docs/06 §2.
 
+**4c - webhook: kodlanmadı** (S4 varsayılanı: alıcı sistem yok). docs/07 #4.
+
+**4d - Bluetooth (§7.5).** Sink seçimi zorunlu ve varsayılan önceden seçili
+(4a-2). MAC ayrıca saklanmaz: sink adından çözülür, önek ve profil soneki koda
+yazılmaz (`bluez_output.` ve `bluez_sink.`, `AA_BB_…` ve `AA:BB:…` biçimleri
+testte); yeniden bağlanan hoparlörün soneki değişirse aynı hoparlör sayılır ve
+ses bugünkü adına çalınır. Kopma algısı 4b'dedir. Yeniden bağlanma bekçisi
+(S9) ve programdan tara/eşleştir (S8) kodlanmadı: docs/07 #22, docs/14 §8.
+Linux'ta `bluetoothctl trust` şartı docs/14 §2.1.1'de.
+
+**4e - container ses yolu (S29 yol A), WAV'lar, saha ölçümü.** İmaja
+`pulseaudio-utils` (paplay, pactl) girdi; ses yolu isteğe bağlı
+`docker-compose.ses.yml` ile açılır: host'un PulseAudio/PipeWire soketi
+bağlanır, `PULSE_SERVER` tanımlanır, container soketin sahibinin numarasıyla
+çalışır; `privileged`, host ağı, `NET_ADMIN`/`NET_RAW`, `/dev/snd`, D-Bus
+verilmez ve `tests/test_kapsayici_ses.py` bunu kilitler. Ana compose'daki
+eski `/dev/snd` önerisi kaldırıldı (ALSA Bluetooth'u görmez). Ses sunucusuna
+bağlanılamıyorsa (`pactl info` başarısız) ses çıkışı kanalı "bilinmiyor"
+değil "koptu" sayılır: ses yolu açılmamış container sessiz kalmaz. Birleşik
+yapılandırma `docker compose config` ile doğrulandı; imaj bu ortamda
+derlenemedi (Docker sunucusu yok, Debian aynası kapalı): paket adı ve yol
+hedef sunucuda DOĞRULANMADI. WAV'ların yeri `veri/sesler/` (açılışta oluşur,
+yedeğe girer, container'da bağlıdır). docs/14 §1.1 kanal tablosu, §2.3 sekiz
+mesaj ve lisans notu (işletim sistemi sesleri yalnız deneme), §2.4 Docker'da
+ses, §8 sınırlar; docs/06 §1.2 ses yolu komutu, §8 kabul maddeleri, §8.1
+telefon videosuyla gecikme ölçümü. docs/07 #16 (anons kayıt defteri) 4a-3 ile
+kapandı; #23 hız sınırı ve birleştirme (S23) koşullu satır.
+
 ## Faz 3 KKD (23.09.2026)
 
 Plan: `docs/17-V2-TASARIM.md` §5 ve §13 (3a-3e satırları). Operatör Faz 3 ve Faz 4
