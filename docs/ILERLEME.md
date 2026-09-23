@@ -76,6 +76,24 @@ model sürümünü onaylı olarak yazıyor. Süpervizör yüklü modeli onaylı 
 karşılaştırıyor. Farklıysa ya da hiç onaylanmamışsa kuralı gölgeye alıyor ve
 "KKD modeli değişti" yazıyor. Pencere ve bekleme süreleri sıfırlanmıyor.
 
+**3e-1 — anons kapısı ve gölge karnesi.** KKD anonsu artık bir kapıdan geçiyor.
+Kapı baret ve yelek için ayrı, yüklü model sürümü başına ve kameralar arasında
+toplu. Dört şart:
+- precision (incelendi ÷ incelendi + yanlış alarm) en az 0,90;
+- o kalemin bu sürümle ilk olayından bu yana en az 3 gün;
+- en az 30 incelenmiş olay (tek doğru olayla %100 çıkıp kapı açılmasın, S33);
+- incelenmemiş olay kalmamış.
+
+Eşikler Ayarlar → KKD anons kapısı (`KKD_KAPI_*`). Yeni model sürümü sayacı
+sıfırdan başlatıyor. Uyarı zincirinde KKD satırının altında kalem başına karne
+satırı var: "Precision: 0,93 (30 incelenmiş olay, kapsama %100, model …)". Kapı
+kapalıysa "Anonsu aç" gri, eksik şartlar yazıyor ve düğme ancak "Ölçülmeden
+açıyorum" kutusuyla gönderiliyor. Kapı sunucuda da denetleniyor. Onayla açılınca
+Olaylar'a "KKD anonsu ölçülmeden açıldı" (`PPE_GATE_OVERRIDDEN`) eksik şartlarla
+yazılıyor. KKD sayfasında "Gölge karnesi ve anons kapısı" bölümü dört şartı
+işaretleriyle gösteriyor. Precision ve kapsama aşağı yuvarlanıyor; ölçülmeyen
+sayının yerinde "ölçülecek" yazıyor. Statik damga `?v=36`.
+
 ## Faz 5d kalan güvenlik (23.09.2026)
 
 Plan: `docs/17-V2-TASARIM.md` §10.5 (R16, R18, R31, R32) ve §13 (5d satırı).

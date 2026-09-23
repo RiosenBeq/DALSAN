@@ -116,6 +116,19 @@ modelin sürümünü bununla karşılaştırır: farklıysa ya da hiç onaylanma
 gölgeye alır ve `PPE_MODEL_CHANGED` yazar. Olay kaydı sürer, hoparlör susar;
 pencereler ve bekleme süreleri sıfırlanmaz (gölge kural imzasına girmez).
 
+**Anons kapısı (Faz 3e).** Uyarı zinciri KKD anonsunu ancak kapı açıksa onaysız
+açar (`web/kkd_karnesi.py`). Kapı kalem ve yüklü model sürümü başınadır ve
+kameralar arasında toplanır: `details.ppe.model_version`'ı yüklü sürüme eşit
+`PPE_NO_HELMET` / `PPE_NO_VEST` olaylarında precision = incelendi / (incelendi +
+yanlış alarm) ≥ `KKD_KAPI_PRECISION` (0,90), ilk olaydan bu yana ≥ `KKD_KAPI_GUN`
+(3) gün, ≥ `KKD_KAPI_EN_AZ_OLAY` (30) incelenmiş olay ve incelenmemiş olay yok.
+Kuralın istediği kalemlerin hepsi geçmeli. Kapı sunucuda denetlenir; kapalıyken
+anons yalnız "ölçülmeden açıyorum" onayıyla açılır ve `PPE_GATE_OVERRIDDEN`
+sistem olayı eksik şartlarla yazılır. Yeni model sürümü sayacı sıfırdan başlatır.
+Karne (precision, incelenmiş olay, kapsama %, model) KKD sayfasında ve Uyarı
+zincirinde; precision ve kapsama aşağı yuvarlanır, ölçülmeyen sayı yerine
+"ölçülecek" yazar.
+
 ### Üç durumlu karar — motorun en önemli kuralı
 
 ```

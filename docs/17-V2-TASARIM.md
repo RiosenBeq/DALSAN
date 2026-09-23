@@ -616,6 +616,14 @@ karar belirsize dönerse olayın kapandığını (süresinin ihlal olarak uzamad
      n = 30 bunu %10'a, yani 0,90 eşiğine indirir; S33).
    Karnede precision'ın yanında N ve inceleme kapsamı % gösterilir. Kapı geçilmeden anons yalnız
    açık bir onayla açılabilir ("ölçülmeden açıyorum"); onay sistem olayı olarak yazılır.
+   **Uygulandı (F3e-1, `web/kkd_karnesi.py`):** gün şartı o kalem ve sürümün ilk olayından bu
+   yana geçen süredir (model yüklenme anı kalıcı kaydedilmiyor; ilk olay onun alt sınırı).
+   Sayaç yalnız `details.ppe.model_version`'ı yüklü sürüme eşit olayları sayar; model yüklü
+   değilse kapı kapalıdır. Kuralın `required_ppe` kalemlerinin hepsi geçmelidir. Kapı
+   `golge_modu_degistir`'de sunucuda denetlenir (gri düğme yalnız önceden söyler); onay
+   `PPE_GATE_OVERRIDDEN` yazar ve yüklü sürümü yine onaylar, yoksa süpervizör kuralı hemen
+   gölgeye geri alırdı. Precision kesirle karşılaştırılır (27/30 = 0,90 geçer), ekranda
+   aşağı yuvarlanır.
 4. **Model sürümü değişince gölgeye dönüş:** kapı geçildiğinde onaylanan sürüm
    `rules.approved_model_version`'a yazılır (008, yalnız ADD COLUMN). `params`'a konmaz, çünkü
    params kural imzasına girer (`motor.py:76-86`) ve cooldown ile pencereleri sıfırlardı.
@@ -713,6 +721,7 @@ Durum: `exists` (var, yalnız kod verilir) · `rename` (var, adı ve önemi v2'y
 | `SYSTEM_STARTED` / `SYSTEM_STOPPED` | yalnız günlükte "Sistem hazır" / "durduruluyor" (`uygulama.py` lifespan) | new | system; uptime ölçümünün kanıtı (§14) |
 | `PPE_COLLECTION_CHANGED` | yok | new | system; KKD veri toplama açıldı/kapandı |
 | `PPE_MODEL_CHANGED` | yok | new (F3) | system; KKD modeli sürümü onaylı sürümden farklı, kural gölgeye döndürüldü (§5.7) |
+| `PPE_GATE_OVERRIDDEN` | yok | new (F3e) | system; KKD anonsu kapının şartları sağlanmadan "ölçülmeden açıyorum" onayıyla açıldı; ayrıntıda kural id'leri, model sürümü ve eksik şartlar (§5.7) |
 | `AUDIO_CHANNEL_DOWN` | yok (`cihaz_bagli_mi` yalnız `/anons` render edilirken, `anons_web.py:81`) | new (F4) | system; 30 sn kesintisiz "koptu" |
 | `AUDIO_CHANNEL_UP` | yok | new (F4) | system; 2 ardışık "bağlı"; açık DOWN'u kapatır |
 | `ALERT_UNDELIVERED` | yok (başarısız anons yalnız `son_sonuc` metninde, `anons.py:360-366`) | new (F4) | system; aynı kamera için en çok `ULASMAYAN_UYARI_ARALIGI_SN`'de (öneri 300) bir kez; aradaki ulaşmayanlar sayılıp olay `details`'ine yazılır |

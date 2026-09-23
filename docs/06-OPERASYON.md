@@ -346,6 +346,7 @@ görünmelidir.
 | KKD sekmesinde "KKD modeli yüklenmedi" | Model dosyası `models/SHA256SUMS`'taki özetle tutmuyor ya da özet satırı yok, açılamıyor veya sözleşmeye uymuyor (docs/04 §6.6). Kartta sebep yazar; modeli veren uzmandan doğru dosyayı ve özet satırını isteyin, sonra yeniden başlatın. Bu sırada diğer kurallar çalışır |
 | KKD çok fazla yanlış alarm | `04-KKD-BARET-YELEK.md` §8.3 tablosu; kabindeki sürücü için kuralın "sürücüyü değerlendirme" kutusu, üst üste kişi ve bulanıklık için kural formundaki iki eşik (docs/03 §3) |
 | Olaylar'da "KKD modeli değişti … gölge moda alındı" | Yüklü KKD modeli, anonsu açılırken onaylanan sürüm değil (ya da hiç onaylanmamış). Beklenen güvenlik davranışı: olaylar kaydedilir, hoparlör susar. Yeni sürüm gölgede incelenip ölçüldükten sonra anons Komuta → Uyarı zinciri'nden yeniden açılır |
+| Uyarı zincirinde KKD satırının "Anonsu aç" düğmesi gri, "Anons kapısı kapalı" | Kapının şartlarından biri eksik; satır hangisi olduğunu yazar, ayrıntı KKD sayfasındaki "Gölge karnesi"nde. Çoğunlukla incelenmemiş olay kalmıştır: Komuta → İnceleme'de o KKD olaylarını işaretleyin. Eşikler Ayarlar → KKD anons kapısı. Ölçmeden açmak mümkündür ("ölçülmeden açıyorum" kutusu) ama karar Olaylar'a "KKD anonsu ölçülmeden açıldı" olarak yazılır |
 | Rapor'da yanlış alarm / saat "ölçülemedi" ya da kapsama düşük | O kameranın bazı günlerinde işaretlenmemiş ihlal var. Komuta → İnceleme'de o günlerin olaylarını "İncelendi" ya da "Yanlış alarm" diye işaretleyin: oran yalnız bütün ihlalleri işaretli günlerden hesaplanır. "Analiz edilen: —" ise o dönemde analiz kaydı yok (model yüklenmemiş, kamera kopuk ya da dönem bu kayıt başlamadan önce) |
 | Uyarılar gecikiyor | Kamera `sample_fps` değerini düşürün; substream kullanın; `CIKARIM_CIHAZI=cuda` (yalnız NVIDIA'lı Linux) |
 | "cuda seçili ama CPU ile çalışıyor" | Ana sayfada uyarı olarak görünür: NVIDIA sürücüsü + `onnxruntime-gpu` gerekir, ya da `.env`'de `cpu` yapın |
@@ -372,7 +373,9 @@ görünmelidir.
 - [ ] Anons: **Anons sayfasından denendi**, çalışıyor veya "altyapı uygun değil" olarak yazılı kayıt altında (K6)
 - [ ] Yedek alındı, **geri yükleme prova edildi** (K7)
 - [ ] KKD gölge modda ≥ 3 gün çalıştı, precision ölçüldü, eşikler ayarlandı (K10, K11)
-- [ ] KKD anonsu ancak precision kabul edildikten **sonra** açıldı
+- [ ] KKD anonsu ancak precision kabul edildikten **sonra** açıldı: KKD sayfasındaki
+      gölge karnesinde baret ve yelek için "kapı açık"; Olaylar'da "KKD anonsu
+      ölçülmeden açıldı" kaydı yok (varsa gerekçesi tutanağa yazıldı)
 - [ ] Yanlış alarm hedefi ölçüldü: Komuta → Rapor'da her kamera için incelemesi tam günlerden hesaplanan yanlış alarm / saat, hedefin (saatte en çok 2) altında (`17-V2-TASARIM.md` §14)
 - [ ] Bakım (retention) çalıştığı günlükten doğrulandı, KVKK süreleriyle uyumlu
 - [ ] **Giriş şifresi geri eklendi** (`docs/07` #0) — ağa açık kurulumda zorunlu
