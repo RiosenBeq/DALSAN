@@ -195,17 +195,24 @@ class Tespitci:
             if cihaz == "cuda"
             else ["CPUExecutionProvider"]
         )
-        # 0 = ONNX Runtime kendi seçer (tüm çekirdekler) ve VARSAYILAN yol
-        # eskisiyle birebir aynı kalır - hiçbir oturum seçeneği verilmez.
-        # Sunucu başka işler de yapıyorsa .env'den sınırlanır; tek kamerada
-        # bile fark eder, çünkü tespit TÜM kameralar için tek oturumda ve
-        # kilitle sıralı çalışır: bir çıkarım makinenin tamamını meşgul edebilir.
-        ek_argumanlar = {}
+        secenekler = onnxruntime.SessionOptions()
+        # BEKLERKEN DÖNME KAPALI. ONNX Runtime'ın iş parçacıkları her
+        # çıkarımdan sonra bir süre boşta DÖNEREK (spinning) yeni iş bekler.
+        # Kamera saniyede 6 kare verdiği için aradaki bekleme uzundur ve bu
+        # dönme işlemciyi boşa yakar. Ölçüm (yolox_tiny, 4 çekirdek, saniyede
+        # 6 çıkarım): dönme açıkken CPU %115, kapalıyken %58; gecikme p50
+        # 26 → 36 ms. Dört kamerada iş parçacıkları zaten meşgul olduğundan
+        # verim değişmez (tests/hiz_kiyas --dort, docs/ILERLEME).
+        secenekler.add_session_config_entry("session.intra_op.allow_spinning", "0")
+        secenekler.add_session_config_entry("session.inter_op.allow_spinning", "0")
+        # 0 = ONNX Runtime kendi seçer (tüm çekirdekler). Sunucu başka işler de
+        # yapıyorsa .env'den sınırlanır; tek kamerada bile fark eder, çünkü
+        # tespit TÜM kameralar için tek oturumda ve kilitle sıralı çalışır:
+        # bir çıkarım makinenin tamamını meşgul edebilir.
         if is_parcacigi > 0:
-            secenekler = onnxruntime.SessionOptions()
             secenekler.intra_op_num_threads = is_parcacigi
             secenekler.inter_op_num_threads = 1
-            ek_argumanlar["sess_options"] = secenekler
+        ek_argumanlar = {"sess_options": secenekler}
         # Kurulan GPU sağlayıcısı hatası ile bozuk dosya AYRI şeylerdir (docs/17
         # §13, 2a). Önceden ikisi de "dosya bozuk" diye bildiriliyordu:
         # kullanıcı sağlam bir dosyayı değiştirmeye uğraşırken asıl sorun

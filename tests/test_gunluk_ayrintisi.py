@@ -141,11 +141,22 @@ class _SahteOturum:
         return [_SahteGirdi()]
 
 
+class _SahteSecenekler:
+    """onnxruntime.SessionOptions yerine geçer (tespit oturumu hep seçenekle açılır)."""
+
+    intra_op_num_threads = 0
+    inter_op_num_threads = 0
+
+    def add_session_config_entry(self, _anahtar: str, _deger: str) -> None:
+        pass
+
+
 @pytest.fixture
 def sahte_onnxruntime(monkeypatch):
     """tespit.py import'u fonksiyon içinde yapar; sys.modules'a sahte koymak yeter."""
     sahte = types.ModuleType("onnxruntime")
     sahte.InferenceSession = _SahteOturum
+    sahte.SessionOptions = _SahteSecenekler
     monkeypatch.setitem(sys.modules, "onnxruntime", sahte)
     return sahte
 

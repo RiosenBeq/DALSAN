@@ -10,6 +10,26 @@ karakterdir. Kural CLAUDE.md §7 ve §8'de ve docs/17 §16 karar kaydında;
 `tests/test_yazim_kurallari.py` depoda bu karakterlerden biri kalırsa dosya ve
 satırıyla kırmızı olur. Statik damga o gün `?v=39`, 4b'den sonra `?v=40`.
 
+## Hız ve CPU (23.09.2026)
+
+Operatör: *"hızlı ve az CPU yesin"*. Ölçüm bu ortamda (4 çekirdek, CPU,
+yolox_tiny) yapıldı. En büyük kayıp ONNX Runtime'ın iş parçacıklarının her
+çıkarımdan sonra boşta DÖNEREK beklemesiydi: kamera saniyede 6 kare verdiği
+için aradaki bekleme uzun ve dönme işlemciyi boşa yakıyordu. `tespit.py`
+artık oturumu dönme kapalı açar (`session.intra_op/inter_op.allow_spinning=0`).
+
+| Ölçüm | Önce | Sonra |
+|---|---|---|
+| Saniyede 6 çıkarım, yalnız model (`ort_kiyas`) | CPU %115,5, p50 26,5 ms | CPU %57,6, p50 36,3 ms |
+| Çalışan sistem, 1 kamera (vtest.avi, 6 kare/sn) | CPU %111, işleme p50 34 ms | CPU %52, işleme p50 41 ms |
+| 4 kamera tam yük (`tests.hiz_kiyas --dort`), tiny | bütçe %100,4, p50/p90 68/107 ms | bütçe %100,1, p50/p90 114/162 ms |
+| 4 kamera tam yük, s (İsabetli) | bütçe %50,1 | bütçe %43,4 |
+| Aynı ölçümün süreç CPU'su | %350 | %252 |
+
+CPU yüzdeleri tek çekirdeğe göredir. Hızlı modelde işlenen kare sayısı
+değişmedi; gecikme 500 ms hedefinin çok altında kaldı. İsabetli model CPU'da
+zaten 4 kameraya yetmiyordu (GPU ister, S1).
+
 ## Operatör istekleri (23.09.2026): hoparlör, forklift, uyarı kayıtları
 
 Operatör: *"forklifti de tanıtmadıysan tanıt ve risk anında hoparlörden uyarı

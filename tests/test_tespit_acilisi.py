@@ -146,3 +146,30 @@ def test_hazir_modelde_forklift_ayri_sinif_degil(model, monkeypatch):
     tespitci = Tespitci(model, "cpu")
     assert not tespitci.forklift_taniyor
     assert tespitci.siniflar == ("person", "truck")
+
+
+# ------------------------------------------------ CPU: beklerken dönme kapalı
+
+
+class _SecenekKaydedenOturum(_SahteOturum):
+    secenekler = None
+
+    def __init__(self, yol, providers, sess_options=None, **_):
+        super().__init__(yol, providers)
+        _SecenekKaydedenOturum.secenekler = sess_options
+
+
+@pytest.mark.parametrize("is_parcacigi", [0, 2])
+def test_cikarim_beklerken_islemciyi_dondurmez(model, monkeypatch, is_parcacigi):
+    """ONNX Runtime iş parçacıkları varsayılan olarak her çıkarımdan sonra
+    boşta döner; saniyede 6 karede bu, işlemcinin yarısını boşa yakıyordu
+    (ölçüm: %115 → %58). Dönme kapalı kalmalı; iş parçacığı sınırı da
+    yalnız verildiğinde uygulanır."""
+    monkeypatch.setattr(onnxruntime, "InferenceSession", _SecenekKaydedenOturum)
+    monkeypatch.setattr(tespit, "_ort_paketleri", lambda: ["onnxruntime"])
+    Tespitci(model, "cpu", is_parcacigi=is_parcacigi)
+    secenekler = _SecenekKaydedenOturum.secenekler
+    assert secenekler is not None
+    for anahtar in ("session.intra_op.allow_spinning", "session.inter_op.allow_spinning"):
+        assert secenekler.get_session_config_entry(anahtar) == "0"
+    assert secenekler.intra_op_num_threads == is_parcacigi
