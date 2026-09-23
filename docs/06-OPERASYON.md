@@ -302,6 +302,18 @@ docker compose logs -f            # Docker kurulumunda
 Biçim: her satır tek bir JSON nesnesi — `ts, level, bilesen, mesaj`.
 Sorun bildirirken kırmızı/`ERROR` satırlarını **olduğu gibi** kopyalayın.
 
+Web sunucusunun (uvicorn) satırları da aynı biçimde ve aynı dosyadadır:
+`"bilesen": "uvicorn.error"` sunucunun açılışı, kapanışı ve beklenmeyen
+hataları; `"bilesen": "uvicorn.access"` HTTP istekleri. Erişim satırlarından
+yalnız **değiştiren** istekler (kural, kamera, bölge kaydı: POST/PUT/DELETE) ve
+hata yanıtları (4xx/5xx) yazılır. Başarılı sayfa ve yoklama istekleri yazılmaz:
+Kontrol Paneli 1,5 sn'de bir sağlık ucunu yoklar, hepsi yazılsaydı dönen günlük
+önemli satırları iki günde dışarı iterdi.
+
+```bash
+grep '"bilesen": "uvicorn' veri/loglar/sistem.log
+```
+
 **Beklenen tek `ERROR` satırı:** sistem durdurulurken bir tarayıcıda Olaylar ya
 da komuta ekranı açıksa uvicorn `Cancel 1 running task(s), timeout graceful
 shutdown exceeded` yazar. Ekranın canlı akışı kendiliğinden bitmez; kapanış

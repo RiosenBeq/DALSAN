@@ -297,18 +297,78 @@ def sunucu_ayakta() -> bool:
         return s.connect_ex(("127.0.0.1", PORT)) == 0
 
 
+def saglik_govdesi() -> dict | None:
+    """/saglik gövdesi; alinamazsa None.
+
+    /saglik her durumda 200 doner (hazir olmayan sistemde de); 503 yalniz
+    ?hazirlik=1 sorgusundadir ve burada kullanilmaz.
+    """
+    try:
+        with urllib.request.urlopen(f"{URL}/saglik", timeout=2) as yanit:
+            govde = json.loads(yanit.read(16384))
+    except (urllib.error.URLError, OSError, ValueError):
+        # Baglanti yok, HTTP hatasi, JSON degil — hicbiri bizim sunucumuz
+        # demek degildir.
+        return None
+    return govde if isinstance(govde, dict) else None
+
+
 def bizim_sunucumuz_mu() -> bool:
     """Portu dinleyen program BIZIM sunucumuz mu?
 
     /saglik ucu yalnizca bu sistemde vardir ve {"durum": "calisiyor"} doner.
     """
-    try:
-        with urllib.request.urlopen(f"{URL}/saglik", timeout=2) as yanit:
-            return json.loads(yanit.read(4096)).get("durum") == "calisiyor"
-    except (urllib.error.URLError, OSError, ValueError):
-        # Baglanti yok, HTTP hatasi, JSON degil, beklenen alan yok — hicbiri
-        # bizim sunucumuz demek degildir.
-        return False
+    return (saglik_govdesi() or {}).get("durum") == "calisiyor"
+
+
+def sunucu_durumu_ve_saglik() -> tuple[str, dict | None]:
+    """(durdu | calisiyor | baskasinda, /saglik govdesi) — tek istekle."""
+    if not sunucu_ayakta():
+        return DURDU, None
+    govde = saglik_govdesi()
+    if (govde or {}).get("durum") == "calisiyor":
+        return CALISIYOR, govde
+    return BASKASINDA, None
+
+
+# /saglik "sorunlar" kodlarinin paneldeki karsiliklari (docs/06 §2 tablosu).
+SAGLIK_SORUN_METINLERI = {
+    "analiz_takildi": "Analiz takıldı — uyarı üretilmiyor",
+    "analiz_olu": "Analiz durdu — uyarı üretilmiyor",
+    "model_yuklenemedi": "Tespit modeli yüklenemedi — uyarı üretilmiyor",
+    "veritabani_acilamadi": "Veritabanı okunamıyor",
+    "olay_yazilamadi": "Olaylar kaydedilemiyor (anons yine çalıyor)",
+    "kritik_kural_pasif": "Mesafe/hız kuralı kalibrasyon bekliyor",
+    "ort_paket_cakismasi": "İki ONNX Runtime paketi kurulu (GPU kaybolabilir)",
+}
+
+
+def analiz_satiri(govde: dict | None) -> tuple[str, str]:
+    """Paneldeki "Analiz" satiri: (metin, renk); renk ok | uyari | hata | gri.
+
+    "Sistem durumu" satiri bundan etkilenmez: sunucu calisiyorsa o satir
+    yine "CALISIYOR" der (docs/17 §9.1). Bu satir, calisan sistemin uyari
+    uretip uretemedigini soyler: hazir degilse kirmizi, sesli uyarinin
+    ulastigi dogrulanamiyorsa gri (uyari_garantisi, Faz 4).
+    """
+    if not govde:
+        return "—", "gri"
+    sorunlar = [k for k in govde.get("sorunlar") or [] if isinstance(k, str)]
+    metin = "; ".join(SAGLIK_SORUN_METINLERI.get(k, k) for k in sorunlar)
+    if govde.get("hazir") is False:
+        if govde.get("model") in ("yukleniyor", "indiriliyor"):
+            return "Hazırlanıyor — tespit modeli yükleniyor…", "gri"
+        if not govde.get("analiz"):
+            return "Analiz çalışmıyor — uyarı üretilmiyor", "hata"
+        return metin or "Hazır değil — uyarı üretilemiyor", "hata"
+    garanti = govde.get("uyari_garantisi", "yok")  # alan Faz 4'te gelir
+    if garanti is False:
+        return "Sesli uyarı hiçbir kanala ulaşmıyor", "hata"
+    if metin:
+        return metin, "uyari"
+    if garanti is None:
+        return "Hazır — sesli uyarının ulaştığı doğrulanamıyor", "gri"
+    return "Hazır — uyarılar üretiliyor", "ok"
 
 
 def sunucu_durumu() -> str:
@@ -320,9 +380,7 @@ def sunucu_durumu() -> str:
     durum satiri "CALISIYOR" der, "Sistemi Baslat" dugmesi kapali kalir,
     "Durdur" ise "calisan sistem bulunamadi" der. Sebep hicbir yerde yazmaz.
     """
-    if not sunucu_ayakta():
-        return DURDU
-    return CALISIYOR if bizim_sunucumuz_mu() else BASKASINDA
+    return sunucu_durumu_ve_saglik()[0]
 
 
 def port_dolu_mesaji() -> list[str]:
@@ -712,7 +770,7 @@ def arayuzu_baslat():
     # sunucu_durumu() /saglik ucuna HTTP istegi atar; portu tutan program
     # yanit vermiyorsa bu iki saniye surebilir. Ana pencere donmasin diye
     # kontrol ARKA PLANDA yapilir ve sonucu burada saklanir.
-    sunucu_bilgisi = {"durum": DURDU, "kontrol_ediliyor": False}
+    sunucu_bilgisi = {"durum": DURDU, "saglik": None, "kontrol_ediliyor": False}
 
     def sunucuyu_arkada_kontrol_et():
         if sunucu_bilgisi["kontrol_ediliyor"]:
@@ -721,7 +779,7 @@ def arayuzu_baslat():
 
         def kontrol():
             try:
-                sunucu_bilgisi["durum"] = sunucu_durumu()
+                sunucu_bilgisi["durum"], sunucu_bilgisi["saglik"] = sunucu_durumu_ve_saglik()
             finally:
                 sunucu_bilgisi["kontrol_ediliyor"] = False
 
@@ -745,14 +803,18 @@ def arayuzu_baslat():
     # Paketlenmis programda kurulum satirlari GOSTERILMEZ: Python, paketler ve
     # kod uygulamanin icinde gelir — kullanicinin bakacagi tek satir sistemin
     # calisip calismadigidir.
+    # "Analiz" satiri calisan sistemin uyari uretip uretemedigini soyler
+    # (/saglik hazir; docs/17 §9.1): "CALISIYOR" yazan bir sistem de analiz
+    # yapmiyor olabilir.
     satirlar = (
-        [("sunucu", "Sistem durumu")]
+        [("sunucu", "Sistem durumu"), ("analiz", "Analiz")]
         if PAKETLENMIS
         else [
             ("python", "Python"),
             ("paket", "Gerekli paketler"),
             ("kod", "Sistem kodu"),
             ("sunucu", "Sistem durumu"),
+            ("analiz", "Analiz"),
         ]
     )
     durum_etiketleri = {}
@@ -871,12 +933,16 @@ def arayuzu_baslat():
         durum["calisiyor"] = ayakta
         if ayakta:
             ayarla("sunucu", f"ÇALIŞIYOR — {URL}", OK)
+            metin, renk = analiz_satiri(sunucu_bilgisi["saglik"])
+            ayarla("analiz", metin, {"ok": OK, "uyari": WARN, "hata": ERR}.get(renk, MUTED))
         elif sunucu_hali == BASKASINDA:
             # "Durdu" demek yanlis olurdu: kullanici Baslat'a basacak ve
             # sebebini anlamadan basarisiz olacakti. Sebep burada yazar.
             ayarla("sunucu", f"{PORT} portunu başka bir program tutuyor", ERR)
+            ayarla("analiz", "—", MUTED)
         else:
             ayarla("sunucu", "Durdu", MUTED)
+            ayarla("analiz", "—", MUTED)
 
         baslat_btn.configure(state="normal" if (paket_hazir and kod_hazir() and not ayakta) else "disabled")
         durdur_btn.configure(state="normal" if ayakta else "disabled")

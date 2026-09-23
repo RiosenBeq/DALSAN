@@ -55,6 +55,21 @@ hedefin altındaysa ▼ ve açıklama çıkıyor; hücrenin ipucunda hedef ve i�
 süresi (p90) var. `uyari_garantisi` alanı ses kanalı sağlığıyla birlikte 4b'de
 gelecek; bugün hesaplanamıyor. Statik damga `?v=30`.
 
+**2d-3b — Kontrol Paneli satırı ve uvicorn günlüğü.** Kontrol Paneli'nde yeni
+bir **Analiz** satırı var. Kırmızı olduğu durumlar: sistem hazır değil (model
+yüklenemedi, analiz takıldı ya da durdu, olaylar kaydedilemiyor) ya da sesli
+uyarı hiçbir kanala ulaşmıyor. Gri olduğu durumlar: model yükleniyor ya da
+sesli uyarının ulaştığı doğrulanamıyor. Kalibrasyon bekleyen kural sarı
+görünüyor. "Sistem durumu" satırı yine "ÇALIŞIYOR"; portun bu sisteme ait
+olduğu yine `durum: "calisiyor"` ile anlaşılıyor (`bizim_sunucumuz_mu`
+bozulmadı; JSON'u sözlük olmayan bir cevap artık istisna fırlatmıyor). Sağlık
+gövdesi aynı istekte alınıyor, ikinci istek yok. uvicorn'un günlükleri
+(`uvicorn`, `uvicorn.error`, `uvicorn.access`) artık aynı JSON biçiminde ve
+`sistem.log`'da; paketli programda panel penceresine de düşüyor. Erişim
+günlüğüne yalnız değiştiren istekler ve 4xx/5xx yanıtlar yazılıyor. Başarılı
+GET'ler yazılmıyor: paneldeki 1,5 sn'lik yoklama dönen günlüğü iki günde
+doldururdu.
+
 ## Faz 2c şema 007 ve olay modeli (23.09.2026)
 
 Plan: `docs/17-V2-TASARIM.md` §6, §8.2, §8.4 ve §13 (2c satırı). Alt adımlar

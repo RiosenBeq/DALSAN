@@ -12,6 +12,9 @@ sorun olduğunda satırları olduğu gibi kopyalayıp Claude Code'a yapıştır�
   * DOSYA (veri/loglar/sistem.log): aynı satır + `ayrinti` alanı. Teknik
     ayrıntı KAYBOLMAZ; destek ekibine iletilen dosya odur.
 
+uvicorn'un günlükleri de aynı biçimde ve aynı dosyadadır (`bilesen`:
+"uvicorn.error", "uvicorn.access"); erişim günlüğünden başarılı GET'ler elenir.
+
 Teknik ayrıntı `extra={"ayrinti": "..."}` ile verilir:
 
     log_al("tespit").info("NextGen AI Hızlı yüklendi", extra={"ayrinti": str(yol)})
@@ -28,6 +31,9 @@ from app import zaman
 from app.ayarlar import Ayarlar
 
 _KOK_AD = "dalsan"
+# uvicorn'un kendi günlükleri (docs/17 §9.4): sunucu başladı/durdu, ASGI
+# hataları ve HTTP erişim satırları.
+_UVICORN_ADLARI = ("uvicorn", "uvicorn.error", "uvicorn.access")
 
 
 class _JsonSatirBicimi(logging.Formatter):
@@ -60,6 +66,56 @@ class _JsonSatirBicimi(logging.Formatter):
             if parcalar:
                 satir["ayrinti"] = "\n".join(parcalar)
         return json.dumps(satir, ensure_ascii=False)
+
+
+class _DalsanaAktar(logging.Handler):
+    """uvicorn kaydını "dalsan" kök logger'ının işleyicilerine iletir.
+
+    uvicorn'a ayrı işleyiciler bağlanmaz: Kontrol Paneli sonradan köke kendi
+    akışını ekliyor (dalsan_launcher.py `_gunlugu_panele_bagla`); aktarma
+    sayesinde uvicorn satırları da oraya düşer.
+    """
+
+    def emit(self, kayit: logging.LogRecord) -> None:
+        logging.getLogger(_KOK_AD).handle(kayit)
+
+
+def _basarili_okumayi_ele(kayit: logging.LogRecord) -> bool:
+    """Erişim günlüğünde yalnız DEĞİŞTİREN istekler ve hatalar kalır.
+
+    Kontrol Paneli /saglik'i 1,5 sn'de, komuta ekranları 5 sn'de bir yoklar;
+    her başarılı GET yazılsaydı günde megabaytlarca satır, dönen dosyadaki
+    (5 MB × 3) önemli satırları iki günde dışarı iterdi. POST/PUT/DELETE
+    (kural, kamera, bölge değişikliği) ve 4xx/5xx yanıtlar her zaman yazılır.
+    uvicorn'un erişim kaydı argümanları: (istemci, yöntem, yol, sürüm, durum).
+    """
+    argumanlar = kayit.args
+    if not isinstance(argumanlar, tuple) or len(argumanlar) != 5:
+        return True  # biçimi bilinmeyen satır atılmaz
+    yontem, durum = argumanlar[1], argumanlar[4]
+    try:
+        return yontem not in ("GET", "HEAD") or int(durum) >= 400
+    except (TypeError, ValueError):
+        return True
+
+
+def _uvicornu_bagla() -> None:
+    """uvicorn günlüklerini aynı JSON biçimine ve dosyaya bağlar (docs/17 §9.4).
+
+    uvicorn'a log yapılandırma dosyası verilmez: komut satırından (Docker,
+    systemd, geliştirme) çalışırken uvicorn kendi düz metin işleyicilerini
+    uygulamayı içe aktarmadan ÖNCE kurar, bu çağrı onları değiştirir.
+    """
+    aktarici = _DalsanaAktar()
+    for ad in _UVICORN_ADLARI:
+        logger = logging.getLogger(ad)
+        logger.handlers.clear()
+        logger.addHandler(aktarici)
+        logger.setLevel(logging.INFO)
+        logger.propagate = False
+    erisim = logging.getLogger("uvicorn.access")
+    if _basarili_okumayi_ele not in erisim.filters:
+        erisim.addFilter(_basarili_okumayi_ele)
 
 
 def _ekran_akisini_hazirla() -> None:
@@ -99,6 +155,7 @@ def kur(ayarlar: Ayarlar) -> None:
     )
     dosya.setFormatter(_JsonSatirBicimi(ayrintili=True))
     kok.addHandler(dosya)
+    _uvicornu_bagla()
 
 
 def log_al(bilesen: str) -> logging.Logger:
