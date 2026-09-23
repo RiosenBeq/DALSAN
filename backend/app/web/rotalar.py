@@ -165,13 +165,17 @@ def saglik(istek: Request):
     onu çağırmak, olay fotoğrafları biriktikçe diski gereksiz yere okur.
     """
     supervizor = getattr(istek.app.state, "supervizor", None)
+    sorunlar = _saglik_sorunlari(istek.app.state.ayarlar)
+    # Süpervizörün kodları (olay_yazilamadi…). Sağlık ucu hiçbir durumda
+    # düşmemeli: yöntemi olmayan bir nesne de boş liste sayılır.
+    sorunlar += getattr(supervizor, "sorunlar", list)()
     return {
         "durum": "calisiyor",
         "analiz": supervizor is not None,
         "model": getattr(supervizor, "model_durumu", "kapali") if supervizor else "kapali",
         # Yalnız KOD: kimliksiz uçta kamera adı ya da ayrıntı verilmez
         # (docs/17 §9.1). Ayrıntı kurulum listesinde.
-        "sorunlar": _saglik_sorunlari(istek.app.state.ayarlar),
+        "sorunlar": sorunlar,
     }
 
 

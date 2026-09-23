@@ -86,6 +86,14 @@ def _yuzdelik(degerler, yuzde: int) -> float | None:
     return round(sirali[max(0, math.ceil(yuzde / 100 * len(sirali)) - 1)], 1)
 
 
+def _geri_al(baglanti) -> None:
+    """Yarım kalmış işlemi geri alır: sonraki yazmalar temiz bir işlemle başlasın."""
+    try:
+        baglanti.rollback()
+    except sqlite3.Error:
+        pass  # bağlantı zaten kullanılamaz durumda; asıl hata çoktan günlükte
+
+
 _KONFIG_KONTROL_SN = 5.0
 _DURUM_YAZMA_SN = 5.0
 _BAKIM_ARALIGI_SN = 24 * 3600.0
@@ -118,6 +126,14 @@ class AnalizSupervizoru:
         # Olay anahtarı (kural, kamera, iz…) → açık ihlal olayının id'si
         # (rules/olay_durumu.py). Kapanış geçişi gelince bitiş bu satıra yazılır.
         self._acik_olaylar: dict[tuple, int] = {}
+        # Kural id → gölge / anons / önem (docs/17 §3.5). Yapılandırma damgasıyla
+        # tazelenir. Kural satırı okunamazsa (kilitli veritabanı) gölge ve anons
+        # kararı buradan verilir: uyarı, kayıt yapılamasa da duyurulur. Motorun
+        # kural imzasına GİRMEZ; gölge açılıp kapanınca pencereler sıfırlanmasın.
+        self._kural_haritasi: dict[int, dict] = {}
+        # Son ihlal kaydının hatası; /saglik "olay_yazilamadi" der. Bir sonraki
+        # başarılı kayıt temizler.
+        self.olay_yazma_hatasi: str | None = None
 
         self._son_konfig_kontrol = 0.0
         self._son_durum_yazma = 0.0
@@ -521,6 +537,16 @@ class AnalizSupervizoru:
             satir["id"]: dict(satir)
             for satir in baglanti.execute("SELECT * FROM announcement_messages")
         }
+        self._kural_haritasi = {
+            satir["id"]: {
+                "shadow_mode": satir["shadow_mode"],
+                "announcement_id": satir["announcement_id"],
+                "severity": satir["severity"],
+            }
+            for satir in baglanti.execute(
+                "SELECT id, shadow_mode, announcement_id, severity FROM rules"
+            )
+        }
         # Anons, ihlalin olduğu BÖLÜMÜN hoparlörüne gider (şema 002).
         # Bölge tanımlanmamışsa liste boş kalır ve .env'deki tek adres kullanılır.
         self._anons.bolgeleri_yukle(baglanti.execute("SELECT * FROM speaker_zones ORDER BY id"))
@@ -767,12 +793,12 @@ class AnalizSupervizoru:
         elif gecis.asama == HATIRLATMA and gecis.anahtar in self._acik_olaylar:
             olay_id = self._acik_olaylar[gecis.anahtar]
             self._log.info(f"İhlal sürüyor (olay {olay_id}) — anons tekrarlanıyor.")
-            self._duyur(gecis.ihlal, self._kural_kaydi(baglanti, gecis.ihlal.kural_id), simdi)
+            self._duyur(gecis.ihlal, self._kural_kaydini_al(baglanti, gecis.ihlal.kural_id), simdi)
         elif gecis.asama in (ACILDI, HATIRLATMA):
             # Hatırlatma ama satır yok: açılış yazılamamıştı; olay şimdi yazılır
-            self._acik_olaylar[gecis.anahtar] = self._ihlali_kaydet(
-                baglanti, hat, gecis.ihlal, simdi, suruyor=True
-            )
+            olay_id = self._ihlali_kaydet(baglanti, hat, gecis.ihlal, simdi, suruyor=True)
+            if olay_id is not None:
+                self._acik_olaylar[gecis.anahtar] = olay_id
 
     def _olayi_kapat(self, baglanti, gecis: OlayGecisi) -> None:
         olay_id = self._acik_olaylar.pop(gecis.anahtar, None)
@@ -800,25 +826,68 @@ class AnalizSupervizoru:
 
     def _ihlali_kaydet(
         self, baglanti, hat: KameraHatti, ihlal, simdi: float, *, suruyor: bool = False
-    ) -> int:
-        kural_kaydi = self._kural_kaydi(baglanti, ihlal.kural_id)
+    ) -> int | None:
+        """İhlali kaydeder ve duyurur; kayıt başarısız olsa da DUYURUR (docs/17 §3.5).
+
+        Sıra güvenlik içindir. Eskiden kural satırı ya da olay satırı yazılamazsa
+        (kilitli veritabanı, dolu disk) istisna anonsa hiç ulaşmadan döngüde
+        yutuluyordu: ihlal ne kayda geçiyor ne duyuruluyordu. Şimdi kural satırı
+        okunamazsa gölge/anons kararı bellekteki haritadan verilir; olay satırı
+        yazılamazsa CRITICAL günlük ve /saglik "olay_yazilamadi" — ama anons yine
+        çalar. Dönen değer olay id'si; yazılamadıysa None.
+        """
+        kural_kaydi = self._kural_kaydini_al(baglanti, ihlal.kural_id)
+        olay_id = None
         baslangic = time.perf_counter()
-        olay_id = ihlal_yaz(
-            baglanti,
-            self.ayarlar,
-            ihlal,
-            kural_kaydi,
-            hat.son_islenmis_jpeg(),
-            suruyor=suruyor,
-        )
-        self._olcumler.setdefault(ihlal.kamera_id, _KameraOlcumu()).ihlal_yaz_ms.append(
-            (time.perf_counter() - baslangic) * 1000
-        )
-        self._log.info(
-            f"İhlal kaydedildi (olay {olay_id}, kamera {ihlal.kamera_id}, kural {ihlal.kural_id})"
-        )
+        try:
+            olay_id = ihlal_yaz(
+                baglanti,
+                self.ayarlar,
+                ihlal,
+                kural_kaydi,
+                hat.son_islenmis_jpeg(),
+                suruyor=suruyor,
+            )
+        except Exception as hata:  # noqa: BLE001 — kayıt hatası uyarıyı susturmamalı
+            self.olay_yazma_hatasi = f"{type(hata).__name__}: {hata}"
+            self._log.critical(
+                f"İhlal olayı KAYDEDİLEMEDİ (kamera {ihlal.kamera_id}, kural "
+                f"{ihlal.kural_id}); uyarı yine de duyuruluyor: {hata}",
+                exc_info=hata,
+            )
+            _geri_al(baglanti)
+        else:
+            self.olay_yazma_hatasi = None
+            self._olcumler.setdefault(ihlal.kamera_id, _KameraOlcumu()).ihlal_yaz_ms.append(
+                (time.perf_counter() - baslangic) * 1000
+            )
+            self._log.info(
+                f"İhlal kaydedildi (olay {olay_id}, kamera {ihlal.kamera_id}, "
+                f"kural {ihlal.kural_id})"
+            )
         self._duyur(ihlal, kural_kaydi, simdi)
         return olay_id
+
+    def _kural_kaydini_al(self, baglanti, kural_id: int) -> dict:
+        """Kural satırı; okunamazsa bellekteki harita (anlık görüntü eksik kalır).
+
+        Okunabildiğinde satır tercih edilir: gölge modu açıp kapatmak bir
+        sonraki ihlalde hemen etkili olsun.
+        """
+        try:
+            return self._kural_kaydi(baglanti, kural_id)
+        except Exception as hata:  # noqa: BLE001 — kural okunamadı diye uyarı susmamalı
+            self._log.critical(
+                f"Kural {kural_id} satırı okunamadı; gölge ve anons kararı bellekten "
+                f"veriliyor: {hata}",
+                exc_info=hata,
+            )
+            _geri_al(baglanti)
+            return {"id": kural_id, **self._kural_haritasi.get(kural_id, {})}
+
+    def sorunlar(self) -> list[str]:
+        """/saglik "sorunlar" listesine süpervizörün kodları (docs/17 §9.1)."""
+        return ["olay_yazilamadi"] if self.olay_yazma_hatasi else []
 
     def _duyur(self, ihlal, kural_kaydi: dict, simdi: float) -> None:
         # GÖLGE MOD (şema 002): kural çalışır ve olay yazılır, ama hoparlör

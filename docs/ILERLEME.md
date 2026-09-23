@@ -1,5 +1,22 @@
 # İlerleme
 
+## Faz 2d görünür arıza ve sağlık (23.09.2026)
+
+Plan: `docs/17-V2-TASARIM.md` §3.5, §3.6, §9 ve §13 (2d satırı). Alt adımlar
+ayrı commit'lerdir; her birinden sonra tam paket ve `tests/rules` yeşil.
+
+**2d-1 — fail-safe sırası.** Kayıt yapılamasa da uyarı duyuruluyor. Eskiden
+ihlalin kural satırı okunamazsa ya da olay satırı yazılamazsa (kilitli
+veritabanı, dolu disk) istisna anonsa hiç ulaşmadan döngüde yutuluyordu: ihlal
+ne kayda geçiyor ne duyuruluyordu. Şimdi olay yazılamazsa günlüğe CRITICAL
+satır düşüyor, `/saglik` `"sorunlar"`'a `olay_yazilamadi` ekleniyor (bir sonraki
+başarılı kayıt temizliyor) ve anons **yine** çalıyor. Kural satırı okunamazsa
+gölge ve anons kararı bellekteki kural haritasından veriliyor (yapılandırma
+damgasıyla tazelenir, motorun kural imzasına girmez); gölgedeki kural bellekten
+tanınıp susuyor. Okunabildiğinde yine satırın kendisi kullanılıyor: gölge modu
+açıp kapatmak bir sonraki ihlalde hemen etkili. Açılışı yazılamayan olay "açık"
+sayılmıyor; hatırlatma geldiğinde satırı yazılıyor.
+
 ## Faz 2c şema 007 ve olay modeli (23.09.2026)
 
 Plan: `docs/17-V2-TASARIM.md` §6, §8.2, §8.4 ve §13 (2c satırı). Alt adımlar
