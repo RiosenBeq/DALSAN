@@ -80,6 +80,12 @@ def _satir(kirilim: dict, ad: str) -> dict | None:
     return next((s for s in kirilim["satirlar"] if s["ad"] == ad), None)
 
 
+def _kirilim(veri: dict, baslik: str) -> dict:
+    """Kırılımı başlığıyla bulur: sıra numarasıyla aramak, araya yeni bir
+    kırılım girince testleri yanlış tabloya baktırırdı."""
+    return next(k for k in veri["kirilimlar"] if k["baslik"] == baslik)
+
+
 # ------------------------------------------------------------------ dönem
 
 
@@ -152,7 +158,7 @@ def test_alan_filtresi_yalniz_o_bolumu_sayar(db):
     assert _veri(db, baslangic="2026-08-01", bitis="2026-08-31")["toplam"] == 2
     dar = _veri(db, baslangic="2026-08-01", bitis="2026-08-31", alan="Döküm")
     assert dar["toplam"] == 1
-    assert _satir(dar["kirilimlar"][1], "K2")["adet"] == 1
+    assert _satir(_kirilim(dar, "Kameraya göre"), "K2")["adet"] == 1
 
 
 # ------------------------------------------------------------- kırılımlar
@@ -180,15 +186,15 @@ def test_silinmis_kamera_ve_bolge_satirda_gorunur(db):
     db.execute("DELETE FROM cameras WHERE id = ?", (kamera,))
     db.commit()
     veri = _veri(db, baslangic="2026-08-01", bitis="2026-08-31")
-    assert _satir(veri["kirilimlar"][1], "Kamerası silinmiş")["adet"] == 1
-    assert _satir(veri["kirilimlar"][3], "Bölgesi silinmiş")["adet"] == 1
+    assert _satir(_kirilim(veri, "Kameraya göre"), "Kamerası silinmiş")["adet"] == 1
+    assert _satir(_kirilim(veri, "Bölgeye göre"), "Bölgesi silinmiş")["adet"] == 1
 
 
 def test_bolgesiz_kural_kendi_satirinda(db):
     kamera = _kamera(db)
     _olay(db, kamera, "2026-08-10T09:00:00+00:00", kural_tipi="safe_distance")
     veri = _veri(db, baslangic="2026-08-01", bitis="2026-08-31")
-    assert _satir(veri["kirilimlar"][3], "Bölgesiz (tüm kare)")["adet"] == 1
+    assert _satir(_kirilim(veri, "Bölgeye göre"), "Bölgesiz (tüm kare)")["adet"] == 1
 
 
 def test_kirilim_adete_gore_sirali(db):
@@ -225,6 +231,60 @@ def test_hic_isaretlenmemisse_oran_yerine_cizgi(db):
     veri = _veri(db, baslangic="2026-08-01", bitis="2026-08-31")
     assert _satir(veri["kirilimlar"][0], "Bölge ihlali")["yanlis_alarm"] == "—"
     assert any("henüz incelenmemiştir" in n for n in veri["notlar"])
+
+
+def _kodlu_olay(db, kamera_id: int, kod: str, durum: str = "new") -> None:
+    kayit = {"rule_type": "ppe_violation", "zone_id": None, "shadow_mode": 1}
+    db.execute(
+        "INSERT INTO events (occurred_at, event_type, camera_id, rule_snapshot, details, "
+        "status, event_code, severity) VALUES (?, 'violation', ?, ?, '{}', ?, ?, 'high')",
+        ("2026-08-10T09:00:00+00:00", kamera_id, json.dumps(kayit), durum, kod),
+    )
+    db.commit()
+
+
+def test_baret_ve_yelek_yanlis_alarmi_ayri_satirda(db):
+    """docs/17 §13 3e: raporda baret ve yelek için ayrı yanlış alarm oranı,
+    yanında inceleme kapsamı. Kural tipi kırılımında ikisi tek satırdır."""
+    kamera = _kamera(db)
+    for durum in ("reviewed", "reviewed", "reviewed", "false_alarm"):
+        _kodlu_olay(db, kamera, "PPE_NO_HELMET", durum)
+    for durum in ("false_alarm", "reviewed", "new"):
+        _kodlu_olay(db, kamera, "PPE_NO_VEST", durum)
+    veri = _veri(db, baslangic="2026-08-01", bitis="2026-08-31")
+    kodlar = _kirilim(veri, "Olay koduna göre")
+    baret, yelek = _satir(kodlar, "Baret yok"), _satir(kodlar, "Yelek yok")
+    assert (baret["adet"], baret["yanlis_alarm"], baret["kapsama"]) == (4, "%25", "%100")
+    assert (yelek["adet"], yelek["yanlis_alarm"], yelek["kapsama"]) == (3, "%50", "%66")
+    assert _satir(_kirilim(veri, "Kural tipine göre"), "KKD (baret/yelek)")["adet"] == 7
+
+
+def test_kodsuz_eski_olay_kural_tipiyle_gorunur(db):
+    """007 öncesi olayın kodu yoktur; sayılır, eski kayıt olduğu söylenir."""
+    kamera = _kamera(db)
+    _olay(db, kamera, "2026-08-10T09:00:00+00:00", kural_tipi="safe_distance")
+    kodlar = _kirilim(_veri(db, baslangic="2026-08-01", bitis="2026-08-31"), "Olay koduna göre")
+    assert _satir(kodlar, "Güvenli mesafe (eski kayıt)")["adet"] == 1
+
+
+def test_kapsama_asagi_yuvarlanir_ve_ekranda_yazar(istemci, test_ayarlari):
+    """199/200 işaretli: kapsama "%100" değil "%99" (incelenmemiş olay gizlenmez)."""
+    baglanti = veritabani.baglanti_ac(test_ayarlari.veritabani_yolu)
+    try:
+        kamera = _kamera(baglanti)
+        for i in range(200):
+            _kodlu_olay(baglanti, kamera, "PPE_NO_VEST", "reviewed" if i else "new")
+        veri = _veri(baglanti, baslangic="2026-08-01", bitis="2026-08-31")
+    finally:
+        baglanti.close()
+    assert _satir(_kirilim(veri, "Olay koduna göre"), "Yelek yok")["kapsama"] == "%99"
+    metin = istemci.get("/komuta/rapor?baslangic=2026-08-01&bitis=2026-08-31").text
+    assert "Olay koduna göre" in metin and "(kapsama %99)" in metin
+    csv_metni = istemci.get(
+        "/komuta/rapor/ozet.csv?baslangic=2026-08-01&bitis=2026-08-31"
+    ).content.decode("utf-8")
+    assert "Olay;İhlal;Pay;İşaretli;Kapsama;Yanlış alarm" in csv_metni
+    assert "Yelek yok;200;%100;199;%99;%0" in csv_metni
 
 
 def test_golge_moddaki_olaylar_notta_soylenir(db):

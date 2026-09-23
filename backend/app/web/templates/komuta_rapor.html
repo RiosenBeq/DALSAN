@@ -90,9 +90,9 @@
         <span class="komuta-bar"><span style="width: {{ satir.genislik }}"></span></span>
         <span class="sayisal">{{ satir.adet }}</span>
         <span class="sayisal">{{ satir.pay }}</span>
-        {# İşaretlenmemiş olay "doğru uyarı" DEĞİLDİR: oran yoksa "—" yazar ve
-           kaç olayın işaretlendiği yanına eklenir. #}
-        <span class="sayisal">{{ satir.yanlis_alarm }}{% if satir.isaretli %}<span class="panel-notu"> ({{ satir.isaretli }} işaretli)</span>{% endif %}</span>
+        {# İşaretlenmemiş olay "doğru uyarı" DEĞİLDİR: oran yoksa "—" yazar.
+           Yanında inceleme kapsamı: satırdaki olayların yüzde kaçı işaretli. #}
+        <span class="sayisal" title="{{ satir.isaretli }} / {{ satir.adet }} olay işaretli">{{ satir.yanlis_alarm }}<span class="panel-notu"> (kapsama {{ satir.kapsama }})</span></span>
       </div>
       {% endfor %}
     </div>

@@ -29,6 +29,7 @@ from fastapi.responses import HTMLResponse, Response
 
 from app import zaman
 from app.hatalar import DogrulamaHatasi
+from app.rules.olay_kodu import OLAY_KODLARI
 from app.web.komuta import kabuk_baglami
 from app.web.ortak import (
     KURAL_TIPLERI,
@@ -103,7 +104,7 @@ def _olaylari_getir(baglanti, baslangic: str, bitis: str, alan: str) -> list[dic
         kosullar.append("c.area = ?")
         degerler.append(alan)
     satirlar = baglanti.execute(
-        "SELECT e.occurred_at, e.status, e.rule_snapshot, e.camera_id, "
+        "SELECT e.occurred_at, e.status, e.rule_snapshot, e.camera_id, e.event_code, "
         "       c.name AS kamera_adi, c.area AS kamera_alani "
         "FROM events e LEFT JOIN cameras c ON c.id = e.camera_id "
         f"WHERE {' AND '.join(kosullar)} "
@@ -129,8 +130,15 @@ def _kural_bilgisi(olay: dict, bolge_adlari: dict[int, str]) -> tuple[str, str]:
     return tip, bolge
 
 
+def _kod_adi(olay: dict, tip: str) -> str:
+    """Olay kodunun Türkçe adı ("Baret yok"). 007 öncesi kodsuz olay kural
+    tipinin adıyla, eski kayıt olduğu söylenerek görünür (ortak.py ile aynı)."""
+    tanim = OLAY_KODLARI.get(olay.get("event_code") or "")
+    return tanim.ad if tanim else f"{tip} (eski kayıt)"
+
+
 def _kirilim(sayaclar: dict[str, Counter], baslik: str, sutun: str) -> dict:
-    """Bir kırılım tablosu: ad · adet · pay · yanlış alarm oranı.
+    """Bir kırılım tablosu: ad · adet · pay · yanlış alarm oranı · kapsama.
 
     Satırlar adede göre sıralanır; eşitlikte ada göre — aynı veri her açılışta
     aynı sırada çıksın, rapor iki kez alındığında "değişmiş" görünmesin.
@@ -150,6 +158,10 @@ def _kirilim(sayaclar: dict[str, Counter], baslik: str, sutun: str) -> dict:
                 # işaretlenmişler üzerinden verilir, yoksa "—" yazılır.
                 "yanlis_alarm": _oran_metni(sayac["yanlis"], isaretli) if isaretli else "—",
                 "isaretli": isaretli,
+                # Oranın yanında inceleme kapsamı (docs/17 §5.9): düşük kapsamda
+                # oran temsil edici değildir. AŞAĞI yuvarlanır: %99,6 "%100"
+                # görünüp incelenmemiş olayı gizlemesin.
+                "kapsama": _kapsama_orani(isaretli, sayac["adet"]),
             }
         )
     return {"baslik": baslik, "sutun": sutun, "satirlar": satirlar, "toplam": toplam}
@@ -159,6 +171,12 @@ def _oran_metni(pay: int, payda: int) -> str:
     if payda <= 0:
         return "—"
     return f"%{round(pay / payda * 100)}"
+
+
+def _kapsama_orani(isaretli: int, adet: int) -> str:
+    if adet <= 0:
+        return "—"
+    return f"%{isaretli * 100 // adet}"
 
 
 def _gun_sutunlari(gunler: Counter, baslangic: str, bitis: str) -> dict:
@@ -215,6 +233,7 @@ def rapor_verisi(baglanti, sorgu) -> dict:
         return Counter()
 
     kural_sayaci: dict[str, Counter] = defaultdict(_yeni)
+    kod_sayaci: dict[str, Counter] = defaultdict(_yeni)
     kamera_sayaci: dict[str, Counter] = defaultdict(_yeni)
     bolum_sayaci: dict[str, Counter] = defaultdict(_yeni)
     bolge_sayaci: dict[str, Counter] = defaultdict(_yeni)
@@ -232,6 +251,7 @@ def rapor_verisi(baglanti, sorgu) -> dict:
         gunler[zaman.yerel_tarih_iso(olay["occurred_at"])] += 1
         for sayac, anahtar in (
             (kural_sayaci, tip),
+            (kod_sayaci, _kod_adi(olay, tip)),
             (kamera_sayaci, kamera),
             (bolum_sayaci, bolum),
             (bolge_sayaci, bolge),
@@ -265,6 +285,9 @@ def rapor_verisi(baglanti, sorgu) -> dict:
         "kartlar": _kartlar(toplam, gun_grafigi, saatler, durumlar, isaretli),
         "kirilimlar": [
             _kirilim(kural_sayaci, "Kural tipine göre", "Kural"),
+            # Baret ve yelek burada AYRI satırdır: yanlış alarm oranları ayrı
+            # okunur (docs/17 §13 3e)
+            _kirilim(kod_sayaci, "Olay koduna göre", "Olay"),
             _kirilim(kamera_sayaci, "Kameraya göre", "Kamera"),
             _kirilim(bolum_sayaci, "Bölüme göre", "Bölüm"),
             _kirilim(bolge_sayaci, "Bölgeye göre", "Bölge"),
@@ -467,7 +490,9 @@ def _notlar(toplam: int, isaretli: int, golge: int) -> list[str]:
         notlar.append(
             f"Yanlış alarm oranı yalnızca İŞARETLENMİŞ {isaretli} olay üzerinden "
             f"hesaplanmıştır; {toplam - isaretli} olay henüz incelenmemiştir "
-            "(Komuta → İnceleme). İşaretlenmemiş olay 'doğru uyarı' sayılmaz."
+            "(Komuta → İnceleme). İşaretlenmemiş olay 'doğru uyarı' sayılmaz. "
+            "Tablolarda oranın yanındaki kapsama, o satırdaki olayların yüzde "
+            "kaçının işaretlendiğidir: kapsama düşükse oran o satırı temsil etmez."
         )
     elif toplam:
         notlar.append("Dönemdeki olayların tamamı incelenip işaretlenmiştir.")
@@ -535,7 +560,7 @@ def rapor_csv(istek: Request, baglanti=Depends(baglanti_al)):
 
     for kirilim in veri["kirilimlar"]:
         yazici.writerow([kirilim["baslik"]])
-        yazici.writerow([kirilim["sutun"], "İhlal", "Pay", "İşaretli", "Yanlış alarm"])
+        yazici.writerow([kirilim["sutun"], "İhlal", "Pay", "İşaretli", "Kapsama", "Yanlış alarm"])
         for satir in kirilim["satirlar"]:
             yazici.writerow(
                 [
@@ -543,6 +568,7 @@ def rapor_csv(istek: Request, baglanti=Depends(baglanti_al)):
                     satir["adet"],
                     satir["pay"],
                     satir["isaretli"],
+                    satir["kapsama"],
                     satir["yanlis_alarm"],
                 ]
             )
