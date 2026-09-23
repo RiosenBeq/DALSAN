@@ -1,0 +1,13 @@
+{
+  "insan_kaybi_en_fazla": 0.01,
+  "arac_kaybi_en_fazla": 0.0,
+  "vg_r_artisi_en_az": 0.10,
+  "fk_r_en_az": 0.60,
+  "fk_fp_goruntu_basi_en_fazla": 0.05,
+  "pt_fk_en_fazla": 0.10,
+  "fk_kesinlik_en_az": 0.50,
+  "arac_seti_tr_fk_en_fazla": 0.02,
+  "video_insan_kaybi_en_fazla": 0.005,
+  "video_fk_kare_orani_en_fazla": 0.01,
+  "gecikme_orani_p90_en_fazla": 1.25
+}
