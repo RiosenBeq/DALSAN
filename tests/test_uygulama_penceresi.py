@@ -605,3 +605,44 @@ def test_pencere_simgesi_pakete_konuyor():
     assert "NextGenDetector.ico" in ortak
     assert '"uygulama_penceresi"' in ortak, "modül pakete alınmalı"
     assert (KOK / "paketleme" / "NextGenDetector.ico").is_file()
+
+
+# ------------------------------------------ üretim hattının pencere sınaması
+
+
+def _sinama_modulu():
+    tanim = importlib.util.spec_from_file_location(
+        "pencere_sinamasi_test", KOK / "paketleme" / "pencere_sinamasi.py"
+    )
+    modul = importlib.util.module_from_spec(tanim)
+    tanim.loader.exec_module(modul)
+    return modul
+
+
+def _program_sarici(tmp_path: Path) -> str:
+    """Paketlenmiş programın yerine geçen betik: Kontrol Paneli'nin giriş
+    betiğini aynı bağımsız değişkenlerle çalıştırır."""
+    sarici = tmp_path / "NextGen Detector"
+    sarici.write_text(f'#!/bin/sh\nexec "{sys.executable}" "{LAUNCHER}" "$@"\n')
+    sarici.chmod(0o755)
+    return str(sarici)
+
+
+@pytest.mark.skipif(sys.platform.startswith("win"), reason="sarıcı bir kabuk betiği")
+def test_uretim_hattinin_pencere_sinamasi_gecer(sahte_webview, tmp_path, monkeypatch):
+    """GitHub Actions paketi yayımlamadan önce bunu çalıştırır; burada sahte
+    kütüphaneyle, gerçek süreçler ve borularla uçtan uca koşar."""
+    sinama = _sinama_modulu()
+    monkeypatch.setattr(sinama, "MOTOR_BEKLEMESI_SN", 0.2)  # sahte sayfa çizmez
+    sinama.pencere_sina(_program_sarici(tmp_path), None)
+    assert [k[0] for k in _kayitlar(sahte_webview)][-2:] == ["show", "destroy"]
+
+
+@pytest.mark.skipif(sys.platform.startswith("win"), reason="sarıcı bir kabuk betiği")
+def test_uretim_hattinin_pencere_sinamasi_ie_motorunu_yakalar(sahte_webview, tmp_path, monkeypatch):
+    """WebView2'siz bir makinede sınama KIRMIZI olmalı: paket o haliyle
+    yayımlansaydı ekran yedek pencerede açılırdı ve kimse fark etmezdi."""
+    monkeypatch.setenv("SAHTE_MOTOR", "mshtml")
+    sinama = _sinama_modulu()
+    with pytest.raises(sinama.SinamaHatasi, match="HAZIR demeden 4"):
+        sinama.pencere_sina(_program_sarici(tmp_path), None)

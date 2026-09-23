@@ -672,3 +672,19 @@ def test_belge_kullanicinin_soracagi_her_seyi_kapsiyor():
         "xcode-select --install",
     ):
         assert konu in metin, f"belgede eksik konu: {konu}"
+
+
+def test_uretim_isi_paketi_acip_sinar():
+    """GitHub Actions işi paketi yalnız üretmez, açıp sınar; sınamayı geçemeyen
+    paket yayımlanmaz. Adımlardan biri silinirse bozuk bir paket, "yeşil"
+    görünen bir çalıştırmayla indirilmeye hazır beklerdi."""
+    is_ = (KOK / ".github" / "workflows" / "uygulama-uret.yml").read_text(encoding="utf-8")
+    for makine in ("windows-2025", "macos-15", "macos-15-intel"):
+        assert f"makine: {makine}\n" in is_, makine
+    assert 'python-version: "3.12"' in is_, "desteklenen tek sürüm (docs/17 R10)"
+    assert "paketleme/pencere_sinamasi.py pencere" in is_
+    assert "paketleme/pencere_sinamasi.py tam" in is_
+    # Sınama adımları paketi yükleyen adımdan ÖNCE gelir.
+    assert is_.index("pencere_sinamasi.py tam") < is_.index("actions/upload-artifact")
+    # Mac paketi kısayolları ve çalıştırma izinlerini korumalı.
+    assert "ditto -c -k" in is_ and "archive: false" in is_

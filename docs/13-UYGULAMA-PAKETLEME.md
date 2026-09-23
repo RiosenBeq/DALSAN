@@ -121,6 +121,42 @@ Pencerenin verisi (giriş çerezi, ekranın ses tercihi) kullanıcının tarayı
 oturumundan ayrı, `tarayici-profili` klasöründe durur. O klasör
 **yedeklenmez**: içinde kullanıcı verisi değil, önbellek vardır.
 
+## 3.2 Hazır paketi indirmek (Windows ya da Mac bilgisayar gerekmeden)
+
+Uygulamayı üretmek için Windows ya da Mac bilgisayar bulmak şart değildir:
+GitHub, uygulamayı değiştiren her gönderimde üç paketi kendi bilgisayarlarında
+üretir ve teslimden önce **gerçekten açıp sınar**: izleme penceresi işletim
+sisteminin web görünümünde açılıp kapanmalı, uygulamanın tamamı sistemi
+kendisi başlatıp izleme penceresini açmalı. Sınamayı geçemeyen paket
+yayımlanmaz (`.github/workflows/uygulama-uret.yml`).
+
+1. GitHub'da depo sayfasında **Actions** sekmesine girin.
+2. Soldan **"Uygulama üret"**i seçin, en üstteki **yeşil** çalıştırmayı açın.
+   Yenisini üretmek için sağdaki **"Run workflow"** düğmesi.
+3. Sayfanın altındaki **Artifacts** bölümünden bilgisayarınıza uyanı indirin:
+
+| Dosya | Bilgisayar |
+|---|---|
+| `NextGen-Detector-Windows.zip` | Windows 10 / 11 (64 bit) |
+| `NextGen-Detector-Mac-Apple-M.zip` | Apple M1, M2, M3, M4 işlemcili Mac |
+| `NextGen-Detector-Mac-Intel.zip` | Intel işlemcili Mac |
+
+Mac'in işlemcisini görmek için: Elma menüsü → **Bu Mac Hakkında** → "Çip"
+(Apple M…) ya da "İşlemci" (Intel) satırı. Paketler 30 gün durur, sonra aynı
+düğmeyle yeniden üretilir. Aynı sayfada `ekran-goruntuleri-…` adıyla, sınama
+sırasında o bilgisayarda alınmış ekran görüntüleri de vardır.
+
+**İlk açılış:**
+
+* **Windows:** zip'e sağ tıklayın → **Tümünü ayıkla**. Çıkan klasördeki
+  `NextGen Detector.exe`'ye çift tıklayın. Klasörün tamamı birlikte durmalı;
+  yalnız `.exe`'yi başka yere taşımayın. İlk açılıştaki mavi uyarı için §6.3.
+* **Mac:** zip'e çift tıklayın, çıkan `NextGen Detector.app`'i
+  **Uygulamalar** klasörüne sürükleyin. Uygulama Apple'a kayıtlı bir
+  geliştirici imzası taşımadığı için macOS ilk açılışta onu açmaz. **Sistem
+  Ayarları → Gizlilik ve Güvenlik**'e girin, aşağıdaki "NextGen Detector
+  engellendi" satırında **"Yine de Aç"**a basın. Bir kez yapılır.
+
 ---
 
 ## 4. Üretilen uygulama nereye veri yazar
@@ -321,6 +357,8 @@ açılır, WebView2 Runtime kurulunca kendi penceresine döner.
 | `paketleme/NextGenDetector-windows.spec` | Windows'a özel olanlar (`.ico` simge, gizli konsol, açılış kancası) |
 | `paketleme/acilis_kancasi.py` | Gizli konsolun yuttuğu hataları görünür kılar (§7) |
 | `paketleme/requirements-paketleme.txt` | Paketleme aracı ve pakete giren pencere bileşeni (`pywebview`) |
+| `.github/workflows/uygulama-uret.yml` | Üç paketi GitHub'ın Windows ve Mac bilgisayarlarında üretip sınar (§3.2) |
+| `paketleme/pencere_sinamasi.py` | Üretilen paketi gerçekten açıp sınar: izleme penceresi ve uygulamanın tamamı |
 
 Ortak bölümün ayrı bir dosyada olması bilinçlidir: iki tarif aynı listeleri
 kopyala-yapıştır taşısaydı zamanla ayrışır, biri güncellenip diğeri

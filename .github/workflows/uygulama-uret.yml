@@ -1,0 +1,145 @@
+# Windows (.exe) ve Mac (.app) uygulamasını GitHub'ın kendi bilgisayarlarında
+# üretir, GERÇEKTEN açıp sınar ve indirilmeye hazır bırakır.
+#
+# NEDEN: PyInstaller çapraz derleme yapmaz; .exe ancak Windows'ta, .app ancak
+# Mac'te üretilir (docs/13 §1). Bu iş o bilgisayarları bulup üretimi elle
+# yapmaya gerek bırakmaz. Her paket teslimden önce açılır: izleme penceresi
+# işletim sisteminin web görünümünde açılıp kapanmalı, uygulamanın tamamı
+# sistemi kendisi başlatıp izleme penceresini açmalı
+# (paketleme/pencere_sinamasi.py). Sınamayı geçemeyen paket yayımlanmaz.
+#
+# NE ZAMAN: main'e uygulamayı değiştiren her gönderimde ve Actions
+# sekmesindeki "Run workflow" düğmesiyle. Yalnız belge değişikliği üretimi
+# tetiklemez.
+#
+# İNDİRMEK (docs/13 §3.2): depo -> Actions -> "Uygulama üret" -> en üstteki
+# yeşil çalıştırma -> sayfanın altındaki "Artifacts". Paketler 30 gün durur.
+name: Uygulama üret
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - "masaustu/**"
+      - "paketleme/**"
+      - ".github/workflows/uygulama-uret.yml"
+  workflow_dispatch:
+
+# Aynı daldaki eski üretim, yenisi gelince durur: indirilecek olan hep son hal.
+concurrency:
+  group: uygulama-uret-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  uret:
+    name: ${{ matrix.ad }}
+    runs-on: ${{ matrix.makine }}
+    timeout-minutes: 75
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - ad: Windows
+            makine: windows-2025
+            tarif: NextGenDetector-windows.spec
+            program: dist/NextGen Detector/NextGen Detector.exe
+            paket: NextGen-Detector-Windows
+          - ad: Mac (Apple M çipli)
+            makine: macos-15
+            tarif: NextGenDetector-mac.spec
+            program: dist/NextGen Detector.app/Contents/MacOS/NextGen Detector
+            paket: NextGen-Detector-Mac-Apple-M
+          - ad: Mac (Intel)
+            makine: macos-15-intel
+            tarif: NextGenDetector-mac.spec
+            program: dist/NextGen Detector.app/Contents/MacOS/NextGen Detector
+            paket: NextGen-Detector-Mac-Intel
+    env:
+      PYTHONUTF8: "1"
+      PYTHONIOENCODING: utf-8
+    steps:
+      - uses: actions/checkout@v7
+
+      # Python 3.12: desteklenen tek sürüm (docs/17 R10); yerel üretim
+      # betikleri de yalnız onu kabul eder.
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            backend/requirements.txt
+            paketleme/requirements-paketleme.txt
+
+      # tkinter'sız bir Python'la üretilen uygulama SORUNSUZ üretilir ama hiç
+      # açılmaz (Kontrol Paneli Tk'dir). Burada erken ve açıkça düşsün.
+      - name: Kontrol Paneli için tkinter var mı
+        run: python -c "import tkinter; tkinter.Tcl(); print('tkinter', tkinter.TkVersion)"
+
+      - name: Paketleri kur
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r backend/requirements.txt -r paketleme/requirements-paketleme.txt
+
+      - name: Uygulamayı üret
+        run: python -m PyInstaller --noconfirm --clean paketleme/${{ matrix.tarif }}
+
+      # İzleme penceresi WebView2 ister. Windows 10/11'de hazır gelir; bu
+      # sunucu sürümünde yoksa Microsoft'un resmi kurulumuyla kurulur -
+      # fabrikadaki bir bilgisayarda yapılacak olan da budur (docs/13 §3.1).
+      - name: WebView2 çalışma zamanı (yoksa kur)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $anahtar = 'HKLM:\SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}'
+          $surum = (Get-ItemProperty -Path $anahtar -ErrorAction SilentlyContinue).pv
+          if ($surum) { "WebView2 kurulu: $surum"; exit 0 }
+          'WebView2 yok, kuruluyor'
+          $kurulum = Join-Path $env:RUNNER_TEMP 'MicrosoftEdgeWebview2Setup.exe'
+          Invoke-WebRequest -Uri 'https://go.microsoft.com/fwlink/p/?LinkId=2124703' -OutFile $kurulum
+          Start-Process -FilePath $kurulum -ArgumentList '/silent', '/install' -Wait
+          $surum = (Get-ItemProperty -Path $anahtar -ErrorAction SilentlyContinue).pv
+          if (-not $surum) { throw 'WebView2 kurulamadi' }
+          "WebView2 kuruldu: $surum"
+
+      # Ekran görüntüleri okunaklı olsun; olmazsa üretim düşmez.
+      - name: Ekran çözünürlüğü (Windows)
+        if: runner.os == 'Windows'
+        continue-on-error: true
+        shell: pwsh
+        run: Set-DisplayResolution -Width 1920 -Height 1080 -Force
+
+      - name: İzleme penceresini aç, öne getir, kapat
+        run: python paketleme/pencere_sinamasi.py pencere "${{ matrix.program }}" "pencere-${{ matrix.paket }}.png"
+
+      - name: Uygulamayı baştan sona çalıştır
+        run: python paketleme/pencere_sinamasi.py tam "${{ matrix.program }}" "uygulama-${{ matrix.paket }}.png"
+
+      # Mac'te ditto: .app'in içindeki kısayolları ve çalıştırma izinlerini
+      # korur. Yükleme aracının kendi sıkıştırması ikisini de kaybeder.
+      - name: Paketi sıkıştır (Mac)
+        if: runner.os == 'macOS'
+        run: ditto -c -k --sequesterRsrc --keepParent "dist/NextGen Detector.app" "${{ matrix.paket }}.zip"
+
+      - name: Paketi sıkıştır (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: 7z a -tzip "${{ matrix.paket }}.zip" "./dist/NextGen Detector"
+
+      # archive: false - indirilen dosya doğrudan bu zip'tir, zip içinde zip değil.
+      - uses: actions/upload-artifact@v7
+        with:
+          path: ${{ matrix.paket }}.zip
+          archive: false
+          retention-days: 30
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: ekran-goruntuleri-${{ matrix.paket }}
+          path: "*.png"
+          if-no-files-found: ignore
+          retention-days: 30
