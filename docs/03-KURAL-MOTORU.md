@@ -109,6 +109,12 @@ unknown → HİÇBİR ZAMAN olay üretmez
 `unknown` üretilen durumlar: kişi çok küçük · kare kenarında kesik · başka nesneyle
 ağır örtüşme · model güveni eşik altı · baş/gövde görünmüyor.
 
+**KKD muaf alan (`ppe_exempt`).** Zorunlu alanın içine çizilen muaf alan (kabin,
+ofis köşesi) oyulur: içindeki kişi bölge dışında sayılır, değerlendirilmez. Oyma
+iki yerde uygulanır: kural kararında (`rules/kkd.py`) ve kırpığı üreten kapıda
+(`boru_hatti.kkd_bolgesinde_mi`). Böylece muaf alandan KKD sınıflandırması
+yapılmaz, veri örneği de alınmaz (docs/17 §5.5). Kapalı muaf alan oymaz.
+
 **Kanıtın yokluğu ihlalin varlığı değildir.** Bu cümle `rules/ppe.py` başına yorum
 olarak yazılır ve testle korunur (`test_unknown_never_produces_event`).
 

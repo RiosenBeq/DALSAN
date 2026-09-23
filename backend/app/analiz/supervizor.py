@@ -1158,7 +1158,14 @@ class AnalizSupervizoru:
     def _kkd_ornekle(
         self, baglanti, kamera_id: int, kare, tespitler, hat: KameraHatti, simdi: float
     ) -> None:
-        """KKD bölgesindeki kişilerden saatlik limitle veri örnekler (docs/04 §4.3)."""
+        """KKD bölgesindeki kişilerden saatlik limitle veri örnekler (docs/04 §4.3).
+
+        KVKK tabanı (docs/17 §5.8): örnek yalnız veri toplama kapısı AÇIKKEN
+        alınır ve kapı örnek yazılmadan HEMEN önce okunur — kapatma gecikmesizdir,
+        yeniden başlatma gerekmez. Muaf alandaki kişiden (kabin) ve KKD kuralının
+        en küçük kişi boyundan kısa kişiden örnek alınmaz: küçük görüntü eğitimde
+        işe yaramaz, yalnız kişisel veri biriktirirdi.
+        """
         en_az_aralik = 3600.0 / self.ayarlar.kkd_ornek_saat_limit
         if simdi - self._son_kkd_ornek.get(kamera_id, 0.0) < en_az_aralik:
             return
@@ -1166,12 +1173,30 @@ class AnalizSupervizoru:
         for tespit in tespitler:
             if tespit.sinif != SINIF_INSAN or not hat.kkd_bolgesinde_mi(tespit, boyut):
                 continue
+            if tespit.kutu[3] - tespit.kutu[1] < hat.kkd_ornek_en_kucuk_boy():
+                continue
+            # Deneme sayılır: kapı kapalıyken de bir sonraki deneme saatlik
+            # limitle gelir, satır her karede okunmaz.
+            self._son_kkd_ornek[kamera_id] = simdi
+            if not self._kkd_toplama_acik_mi(baglanti):
+                return
             kirpik = kisi_kirp(kare, tespit.kutu)
             if kirpik is None:
                 continue
-            self._son_kkd_ornek[kamera_id] = simdi
             self._kkd_ornek_kaydet(baglanti, kamera_id, kirpik)
             break  # bu turda tek örnek yeter
+
+    def _kkd_toplama_acik_mi(self, baglanti) -> bool:
+        """KKD veri toplama kapısı (ppe_collection_gate, şema 007). Okunamazsa
+        KAPALI sayılır: şüphede kişisel veri toplanmaz."""
+        try:
+            satir = baglanti.execute(
+                "SELECT enabled FROM ppe_collection_gate WHERE id = 1"
+            ).fetchone()
+        except sqlite3.Error as hata:
+            self._log.error(f"KKD veri toplama kapısı okunamadı; toplanmıyor: {hata}")
+            return False
+        return bool(satir and satir["enabled"])
 
     def _kkd_ornek_kaydet(self, baglanti, kamera_id: int, kirpik) -> None:
         import cv2

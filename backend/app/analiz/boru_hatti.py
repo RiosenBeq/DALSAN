@@ -18,6 +18,7 @@ from app.analiz.tespit import SINIF_OVERLAY, Tespitci
 from app.rules.geometri import nokta_poligonda
 from app.rules.motor import KuralMotoru
 from app.rules.olay_durumu import OlayGecisi
+from app.rules.parametreler import varsayilan_params
 from app.rules.sayim import BolgeSayaci, BolgeSayimi
 from app.rules.tipler import (
     SINIF_INSAN,
@@ -108,6 +109,10 @@ _TARAMA_KARISIMI = 0.75
 _SAYIM_MIN_KARE = 3
 
 
+# KKD kuralı yokken örnek boyu eşiği: şemanın varsayılanı (rules/parametreler.py)
+_KKD_VARSAYILAN_BOY = int(varsayilan_params("ppe_violation")["min_person_height_px"])
+
+
 class KameraHatti:
     def __init__(
         self,
@@ -150,6 +155,9 @@ class KameraHatti:
         self._kare_sayimi: dict[str, int] = {}
         self._bolgeler: list[Bolge] = []
         self._kalibrasyon: Kalibrasyon | None = None
+        # KKD veri örneği için en küçük kişi boyu (px): kameranın KKD kuralının
+        # min_person_height_px'i (docs/17 §5.8) — sayı ikinci kez yazılmaz.
+        self._kkd_en_kucuk_boy = _KKD_VARSAYILAN_BOY
         # Tarama önbelleği — bölge çizimi değişmedikçe yeniden üretilmez.
         self._tarama_imzasi: tuple | None = None
         self._tarama_kutu: tuple[int, int, int, int] | None = None
@@ -182,6 +190,14 @@ class KameraHatti:
         self._bolgeler = bolgeler
         self._kalibrasyon = kalibrasyon
         self._motor.kurallari_yukle(kurallar)
+        # Birden çok KKD kuralı varsa en küçüğü: her kural kendi bölgesinde
+        # bu boydan büyük kişiyi değerlendirir, örnek de ondan alınır.
+        boylar = [
+            int(k.params.get("min_person_height_px", _KKD_VARSAYILAN_BOY))
+            for k in kurallar
+            if k.tip == "ppe_violation"
+        ]
+        self._kkd_en_kucuk_boy = min(boylar) if boylar else _KKD_VARSAYILAN_BOY
 
     def isle(
         self,
@@ -309,12 +325,25 @@ class KameraHatti:
         return veri
 
     def kkd_bolgesinde_mi(self, tespit: Tespit, kare_boyutu: tuple[float, float]) -> bool:
+        """Kişi KKD zorunlu alanda mı — muaf alanlar (kabin, ofis köşesi) oyulur.
+
+        Bu kapı hem KKD sınıflandırıcısını hem veri örneklemeyi açar: muaf
+        alandaki kişiden kırpık üretilmez, toplanmaz (docs/17 §5.5, KVKK).
+        """
         ayak = tespit.ayak_noktasi()
         ayak_norm = (ayak[0] / kare_boyutu[0], ayak[1] / kare_boyutu[1])
-        return any(
+        zorunlu = any(
             b.tip == "ppe_required" and b.aktif and nokta_poligonda(ayak_norm, b.poligon)
             for b in self._bolgeler
         )
+        return zorunlu and not any(
+            b.tip == "ppe_exempt" and b.aktif and nokta_poligonda(ayak_norm, b.poligon)
+            for b in self._bolgeler
+        )
+
+    def kkd_ornek_en_kucuk_boy(self) -> int:
+        """KKD veri örneği alınacak en küçük kişi boyu (px); kuraldan türer."""
+        return self._kkd_en_kucuk_boy
 
     # ---- iç ----
 

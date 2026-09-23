@@ -1,5 +1,26 @@
 # İlerleme
 
+## Faz 2e KVKK tabanı ve ölçüm (23.09.2026)
+
+Plan: `docs/17-V2-TASARIM.md` §5.5, §5.8, §10.2, §14 ve §13 (2e satırı).
+
+**2e-1 — KKD veri toplama kapısı.** KKD sayfasının en üstünde **"Veri toplama:
+KAPALI — Rev.02 onayı bekleniyor"** kartı var. Kapı varsayılan olarak kapalı
+(S10); kapalıyken hiçbir kişi görüntüsü saklanmıyor. Açmak için "Rev.02 ek
+protokolü imzalandı ve çalışanlara aydınlatma yapıldı" kutusu işaretleniyor;
+onaysız açma reddediliyor. Açılış ve kapanış Olaylar'a **"KKD veri toplama
+açıldı / kapatıldı"** (`PPE_COLLECTION_CHANGED`) olarak düşüyor. Örnekleme
+kapıyı her örnekten hemen önce okuyor: kapatınca toplama ilk denemede duruyor,
+yeniden başlatma gerekmiyor; kapı okunamazsa kapalı sayılıyor. Örnek alınmayan
+durumlar:
+- KKD muaf alandaki (`ppe_exempt`) kişi;
+- KKD kuralının `min_person_height_px`'inden kısa kişi (sayı kuraldan okunuyor).
+
+Muaf alan KKD kuralının kararından da oyuldu (docs/03 §3). Bu tipin kuralı
+2c-1'den beri bekliyordu; eskiden muaf alan hiçbir şeyi etkilemiyordu. Şemada
+yüz, gömme, isim/sicil ya da iz→personel eşlemesi taşıyabilecek bir sütun
+olmadığını bir test denetliyor (docs/17 §10.2). Statik damga `?v=32`.
+
 ## Faz 2d görünür arıza ve sağlık (23.09.2026)
 
 Plan: `docs/17-V2-TASARIM.md` §3.5, §3.6, §9 ve §13 (2d satırı). Alt adımlar

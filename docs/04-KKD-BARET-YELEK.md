@@ -162,6 +162,20 @@ Sistem 2. haftadan itibaren kişi tespiti yapabilir hale gelir. O andan itibaren
   ücretsiz toplar
 - Toplama, retention politikasına tabidir ve etiketleme bitince ham crop'lar silinir
 
+**Toplama kapısı (KVKK, docs/17 §5.8).** Otomatik toplama yalnız KKD sayfasındaki
+**"Veri toplama"** kapısı açıkken yapılır; varsayılan **KAPALI**'dır. Açmak için
+"Rev.02 ek protokolü imzalandı ve çalışanlara aydınlatma yapıldı" onayı istenir.
+Açılış ve kapanış Olaylar'a "KKD veri toplama açıldı / kapatıldı" olarak düşer.
+Kapı her örnekten hemen önce okunur: kapatınca toplama **aynı anda** durur,
+yeniden başlatma gerekmez. Kapı okunamazsa kapalı sayılır. Ayrıca:
+- **muaf alandaki** (`ppe_exempt`: kabin, ofis köşesi) kişiden örnek alınmaz;
+- KKD kuralının `min_person_height_px`'inden kısa kişiden örnek alınmaz. Sayı
+  kuraldan okunur, ikinci kez yazılmaz; kural yoksa şemanın varsayılanı (120)
+  geçerlidir.
+
+Yüz, isim, sicil ve iz → personel eşlemesi hiçbir yerde saklanmaz; bunu taşıyacak
+bir sütun olmadığını `tests/test_kkd_toplama_kapisi.py` denetler.
+
 ### 4.4 Kamu veri setleri — başlangıç için, tek başına asla yeterli değil
 
 Açık baret veri setleri (hard hat / safety helmet tipi setler, Roboflow Universe ve

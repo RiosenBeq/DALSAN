@@ -12,6 +12,7 @@ from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, Resp
 
 from app import zaman
 from app.hatalar import DogrulamaHatasi
+from app.olaylar.yazici import sistem_olayi_yaz
 from app.web.ortak import OGELER, baglanti_al
 from app.web.rotalar import sablonlar
 
@@ -50,6 +51,25 @@ def _hedef_kartlari(sayilar: dict) -> list[dict]:
     return kartlar
 
 
+# Veri toplamayı açmak için istenen onayın metni (docs/17 §5.8). Olayın
+# ayrıntısına ve kapının notuna olduğu gibi yazılır.
+TOPLAMA_ONAY_METNI = "Rev.02 ek protokolü imzalandı ve çalışanlara aydınlatma yapıldı"
+
+
+def toplama_durumu(baglanti) -> dict:
+    """KKD veri toplama kapısı (ppe_collection_gate, şema 007)."""
+    satir = baglanti.execute(
+        "SELECT enabled, changed_at, note FROM ppe_collection_gate WHERE id = 1"
+    ).fetchone()
+    if satir is None:
+        return {"acik": False, "degisti": "", "not": ""}
+    return {
+        "acik": bool(satir["enabled"]),
+        "degisti": zaman.ekranda_goster(satir["changed_at"]) if satir["changed_at"] else "",
+        "not": satir["note"] or "",
+    }
+
+
 _ETIKETLER = ("yes", "no", "unknown")
 _ALANLAR = {"helmet": "helmet_label", "vest": "vest_label"}
 
@@ -84,8 +104,47 @@ def kkd_sayfasi(istek: Request, baglanti=Depends(baglanti_al)):
             "sayilar": dict(sayilar),
             "hedefler": _hedef_kartlari(dict(sayilar)),
             "ornekler": ornekler,
+            "toplama": toplama_durumu(baglanti),
+            "toplama_onay_metni": TOPLAMA_ONAY_METNI,
+            "saat_limiti": istek.app.state.ayarlar.kkd_ornek_saat_limit,
         },
     )
+
+
+@router.post("/kkd/toplama")
+def kkd_toplama_degistir(
+    ac: str = Form(...),
+    onay: str = Form(""),
+    baglanti=Depends(baglanti_al),
+):
+    """Veri toplamayı açar ya da kapatır — yeniden başlatmadan (docs/17 §5.8).
+
+    Açmak onay ister: kişi kırpığı toplamak kişisel veri işlemektir ve ancak
+    Rev.02 ek protokolü imzalanıp çalışanlara aydınlatma yapıldıktan sonra
+    açılır. Kapatmak onaysızdır ve hemen geçerlidir: örnekleme kapıyı her
+    örnekten önce okur. Her değişiklik Olaylar'a PPE_COLLECTION_CHANGED yazar.
+    """
+    acilsin = ac == "1"
+    if acilsin and onay != "1":
+        raise DogrulamaHatasi(
+            f"Veri toplamayı açmak için onay kutusunu işaretleyin: “{TOPLAMA_ONAY_METNI}”."
+        )
+    if toplama_durumu(baglanti)["acik"] == acilsin:
+        return RedirectResponse("/kkd", status_code=303)  # zaten öyle: olay yazılmaz
+    baglanti.execute(
+        "UPDATE ppe_collection_gate SET enabled = ?, changed_at = ?, note = ? WHERE id = 1",
+        (1 if acilsin else 0, zaman.simdi_utc(), TOPLAMA_ONAY_METNI if acilsin else None),
+    )
+    baglanti.commit()
+    sistem_olayi_yaz(
+        baglanti,
+        f"KKD veri toplama açıldı ({TOPLAMA_ONAY_METNI})."
+        if acilsin
+        else "KKD veri toplama kapatıldı; kişi görüntüsü toplanmıyor.",
+        detaylar={"toplama": "acik" if acilsin else "kapali"},
+        kod="PPE_COLLECTION_CHANGED",
+    )
+    return RedirectResponse("/kkd", status_code=303)
 
 
 @router.post("/kkd/{ornek_id}/etiket")

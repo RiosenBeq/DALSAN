@@ -668,6 +668,11 @@ body.ses-cipi-var { padding-bottom: 72px; }
 .form-uyarisi p { margin: 0 0 6px; }
 .form-uyarisi label.yatay { color: var(--uyari-metin); font-weight: 600; }
 
+/* KKD veri toplama kapısı kartı (KVKK): kapalıyken sarı, açıkken yeşil kenar */
+.kkd-toplama { border-left: 4px solid var(--cam-sinir); }
+.kkd-toplama.kapali { border-left-color: var(--uyari); }
+.kkd-toplama.acik { border-left-color: var(--basari); }
+
 /* hazır kural kutusu */
 .hazir-kural {
   margin-top: 14px; padding: 12px 14px; border-radius: var(--radius-kucuk);

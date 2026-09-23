@@ -51,13 +51,19 @@ class KkdDegerlendirici:
 
         ihlaller: list[Ihlal] = []
         gorulenler: set[int] = set()
+        # KKD muaf alanlar (kabin, ofis köşesi) zorunlu alandan oyulur
+        # (docs/17 §5.5): içindeki kişi değerlendirilmez, bölge dışında sayılır.
+        muaflar = [b.poligon for b in baglam.bolgeler.values() if b.tip == "ppe_exempt" and b.aktif]
 
         for tespit in baglam.tespitler:
             if tespit.sinif != SINIF_INSAN:
                 continue
             ayak = tespit.ayak_noktasi()
             ayak_norm = (ayak[0] / baglam.kare_boyutu[0], ayak[1] / baglam.kare_boyutu[1])
-            if not nokta_poligonda(ayak_norm, bolge.poligon):
+            icinde = nokta_poligonda(ayak_norm, bolge.poligon) and not any(
+                nokta_poligonda(ayak_norm, m) for m in muaflar
+            )
+            if not icinde:
                 # Bölgeden çıkan kişinin kalış süresi sıfırlanır; gözlem
                 # penceresi durur ama silinmez (kayan pencere)
                 durum = self._durumlar.get(tespit.takip_id)
