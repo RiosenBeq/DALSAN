@@ -138,8 +138,9 @@ def test_ayarlari(tmp_path: Path):
         # Sahadaki bir kurulumun kendi adını listeye yazması gibi, test ortamı
         # da kendi adını yazar (web/kaynak_denetimi.py).
         izinli_sunucu_adlari=("testserver",),
-        # Uyarı kaydı arşivi geliştiricinin GERÇEK masaüstüne yazmasın
-        uyari_kaydi_arsiv_klasoru=str(veri / "masaustu"),
+        # Uyarı kaydı arşivi geliştiricinin GERÇEK masaüstüne yazmasın. Göreli:
+        # program klasörüne (tmp_path) göre çözülür, ekranda mutlak yol çıkmaz.
+        uyari_kaydi_arsiv_klasoru="veri/masaustu",
     )
 
 

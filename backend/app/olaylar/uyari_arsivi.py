@@ -186,6 +186,22 @@ def arsiv_klasoru(ayarlar) -> Path:
     return ayarlar.veri_dizini / "arsiv" / "uyari-kayitlari"
 
 
+def klasor_metni(ayarlar) -> str:
+    """Ekranda gösterilecek yer. Kullanıcı yazılım bilmez; program klasörünün
+    mutlak yolu ekranda gösterilmez (tests/test_ayarlar_sayfasi.py).
+
+    Masaüstündeyse "Masaüstü › <klasör>", program klasörünün içindeyse göreli
+    yol, başka bir yerdeyse (ağ sürücüsü gibi) kullanıcının seçtiği tam yol.
+    """
+    klasor = arsiv_klasoru(ayarlar)
+    if not ayarlar.uyari_kaydi_arsiv_klasoru and klasor.name == KLASOR_ADI:
+        return f"Masaüstü › {KLASOR_ADI}"
+    try:
+        return klasor.relative_to(ayarlar.kok_dizin).as_posix()
+    except ValueError:
+        return str(klasor)
+
+
 def arsiv_zamani_geldi_mi(baglanti: sqlite3.Connection, gun: int) -> bool:
     """En eski (dondurulmamış) uyarı kaydı `gun` günü doldurdu mu?"""
     if gun <= 0:

@@ -86,6 +86,11 @@
     m.12). Sistemde tek şifre olduğu için "kim", isteği yapan bilgisayarın adresidir.
     Aynı kaydın bir dakika içindeki tekrar görüntülenmesi bir kez yazılır.
     Hukuki süreç için dondurulmuş olay: <b>{{ kvkk.dondurulmus }}</b>.</p>
+  <p class="panel-notu">{% if uyari_arsivi.gun %}Uyarı kayıtları {{ uyari_arsivi.gun }} günde
+    bir <code>{{ uyari_arsivi.klasor }}</code> klasörüne CSV olarak kaydedilir; dosya
+    doğrulanınca sistemden silinir. Masaüstündeki kopya bu sistemin saklama süresine
+    tabi değildir: ne kadar tutulacağına KVKK politikanız karar verir.{% else %}
+    Uyarı kaydı arşivi kapalı: kayıtlar olayla birlikte silinir.{% endif %}</p>
 
   <h3>Erişim günlüğü <span class="not">(son 200 kayıt)</span></h3>
   {% if kvkk.erisimler %}
@@ -107,11 +112,13 @@
   <h3>İmha günlüğü <span class="not">(son 50 bakım; periyodik imha kaydı en az 3 yıl saklanır)</span></h3>
   {% if kvkk.imhalar %}
   <table class="liste">
-    <tr><th>Zaman</th><th>Silinen olay</th><th>Fotoğraf</th><th>KKD örneği</th><th>Dondurulduğu için kalan</th><th>O günkü saklama süreleri</th></tr>
+    <tr><th>Zaman</th><th>Silinen olay</th><th>Fotoğraf</th><th>KKD örneği</th><th>Dondurulduğu için kalan</th><th>Arşivlenen uyarı kaydı</th><th>O günkü saklama süreleri</th></tr>
     {% for i in kvkk.imhalar %}
     <tr>
       <td>{{ i.zaman }}</td><td>{{ i.olay }}</td><td>{{ i.foto }}</td><td>{{ i.ornek }}</td>
-      <td>{{ i.donmus }}</td><td>{{ i.politika }}</td>
+      <td>{{ i.donmus }}</td>
+      <td>{{ i.uyari }}{% if i.uyari_dosyasi %} <code>{{ i.uyari_dosyasi }}</code>{% endif %}</td>
+      <td>{{ i.politika }}</td>
     </tr>
     {% endfor %}
   </table>

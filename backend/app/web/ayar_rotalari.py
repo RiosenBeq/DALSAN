@@ -29,6 +29,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 
 from app import ayarlar as ayarlar_modulu
 from app.hatalar import AyarHatasi, DogrulamaHatasi
+from app.olaylar import uyari_arsivi
 from app.web import erisim_izi
 from app.web.erisim_izi import erisim_yaz
 from app.web.komuta import kabuk_baglami
@@ -507,6 +508,31 @@ AYAR_GRUPLARI: tuple[AyarGrubu, ...] = (
                 aciklama="Kamera koptu, disk azaldı gibi teknik kayıtlar.",
             ),
             AyarAlani(
+                anahtar="UYARI_KAYDI_ARSIV_GUN",
+                alan="uyari_kaydi_arsiv_gun",
+                etiket="Uyarı kayıtları arşivi (gün)",
+                en_az="0",
+                en_cok="365",
+                aciklama=(
+                    "Hangi uyarının hangi hoparlörden çaldığının kaydı bu kadar günde bir "
+                    "masaüstündeki “NextGen Detector uyarı kayıtları” klasörüne CSV olarak "
+                    "kaydedilir ve dosya doğrulanınca sistemden silinir. Dosya "
+                    "yazılamazsa hiçbir kayıt silinmez. 0 = kapalı."
+                ),
+            ),
+            AyarAlani(
+                anahtar="UYARI_KAYDI_ARSIV_KLASORU",
+                alan="uyari_kaydi_arsiv_klasoru",
+                tur="metin",
+                etiket="Uyarı kayıtları arşiv klasörü",
+                ipucu="boş = masaüstü",
+                aciklama=(
+                    "Boş bırakılırsa masaüstü kullanılır; masaüstü olmayan sunucuda ve "
+                    "Docker'da veri/arsiv/uyari-kayitlari. Başka bir klasör (örneğin bir "
+                    "ağ sürücüsü) yazılabilir."
+                ),
+            ),
+            AyarAlani(
                 anahtar="DISK_UYARI_GB",
                 alan="disk_uyari_gb",
                 etiket="Disk uyarı sınırı (GB)",
@@ -542,6 +568,10 @@ def ayarlar_sayfasi(istek: Request, sonuc: str = "", baglanti=Depends(baglanti_a
             "sonuc_mesaji": SONUC_MESAJLARI.get(sonuc, ""),
             # KVKK: erişim izi ve imha kaydı (docs/17 §10, §11 "Ayarlar → KVKK")
             "kvkk": erisim_izi.kayitlar(baglanti),
+            "uyari_arsivi": {
+                "gun": ayarlar.uyari_kaydi_arsiv_gun,
+                "klasor": uyari_arsivi.klasor_metni(ayarlar),
+            },
         }
     )
     return sablonlar.TemplateResponse(istek, "komuta_ayarlar.html", baglam)

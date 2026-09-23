@@ -21,6 +21,7 @@ import json
 import sqlite3
 import threading
 import time
+from pathlib import Path
 
 from fastapi import Request
 
@@ -159,9 +160,15 @@ def kayitlar(baglanti: sqlite3.Connection, erisim_sayisi: int = 200, imha_sayisi
                         ("sistem_olay_gun", "sistem olayı"),
                         ("goruntu_gun", "fotoğraf"),
                         ("kkd_ham_veri_gun", "KKD örneği"),
+                        ("uyari_kaydi_gun", "uyarı kaydı arşivi"),
                     )
                     if anahtar in politika
                 ),
+                # 011: arşivlenip silinen uyarı kaydı ve yazıldığı dosya
+                "uyari": satir["alerts_archived"],
+                "uyari_dosyasi": Path(satir["alert_archive_file"]).name
+                if satir["alert_archive_file"]
+                else "",
             }
         )
     dondurulmus = baglanti.execute("SELECT COUNT(*) FROM events WHERE hold = 1").fetchone()[0]

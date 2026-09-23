@@ -89,7 +89,7 @@ def _csv_satirlari(dosya: Path) -> list[list[str]]:
 
 
 def _klasor(ayarlar) -> Path:
-    return Path(ayarlar.uyari_kaydi_arsiv_klasoru)
+    return uyari_arsivi.arsiv_klasoru(ayarlar)
 
 
 # ------------------------------------------------------------ döngü
@@ -204,6 +204,17 @@ def test_masaustunde_uygulama_adli_klasor(test_ayarlari, tmp_path, monkeypatch):
     assert uyari_arsivi.arsiv_klasoru(ayarlar) == (
         tmp_path / "Desktop" / "NextGen Detector uyarı kayıtları"
     )
+
+
+def test_ekrandaki_yer_metni(test_ayarlari, tmp_path, monkeypatch):
+    monkeypatch.delenv("DALSAN_KAPSAYICI", raising=False)
+    ayarlar = dataclasses.replace(test_ayarlari, uyari_kaydi_arsiv_klasoru="")
+    monkeypatch.setattr(uyari_arsivi, "masaustu_klasoru", lambda: tmp_path / "Desktop")
+    assert uyari_arsivi.klasor_metni(ayarlar) == "Masaüstü › NextGen Detector uyarı kayıtları"
+    monkeypatch.setattr(uyari_arsivi, "masaustu_klasoru", lambda: None)
+    assert uyari_arsivi.klasor_metni(ayarlar) == "veri/arsiv/uyari-kayitlari"
+    ag = dataclasses.replace(test_ayarlari, uyari_kaydi_arsiv_klasoru="/mnt/isg/uyarilar")
+    assert uyari_arsivi.klasor_metni(ag) == str(Path("/mnt/isg/uyarilar"))
 
 
 def test_masaustu_yoksa_ya_da_kapsayicidaysa_veri_klasoru(test_ayarlari, monkeypatch):
@@ -331,3 +342,34 @@ def test_arsiv_aciksa_eski_teslim_kaydi_arsivsiz_silinmez(baglanti, test_ayarlar
     _teslim(baglanti, test_ayarlari.olay_saklama_gun + 5, None)
     _bakim(ayarlar, baglanti)
     assert _teslim_sayisi(baglanti) == 1
+
+
+# ------------------------------------------------------------ Ayarlar ekranı
+
+
+def test_ayarlar_ekrani_arsivi_ve_imha_satirini_gosterir(istemci, baglanti, test_ayarlari):
+    metin = istemci.get("/ayarlar").text
+    assert 'name="UYARI_KAYDI_ARSIV_GUN"' in metin and 'value="15"' in metin
+    assert 'name="UYARI_KAYDI_ARSIV_KLASORU"' in metin
+    assert "<code>veri/masaustu</code>" in metin  # göreli: mutlak yol ekrana çıkmaz
+    assert str(test_ayarlari.kok_dizin) not in metin
+    assert "saklama süresine" in metin  # masaüstü kopyasının KVKK notu
+
+    _teslim(baglanti, 16, _olay(baglanti, 16))
+    _bakim(test_ayarlari, baglanti)
+    (dosya,) = _klasor(test_ayarlari).iterdir()
+    metin = istemci.get("/ayarlar").text
+    assert "Arşivlenen uyarı kaydı" in metin
+    assert f"1 <code>{dosya.name}</code>" in metin
+    assert "uyarı kaydı arşivi 15 gün" in metin
+
+
+def test_arsiv_kapaliyken_ekran_soyler(test_ayarlari, tmp_path, monkeypatch):
+    from fastapi.testclient import TestClient
+
+    from app.uygulama import uygulama_olustur
+
+    ayarlar = dataclasses.replace(test_ayarlari, uyari_kaydi_arsiv_gun=0)
+    with TestClient(uygulama_olustur(ayarlar, analiz=False)) as istemci:
+        metin = istemci.get("/ayarlar").text
+    assert "Uyarı kaydı arşivi kapalı" in metin
