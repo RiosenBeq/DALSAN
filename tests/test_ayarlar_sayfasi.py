@@ -201,6 +201,77 @@ def test_gecersiz_deger_dosyaya_YAZILMAZ(ayarli_istemci):
     assert ayarlar.env_yolu.read_text(encoding="utf-8") == onceki
 
 
+# ----------------------------------------------------------- tanıma modeli
+
+
+def _secili_secenek(govde: str, anahtar: str) -> str:
+    """Seçim kutusunda seçili seçeneğin görünen adı."""
+    kutu = govde.split(f'name="{anahtar}"')[1].split("</select>")[0]
+    return kutu.split(" selected>")[1].split("</option>")[0]
+
+
+def test_tanima_modeli_ekrandan_secilir(ayarli_istemci):
+    """Kurulu bir sistem forklift tanıyan modele .env'e dokunmadan geçebilmeli
+    (CLAUDE.md §8: terminal/dosya düzenletmek yerine düğme)."""
+    istemci, ayarlar = ayarli_istemci
+    yanit = istemci.post(
+        "/ayarlar/kaydet", data=_form(MODEL_DOSYASI="models/yolox_s.onnx"), follow_redirects=False
+    )
+    assert yanit.status_code == 303
+    assert "MODEL_DOSYASI=models/yolox_s.onnx" in ayarlar.env_yolu.read_text(encoding="utf-8")
+
+
+def test_tanima_modeli_kutusunda_urun_adi_yazar_dosya_adi_yazmaz(ayarli_istemci):
+    istemci, ayarlar = ayarli_istemci
+    kutu = istemci.get("/ayarlar").text.split('name="MODEL_DOSYASI"')[1].split("</select>")[0]
+    assert "NextGen AI Hızlı" in kutu and "NextGen AI İsabetli" in kutu
+    assert ".onnx<" not in kutu  # görünen adlarda dosya adı yok
+    assert str(ayarlar.kok_dizin) not in kutu
+
+
+def test_ozel_model_kurulu_ise_baska_ayar_kaydedilince_degismez(ayarli_istemci):
+    """Test ayarlarında listede olmayan (kendi eğitilmiş) bir model kurulu. Kutu
+    onu "özel model" diye gösterir; form olduğu gibi kaydedilince MODEL_DOSYASI
+    yazılmaz. Yoksa başka bir eşiği değiştiren kullanıcının modeli sessizce
+    hazır modelle değişirdi."""
+    istemci, ayarlar = ayarli_istemci
+    govde = istemci.get("/ayarlar").text
+    assert _secili_secenek(govde, "MODEL_DOSYASI") == "NextGen AI (özel model) - değiştirilmez"
+    assert "olmayan-model.onnx" not in govde
+    istemci.post(
+        "/ayarlar/kaydet",
+        data=_form(MODEL_DOSYASI="ozel", TESPIT_GUVEN_ESIGI="0.4"),
+        follow_redirects=False,
+    )
+    metin = ayarlar.env_yolu.read_text(encoding="utf-8")
+    assert "TESPIT_GUVEN_ESIGI=0.4" in metin
+    assert "MODEL_DOSYASI" not in metin
+
+
+def test_hazir_model_kuruluysa_kutuda_secili_gorunur(test_ayarlari):
+    ayarlar = dataclasses.replace(
+        test_ayarlari, model_dosyasi=test_ayarlari.kok_dizin / "models" / "yolox_tiny.onnx"
+    )
+    ayarlar.env_yolu.write_text(ORNEK_ENV, encoding="utf-8")
+    with TestClient(uygulama_olustur(ayarlar, analiz=False)) as istemci:
+        govde = istemci.get("/ayarlar").text
+    assert _secili_secenek(govde, "MODEL_DOSYASI") == "NextGen AI Hızlı"
+    assert "değiştirilmez" not in govde
+
+
+@pytest.mark.parametrize("deger", ["../../gizli.onnx", "models/baska.onnx", "/tmp/x.onnx"])
+def test_listede_olmayan_model_secimi_reddedilir(ayarli_istemci, deger):
+    """Form elle değiştirilse bile diskteki herhangi bir dosya model yapılamaz."""
+    istemci, ayarlar = ayarli_istemci
+    onceki = ayarlar.env_yolu.read_text(encoding="utf-8")
+    yanit = istemci.post(
+        "/ayarlar/kaydet", data=_form(MODEL_DOSYASI=deger), headers={"accept": "text/html"}
+    )
+    assert yanit.status_code == 400
+    assert "Tanıma modeli" in yanit.text
+    assert ayarlar.env_yolu.read_text(encoding="utf-8") == onceki
+
+
 def test_gecersiz_deger_mesaji_anahtar_degil_ekran_adini_soyluyor(ayarli_istemci):
     """Kullanıcı bir dosya değil, bir form dolduruyor: mesaj o dilde olmalı."""
     istemci, _ = ayarli_istemci

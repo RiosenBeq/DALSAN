@@ -40,7 +40,7 @@
       <label>{{ alan.etiket }}
         {% if alan.tur == 'secim' %}
         <select name="{{ alan.anahtar }}">
-          {% for deger, ad in alan.secenekler %}
+          {% for deger, ad in secenekler[alan.anahtar] %}
           <option value="{{ deger }}" {% if degerler[alan.anahtar] == deger %}selected{% endif %}>{{ ad }}</option>
           {% endfor %}
         </select>

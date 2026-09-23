@@ -28,6 +28,8 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from app import ayarlar as ayarlar_modulu
+from app.analiz.model_adi import OZEL_MODEL_ADI, gorunen_model_adi
+from app.analiz.model_indir import BILINEN_MODELLER
 from app.hatalar import AyarHatasi, DogrulamaHatasi
 from app.olaylar import uyari_arsivi
 from app.web import erisim_izi
@@ -37,6 +39,17 @@ from app.web.ortak import baglanti_al, maskeyi_coz, rtsp_maskele
 from app.web.rotalar import sablonlar
 
 router = APIRouter()
+
+
+# Tanıma modeli seçimi: hazır modeller models/ klasöründe, dosya adıyla durur
+# (analiz/model_indir.BILINEN_MODELLER). Ekranda dosya adı değil ürün adı yazar.
+MODEL_SECENEKLERI: tuple[tuple[str, str], ...] = tuple(
+    (f"models/{ad}", gorunen_model_adi(ad)) for ad in BILINEN_MODELLER
+)
+# Listede olmayan (kendi eğitilmiş) model kurulu: seçim kutusu onu "özel model"
+# diye gösterir ve bu değer gelirse MODEL_DOSYASI'na DOKUNULMAZ. Yoksa başka
+# bir ayarı kaydeden kullanıcının özel modeli sessizce hazır modelle değişirdi.
+OZEL_MODEL_SECIMI = "ozel"
 
 
 @dataclass(frozen=True)
@@ -210,6 +223,17 @@ AYAR_GRUPLARI: tuple[AyarGrubu, ...] = (
             "canlı görüntüde kutulara bakın."
         ),
         alanlar=(
+            AyarAlani(
+                anahtar="MODEL_DOSYASI",
+                alan="model_dosyasi",
+                etiket="Tanıma modeli",
+                tur="secim",
+                secenekler=MODEL_SECENEKLERI,
+                aciklama=(
+                    "“İsabetli” daha isabetlidir ama daha yavaştır, işlemciyi daha çok "
+                    "yorar. Seçilen model ilk açılışta bir kez iner (internet gerekir)."
+                ),
+            ),
             AyarAlani(
                 anahtar="TESPIT_INSAN_GUVEN_ESIGI",
                 alan="tespit_insan_guven_esigi",
@@ -564,6 +588,11 @@ def ayarlar_sayfasi(istek: Request, sonuc: str = "", baglanti=Depends(baglanti_a
         {
             "gruplar": AYAR_GRUPLARI,
             "degerler": {alan.anahtar: _gosterilecek_deger(ayarlar, alan) for alan in TUM_ALANLAR},
+            "secenekler": {
+                alan.anahtar: _secenekler(ayarlar, alan)
+                for alan in TUM_ALANLAR
+                if alan.tur == "secim"
+            },
             "yonetici_sifresi_kurulu": bool(ayarlar.yonetici_sifresi),
             "sonuc_mesaji": SONUC_MESAJLARI.get(sonuc, ""),
             # KVKK: erişim izi ve imha kaydı (docs/17 §10, §11 "Ayarlar → KVKK")
@@ -591,6 +620,15 @@ async def ayarlari_kaydet(istek: Request, baglanti=Depends(baglanti_al)):
                 degisiklikler[alan.anahtar] = yeni
         elif alan.anahtar in form:
             deger = str(form[alan.anahtar]).strip()
+            if alan.anahtar == "MODEL_DOSYASI":
+                if deger == OZEL_MODEL_SECIMI:
+                    continue  # kurulu özel model olduğu gibi kalır
+                if deger not in dict(MODEL_SECENEKLERI):
+                    raise DogrulamaHatasi(
+                        "Tanıma modeli listedeki modellerden biri olmalı. Sayfayı "
+                        "yenileyip yeniden seçin.",
+                        f"Geçersiz MODEL_DOSYASI seçimi: {deger!r}",
+                    )
             if alan.maskeli:
                 # Kutudaki maske, kutuya yazılan (çalışan sistemin) değerinden çözülür
                 deger = maskeyi_coz(deger, str(getattr(ayarlar, alan.alan)))
@@ -669,6 +707,8 @@ def _gosterilecek_deger(ayarlar, alan: AyarAlani) -> str:
     """
     if alan.tur == "sifre":
         return ""
+    if alan.anahtar == "MODEL_DOSYASI":
+        return _model_secimi(ayarlar)
     deger = getattr(ayarlar, alan.alan)
     if alan.maskeli:
         return rtsp_maskele(str(deger))
@@ -679,6 +719,25 @@ def _gosterilecek_deger(ayarlar, alan: AyarAlani) -> str:
         # 0.35 → "0.35", 0.6 → "0.6"  (sayı kutusu noktalı yazım bekler)
         return f"{deger:g}"
     return str(deger)
+
+
+def _model_secimi(ayarlar) -> str:
+    """Kurulu modelin seçim kutusundaki değeri; hazır listede yoksa "özel".
+
+    Tam yol ekrana (sayfa kaynağına da) yazılmaz: kullanıcı yazılımcı değil
+    ve program klasörünün yeri ekranda gösterilmez.
+    """
+    for deger, _ad in MODEL_SECENEKLERI:
+        if ayarlar.model_dosyasi == ayarlar.kok_dizin / deger:
+            return deger
+    return OZEL_MODEL_SECIMI
+
+
+def _secenekler(ayarlar, alan: AyarAlani) -> tuple[tuple[str, str], ...]:
+    """Seçim kutusunun seçenekleri; özel model kuruluysa o da listelenir."""
+    if alan.anahtar == "MODEL_DOSYASI" and _model_secimi(ayarlar) == OZEL_MODEL_SECIMI:
+        return ((OZEL_MODEL_SECIMI, f"{OZEL_MODEL_ADI} - değiştirilmez"), *alan.secenekler)
+    return alan.secenekler
 
 
 def _anlasilir_hata(mesaj: str) -> str:
