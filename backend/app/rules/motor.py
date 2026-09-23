@@ -29,6 +29,10 @@ DEGERLENDIRICILER = {
     "vehicle_speed": HizDegerlendirici,
 }
 
+# İzi kaybolan nesneyi bir süre bekleyen (kayıp toleransı olan) değerlendiriciler.
+# Mesafe ve KKD değerlendiricileri her karede yeniden karar verir; beklemezler.
+KAYIP_TOLERANSLI_TIPLER = frozenset({"zone_intrusion", "vehicle_speed"})
+
 # Bu tiplerin değerlendiricisi, kalibrasyon yoksa BOŞ liste döndürür: ikisi de
 # gerçek dünya (metre) ölçüsüne dayanır ve kalibrasyonsuz piksel ölçüsünden
 # yaklaşık sonuç UYDURMAZ. Arayüz bunu "kalibrasyon bekleniyor" rozetiyle
@@ -56,8 +60,13 @@ class Baglam:
 class KuralMotoru:
     """Bir kameranın kural durumunu tutar ve her karede değerlendirir."""
 
-    def __init__(self, kamera_id: int) -> None:
+    def __init__(self, kamera_id: int, kayip_toleransi: int | None = None) -> None:
         self.kamera_id = kamera_id
+        # Tespit edilemeyen izin kaç değerlendirme boyunca bekleneceği. Takip
+        # hafızası uzarsa kural da izi o kadar beklemeli, yoksa kalış sayacı
+        # yine sıfırlanır (docs/17 §6.3). rules/ .env OKUMAZ: değeri hat verir,
+        # verilmezse değerlendiricilerin kendi varsayılanı (5) geçerlidir.
+        self._kayip_toleransi = kayip_toleransi
         self._cooldown = Cooldown()
         self._degerlendiriciler: list = []
         self._kural_imzasi: tuple = ()
@@ -93,11 +102,15 @@ class KuralMotoru:
             if eski.get(kural_id) != kural_imza:
                 self._cooldown.kural_sifirla(kural_id)
         self._kural_imzasi = imza
-        self._degerlendiriciler = [
-            DEGERLENDIRICILER[k.tip](k) for k in kurallar if k.tip in DEGERLENDIRICILER
-        ]
+        self._degerlendiriciler = [self._kur(k) for k in kurallar if k.tip in DEGERLENDIRICILER]
         # Cooldown temizliği, en uzun kuralın cooldown'unu asla kırpmamalı
         self._en_uzun_cooldown = max([k.cooldown_s for k in kurallar], default=0.0)
+
+    def _kur(self, kural: Kural):
+        sinif = DEGERLENDIRICILER[kural.tip]
+        if self._kayip_toleransi is not None and kural.tip in KAYIP_TOLERANSLI_TIPLER:
+            return sinif(kural, kayip_toleransi=self._kayip_toleransi)
+        return sinif(kural)
 
     @staticmethod
     def _eski_imzalar(imza: tuple):

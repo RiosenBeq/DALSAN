@@ -102,6 +102,17 @@ class Ayarlar:
     # (127.x, ::1, localhost) ve sunucu_adresi her zaman izinlidir; bu liste
     # ONLARIN ÜSTÜNE eklenir. Boş = yalnız o adlar. Denetim: web/kaynak_denetimi.py
     izinli_sunucu_adlari: tuple[str, ...] = ()
+    # --- Takip ve kamera bağlantısı (docs/17 K7, K8) ---
+    # Kaybolan izin kaç saniye aynı kimlikle bekleneceği (ByteTrack hafızası ve
+    # kuralların kayıp toleransı ikisi de bundan türer).
+    takip_hafiza_sn: float = 2.0
+    # Akan görüntü bu süre kesilirse kamera çevrimdışı sayılır.
+    kamera_kopuk_esigi_sn: float = 10.0
+    # "Tekrar çevrimiçi" olayı için gereken kesintisiz görüntü süresi.
+    kamera_up_kararlilik_sn: float = 5.0
+    # RTSP açılış / okuma zaman aşımları (OpenCV → FFmpeg), milisaniye.
+    rtsp_acilis_zaman_asimi_ms: int = 5000
+    rtsp_okuma_zaman_asimi_ms: int = 10000
 
 
 def _yerel_adres_mi(adres: str) -> bool:
@@ -436,6 +447,19 @@ def ayarlari_coz(
         # DNS yeniden bağlamaya karşı Host izin listesi (docs/17 §10.5 R8).
         # Uzaktan erişimde kullanılan ad buraya yazılır (docs/15).
         izinli_sunucu_adlari=_sunucu_adlari(degerler, "IZINLI_SUNUCU_ADLARI"),
+        # --- Takip ve kamera bağlantısı (docs/17 K7, K8; öneriler S14, S18) ---
+        # Hafıza kısa → örtülmede yeni kimlik, tekrar uyarı; uzun → izler karışır.
+        takip_hafiza_sn=_ondalik(degerler, "TAKIP_HAFIZA_SN", 2.0, 0.5, 10.0),
+        # En az 3 sn: saniyede tek kare veren yavaş bir akış yanlışlıkla
+        # "koptu" sayılmasın.
+        kamera_kopuk_esigi_sn=_ondalik(degerler, "KAMERA_KOPUK_ESIGI_SN", 10.0, 3.0, 600.0),
+        kamera_up_kararlilik_sn=_ondalik(degerler, "KAMERA_UP_KARARLILIK_SN", 5.0, 0.0, 120.0),
+        rtsp_acilis_zaman_asimi_ms=_tam_sayi(
+            degerler, "RTSP_ACILIS_ZAMAN_ASIMI_MS", 5000, 1000, 60000
+        ),
+        rtsp_okuma_zaman_asimi_ms=_tam_sayi(
+            degerler, "RTSP_OKUMA_ZAMAN_ASIMI_MS", 10000, 1000, 120000
+        ),
     )
 
 

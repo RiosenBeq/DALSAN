@@ -119,7 +119,7 @@ gelir (3-4. hafta işi, docs/08 R1). O gün değişecek tek yer
 | "Ulaşıldı ama görüntü akışı açılamadı" | Kullanıcı adı/şifre veya akış yolu yanlış. Şifrede `@ : / #` varsa `%40 %3A %2F %23` yazın |
 | "Kameraya bağlanıldı ama görüntü gelmedi" | NVR'ın eşzamanlı bağlantı sınırı dolmuş olabilir; ya da akış H.265 ve çözülemiyor — kamerada H.264 seçin |
 | "Video dosyası bulunamadı" | Tam yol gerekir. Mac: dosyayı Finder'da seçip **Option+Command+C**. Windows: dosyaya **Shift + sağ tık → "Yol olarak kopyala"** |
-| Kamera "bağlanıyor"da kalıyor | İlk bağlantı 30 saniye sürebilir; 60 saniye sonra "çevrimdışı" olur ve sebebi yazar |
+| Kamera "bağlanıyor"da kalıyor | İlk bağlantı 30 saniye sürebilir; 60 saniye içinde görüntü gelmezse "çevrimdışı" olur ve sebebi yazar. Çalışırken kopan kamera ise ~10 saniyede "çevrimdışı" görünür (Ayarlar → Takip ve kamera bağlantısı) |
 
 RTSP adresini kameranın/NVR'ın arayüzünden ya da kurulumu yapan firmadan
 alabilirsiniz. Yaygın biçim:

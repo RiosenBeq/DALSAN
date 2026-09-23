@@ -5,13 +5,20 @@ Aksi halde tampon dolar ve gecikme dakikalara çıkar (docs/02 §6). Analiz
 tarafı her zaman en güncel kareyi alır.
 
 Bir kameranın hatası yalnızca kendi iş parçacığını etkiler; üstel bekleme
-(1 → 30 sn) ile yeniden bağlanılır. 60 sn kare gelmezse kamera 'offline'
-sayılır ve süpervizör sistem olayı üretir.
+(1 → 30 sn) ile yeniden bağlanılır. Kamera bir kez görüntü verdikten sonra
+kopukluk eşiği (.env KAMERA_KOPUK_ESIGI_SN, varsayılan 10 sn) boyunca kare
+gelmezse 'offline' sayılır ve süpervizör sistem olayı üretir.
 
 Üç durum (docs/02 §6 + kullanıcıya dürüst geri bildirim):
-  connecting  henüz hiç kare gelmedi, ilk bağlantı süresi (60 sn) dolmadı
-  online      son 60 sn içinde kare geldi
+  connecting  henüz hiç kare gelmedi, ilk bağlantı toleransı (60 sn) dolmadı
+  online      son kare kopukluk eşiğinden daha yeni
   offline     bağlantı yok (hiç kurulamadı ya da koptu)
+
+İKİ AYRI SÜRE (docs/17 K8): ilk bağlantı yavaştır (RTSP el sıkışması, NVR,
+anahtar karelerin gelmesi) ve yeni eklenen kameraya hemen "çevrimdışı" olayı
+düşmemeli — 60 sn tolerans belgelenmiş bir iç sabittir. Ama akan bir görüntü
+KESİLDİĞİNDE 60 sn beklemek, sahada bir dakika boyunca kör bir kameranın
+"çevrimiçi" görünmesi demekti; o eşik ayardır ve kısadır.
 Bağlantı kurulamayınca SEBEP `son_hata` alanında tutulur ve kamera sayfasında
 gösterilir — kullanıcı günlüğü karıştırmak zorunda kalmaz.
 
@@ -46,8 +53,16 @@ from app.loglama import log_al
 # Bağlantı denemeleri arasındaki üstel bekleme sınırları (sn)
 _BEKLEME_ILK = 1.0
 _BEKLEME_EN_COK = 30.0
-# Bu süre kare gelmezse kamera offline kabul edilir (docs/02 §6)
-OFFLINE_ESIGI_SN = 60.0
+# Yeni kamera ilk karesini bu süre içinde vermezse 'offline' sayılır. Bir iç
+# sabittir, ayar değildir (docs/17 Ç36): kullanıcının değiştireceği bir
+# davranış değil, bağlantı kurmanın doğasıdır.
+ILK_BAGLANTI_TOLERANSI_SN = 60.0
+# Kopukluk eşiği ve RTSP zaman aşımlarının VARSAYILANLARI; asıl değerler
+# .env'den gelir (KAMERA_KOPUK_ESIGI_SN, RTSP_*_ZAMAN_ASIMI_MS) ve süpervizör
+# kurarken geçirir. Burada yalnız testler ve doğrudan kurulum için dururlar.
+VARSAYILAN_KOPUK_ESIGI_SN = 10.0
+VARSAYILAN_ACILIS_ZAMAN_ASIMI_MS = 5000
+VARSAYILAN_OKUMA_ZAMAN_ASIMI_MS = 10000
 # RTSP ön kontrolü: kameranın portuna TCP ile ulaşma süresi
 _AG_KONTROL_SN = 3.0
 _RTSP_VARSAYILAN_PORT = 554
@@ -70,8 +85,14 @@ class KameraKaynagi:
         kaynak_tipi: str,
         kaynak_url: str,
         dongu: bool = True,
+        kopuk_esigi_sn: float = VARSAYILAN_KOPUK_ESIGI_SN,
+        acilis_zaman_asimi_ms: int = VARSAYILAN_ACILIS_ZAMAN_ASIMI_MS,
+        okuma_zaman_asimi_ms: int = VARSAYILAN_OKUMA_ZAMAN_ASIMI_MS,
     ) -> None:
         self.kamera_id = kamera_id
+        self.kopuk_esigi_sn = kopuk_esigi_sn
+        self.acilis_zaman_asimi_ms = acilis_zaman_asimi_ms
+        self.okuma_zaman_asimi_ms = okuma_zaman_asimi_ms
         self.ad = ad
         self.kaynak_tipi = kaynak_tipi  # "rtsp" | "file"
         self.kaynak_url = kaynak_url
@@ -84,6 +105,11 @@ class KameraKaynagi:
         self._kilit = threading.Lock()
         self._son_kare: np.ndarray | None = None
         self._son_kare_zamani: float = 0.0  # time.monotonic
+        # Şu anki KESİNTİSİZ akışın ilk karesinin zamanı (monotonic). Kopukluk
+        # eşiğinden uzun bir boşluktan sonra gelen kare onu yeniler. Süpervizör
+        # "tekrar çevrimiçi" olayını ancak akış bir süre kesintisiz sürünce
+        # yazar (KAMERA_UP_KARARLILIK_SN): gidip gelen kamera olay seli üretmesin.
+        self._akis_baslangici: float = 0.0
         self._baslangic: float = 0.0  # time.monotonic; baslat() ile dolar
         self._kare_sayaci = 0
         self._sayac_baslangici = time.monotonic()
@@ -129,11 +155,24 @@ class KameraKaynagi:
         an = time.monotonic() if simdi is None else simdi
         with self._kilit:
             kare_zamani = self._son_kare_zamani
-        if kare_zamani > 0 and (an - kare_zamani) < OFFLINE_ESIGI_SN:
+        if kare_zamani > 0 and (an - kare_zamani) < self.kopuk_esigi_sn:
             return DURUM_ONLINE
-        if kare_zamani == 0 and self._baslangic > 0 and (an - self._baslangic) < OFFLINE_ESIGI_SN:
+        if (
+            kare_zamani == 0
+            and self._baslangic > 0
+            and (an - self._baslangic) < ILK_BAGLANTI_TOLERANSI_SN
+        ):
             return DURUM_BAGLANIYOR
         return DURUM_OFFLINE
+
+    def kesintisiz_akis_sn(self, simdi: float | None = None) -> float:
+        """Görüntü kaç saniyedir kesintisiz akıyor? Akış yoksa 0."""
+        an = time.monotonic() if simdi is None else simdi
+        with self._kilit:
+            baslangic, son = self._akis_baslangici, self._son_kare_zamani
+        if baslangic <= 0 or son <= 0 or (an - son) >= self.kopuk_esigi_sn:
+            return 0.0
+        return an - baslangic
 
     # ---- iç döngü ----
 
@@ -220,7 +259,22 @@ class KameraKaynagi:
         if on_kontrol:
             self.son_hata = on_kontrol
             return None
-        yakalayici = cv2.VideoCapture(self.kaynak_url, cv2.CAP_FFMPEG)
+        if self.kaynak_tipi == "rtsp":
+            # ZAMAN AŞIMLARI (docs/17 K8, R4): yoksa FFmpeg, yanıt vermeyen bir
+            # kamerada açılışta ve okumada dakikalarca bekleyebilir; iş parçacığı
+            # takılır ve kamera ne yeniden bağlanır ne de doğru durumu gösterir.
+            yakalayici = cv2.VideoCapture(
+                self.kaynak_url,
+                cv2.CAP_FFMPEG,
+                [
+                    cv2.CAP_PROP_OPEN_TIMEOUT_MSEC,
+                    int(self.acilis_zaman_asimi_ms),
+                    cv2.CAP_PROP_READ_TIMEOUT_MSEC,
+                    int(self.okuma_zaman_asimi_ms),
+                ],
+            )
+        else:
+            yakalayici = cv2.VideoCapture(self.kaynak_url, cv2.CAP_FFMPEG)
         if not yakalayici.isOpened():
             yakalayici.release()
             self.son_hata = self._acilamama_sebebi()
@@ -306,6 +360,10 @@ class KameraKaynagi:
 
             simdi = time.monotonic()
             with self._kilit:
+                if self._son_kare_zamani <= 0 or (
+                    simdi - self._son_kare_zamani >= self.kopuk_esigi_sn
+                ):
+                    self._akis_baslangici = simdi  # kopukluktan sonra yeni akış
                 self._son_kare = kare
                 self._son_kare_zamani = simdi
 

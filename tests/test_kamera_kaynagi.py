@@ -9,34 +9,52 @@ from app.analiz.kamera import (
     DURUM_BAGLANIYOR,
     DURUM_OFFLINE,
     DURUM_ONLINE,
-    OFFLINE_ESIGI_SN,
+    ILK_BAGLANTI_TOLERANSI_SN,
+    VARSAYILAN_KOPUK_ESIGI_SN,
     KameraKaynagi,
 )
 
 
-def _kaynak(tip="rtsp", url="rtsp://admin:x@10.0.0.5:554/ana") -> KameraKaynagi:
-    kaynak = KameraKaynagi(1, "K1", tip, url)
+def _kaynak(tip="rtsp", url="rtsp://admin:x@10.0.0.5:554/ana", **ek) -> KameraKaynagi:
+    kaynak = KameraKaynagi(1, "K1", tip, url, **ek)
     kaynak._baslangic = 1000.0  # baslat() çağrılmadan "şimdi başladı" say
     return kaynak
+
+
+def test_iki_sure_ayri():
+    """İlk bağlantı yavaştır (60 sn tolerans); akan görüntünün kesilmesi ise
+    çabuk fark edilmeli (docs/17 K8). Eskiden ikisi de 60 sn'ydi: kopan bir
+    kamera bir dakika boyunca 'çevrimiçi' görünüyordu."""
+    assert ILK_BAGLANTI_TOLERANSI_SN == 60.0
+    assert VARSAYILAN_KOPUK_ESIGI_SN == 10.0
 
 
 def test_yeni_kamera_ilk_dakika_baglaniyor_sayilir():
     """Yeni eklenen kameraya daha ilk kare gelmeden 'çevrimdışı' olayı düşmemeli."""
     kaynak = _kaynak()
     assert kaynak.durum(simdi=1000.0 + 5) == DURUM_BAGLANIYOR
-    assert kaynak.durum(simdi=1000.0 + OFFLINE_ESIGI_SN - 1) == DURUM_BAGLANIYOR
+    # Kopukluk eşiğini (10 sn) geçmek ilk bağlantıda çevrimdışı demek DEĞİL
+    assert kaynak.durum(simdi=1000.0 + VARSAYILAN_KOPUK_ESIGI_SN + 5) == DURUM_BAGLANIYOR
+    assert kaynak.durum(simdi=1000.0 + ILK_BAGLANTI_TOLERANSI_SN - 1) == DURUM_BAGLANIYOR
     # süre doldu, hâlâ kare yok → artık gerçekten çevrimdışı
-    assert kaynak.durum(simdi=1000.0 + OFFLINE_ESIGI_SN + 1) == DURUM_OFFLINE
+    assert kaynak.durum(simdi=1000.0 + ILK_BAGLANTI_TOLERANSI_SN + 1) == DURUM_OFFLINE
 
 
-def test_kare_gelince_online_kesilince_offline():
+def test_kare_gelince_online_kesilince_kopukluk_esiginde_offline():
     kaynak = _kaynak()
     kaynak._son_kare_zamani = 1010.0
     assert kaynak.durum(simdi=1011.0) == DURUM_ONLINE
-    assert kaynak.durum(simdi=1010.0 + OFFLINE_ESIGI_SN - 1) == DURUM_ONLINE
-    assert kaynak.durum(simdi=1010.0 + OFFLINE_ESIGI_SN + 1) == DURUM_OFFLINE
+    assert kaynak.durum(simdi=1010.0 + VARSAYILAN_KOPUK_ESIGI_SN - 1) == DURUM_ONLINE
+    assert kaynak.durum(simdi=1010.0 + VARSAYILAN_KOPUK_ESIGI_SN + 1) == DURUM_OFFLINE
     # bir kez kare geldiyse 'bağlanıyor' durumuna geri dönülmez
-    assert kaynak.durum(simdi=1010.0 + OFFLINE_ESIGI_SN + 1) != DURUM_BAGLANIYOR
+    assert kaynak.durum(simdi=1010.0 + VARSAYILAN_KOPUK_ESIGI_SN + 1) != DURUM_BAGLANIYOR
+
+
+def test_kopukluk_esigi_ayardan_gelir():
+    kaynak = _kaynak(kopuk_esigi_sn=30.0)
+    kaynak._son_kare_zamani = 1010.0
+    assert kaynak.durum(simdi=1010.0 + 20) == DURUM_ONLINE
+    assert kaynak.durum(simdi=1010.0 + 31) == DURUM_OFFLINE
 
 
 def test_olmayan_dosya_teshisi(tmp_path):

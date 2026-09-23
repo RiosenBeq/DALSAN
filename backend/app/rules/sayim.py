@@ -75,9 +75,12 @@ class BolgeSayaci:
     gerçek saat beklenmez.
     """
 
-    def __init__(self, min_kare: int = 3) -> None:
+    def __init__(self, min_kare: int = 3, kayip_toleransi: int = _KAYIP_TOLERANSI) -> None:
         # Sayılmadan önce art arda kaç değerlendirmede bölgede görülmeli
         self._min_kare = max(1, int(min_kare))
+        # Kural değerlendiricileriyle AYNI tolerans (yukarıdaki not): hat ikisine
+        # de aynı değeri verir.
+        self._kayip_toleransi = kayip_toleransi
         # bolge_id -> takip_id -> ardışık görülme sayısı
         self._icerideki: dict[int, dict[int, int]] = {}
         # bolge_id -> takip_id -> ardışık görülmeme sayısı
@@ -187,16 +190,15 @@ class BolgeSayaci:
             zirve=dict(zirve),
         )
 
-    @staticmethod
     def _kayiplari_isle(
-        icerideki: dict[int, int], kayip: dict[int, int], gorulen: set[int]
+        self, icerideki: dict[int, int], kayip: dict[int, int], gorulen: set[int]
     ) -> None:
         """Bu karede hiç tespit edilemeyen takipler: kısa kaçak tolere edilir."""
         for takip_id in list(icerideki):
             if takip_id in gorulen:
                 continue
             kayip[takip_id] = kayip.get(takip_id, 0) + 1
-            if kayip[takip_id] > _KAYIP_TOLERANSI:
+            if kayip[takip_id] > self._kayip_toleransi:
                 del icerideki[takip_id]
                 del kayip[takip_id]
 

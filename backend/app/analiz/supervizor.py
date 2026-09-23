@@ -16,8 +16,10 @@ Bir kameranın hatası yalnızca o kamerayı atlatır; döngü asla ölmez —
 from __future__ import annotations
 
 import json
+import math
 import threading
 import time
+from collections import deque
 from pathlib import Path
 
 from app import veritabani, zaman
@@ -46,6 +48,42 @@ from app.olaylar.yazici import ihlal_yaz, sistem_olayi_yaz
 from app.rules.parametreler import KuralParametreHatasi, params_dogrula
 from app.rules.tipler import SINIF_INSAN, Bolge, Kalibrasyon, Kural
 
+
+class _KameraOlcumu:
+    """Bir kameranın işleme ölçümleri (docs/17 §13, 2b): kaç kare işlendi, işleme
+    ve olay yazma ne kadar sürdü. /saglik?ayrinti=1 bunları gösterir (2d).
+
+    Son N örnek tutulur: bellek 7x24 çalışmada sabit kalır. Ölçüm KARAR
+    VERMEZ; yalnız "sistem yetişiyor mu" sorusunu sayıyla cevaplar.
+    """
+
+    def __init__(self) -> None:
+        self.islenen: deque[float] = deque(maxlen=120)  # işlenen karelerin monotonic zamanı
+        self.isle_ms: deque[float] = deque(maxlen=200)
+        self.ihlal_yaz_ms: deque[float] = deque(maxlen=50)
+
+    def islenen_fps(self, simdi: float, pencere_sn: float = 10.0) -> float:
+        son = [t for t in self.islenen if simdi - t <= pencere_sn]
+        if len(son) < 2 or son[-1] <= son[0]:
+            return 0.0
+        return (len(son) - 1) / (son[-1] - son[0])
+
+    def ozet(self, simdi: float) -> dict:
+        return {
+            "islenen_fps": round(self.islenen_fps(simdi), 1),
+            "isle_p90_ms": _yuzdelik(self.isle_ms, 90),
+            "ihlal_yaz_p90_ms": _yuzdelik(self.ihlal_yaz_ms, 90),
+        }
+
+
+def _yuzdelik(degerler, yuzde: int) -> float | None:
+    """En yakın sıra yöntemiyle yüzdelik; örnek yoksa None (ölçülmedi ≠ 0)."""
+    sirali = sorted(degerler)
+    if not sirali:
+        return None
+    return round(sirali[max(0, math.ceil(yuzde / 100 * len(sirali)) - 1)], 1)
+
+
 _KONFIG_KONTROL_SN = 5.0
 _DURUM_YAZMA_SN = 5.0
 _BAKIM_ARALIGI_SN = 24 * 3600.0
@@ -69,6 +107,7 @@ class AnalizSupervizoru:
         self._son_islenen_kare: dict[int, float] = {}
         self._siradaki_ornek: dict[int, float] = {}
         self._son_kkd_ornek: dict[int, float] = {}
+        self._olcumler: dict[int, _KameraOlcumu] = {}
 
         self._son_konfig_kontrol = 0.0
         self._son_durum_yazma = 0.0
@@ -156,7 +195,13 @@ class AnalizSupervizoru:
             "sayim": self.canli_sayim(kamera_id),
             "bolge_sayimlari": self.bolge_sayimlari(kamera_id),
             "kalite": self._kalite(kamera_id),
+            "olcum": self.islem_olcumu(kamera_id),
         }
+
+    def islem_olcumu(self, kamera_id: int) -> dict:
+        """İşlenen fps ve işleme/olay yazma süreleri (p90, ms). Ölçüm yoksa boş."""
+        olcum = self._olcumler.get(kamera_id)
+        return olcum.ozet(time.monotonic()) if olcum is not None else {}
 
     def bolge_sayimlari(self, kamera_id: int) -> list[dict]:
         """Kameranın bölge bölge sayım tablosu (rules/sayim.py).
@@ -402,6 +447,9 @@ class AnalizSupervizoru:
                     kamera["source_type"],
                     kamera["source_url"],
                     dongu=dongu,
+                    kopuk_esigi_sn=self.ayarlar.kamera_kopuk_esigi_sn,
+                    acilis_zaman_asimi_ms=self.ayarlar.rtsp_acilis_zaman_asimi_ms,
+                    okuma_zaman_asimi_ms=self.ayarlar.rtsp_okuma_zaman_asimi_ms,
                 )
                 kaynak.baslat()
                 self._kaynaklar[kid] = kaynak
@@ -419,6 +467,7 @@ class AnalizSupervizoru:
                     kid,
                     int(kamera["sample_fps"]),
                     iyilestir=self.ayarlar.goruntu_iyilestirme == "otomatik",
+                    takip_hafiza_sn=self.ayarlar.takip_hafiza_sn,
                 )
                 self._hatlar[kid] = hat
             hat.yapilandir(
@@ -437,6 +486,7 @@ class AnalizSupervizoru:
                 self._kamera_konfig.pop(kid, None)
                 self._son_durumlar.pop(kid, None)
                 self._canli_sayim.pop(kid, None)
+                self._olcumler.pop(kid, None)
                 baglanti.execute(
                     "UPDATE cameras SET status = ?, measured_fps = NULL WHERE id = ?",
                     (DURUM_OFFLINE, kid),
@@ -530,12 +580,19 @@ class AnalizSupervizoru:
             self._son_islenen_kare[kid] = kare_zamani
 
             hat = self._hatlar[kid]
+            olcum = self._olcumler.setdefault(kid, _KameraOlcumu())
+            baslangic = time.perf_counter()
             try:
-                tespitler, ihlaller = hat.isle(kare, simdi, self.tespitci, self.kkd)
+                # Kurala KARENİN zamanı gider, işlendiği an değil (AUDIT R29):
+                # kare kuyrukta beklediyse hız hesabındaki dt ve kalış süresi
+                # kayardı. İkisi de aynı monotonic saattendir.
+                tespitler, ihlaller = hat.isle(kare, kare_zamani, self.tespitci, self.kkd)
             except Exception as hata:  # noqa: BLE001 — kamera izolasyonu:
                 # bir kameranın işleme hatası diğerlerini durdurmamalı
                 self._log.error(f"Kare işlenemedi (kamera {kid}): {hata}", exc_info=hata)
                 continue
+            olcum.isle_ms.append((time.perf_counter() - baslangic) * 1000)
+            olcum.islenen.append(simdi)
 
             # Canlı sayım: takip edilen nesneler (kare başına ham tespit değil)
             sayim: dict[str, int] = {}
@@ -549,7 +606,11 @@ class AnalizSupervizoru:
 
     def _ihlali_kaydet(self, baglanti, hat: KameraHatti, ihlal, simdi: float) -> None:
         kural_kaydi = self._kural_kaydi(baglanti, ihlal.kural_id)
+        baslangic = time.perf_counter()
         olay_id = ihlal_yaz(baglanti, self.ayarlar, ihlal, kural_kaydi, hat.son_islenmis_jpeg())
+        self._olcumler.setdefault(ihlal.kamera_id, _KameraOlcumu()).ihlal_yaz_ms.append(
+            (time.perf_counter() - baslangic) * 1000
+        )
         self._log.info(
             f"İhlal kaydedildi (olay {olay_id}, kamera {ihlal.kamera_id}, kural {ihlal.kural_id})"
         )
@@ -652,12 +713,28 @@ class AnalizSupervizoru:
         süresi dolunca ya da akan görüntü kesilince; 'tekrar çevrimiçi' yalnız
         çevrimdışından dönüşte. Yeni eklenen ya da yeniden başlatılan sistemde
         henüz bağlanmakta olan kamera olay üretmez.
+
+        'Tekrar çevrimiçi' ancak görüntü KAMERA_UP_KARARLILIK_SN boyunca
+        kesintisiz akınca yazılır (docs/17 K8). Gidip gelen bir bağlantı
+        (her iki saniyede bir kopan kablo) aksi halde Olaylar'ı dakikada
+        onlarca çevrimdışı/çevrimiçi satırıyla doldururdu. Karar burada verilir,
+        kamera.durum()'da değil: ekrandaki durum anlıktır, olay kararlıdır.
         """
         for kid, kaynak in self._kaynaklar.items():
             durum = kaynak.durum()
             onceki = self._son_durumlar.get(kid)
-            if durum != onceki:
-                self._son_durumlar[kid] = durum
+            if (
+                durum == DURUM_ONLINE
+                and onceki == DURUM_OFFLINE
+                and kaynak.kesintisiz_akis_sn() < self.ayarlar.kamera_up_kararlilik_sn
+            ):
+                # Geçiş henüz kesinleşmedi: olay yok, önceki durum korunur.
+                # Akış bu arada yine koparsa hiç olay yazılmamış olur.
+                durum_olayi = onceki
+            else:
+                durum_olayi = durum
+            if durum_olayi != onceki:
+                self._son_durumlar[kid] = durum_olayi
                 ad = self._kamera_konfig.get(kid, {}).get("name", kid)
                 if durum == DURUM_BITTI:
                     # "Çevrimdışı" DEĞİL: video planlandığı gibi bitti. Aynı

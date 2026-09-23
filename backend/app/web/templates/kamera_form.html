@@ -24,7 +24,8 @@
           %40 %3A %2F biçiminde yazın.</span>
       </label>
       <label>Örnekleme hızı (fps)
-        <input name="sample_fps" type="number" step="0.5" min="0.5" max="30" value="6">
+        {# Varsayılan .env'deki KARE_ORNEKLEME_FPS'ten gelir (sabit 6 değil). #}
+        <input name="sample_fps" type="number" step="0.5" min="0.5" max="30" value="{{ varsayilan_fps }}">
         <span class="not">Saniyede kaç kare analiz edilsin. 6 iyi bir başlangıç.</span>
       </label>
       <button type="submit" class="dugme">Kamerayı Ekle</button>

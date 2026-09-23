@@ -21,8 +21,10 @@ _KAYIP_TOLERANSI = 5
 
 
 class BolgeIhlaliDegerlendirici:
-    def __init__(self, kural: Kural) -> None:
+    def __init__(self, kural: Kural, kayip_toleransi: int = _KAYIP_TOLERANSI) -> None:
         self.kural = kural
+        # Süpervizör takip hafızasından türetip verir (docs/17 §6.3); verilmezse 5.
+        self._kayip_toleransi = kayip_toleransi
         self.params = BolgeIhlaliParams(**kural.params)
         self._giris_zamani: dict[int, float] = {}  # takip_id -> koşulun başladığı an
         self._kayip_sayaci: dict[int, int] = {}  # takip_id -> ardışık görülmeme
@@ -80,7 +82,7 @@ class BolgeIhlaliDegerlendirici:
                 self._kayip_sayaci.pop(takip_id, None)
                 continue
             self._kayip_sayaci[takip_id] = self._kayip_sayaci.get(takip_id, 0) + 1
-            if self._kayip_sayaci[takip_id] > _KAYIP_TOLERANSI:
+            if self._kayip_sayaci[takip_id] > self._kayip_toleransi:
                 del self._giris_zamani[takip_id]
                 del self._kayip_sayaci[takip_id]
         return ihlaller

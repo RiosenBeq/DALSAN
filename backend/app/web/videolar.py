@@ -203,12 +203,14 @@ async def video_yukle(
     istek: Request,
     video: UploadFile | None = None,
     name: str = Form(""),
-    sample_fps: float = Form(6),
+    sample_fps: float | None = Form(None),
     tek_gecis: str = Form("0"),
     baglanti=Depends(baglanti_al),
 ):
     """Videoyu diske yazar ve onu izleyecek kamerayı kurar."""
     ayarlar = istek.app.state.ayarlar
+    if sample_fps is None:  # alan gönderilmediyse .env'deki varsayılan (KARE_ORNEKLEME_FPS)
+        sample_fps = float(ayarlar.kare_ornekleme_fps)
     if video is None or not video.filename:
         return _sayfaya_don(hata="Dosya seçilmedi. 'Gözat' düğmesiyle bir video dosyası seçin.")
     if not 0.5 <= sample_fps <= 30:

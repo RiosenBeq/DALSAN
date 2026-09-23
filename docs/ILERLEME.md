@@ -1,5 +1,29 @@
 # İlerleme
 
+## Faz 2b takip ve kamera (23.09.2026)
+
+**Takip hafızası.** ByteTrack'in kayıp iz tamponu hiç verilmiyordu (varsayılan
+30); supervision onu kare hızına ölçeklediği için hafıza hangi fps olursa olsun
+1 sn idi. Artık `.env TAKIP_HAFIZA_SN` (2 sn): 6 fps'te 12 kare. Kuralların ve
+bölge sayacının kayıp toleransı da aynı süreden türüyor (`ceil(sn × fps)`);
+yoksa takipçi izi 2 sn beklerken kural 0,83 sn'de bırakır, kalış sayacı yine
+sıfırlanırdı. Verilmediğinde her iki taraf eski değerinde: `tests/rules`
+85 test değişmeden yeşil.
+
+**Kamera bağlantısı.** Tek bir 60 sn eşiği ikiye ayrıldı: ilk bağlantıya 60 sn
+tolerans (iç sabit), akan görüntünün kesilmesine `KAMERA_KOPUK_ESIGI_SN` (10 sn) —
+kopan bir kamera bir dakika boyunca "çevrimiçi" görünüyordu. "Tekrar çevrimiçi"
+olayı görüntü `KAMERA_UP_KARARLILIK_SN` (5 sn) kesintisiz akınca yazılıyor; gidip
+gelen bağlantı olay seli üretmiyor (ekrandaki durum anlık kalıyor). RTSP açılış
+ve okumasına OpenCV zaman aşımı geçiyor (5/10 sn); yanıt vermeyen bir sunucuya
+karşı ölçüldü: açılış tam 2,0 ve 4,0 sn'de bırakıldı. Yeni ayarlar Ayarlar →
+Takip ve kamera bağlantısı'nda.
+
+**Zaman ve ölçüm.** Kurala işlendiği an değil karenin zamanı gidiyor (R29).
+Kamera başına işlenen fps ile işleme ve olay yazma süreleri (p90) tutuluyor;
+/saglik ayrıntısında 2d'de gösterilecek. Yeni kameranın varsayılan örnekleme
+hızı `.env KARE_ORNEKLEME_FPS`'ten geliyor (formda sabit 6 yazıyordu).
+
 ## Faz 2a güvenlik tabanı ve öğe dili (23.09.2026)
 
 Plan: `docs/17-V2-TASARIM.md` §10.5 ve §13. Her madde Faz 0 denetiminde

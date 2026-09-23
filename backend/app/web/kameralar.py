@@ -86,7 +86,11 @@ def kamera_yeni_form(istek: Request):
     return sablonlar.TemplateResponse(
         istek,
         "kamera_form.html",
-        {"aktif_sekme": "kameralar", "kamera": None},
+        {
+            "aktif_sekme": "kameralar",
+            "kamera": None,
+            "varsayilan_fps": f"{istek.app.state.ayarlar.kare_ornekleme_fps:g}",
+        },
     )
 
 
@@ -97,9 +101,11 @@ def kamera_ekle(
     area: str = Form(""),
     source_type: str = Form(...),
     source_url: str = Form(...),
-    sample_fps: float = Form(6),
+    sample_fps: float | None = Form(None),
     baglanti=Depends(baglanti_al),
 ):
+    if sample_fps is None:  # alan gönderilmediyse .env'deki varsayılan (KARE_ORNEKLEME_FPS)
+        sample_fps = float(istek.app.state.ayarlar.kare_ornekleme_fps)
     source_url = _kamera_dogrula(name, source_type, source_url, sample_fps)
     simdi = zaman.simdi_utc()
     imlec = baglanti.execute(
@@ -207,11 +213,13 @@ def kamera_duzenle(
     area: str = Form(""),
     source_type: str = Form(...),
     source_url: str = Form(...),
-    sample_fps: float = Form(6),
+    sample_fps: float | None = Form(None),
     enabled: str = Form("0"),
     baglanti=Depends(baglanti_al),
 ):
-    _kamera_getir(baglanti, kamera_id)
+    kamera = _kamera_getir(baglanti, kamera_id)
+    if sample_fps is None:  # alan gönderilmediyse kameranın MEVCUT hızı korunur
+        sample_fps = float(kamera["sample_fps"])
     source_url = _kamera_dogrula(name, source_type, source_url, sample_fps)
     baglanti.execute(
         "UPDATE cameras SET name = ?, area = ?, source_type = ?, source_url = ?, "

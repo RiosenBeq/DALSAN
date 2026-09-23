@@ -5,6 +5,7 @@ Veritabanına DOKUNMAZ; süpervizör konfigürasyonu verir, ihlalleri alıp yaza
 
 from __future__ import annotations
 
+import math
 import threading
 
 import cv2
@@ -107,7 +108,13 @@ _SAYIM_MIN_KARE = 3
 
 
 class KameraHatti:
-    def __init__(self, kamera_id: int, fps: int, iyilestir: bool = False) -> None:
+    def __init__(
+        self,
+        kamera_id: int,
+        fps: int,
+        iyilestir: bool = False,
+        takip_hafiza_sn: float | None = None,
+    ) -> None:
         self.kamera_id = kamera_id
         # Süpervizör, örnekleme hızı değişince hattı yeniden kurmak için okur:
         # ByteTrack'in kare hızı yanlış kalırsa takip hafızası saniye cinsinden
@@ -117,11 +124,27 @@ class KameraHatti:
         self.iyilestir = iyilestir
         self._kalite: dict = {"sorun": "yok", "mesaj": ""}
         self._kalite_sayaci = 0
-        self._takipci = Takipci(fps)
-        self._motor = KuralMotoru(kamera_id)
+        # TAKİP HAFIZASI VE KAYIP TOLERANSI AYNI SÜREDEN türer (docs/17 §6.3):
+        # takipçi kaybolan izi N sn aynı kimlikle beklerken kural ve sayaç onu
+        # daha kısa beklerse kalış sayacı yine sıfırlanır — hafızayı uzatmanın
+        # anlamı kalmazdı. Tolerans değerlendirme (işlenen kare) sayısıdır:
+        # ceil(sn × fps). Verilmezse (testler, eski çağrılar) iki taraf da eski
+        # varsayılanında kalır.
+        if takip_hafiza_sn is None:
+            self._takipci = Takipci(fps)
+            kayip_toleransi = None
+        else:
+            self._takipci = Takipci(fps, takip_hafiza_sn)
+            kayip_toleransi = math.ceil(takip_hafiza_sn * max(fps, 1))
+        self.kayip_toleransi = kayip_toleransi
+        self._motor = KuralMotoru(kamera_id, kayip_toleransi=kayip_toleransi)
         # Sayım kuraldan AYRIDIR: ihlal üretmez, yalnız "kaç var / kaç girdi"
         # sorusunu cevaplar (rules/sayim.py). Yanlış sayım kimseyi uyarmaz.
-        self._sayac = BolgeSayaci(min_kare=_SAYIM_MIN_KARE)
+        self._sayac = (
+            BolgeSayaci(min_kare=_SAYIM_MIN_KARE)
+            if kayip_toleransi is None
+            else BolgeSayaci(min_kare=_SAYIM_MIN_KARE, kayip_toleransi=kayip_toleransi)
+        )
         self._sayimlar: list[BolgeSayimi] = []
         self._kare_sayimi: dict[str, int] = {}
         self._bolgeler: list[Bolge] = []

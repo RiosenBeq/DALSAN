@@ -276,6 +276,43 @@ AYAR_GRUPLARI: tuple[AyarGrubu, ...] = (
         ),
     ),
     AyarGrubu(
+        baslik="Takip ve kamera bağlantısı",
+        aciklama=(
+            "Görüntüden bir an kaybolan kişinin aynı kişi sayılması ve kopan bir "
+            "kameranın ne kadar sürede fark edilmesi."
+        ),
+        alanlar=(
+            AyarAlani(
+                anahtar="TAKIP_HAFIZA_SN",
+                alan="takip_hafiza_sn",
+                etiket="Takip hafızası (sn)",
+                tur="ondalik",
+                en_az="0.5",
+                en_cok="10",
+                adim="0.5",
+                aciklama=(
+                    "Bir kolonun ya da forkliftin arkasından geçen kişi bu kadar saniye "
+                    "aynı kişi sayılır. Kısa tutulursa kişi 'yeni biri' sayılır ve uyarı "
+                    "tekrarlar; çok uzun tutulursa yan yana yürüyenlerin kimlikleri karışabilir."
+                ),
+            ),
+            AyarAlani(
+                anahtar="KAMERA_KOPUK_ESIGI_SN",
+                alan="kamera_kopuk_esigi_sn",
+                etiket="Kamera kopukluk süresi (sn)",
+                tur="ondalik",
+                en_az="3",
+                en_cok="600",
+                adim="1",
+                aciklama=(
+                    "Görüntü bu kadar saniye kesilirse kamera “çevrimdışı” görünür ve "
+                    "Olaylar'a yazılır. Yeni eklenen kameraya ilk bağlantı için ayrıca "
+                    "60 sn tanınır."
+                ),
+            ),
+        ),
+    ),
+    AyarGrubu(
         baslik="Nesne arama (Nesneler sayfası)",
         aciklama=(
             "Yalnızca Nesneler sayfasında, sizin yüklediğiniz fotoğraflarda yapılan "

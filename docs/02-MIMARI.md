@@ -116,7 +116,7 @@ Kamera eklenmesi/kaldırılması thread başlatır/durdurur. Restart yok, broker
 
 - **"Son kare" deseni:** RTSP akışı sürekli okunur, işlenmeyen kareler atılır. Aksi halde tampon dolar ve gecikme dakikalara çıkar. Kamera thread'i her zaman en güncel kareyi tutar.
 - **Alt akış (substream):** Kameraların düşük çözünürlüklü ikinci akışı kullanılır — **ama KKD bölgelerindeki kameralar için ana akış gerekebilir** (piksel eşiği, bkz. `04-KKD-BARET-YELEK.md` Bölüm 3). Bu, 1. hafta ölçümüyle kamera bazında kararlaştırılır.
-- **Kamera izolasyonu:** Bir kameranın hatası yalnızca o thread'i etkiler; supervisor üstel bekleme ile (1→30 sn) yeniden bağlanır. Yeni başlatılan kamera ilk 60 sn `connecting` (bağlanıyor) sayılır ve olay üretmez; 60 sn kare gelmezse `offline` + sebebi yazılı sistem olayı.
+- **Kamera izolasyonu:** Bir kameranın hatası yalnızca o thread'i etkiler; supervisor üstel bekleme ile (1→30 sn) yeniden bağlanır. Yeni başlatılan kamera ilk 60 sn `connecting` (bağlanıyor) sayılır ve olay üretmez; bu sürede hiç kare gelmezse `offline` + sebebi yazılı sistem olayı. Akan görüntü kesilince `offline` kopukluk eşiğinde gelir (`.env KAMERA_KOPUK_ESIGI_SN`, varsayılan 10 sn); "tekrar çevrimiçi" olayı görüntü `KAMERA_UP_KARARLILIK_SN` (5 sn) kesintisiz akınca yazılır. RTSP açılış/okuma zaman aşımı 5/10 sn (`RTSP_*_ZAMAN_ASIMI_MS`).
 - **Kurtarılamaz hata** (GPU) → süreç çıkar, Docker restart eder. Yarım kalan durum yok çünkü tek durum kaynağı DB.
 - **Ayak noktası:** Bölge ve mesafe hesabı bbox'ın alt-orta noktasıyla (zemin teması) yapılır; merkez nokta perspektifte yanıltır.
 - **KKD çağrısı seyrek:** Kişi track'i başına 5 karede bir, yalnızca KKD bölgesinde, yalnızca piksel eşiği üstünde. Crop'lar kameralar arası toplu (batch) sınıflandırılır.

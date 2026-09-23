@@ -22,14 +22,30 @@ _SINIF_NO = {ad: no for no, ad in enumerate(TANINAN_SINIFLAR)}
 _NO_SINIF = {no: ad for ad, no in _SINIF_NO.items()}
 
 
+def kayip_iz_tamponu(hafiza_sn: float) -> int:
+    """ByteTrack'in `lost_track_buffer` değeri: hafıza saniyesi × 30.
+
+    supervision bu sayıyı "30 fps'teki kare" olarak yorumlar ve kendi kare
+    hızına ölçekler: `max_time_lost = int(frame_rate / 30 × lost_track_buffer)`
+    (supervision 0.25.1, byte_tracker/core.py). Yani 6 fps'te 2 sn hafıza →
+    tampon 60 → 12 kare = 2 sn. Varsayılan tampon 30 idi: hangi fps olursa
+    olsun hafıza 1 sn (docs/17 Olgu 8, K7).
+    """
+    return max(1, round(hafiza_sn * 30))
+
+
 class Takipci:
-    def __init__(self, fps: int) -> None:
+    def __init__(self, fps: int, hafiza_sn: float = 1.0) -> None:
         # Bilinmeyen sınıf uyarısı kamera başına BİR KEZ yazılır; her karede
         # yazılsaydı günlük dosyası saatler içinde okunamaz hale gelirdi.
         self._bildirilen_bilinmeyenler: set[str] = set()
-        # track_buffer'ı yüksek tutmak, kısa kayboluşlarda ID'nin korunmasını
-        # sağlar → aynı kişiye tekrar uyarı üretme sorununu azaltır (docs/03 §5)
-        self._izleyici = sv.ByteTrack(frame_rate=max(fps, 1))
+        # Kayıp iz hafızası (.env TAKIP_HAFIZA_SN): kısa bir örtülmede (forklift
+        # önünden geçti, kolon arkası) iz aynı kimlikle devam etsin; yoksa aynı
+        # kişi yeni bir kimlikle "yeniden" görünür ve kalış sayacı sıfırlanır,
+        # uyarı tekrarlar (docs/03 §5). Varsayılan 1 sn eski davranıştır.
+        self._izleyici = sv.ByteTrack(
+            frame_rate=max(fps, 1), lost_track_buffer=kayip_iz_tamponu(hafiza_sn)
+        )
 
     def _bilinmeyeni_bildir(self, adlar) -> None:
         yeniler = {str(a) for a in adlar} - self._bildirilen_bilinmeyenler
