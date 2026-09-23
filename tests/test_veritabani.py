@@ -31,6 +31,9 @@ BEKLENEN_TABLOLAR = {
     "ppe_collection_gate",
     # 009 - uyarı teslim kaydı (docs/17 §7.3-10)
     "alert_deliveries",
+    # 010 - KVKK izleri: imha kaydı ve erişim izi (docs/17 §10)
+    "purge_log",
+    "access_log",
 }
 
 

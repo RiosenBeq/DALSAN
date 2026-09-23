@@ -19,6 +19,7 @@ from app import veritabani, zaman
 from app.hatalar import DogrulamaHatasi
 from app.olaylar import ekran
 from app.rules.olay_kodu import IHLAL_ONEMLERI, ONEM_ADLARI
+from app.web.erisim_izi import erisim_yaz
 from app.web.ortak import (
     OLAY_DURUMLARI,
     OLAY_SORGUSU,
@@ -330,6 +331,47 @@ def olay_durumu(
     )
     baglanti.commit()
     return RedirectResponse(DONUS_YOLLARI[donus].format(id=olay_id), status_code=303)
+
+
+# Dondurma sebebinin en çok uzunluğu: dava dosya numarası ve kısa bir not sığar
+DONDURMA_SEBEBI_EN_UZUN = 300
+
+
+@router.post("/olaylar/{olay_id}/dondur")
+def olay_dondur(istek: Request, olay_id: int, sebep: str = Form(""), baglanti=Depends(baglanti_al)):
+    """Hukuki süreç için olayı dondurur (docs/17 §10.1, Kurul 8770): olay, kanıt
+    fotoğrafı ve teslim kaydı saklama süresi dolsa da silinmez.
+
+    Sebep zorunludur: bir kaydın neden süresinden uzun saklandığı kayıtta
+    durmalı (KVKK ölçülülük). İşlem erişim izine düşer.
+    """
+    sebep = " ".join(sebep.split())
+    if not sebep:
+        raise DogrulamaHatasi(
+            "Dondurma sebebini yazın (ör. iş kazası soruşturması, dava dosya numarası)."
+        )
+    if len(sebep) > DONDURMA_SEBEBI_EN_UZUN:
+        raise DogrulamaHatasi(f"Sebep en çok {DONDURMA_SEBEBI_EN_UZUN} karakter olabilir.")
+    guncellenen = baglanti.execute(
+        "UPDATE events SET hold = 1, hold_reason = ? WHERE id = ?", (sebep, olay_id)
+    ).rowcount
+    baglanti.commit()
+    if guncellenen:
+        erisim_yaz(baglanti, istek, "hold_change", f"event:{olay_id} hold=1")
+    return RedirectResponse(f"/olaylar/{olay_id}", status_code=303)
+
+
+@router.post("/olaylar/{olay_id}/coz")
+def olay_coz(istek: Request, olay_id: int, baglanti=Depends(baglanti_al)):
+    """Dondurmayı kaldırır. Saklama süresi dolmuşsa olay bir sonraki bakımda
+    silinir (ekran bunu sorarak söyler)."""
+    guncellenen = baglanti.execute(
+        "UPDATE events SET hold = 0, hold_reason = NULL WHERE id = ? AND hold = 1", (olay_id,)
+    ).rowcount
+    baglanti.commit()
+    if guncellenen:
+        erisim_yaz(baglanti, istek, "hold_change", f"event:{olay_id} hold=0")
+    return RedirectResponse(f"/olaylar/{olay_id}", status_code=303)
 
 
 @router.get("/goruntuler/{yol:path}")

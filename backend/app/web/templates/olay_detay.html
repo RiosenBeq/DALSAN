@@ -50,6 +50,30 @@
   </section>
   {% endif %}
 
+  {# Hukuki süreç (docs/17 §10.1): dondurulan olay saklama süresi dolsa da
+     silinmez; her değişiklik erişim izine düşer (Ayarlar → KVKK). #}
+  <section class="kart">
+    <h3>Hukuki süreç</h3>
+    {% if olay.hold %}
+    <p><span class="rozet sari">dondurulmuş</span> {{ olay.hold_reason }}</p>
+    <p class="not">Bu olay, kanıt fotoğrafı ve uyarı teslim kaydı saklama süresi dolsa
+      da silinmez.</p>
+    <form method="post" action="/olaylar/{{ olay.id }}/coz"
+          data-onay="Dondurma kaldırılsın mı? Saklama süresi dolmuşsa olay ve kanıt fotoğrafı bir sonraki bakımda silinir.">
+      <button type="submit" class="dugme ikincil">Dondurmayı kaldır</button>
+    </form>
+    {% else %}
+    <p class="not">Olay bir soruşturma ya da dava için gerekiyorsa dondurun: saklama
+      süresi dolsa da olay, kanıt fotoğrafı ve uyarı teslim kaydı silinmez. İşlem
+      erişim günlüğüne yazılır (Ayarlar → KVKK).</p>
+    <form method="post" action="/olaylar/{{ olay.id }}/dondur" class="satir-form">
+      <input name="sebep" required maxlength="300"
+             placeholder="Sebep: ör. iş kazası soruşturması, dava dosya no">
+      <button type="submit" class="dugme">Dondur</button>
+    </form>
+    {% endif %}
+  </section>
+
   <section class="kart">
     <h3>Teknik ayrıntı</h3>
     <pre class="detay-json">{{ olay.detay_metni }}</pre>

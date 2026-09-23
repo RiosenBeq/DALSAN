@@ -1506,33 +1506,60 @@ class AnalizSupervizoru:
         threading.Thread(target=_calistir, name="bakim", daemon=True).start()
 
     def _bakim_yap(self, baglanti) -> None:
+        """Saklama süresi dolanı siler ve imha kaydı yazar (docs/06 §5, docs/17 §10).
+
+        Dondurulan olay (`hold = 1`, hukuki süreç) ve onun kanıt fotoğrafı ile
+        teslim kaydı süre dolsa da SİLİNMEZ; kaç tane atlandığı imha kaydına
+        yazılır. Her koşu `purge_log`'a bir satır bırakır (kişisel veri yok).
+        """
         a = self.ayarlar
         sinir = zaman.gun_once_utc(a.olay_saklama_gun)
+        sistem_siniri = zaman.gun_once_utc(a.sistem_olay_saklama_gun)
+        atlanan_donmus = baglanti.execute(
+            "SELECT COUNT(*) FROM events WHERE hold = 1 AND ("
+            "(event_type = 'violation' AND occurred_at < ?) OR "
+            "(event_type = 'system' AND occurred_at < ?))",
+            (sinir, sistem_siniri),
+        ).fetchone()[0]
         silinen_olay = baglanti.execute(
-            "DELETE FROM events WHERE event_type = 'violation' AND occurred_at < ?",
+            "DELETE FROM events WHERE event_type = 'violation' AND occurred_at < ? AND hold = 0",
             (sinir,),
         ).rowcount
         silinen_sistem = baglanti.execute(
-            "DELETE FROM events WHERE event_type = 'system' AND occurred_at < ?",
-            (zaman.gun_once_utc(a.sistem_olay_saklama_gun),),
+            "DELETE FROM events WHERE event_type = 'system' AND occurred_at < ? AND hold = 0",
+            (sistem_siniri,),
         ).rowcount
         # Teslim kaydı olayla birlikte gider (ON DELETE CASCADE); olay satırı
         # olmayanlar (fail-safe, test sesi) ihlal saklama süresiyle silinir.
-        baglanti.execute("DELETE FROM alert_deliveries WHERE queued_at < ?", (sinir,))
+        # Dondurulan olayın teslim kaydı kanıtın parçasıdır ("uyarı çaldı mı").
+        baglanti.execute(
+            "DELETE FROM alert_deliveries WHERE queued_at < ? AND (event_id IS NULL "
+            "OR event_id NOT IN (SELECT id FROM events WHERE hold = 1))",
+            (sinir,),
+        )
         baglanti.commit()
 
+        korunanlar = {
+            (a.goruntu_klasoru / satir[0]).resolve()
+            for satir in baglanti.execute(
+                "SELECT snapshot_path FROM events WHERE hold = 1 AND snapshot_path IS NOT NULL"
+            )
+        }
         silinen_foto = self._eski_dosyalari_sil(
-            a.goruntu_klasoru, a.goruntu_saklama_gun, a.nesne_klasoru
+            a.goruntu_klasoru, a.goruntu_saklama_gun, a.nesne_klasoru, korunanlar
         )
         # Dosya silindiği halde events.snapshot_path dolu kalırsa olay ekranında
         # kırık resim görünür; kaydı da temizle (olayın kendisi korunur).
         baglanti.execute(
             "UPDATE events SET snapshot_path = NULL "
-            "WHERE snapshot_path IS NOT NULL AND occurred_at < ?",
+            "WHERE snapshot_path IS NOT NULL AND occurred_at < ? AND hold = 0",
             (zaman.gun_once_utc(a.goruntu_saklama_gun),),
         )
         baglanti.commit()
         silinen_kkd = self._kkd_hamlarini_sil(baglanti)
+        self._imha_kaydi_yaz(
+            baglanti, silinen_olay + silinen_sistem, silinen_foto, silinen_kkd, atlanan_donmus
+        )
 
         import shutil as _shutil
 
@@ -1550,7 +1577,35 @@ class AnalizSupervizoru:
                 kod="DISK_LOW",
             )
 
-    def _eski_dosyalari_sil(self, klasor: Path, gun: int, nesne_klasoru: Path) -> int:
+    def _imha_kaydi_yaz(
+        self, baglanti, olay: int, foto: int, ornek: int, atlanan_donmus: int
+    ) -> None:
+        """`purge_log` satırı: sayılar ve o anki saklama gün sayıları (docs/17 §10.1)."""
+        a = self.ayarlar
+        politika = {
+            "olay_gun": a.olay_saklama_gun,
+            "sistem_olay_gun": a.sistem_olay_saklama_gun,
+            "goruntu_gun": a.goruntu_saklama_gun,
+            "kkd_ham_veri_gun": a.kkd_ham_veri_saklama_gun,
+        }
+        try:
+            baglanti.execute(
+                "INSERT INTO purge_log (ran_at, events_deleted, photos_deleted, "
+                "samples_deleted, held_skipped, policy) VALUES (?, ?, ?, ?, ?, ?)",
+                (zaman.simdi_utc(), olay, foto, ornek, atlanan_donmus, json.dumps(politika)),
+            )
+            baglanti.commit()
+        except sqlite3.Error as hata:
+            # İmha yapıldı ama kaydı düşmedi: KVKK açısından görünmesi gereken bir arıza
+            self._log.error(f"İmha kaydı yazılamadı: {hata}", exc_info=hata)
+
+    def _eski_dosyalari_sil(
+        self,
+        klasor: Path,
+        gun: int,
+        nesne_klasoru: Path,
+        korunanlar: set[Path] | frozenset[Path] = frozenset(),
+    ) -> int:
         """Eski OLAY fotoğraflarını siler.
 
         kkd-ornekler/ alt ağacına DOKUNMAZ: etiketli örnekler eğitim veri
@@ -1563,6 +1618,8 @@ class AnalizSupervizoru:
         kontrol, iki klasörü iç içe ayarlayan bir kurulumda da korur. Korunan
         klasör parametre olarak GEÇİLİR (self.ayarlar'dan okunmaz): bakım
         mantığı, çağıranın hangi klasörü koruduğunu görünür kılsın.
+
+        `korunanlar`: dondurulan olayların kanıt fotoğrafları (hukuki süreç).
         """
         sinir = time.time() - gun * 86400
         kkd_klasoru = klasor / "kkd-ornekler"
@@ -1570,6 +1627,8 @@ class AnalizSupervizoru:
         sayi = 0
         for dosya in klasor.rglob("*.jpg"):
             if dosya.is_relative_to(kkd_klasoru) or dosya.resolve().is_relative_to(nesne_kok):
+                continue
+            if korunanlar and dosya.resolve() in korunanlar:
                 continue
             try:
                 if dosya.stat().st_mtime < sinir:

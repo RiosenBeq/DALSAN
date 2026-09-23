@@ -67,7 +67,7 @@
         <td class="zaman-hucresi"><a href="/olaylar/{{ o.id }}">{{ o.yerel_zaman }}</a></td>
         <td class="olay-tip">{{ onem_hapi(o) }}</td>
         <td class="olay-kamera{% if not o.kamera_adi %} kartta-gizli{% endif %}">{{ o.kamera_adi or "-" }}</td>
-        <td class="olay-ozet"><span class="ozet-hucresi">{{ oge_rozeti(o.oge, "kucuk") }}<span>{{ o.ozet }} {{ surec_hapi(o) }}</span></span></td>
+        <td class="olay-ozet"><span class="ozet-hucresi">{{ oge_rozeti(o.oge, "kucuk") }}<span>{{ o.ozet }} {{ surec_hapi(o) }}{% if o.hold %} <span class="rozet sari" title="Hukuki süreç: saklama süresi dolsa da silinmez">dondurulmuş</span>{% endif %}</span></span></td>
         {# Sistem olayı incelenmez; durumu renkli hapla vurgulanmaz. #}
         <td class="olay-durum">{% if o.event_type == 'violation' %}{{ durum_hapi(o.status, o.durum_adi) }}{% else %}<span class="soluk-metin">{{ o.durum_adi }}</span>{% endif %}</td>
         <td class="olay-kanit{% if not o.snapshot_path %} kartta-gizli{% endif %}">{% if o.snapshot_path %}
