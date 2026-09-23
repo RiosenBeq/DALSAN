@@ -299,6 +299,46 @@ def _anons_adimi(kanal_sayisi: int, tek_bluetooth: bool, bluetooth_disi: int) ->
     }
 
 
+def _mahremiyet_adimi(baglanti) -> dict:
+    """9. adım - görüş alanında mahremiyet alanı yok (docs/17 §10.1, Kurul 2022/797).
+
+    Yazılım bunu göremez: her açık kameranın görüntüsüne bakılıp kamera
+    sayfasında onaylanır. Zorunludur ama sonraki adımları engellemez; kırmızı
+    değildir (bir arıza değil, yapılmamış bir kontroldür).
+    """
+    kameralar = baglanti.execute(
+        "SELECT id, privacy_checked_at FROM cameras WHERE enabled = 1 ORDER BY id"
+    ).fetchall()
+    eksik = [k for k in kameralar if not k["privacy_checked_at"]]
+    ortak = {
+        "no": 9,
+        "baslik": "Kamera görüş alanlarında mahremiyet alanı yok mu?",
+        "hal": "",
+        "istege_bagli": False,
+        "engeller": False,
+    }
+    if kameralar and not eksik:
+        return {
+            **ortak,
+            "tamam": True,
+            "aciklama": f"{len(kameralar)} kameranın görüş alanı kontrol edildi.",
+            "bag": "/kameralar",
+            "bag_yazi": "Kameraları aç",
+        }
+    return {
+        **ortak,
+        "tamam": False,
+        "aciklama": (
+            f"{len(kameralar) - len(eksik)} / {len(kameralar)} kamera kontrol edildi. "
+            "Görüş alanında tuvalet, soyunma odası, duş, mescit, dinlenme ya da emzirme "
+            "odası olamaz (KVKK). Kamera sayfasındaki “Mahremiyet kontrolü” bölümünde "
+            "görüntüye bakıp onaylayın."
+        ),
+        "bag": f"/kameralar/{eksik[0]['id']}#mahremiyet" if eksik else "/kameralar",
+        "bag_yazi": "Kamerayı aç" if eksik else "Kameraları aç",
+    }
+
+
 def _ham_adimlar(baglanti, supervizor, ayarlar) -> list[dict]:
     """Altı adımın ham cevabı - hepsi veritabanından ve sistem durumundan."""
     kamera_sayisi = baglanti.execute("SELECT COUNT(*) AS n FROM cameras").fetchone()["n"]
@@ -427,6 +467,7 @@ def _ham_adimlar(baglanti, supervizor, ayarlar) -> list[dict]:
             "engeller": False,
         },
         _anons_adimi(hoparlor_sayisi, tek_bluetooth, kanal["bluetooth_disi"]),
+        _mahremiyet_adimi(baglanti),
     ]
     bekleyenler = kalibrasyon_bekleyen_kurallar(baglanti)
     if bekleyenler:

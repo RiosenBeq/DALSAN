@@ -17,6 +17,7 @@ kilidi yüzünden İSG uzmanının kanıta bakamaması daha kötü bir sonuçtur
 
 from __future__ import annotations
 
+import json
 import sqlite3
 import threading
 import time
@@ -90,6 +91,81 @@ def erisim_yaz(
         baglanti.commit()
     except sqlite3.Error as hata:
         _log.error(f"Erişim izi yazılamadı ({eylem} {hedef}): {hata}")
+
+
+def hedef_metni(hedef: str | None) -> tuple[str, str | None]:
+    """Ekrandaki karşılık ve varsa bağlantı.
+
+    "event:12 hold=1" → ("olay #12 dondu", "/olaylar/12").
+    """
+    if not hedef:
+        return "-", None
+    ana, _, ek = hedef.partition(" ")
+    tur, _, kimlik = ana.partition(":")
+    ekler = {
+        "hold=1": "dondu",
+        "hold=0": "çözüldü",
+        "golge=1": "gölgeye alındı",
+        "golge=0": "anonsu açıldı",
+    }
+    ek = ekler.get(ek, ek)
+    if tur == "event" and kimlik.isdigit():
+        return f"olay #{kimlik} {ek}".strip(), f"/olaylar/{kimlik}"
+    if tur == "sample" and kimlik.isdigit():
+        return f"KKD örneği #{kimlik}", None
+    if tur == "rule" and kimlik:
+        return f"kural #{kimlik.replace(',', ', #')} {ek}".strip(), None
+    if tur == "camera" and kimlik.isdigit():
+        return f"kamera #{kimlik} {ek}".strip(), f"/kameralar/{kimlik}"
+    return hedef, None
+
+
+def kayitlar(baglanti: sqlite3.Connection, erisim_sayisi: int = 200, imha_sayisi: int = 50) -> dict:
+    """Ayarlar → KVKK ekranı: son erişimler, son imha koşuları, dondurulan olay sayısı."""
+    erisimler = []
+    for satir in baglanti.execute(
+        "SELECT at, client, action, target FROM access_log ORDER BY id DESC LIMIT ?",
+        (erisim_sayisi,),
+    ):
+        metin, bag = hedef_metni(satir["target"])
+        erisimler.append(
+            {
+                "zaman": zaman.ekranda_goster(satir["at"]),
+                "adres": satir["client"],
+                "eylem": EYLEM_ADLARI.get(satir["action"], satir["action"]),
+                "hedef": metin,
+                "bag": bag,
+            }
+        )
+    imhalar = []
+    for satir in baglanti.execute(
+        "SELECT * FROM purge_log ORDER BY id DESC LIMIT ?", (imha_sayisi,)
+    ):
+        try:
+            politika = json.loads(satir["policy"])
+        except (TypeError, ValueError):
+            politika = {}
+        imhalar.append(
+            {
+                "zaman": zaman.ekranda_goster(satir["ran_at"]),
+                "olay": satir["events_deleted"],
+                "foto": satir["photos_deleted"],
+                "ornek": satir["samples_deleted"],
+                "donmus": satir["held_skipped"],
+                "politika": " · ".join(
+                    f"{ad} {politika[anahtar]} gün"
+                    for anahtar, ad in (
+                        ("olay_gun", "olay"),
+                        ("sistem_olay_gun", "sistem olayı"),
+                        ("goruntu_gun", "fotoğraf"),
+                        ("kkd_ham_veri_gun", "KKD örneği"),
+                    )
+                    if anahtar in politika
+                ),
+            }
+        )
+    dondurulmus = baglanti.execute("SELECT COUNT(*) FROM events WHERE hold = 1").fetchone()[0]
+    return {"erisimler": erisimler, "imhalar": imhalar, "dondurulmus": dondurulmus}
 
 
 def tekrar_bellegini_temizle() -> None:

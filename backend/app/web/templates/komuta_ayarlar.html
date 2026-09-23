@@ -75,4 +75,49 @@
   {% endfor %}
 </form>
 
+{# KVKK (docs/17 §10): kim neye baktı, ne değiştirdi; bakım neyi sildi.
+   Kayıtlar silinmez; ayar DEĞERİ, şifre ve çerez hiçbir satırda yoktur. #}
+<section class="komuta-panel" id="kvkk">
+  <div class="panel-basligi">
+    <h2>KVKK: erişim ve imha kayıtları</h2>
+  </div>
+  <p class="panel-notu">Kanıt fotoğrafı ve KKD kırpığı görüntüleme, dışa aktarım, ayar ve
+    kural değişikliği, olay dondurma ve KKD veri toplama kapısı burada iz bırakır (KVKK
+    m.12). Sistemde tek şifre olduğu için "kim", isteği yapan bilgisayarın adresidir.
+    Aynı kaydın bir dakika içindeki tekrar görüntülenmesi bir kez yazılır.
+    Hukuki süreç için dondurulmuş olay: <b>{{ kvkk.dondurulmus }}</b>.</p>
+
+  <h3>Erişim günlüğü <span class="not">(son 200 kayıt)</span></h3>
+  {% if kvkk.erisimler %}
+  <table class="liste">
+    <tr><th>Zaman</th><th>Adres</th><th>Ne yapıldı</th><th>Neye</th></tr>
+    {% for e in kvkk.erisimler %}
+    <tr>
+      <td>{{ e.zaman }}</td>
+      <td><code>{{ e.adres }}</code></td>
+      <td>{{ e.eylem }}</td>
+      <td>{% if e.bag %}<a href="{{ e.bag }}">{{ e.hedef }}</a>{% else %}{{ e.hedef }}{% endif %}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}
+  <p class="bos">Henüz erişim kaydı yok.</p>
+  {% endif %}
+
+  <h3>İmha günlüğü <span class="not">(son 50 bakım; periyodik imha kaydı en az 3 yıl saklanır)</span></h3>
+  {% if kvkk.imhalar %}
+  <table class="liste">
+    <tr><th>Zaman</th><th>Silinen olay</th><th>Fotoğraf</th><th>KKD örneği</th><th>Dondurulduğu için kalan</th><th>O günkü saklama süreleri</th></tr>
+    {% for i in kvkk.imhalar %}
+    <tr>
+      <td>{{ i.zaman }}</td><td>{{ i.olay }}</td><td>{{ i.foto }}</td><td>{{ i.ornek }}</td>
+      <td>{{ i.donmus }}</td><td>{{ i.politika }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}
+  <p class="bos">Bakım henüz çalışmadı: analiz açıkken günde bir kez çalışır.</p>
+  {% endif %}
+</section>
+
 {% endblock %}

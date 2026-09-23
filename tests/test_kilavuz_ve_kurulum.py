@@ -140,12 +140,13 @@ def _kanal_ekle(
 
 
 def _kurulumu_tamamla(istemci, test_ayarlari, kanal: bool = True) -> int:
-    """Altı zorunlu adımı da tamamlar (kanal=False: sesli kanal hariç); kamera id'si."""
+    """Yedi zorunlu adımı da tamamlar (kanal=False: sesli kanal hariç); kamera id'si."""
     _motoru_hazirla(istemci)
     kamera = _kamera_ekle(istemci)
     _kare_geldi(test_ayarlari, kamera)
     _bolge_ekle(test_ayarlari, kamera)
     _kural_ekle(test_ayarlari, kamera)
+    istemci.post(f"/kameralar/{kamera}/mahremiyet", follow_redirects=False)
     if kanal:
         _kanal_ekle(test_ayarlari)
     return kamera
@@ -199,7 +200,7 @@ def test_kilavuz_sayfasinda_serit_yok(istemci):
 def test_bos_kurulumda_liste_ilk_adimi_gosteriyor(istemci):
     metin = istemci.get("/komuta").text
     assert "İlk kurulum" in metin
-    assert "0 / 6 adım tamam" in metin
+    assert "0 / 7 adım tamam" in metin
     assert "Henüz kamera eklenmedi" in metin
     assert 'href="/kameralar/yeni">Kamera ekle</a>' in metin
 
@@ -221,7 +222,7 @@ def test_kamera_eklenince_sonraki_adim_aciliyor(istemci):
     assert _adim_durumu(metin, "En az bir kamera eklendi mi?") == "tamam"
     assert _adim_durumu(metin, "Kamera görüntü veriyor mu?") == "sira"
     assert "1 kamera tanımlı." in metin
-    assert "1 / 6 adım tamam" in metin
+    assert "1 / 7 adım tamam" in metin
 
 
 def test_goruntu_gelince_bolge_adimi_aciliyor(istemci, test_ayarlari):
@@ -262,7 +263,7 @@ def test_sesli_kanal_yokken_kurulum_bitmis_sayilmaz(istemci, test_ayarlari):
     assert "Sistem hazır." not in metin
     assert _adim_durumu(metin, "Sesli anons kuruldu mu?") == "sorun"
     assert "hiçbir hoparlöre ulaşmadı" in metin
-    assert "5 / 6 adım tamam" in metin
+    assert "6 / 7 adım tamam" in metin
 
 
 def test_yalniz_bluetooth_kanali_kirmizi(istemci, test_ayarlari):
@@ -301,6 +302,31 @@ def test_anons_adimi_kanal_eklenince_tamamlanir(istemci, test_ayarlari):
     )
     assert _anons_adimi()["durum"] == "tamam"
     assert "1 açık sesli kanal" in _anons_adimi()["aciklama"]
+
+
+def test_mahremiyet_kontrolu_kamera_basina_onaylanir(istemci, test_ayarlari):
+    """KVKK (docs/17 §10.1): yazılım göremez; her açık kamera elle onaylanır,
+    adres değişince onay kalkar ve adım yeniden açılır."""
+    kamera = _kamera_ekle(istemci)
+    metin = istemci.get("/komuta").text
+    assert "Kamera görüş alanlarında mahremiyet alanı yok mu?" in metin
+    assert "0 / 1 kamera kontrol edildi" in metin
+    istemci.post(f"/kameralar/{kamera}/mahremiyet", follow_redirects=False)
+    assert "1 kameranın görüş alanı kontrol edildi." in istemci.get("/komuta").text
+    assert "kontrol edildi" in istemci.get(f"/kameralar/{kamera}").text
+    istemci.post(
+        f"/kameralar/{kamera}/duzenle",
+        data={
+            "name": "Rampa 1",
+            "area": "Sevkiyat",
+            "source_type": "rtsp",
+            "source_url": "rtsp://10.0.0.6:554/1",
+            "sample_fps": "6",
+            "enabled": "1",
+        },
+        follow_redirects=False,
+    )
+    assert "0 / 1 kamera kontrol edildi" in istemci.get("/komuta").text
 
 
 def test_anons_adimi_zorunlu_sifre_istege_bagli(istemci):
@@ -436,7 +462,7 @@ def test_kilavuzda_tasarimin_ornek_verisi_yok(istemci):
 
 
 def test_kilavuz_kurulum_durumunu_gercek_veriden_gosteriyor(istemci, test_ayarlari):
-    assert "0 / 6 adımı tamam" in istemci.get("/komuta/kilavuz").text
+    assert "0 / 7 adımı tamam" in istemci.get("/komuta/kilavuz").text
     _kurulumu_tamamla(istemci, test_ayarlari)
     assert "Kurulumunuz tamam." in istemci.get("/komuta/kilavuz").text
 

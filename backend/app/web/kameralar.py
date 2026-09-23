@@ -15,6 +15,7 @@ from app import zaman
 from app.hatalar import DogrulamaHatasi
 from app.rules.kalibrasyon import homografi_hesapla
 from app.rules.tipler import BOLGE_TIPI_KODLARI
+from app.web.erisim_izi import erisim_yaz
 from app.web.ortak import (
     BOLGE_TIPLERI,
     KURAL_TIPLERI,
@@ -127,6 +128,11 @@ def kamera_detay(istek: Request, kamera_id: int, duzenle: int = 0, baglanti=Depe
     kamera = _kamera_getir(baglanti, kamera_id)
     kamera["maskeli_url"] = rtsp_maskele(kamera["source_url"])
     kamera["rozet"], kamera["rozet_rengi"] = _rozet(kamera)
+    kamera["mahremiyet_zamani"] = (
+        zaman.ekranda_goster(kamera["privacy_checked_at"])
+        if kamera.get("privacy_checked_at")
+        else ""
+    )
 
     bolgeler = []
     for satir in baglanti.execute(
@@ -234,9 +240,11 @@ def kamera_duzenle(
     # Form adresi maskeli gösterir (R18); •••• kalırsa kayıtlı kimlik korunur
     source_url = maskeyi_coz(source_url, kamera["source_url"])
     source_url = _kamera_dogrula(name, source_type, source_url, sample_fps)
+    # Başka bir adres başka bir görüş alanıdır: mahremiyet kontrolü yenilenmeli
+    mahremiyet = kamera["privacy_checked_at"] if source_url == kamera["source_url"] else None
     baglanti.execute(
         "UPDATE cameras SET name = ?, area = ?, source_type = ?, source_url = ?, "
-        "sample_fps = ?, enabled = ?, updated_at = ? WHERE id = ?",
+        "sample_fps = ?, enabled = ?, privacy_checked_at = ?, updated_at = ? WHERE id = ?",
         (
             name.strip(),
             area.strip(),
@@ -244,12 +252,28 @@ def kamera_duzenle(
             source_url,
             sample_fps,
             1 if enabled == "1" else 0,
+            mahremiyet,
             zaman.simdi_utc(),
             kamera_id,
         ),
     )
     baglanti.commit()
     return RedirectResponse(f"/kameralar/{kamera_id}", status_code=303)
+
+
+@router.post("/kameralar/{kamera_id}/mahremiyet")
+def mahremiyet_kontrolu(istek: Request, kamera_id: int, baglanti=Depends(baglanti_al)):
+    """Görüş alanında mahremiyet alanı olmadığı elle doğrulandı (docs/17 §10.1,
+    Kurul 2022/797). Yazılım bunu göremez: kurulumu yapan kişi kareye bakıp
+    onaylar; onay zamanı saklanır ve erişim izine düşer. Kameranın adresi
+    değişince onay kalkar (kamera_duzenle)."""
+    _kamera_getir(baglanti, kamera_id)
+    baglanti.execute(
+        "UPDATE cameras SET privacy_checked_at = ? WHERE id = ?", (zaman.simdi_utc(), kamera_id)
+    )
+    baglanti.commit()
+    erisim_yaz(baglanti, istek, "settings_change", f"camera:{kamera_id} mahremiyet kontrolü")
+    return RedirectResponse(f"/kameralar/{kamera_id}#mahremiyet", status_code=303)
 
 
 @router.post("/kameralar/{kamera_id}/sil")

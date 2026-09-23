@@ -286,3 +286,34 @@ def test_ayar_degisikligi_yalniz_anahtar_adini_yazar(test_ayarlari):
     eylem, hedef = izler[0]
     assert eylem == "settings_change" and "OLAY_SAKLAMA_GUN" in hedef.split(", ")
     assert "200" not in hedef, "değer yazılmaz"
+
+
+# ------------------------------------------------------------ Ayarlar → KVKK (5c-3)
+
+
+def test_ayarlar_kvkk_bolumu_erisim_ve_imha_kayitlarini_gosterir(istemci, baglanti, test_ayarlari):
+    """docs/17 §13 5c: Ayarlar → KVKK'da "adres, saat, olay #123" satırları ve
+    imha günlüğü."""
+    metin = istemci.get("/ayarlar").text
+    assert "KVKK: erişim ve imha kayıtları" in metin
+    assert "Henüz erişim kaydı yok." in metin and "Bakım henüz çalışmadı" in metin
+
+    olay_id = _olay_ekle(test_ayarlari)
+    istemci.post(f"/olaylar/{olay_id}/dondur", data={"sebep": "dava"}, follow_redirects=False)
+    _bakim(test_ayarlari, baglanti)
+    metin = istemci.get("/ayarlar").text
+    assert f'<a href="/olaylar/{olay_id}">olay #{olay_id} dondu</a>' in metin
+    assert "<code>testclient</code>" in metin and "olay dondurma değişti" in metin
+    assert f"olay {test_ayarlari.olay_saklama_gun} gün" in metin
+    assert "Hukuki süreç için dondurulmuş olay: <b>1</b>" in metin
+
+
+def test_hedef_metinleri():
+    assert erisim_izi.hedef_metni("event:12 hold=0") == ("olay #12 çözüldü", "/olaylar/12")
+    assert erisim_izi.hedef_metni("rule:3,4 golge=0") == ("kural #3, #4 anonsu açıldı", None)
+    assert erisim_izi.hedef_metni("camera:2 mahremiyet kontrolü") == (
+        "kamera #2 mahremiyet kontrolü",
+        "/kameralar/2",
+    )
+    assert erisim_izi.hedef_metni("OLAY_SAKLAMA_GUN") == ("OLAY_SAKLAMA_GUN", None)
+    assert erisim_izi.hedef_metni(None) == ("-", None)

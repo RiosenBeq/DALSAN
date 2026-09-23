@@ -29,6 +29,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 
 from app import ayarlar as ayarlar_modulu
 from app.hatalar import AyarHatasi, DogrulamaHatasi
+from app.web import erisim_izi
 from app.web.erisim_izi import erisim_yaz
 from app.web.komuta import kabuk_baglami
 from app.web.ortak import baglanti_al, maskeyi_coz, rtsp_maskele
@@ -539,6 +540,8 @@ def ayarlar_sayfasi(istek: Request, sonuc: str = "", baglanti=Depends(baglanti_a
             "degerler": {alan.anahtar: _gosterilecek_deger(ayarlar, alan) for alan in TUM_ALANLAR},
             "yonetici_sifresi_kurulu": bool(ayarlar.yonetici_sifresi),
             "sonuc_mesaji": SONUC_MESAJLARI.get(sonuc, ""),
+            # KVKK: erişim izi ve imha kaydı (docs/17 §10, §11 "Ayarlar → KVKK")
+            "kvkk": erisim_izi.kayitlar(baglanti),
         }
     )
     return sablonlar.TemplateResponse(istek, "komuta_ayarlar.html", baglam)
