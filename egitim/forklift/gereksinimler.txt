@@ -1,0 +1,26 @@
+# Forklift ek başı eğitim ortamı (GitHub'ın Linux makinesi, Python 3.12).
+# Ürünün ortamı DEĞİLDİR (o backend/requirements.txt'tir); fabrikaya hiçbiri
+# gitmez. Kullanan: .github/workflows/forklift-egit-bacak.yml (eğitim, dışa
+# aktarım, denetim) ve forklift-egit.yml'in veri işi (yalnız numpy ve OpenCV).
+#
+# torch ve torchvision BURADA DEĞİL: iş akışı onları PyTorch'un CPU dizininden
+# ayrıca kurar (torch==2.14.0, torchvision==0.29.0,
+# --index-url https://download.pytorch.org/whl/cpu). PyPI'deki Linux paketi
+# CUDA'lıdır ve birkaç GB tutar. SIRA: önce torch, sonra bu dosya. thop
+# sürümsüz "torch" ister; torch kurulu değilse pip onu PyPI'den çeker.
+#
+# Sürümler sabit: hepsinin Python 3.12 (cp312) tekerleği var ve birlikte
+# denendi. YOLOX pip'ten kurulmaz, sabitlenmiş commit'ten gelir (ortak.py
+# YOLOX_COMMIT); aşağıdakiler onun ve betiklerimizin gerektirdikleridir.
+numpy==2.4.6
+opencv-python-headless==4.10.0.84
+loguru==0.7.3
+tqdm==4.70.1
+tabulate==0.10.0
+psutil==7.2.2
+pycocotools==2.0.11
+onnx==1.23.0
+onnxruntime==1.30.0
+thop==0.1.1.post2209072238
+tensorboard==2.21.0
+packaging==26.3

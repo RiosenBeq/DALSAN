@@ -83,6 +83,22 @@ Yeni bir araç, kütüphane, servis veya çalışma zamanı eklemeden önce sor:
 >
 > Ayrıntı: `docs/13-UYGULAMA-PAKETLEME.md` §3.1.
 
+> **Forklift modeli eğitimi istisnası (operatör isteği 23.09.2026: "forklifti
+> tanıması lazım ... en iyi şekilde eğit").** `egitim/forklift/` PyTorch ve
+> YOLOX kaynak koduyla bir tespit modeli eğitir. Bu da SINIRLI bir istisnadır:
+>
+> * **Ürün dışıdır.** Yalnız GitHub Actions'taki eğitim işinde
+>   (`.github/workflows/forklift-egit.yml`) kendi sanal ortamına kurulur
+>   (`egitim/forklift/gereksinimler.txt`). `backend/` torch'u da, bu klasörü de
+>   hiç import etmez; paket ve Docker imajı onu içermez.
+> * **Ürüne yalnız bir ONNX dosyası girer**, o da depoya değil deponun kendi
+>   yayınına (GitHub Release) konur ve uygulama onu SHA-256 ile doğrulayarak
+>   indirir (`models/indir.sh`, `analiz/model_indir.py`).
+> * Müşteri kamerasından tek kare bile bu hatta girmez: iş kayıtları ve
+>   yayınlar herkese açıktır (KVKK). Saha verisiyle eğitim ayrı ve kapalı yapılır.
+>
+> Ayrıntı: `docs/17-V2-TASARIM.md` §12.3.
+
 Gerekçeler: `docs/09-BASITLESTIRME-KARARLARI.md`
 
 ---
@@ -111,6 +127,7 @@ dalsan-isg/
 │       ├── olaylar/            # olay yazımı, fotoğraf, anons
 │       └── egitim/             # veri seti dışa aktarımı, değerlendirme, HTML rapor
 │                               #   (eğitimin kendisi ürün dışı - docs/04 §6)
+├── egitim/forklift/            # forklift modelinin eğitimi - ÜRÜN DIŞI (§4 istisnası)
 ├── tests/
 ├── veri/                       # dalsan.db, goruntuler/, loglar/, yedekler/  (git'e girmez)
 └── docs/

@@ -62,6 +62,27 @@ Kullanım: latin ve latin-ext altkümeleri woff2 olarak depoya KOPYALANMIŞTIR
 ve İ harfleri latin-ext altkümesindedir.
 
 --------------------------------------------------------------------------
+5) LOCO - forklift modelinin eğitim ve test verisi
+--------------------------------------------------------------------------
+Kaynak:      Logistics Objects in Context (LOCO), Technical University of
+             Munich, Chair of Materials Handling, Material Flow, Logistics
+             https://github.com/tum-fml/loco (etiketler, commit b460ab8)
+Lisans:      Creative Commons CC0 1.0 Universal (kamu malı)
+Lisans metni: https://github.com/tum-fml/loco/blob/main/LICENSE
+
+Kullanım: forklift tanıyan modelin ek başı (egitim/forklift) bu verinin
+forklift ve el transpaleti kutularıyla eğitilir ve test edilir. Görüntüler
+ürünle DAĞITILMAZ; ürüne yalnız eğitilen model dosyası girer. CC0 atıf
+istemez; kaynak burada iyi uygulama olarak belirtilir. CC0, görüntülerdeki
+kişilerin mahremiyet haklarını kapsamaz (docs/16 §1).
+
+Forklift modeli (models/nextgen_forklift_*.onnx) resmi YOLOX COCO
+ağırlıklarını (1. madde, Apache-2.0) değiştirmeden içerir ve onlara eğitilmiş
+bir ek baş ekler; bu nedenle Apache-2.0 kapsamında YOLOX'tan türetilmiş bir
+çalışmadır. Model dosyasının içindeki üst veri (dalsan_model_karti) eğitim
+verisini, başlangıç ağırlıklarının SHA-256 özetini ve eğitim tarihini taşır.
+
+--------------------------------------------------------------------------
 Diğer bileşenler
 --------------------------------------------------------------------------
 Python bağımlılıklarının tam listesi ve sürümleri
