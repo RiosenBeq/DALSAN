@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import sys
 from logging.handlers import RotatingFileHandler
 
@@ -34,6 +35,23 @@ _KOK_AD = "dalsan"
 # uvicorn'un kendi günlükleri (docs/17 §9.4): sunucu başladı/durdu, ASGI
 # hataları ve HTTP erişim satırları.
 _UVICORN_ADLARI = ("uvicorn", "uvicorn.error", "uvicorn.access")
+
+# Adresteki kimlik: `//kullanici:sifre@`. Açgözlü ama "/" ile sınırlı: şifrede
+# ham "@" olsa da tamamı gizlenir; yoldaki "@" ya da kimliksiz adres
+# dokunulmaz kalır. Kamera, hoparlör ve anons adresleri AYNI desenle
+# maskelenir; formdaki maskeyi geri çözen kod da bunu kullanır (web/ortak.py).
+ADRES_KIMLIGI = re.compile(r"//([^/]+)@")
+ADRES_MASKESI = "//••••@"
+
+
+def adres_maskele(metin: str) -> str:
+    """rtsp://kullanici:sifre@ip/... → rtsp://••••@ip/... — metindeki her adres.
+
+    Adresin kendisi (ip, port, yol) görünür kalır; gizlenen yalnız kullanıcı
+    adı ve şifredir. Hata metinleri de bundan geçer: urllib'in "unknown url
+    type" hatası adresi olduğu gibi yazar (docs/17 §10.5 R18).
+    """
+    return ADRES_KIMLIGI.sub(ADRES_MASKESI, metin)
 
 
 class _JsonSatirBicimi(logging.Formatter):
@@ -54,7 +72,9 @@ class _JsonSatirBicimi(logging.Formatter):
             "ts": zaman.simdi_utc(),
             "level": kayit.levelname,
             "bilesen": bilesen,
-            "mesaj": kayit.getMessage(),
+            # Son savunma: çağıran kod adresi maskelemeyi unutsa da şifre
+            # dosyaya ve Kontrol Paneli'ne düşmez (R18)
+            "mesaj": adres_maskele(kayit.getMessage()),
         }
         if self.ayrintili:
             parcalar = []
@@ -64,7 +84,7 @@ class _JsonSatirBicimi(logging.Formatter):
             if kayit.exc_info:
                 parcalar.append(self.formatException(kayit.exc_info))
             if parcalar:
-                satir["ayrinti"] = "\n".join(parcalar)
+                satir["ayrinti"] = adres_maskele("\n".join(parcalar))
         return json.dumps(satir, ensure_ascii=False)
 
 

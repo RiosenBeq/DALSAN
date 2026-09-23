@@ -169,7 +169,8 @@
                 {% endif %}
               </select>
             </label>
-            <label>Adres <input name="address" value="{{ h.adres_ham }}" required></label>
+            <label>Adres <input name="address" value="{{ h.adres }}" required
+              title="Kullanıcı adı ve şifre •••• ile gizlidir; olduğu gibi bırakırsanız korunur"></label>
             <label>Açıklama <input name="description" value="{{ h.aciklama }}"></label>
             <label class="yatay"><input type="checkbox" name="enabled" value="1"
               {% if h.aktif %}checked{% endif %}> Bölge açık</label>

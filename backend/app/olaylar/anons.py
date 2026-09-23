@@ -33,7 +33,7 @@ import urllib.request
 
 from app import veritabani, zaman
 from app.ayarlar import Ayarlar
-from app.loglama import log_al
+from app.loglama import adres_maskele, log_al
 from app.rules.cooldown import Cooldown
 
 _log = log_al("anons")
@@ -218,20 +218,24 @@ def http_gonder(adres: str, anahtar: str, metin: str, bicim: str = "json") -> No
     "Bu hoparlörü dene" düğmesi AYNI yoldan gider. İkisi ayrı kod olsaydı
     deneme başarılı olup gerçek anons sessizce başarısız olabilirdi.
     """
-    istek = _istek_hazirla(adres, anahtar, metin, bicim)
     try:
+        # İstek kurulumu da içeride: bozuk adresin ValueError'ı burada doğar
+        istek = _istek_hazirla(adres, anahtar, metin, bicim)
         with urllib.request.urlopen(istek, timeout=5) as yanit:
             _log.info(f"Anons HTTP gönderildi ({yanit.status}): {metin}")
     except (urllib.error.URLError, TimeoutError, ValueError) as hata:
-        # ValueError: adres biçimi bozuksa urllib bunu fırlatır.
-        # Adres MESAJA KONMAZ: içinde kullanıcı adı/şifre olabilir ve hata
-        # ekranı onu ham gösterirdi. Tam adres yalnızca günlüğe yazılır;
-        # çağıran taraf hangi hoparlör olduğunu maskeli adresle ekler.
-        _log.error(f"Anons HTTP gönderilemedi ({adres}): {hata}")
+        # ValueError: adres biçimi bozuksa urllib bunu fırlatır — ve metnine
+        # adresi OLDUĞU GİBİ koyar ("unknown url type: 'htp://kul:sifre@…'").
+        # Adresteki kullanıcı adı/şifre ne günlüğe ne ekrana gider (R18): adres
+        # de sebep de maskelenir; çağıran taraf hangi hoparlör olduğunu maskeli
+        # adresle ekler. Zincir (`from`) kesilir: yığın izi günlüğe düşerse
+        # ham metin oradan sızardı.
+        sebep = adres_maskele(str(hata))
+        _log.error(f"Anons HTTP gönderilemedi ({adres_maskele(adres)}): {sebep}")
         raise AnonsHatasi(
-            f"Anons adresine ulaşılamadı. Sebep: {hata}. "
+            f"Anons adresine ulaşılamadı. Sebep: {sebep}. "
             "Hoparlörün açık ve aynı ağda olduğunu doğrulayın."
-        ) from hata
+        ) from None
 
 
 class HttpAnonscu:

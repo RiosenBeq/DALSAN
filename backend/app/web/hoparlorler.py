@@ -19,7 +19,7 @@ from fastapi.responses import RedirectResponse
 from app import zaman
 from app.hatalar import DogrulamaHatasi
 from app.olaylar.anons import AnonsHatasi, http_gonder
-from app.web.ortak import baglanti_al, rtsp_maskele
+from app.web.ortak import baglanti_al, maskeyi_coz, rtsp_maskele
 
 router = APIRouter()
 
@@ -60,7 +60,18 @@ def hoparlor_kaydet(
     ad = name.strip()
     if not ad:
         raise DogrulamaHatasi("Hoparlör bölgesine bir ad verin (örn. 'Sevkiyat rampaları').")
-    adres = _adres_dogrula(address)
+    kayitli = ""
+    if hoparlor_id:
+        satir = baglanti.execute(
+            "SELECT address FROM speaker_zones WHERE id = ?", (hoparlor_id,)
+        ).fetchone()
+        if satir is None:
+            raise DogrulamaHatasi(
+                "Hoparlör bölgesi bulunamadı. Silinmiş olabilir; sayfayı yenileyin."
+            )
+        kayitli = satir["address"]
+    # Form adresi maskeli gösterir (R18); •••• kalırsa kayıtlı kimlik korunur
+    adres = _adres_dogrula(maskeyi_coz(address, kayitli))
     # Bölüm boş bırakılabilir: '' = tüm fabrika (eşleşen bölüm bulunamazsa
     # kullanılan yedek hoparlör).
     bolum = area.strip()
@@ -69,13 +80,6 @@ def hoparlor_kaydet(
     simdi = zaman.simdi_utc()
 
     if hoparlor_id:
-        var = baglanti.execute(
-            "SELECT 1 FROM speaker_zones WHERE id = ?", (hoparlor_id,)
-        ).fetchone()
-        if var is None:
-            raise DogrulamaHatasi(
-                "Hoparlör bölgesi bulunamadı. Silinmiş olabilir; sayfayı yenileyin."
-            )
         baglanti.execute(
             "UPDATE speaker_zones SET name = ?, area = ?, address = ?, description = ?, "
             "enabled = ?, updated_at = ? WHERE id = ?",

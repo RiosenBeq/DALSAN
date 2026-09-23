@@ -25,6 +25,7 @@ from app.web.ortak import (
     bolge_hazir_kurallari,
     guvenli_json,
     hazir_kural_aciklamasi,
+    maskeyi_coz,
     olay_ogesi,
     rtsp_maskele,
 )
@@ -230,6 +231,8 @@ def kamera_duzenle(
     kamera = _kamera_getir(baglanti, kamera_id)
     if sample_fps is None:  # alan gönderilmediyse kameranın MEVCUT hızı korunur
         sample_fps = float(kamera["sample_fps"])
+    # Form adresi maskeli gösterir (R18); •••• kalırsa kayıtlı kimlik korunur
+    source_url = maskeyi_coz(source_url, kamera["source_url"])
     source_url = _kamera_dogrula(name, source_type, source_url, sample_fps)
     baglanti.execute(
         "UPDATE cameras SET name = ?, area = ?, source_type = ?, source_url = ?, "

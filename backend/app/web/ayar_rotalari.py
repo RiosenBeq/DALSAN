@@ -30,7 +30,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from app import ayarlar as ayarlar_modulu
 from app.hatalar import AyarHatasi, DogrulamaHatasi
 from app.web.komuta import kabuk_baglami
-from app.web.ortak import baglanti_al
+from app.web.ortak import baglanti_al, maskeyi_coz, rtsp_maskele
 from app.web.rotalar import sablonlar
 
 router = APIRouter()
@@ -55,6 +55,9 @@ class AyarAlani:
     adim: str = "1"
     ipucu: str = ""
     secenekler: tuple[tuple[str, str], ...] = ()
+    # Adresteki kullanıcı adı/şifre kutuya •••• ile yazılır; •••• olduğu gibi
+    # gelirse kayıtlı kimlik korunur (R18, web/ortak.maskeyi_coz)
+    maskeli: bool = False
 
 
 @dataclass(frozen=True)
@@ -149,6 +152,7 @@ AYAR_GRUPLARI: tuple[AyarGrubu, ...] = (
                 alan="anons_http_adresi",
                 etiket="IP hoparlör adresi",
                 tur="metin",
+                maskeli=True,
                 ipucu="http://10.0.0.9:8080/anons",
                 aciklama=(
                     "Yalnızca “IP hoparlör” seçiliyken kullanılır ve http:// veya "
@@ -494,7 +498,11 @@ async def ayarlari_kaydet(istek: Request):
             if yeni is not None:
                 degisiklikler[alan.anahtar] = yeni
         elif alan.anahtar in form:
-            degisiklikler[alan.anahtar] = str(form[alan.anahtar]).strip()
+            deger = str(form[alan.anahtar]).strip()
+            if alan.maskeli:
+                # Kutudaki maske, kutuya yazılan (çalışan sistemin) değerinden çözülür
+                deger = maskeyi_coz(deger, str(getattr(ayarlar, alan.alan)))
+            degisiklikler[alan.anahtar] = deger
     if not degisiklikler:
         raise DogrulamaHatasi("Kaydedilecek ayar bulunamadı. Sayfayı yenileyip tekrar deneyin.")
 
@@ -540,6 +548,8 @@ def _gosterilecek_deger(ayarlar, alan: AyarAlani) -> str:
     if alan.tur == "sifre":
         return ""
     deger = getattr(ayarlar, alan.alan)
+    if alan.maskeli:
+        return rtsp_maskele(str(deger))
     if isinstance(deger, tuple):
         # ('192.168.1.50', 'isg.dalsan.local') → "192.168.1.50, isg.dalsan.local"
         return ", ".join(deger)

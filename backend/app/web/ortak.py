@@ -6,13 +6,14 @@ from __future__ import annotations
 
 import csv
 import json
-import re
 from collections.abc import Iterator
 from dataclasses import dataclass
 
 from fastapi import Request
 
 from app import veritabani, zaman
+from app.hatalar import DogrulamaHatasi
+from app.loglama import ADRES_KIMLIGI, ADRES_MASKESI, adres_maskele
 from app.rules.olay_kodu import KAPANIS_SEBEPLERI, OLAY_KODLARI, ONEM_ADLARI
 from app.rules.parametreler import params_dogrula
 
@@ -463,9 +464,30 @@ def rtsp_maskele(url: str) -> str:
     Kamera adresleri için yazıldı, ama şema/protokole bakmaz: hoparlör
     bölgelerinin http adresleri de aynı desenle maskelenir. Adresin kendisi
     (ip, port, yol) görünür kalır — kullanıcı hangi cihazı yazdığını görmeli;
-    gizlenen yalnızca kullanıcı adı ve şifredir.
+    gizlenen yalnızca kullanıcı adı ve şifredir. Desen günlükle ortaktır
+    (loglama.ADRES_KIMLIGI).
     """
-    return re.sub(r"//[^/@]+@", "//••••@", url)
+    return adres_maskele(url)
+
+
+def maskeyi_coz(gonderilen: str, kayitli: str) -> str:
+    """Formda maskeli gösterilen adres geri gelince kayıtlı kimliği yerine koyar.
+
+    Düzenleme formları adresi maskeli basar (docs/17 §10.5 R18): şifre sayfa
+    kaynağına, tarayıcı önbelleğine ya da ekran görüntüsüne düşmez. Kullanıcı
+    •••• kısmını olduğu gibi bırakırsa kayıtlı kullanıcı adı ve şifre korunur;
+    adresin geri kalanını (ip, port, yol) değiştirse de. Yeni kimlik yazarsa
+    o geçerlidir.
+    """
+    if "••••" not in gonderilen:
+        return gonderilen
+    eslesme = ADRES_KIMLIGI.search(kayitli or "")
+    if ADRES_MASKESI not in gonderilen or eslesme is None:
+        raise DogrulamaHatasi(
+            "Adresteki •••• yerine kullanıcı adını ve şifreyi yazın. "
+            "Biçim: rtsp://kullanici:sifre@IP:554/yol ya da http://kullanici:sifre@IP/yol"
+        )
+    return gonderilen.replace(ADRES_MASKESI, f"//{eslesme.group(1)}@", 1)
 
 
 def guvenli_json(veri) -> str:

@@ -17,7 +17,7 @@ from app import ayarlar as ayarlar_modulu
 from app import zaman
 from app.hatalar import AyarHatasi, DogrulamaHatasi
 from app.olaylar import ses_cihazlari, test_sesi
-from app.web.ortak import baglanti_al
+from app.web.ortak import baglanti_al, rtsp_maskele
 from app.web.rotalar import sablonlar
 
 router = APIRouter()
@@ -55,7 +55,7 @@ def anons_sayfasi(istek: Request, sonuc: str = "", baglanti=Depends(baglanti_al)
             "mesajlar": mesajlar,
             "anons_yolu": ayarlar.anons,
             "anons_aciklamasi": ANONS_ACIKLAMALARI.get(ayarlar.anons, ayarlar.anons),
-            "anons_adresi": ayarlar.anons_http_adresi,
+            "anons_adresi": rtsp_maskele(ayarlar.anons_http_adresi),  # R18
             "bekleme_sn": ayarlar.anons_bekleme_sn,
             "son_sonuc": getattr(supervizor, "_anons", None) and supervizor._anons.son_sonuc,
             "analiz_calisiyor": supervizor is not None,

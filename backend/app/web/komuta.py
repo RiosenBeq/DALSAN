@@ -1231,8 +1231,9 @@ def _hoparlor_satirlari(baglanti, ayarlar) -> list[dict]:
                 "alan_adi": satir["area"] or "Tüm fabrika",
                 # Adreste kullanıcı adı/şifre varsa maskelenir (kamera RTSP
                 # adresiyle aynı desen); cihazın kendisi görünür kalır.
+                # Düzenleme formu da maskeli adresi basar (R18); şifre sayfaya
+                # hiç yazılmaz, •••• kalırsa kaydederken korunur.
                 "adres": rtsp_maskele(satir["address"]),
-                "adres_ham": satir["address"],
                 "aciklama": satir["description"],
                 "aktif": bool(satir["enabled"]),
                 "son_anons": (
