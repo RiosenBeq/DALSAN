@@ -1,58 +1,850 @@
-# Forklift tanıyan modelin eğitimi (operatör isteği 23.09.2026, docs/17 §12.3).
+# Forklift tanıyan tespit modelinin eğitimi (operatör isteği 23.09.2026,
+# docs/17 §12.3). Yöntem egitim/forklift/ortak.py'de: resmi YOLOX COCO modeli
+# DONUK kalır, yanına yalnız forklift ve el transpaletini öğrenen küçük bir
+# "ek baş" eğitilir; dışa aktarımda ikisi tek ONNX'te birleşir. İnsan ve araç
+# tanıma bu yüzden yapı gereği resmi modelinkiyle aynı kalır.
 #
-# ŞİMDİLİK YALNIZ YOKLAMA: eğitim verisinin (LOCO, CC0 1.0) görüntü arşivi
-# geliştirme ortamından açılamıyor. Bu iş GitHub'ın makinesinde indirme
-# bağlantısının nereye gittiğini, arşivin boyutunu ve kısmi indirmeyi
-# destekleyip desteklemediğini, CPU'ya uygun PyTorch paketinin varlığını ve
-# makinenin disk/işlemci durumunu yazar. Eğitim işi bu bilgiyle yazılır.
+# NEDEN GITHUB'DA: GPU yok, eğitim saatler sürer. Depo herkese açık olduğu için
+# GitHub'ın Linux makinesi (4 çekirdek, 15 GB) ücretsizdir ama bir iş en çok 6
+# saat sürer. Bu yüzden her varyantın eğitimi en çok üç "bacağa" bölünür: bir
+# bacak süresi dolmadan ara kaydını bırakır, sonraki bacak aynı çalıştırmanın
+# yapıtından (artifact) sürer (forklift-egit-bacak.yml).
+#
+# NE ZAMAN, HANGİ KİP: her şey main'e gönderimle başlar (bu depoyu yöneten
+# araçlar "Run workflow" düğmesine basamaz; düğme yalnız insanlar içindir).
+#   duman  kısa boru hattı sınaması: yalnız tiny varyantlar, 64 eğitim
+#          görüntüsü, 4 devir (ilki mozaikli); ilk iki bacak birer devirde
+#          durur: ara kayıt, sürdürme ve üç bacaklı zincir de sınanır. 50 test
+#          ve 50 araç seti görüntüsü. Her iş yine uçtan uca çalışır; "Yayınla"
+#          yalnız notları hazırlar, hiçbir şey yayımlamaz.
+#   tam    gönderim egitim/forklift/istek.json'u DEĞİŞTİRDİYSE: istekteki bütün
+#          varyantlar tam eğitilir, ürünün kendi tespit motoruyla ölçülür ve
+#          hepsi TEK bir ön sürüm (GitHub Release) olarak yayımlanır. Dosyanın
+#          ilk eklenmesi istek sayılmaz: boru hattı önce duman kipinde sınanır.
+#
+# YALNIZ KAMUYA AÇIK VERİ: günlükler, yapıtlar, önbellek ve sürüm dosyaları
+# herkese açıktır. Müşteri kamera görüntüsü (KVKK) bu iş akışına ASLA girmez.
+#
+# SONUÇ: "Özet" işinin günlüğünün sonunda "===== FORKLIFT-SONUC-BASLA =====" ile
+# "===== FORKLIFT-SONUC-BITTI =====" arasında her adayın OLCUM_JSON satırı ve
+# "Forklift olcumu" notu (annotation).
 name: Forklift eğitimi
 
-# Bu dosya değişince kendiliğinden, istenince "Run workflow" düğmesiyle.
 on:
   push:
     branches: [main]
+    # Ölçüm (olc) ürünün tespit motorunu, ayarlarını, paketlerini ve resmi
+    # model indiricisini kullanır: onlar değişince de duman koşar (bu testleri
+    # başka hiçbir iş akışı çalıştırmaz).
     paths:
+      - "egitim/forklift/**"
       - ".github/workflows/forklift-egit.yml"
+      - ".github/workflows/forklift-egit-bacak.yml"
+      - "tests/test_forklift_*.py"
+      - "backend/app/analiz/tespit.py"
+      - "backend/requirements.txt"
+      - ".env.example"
+      - "models/indir.sh"
+      - "models/SHA256SUMS"
   workflow_dispatch:
+    inputs:
+      kip:
+        description: "duman = kısa sınama, yayımlamaz; tam = istek.json'daki tam eğitim ve ön sürüm"
+        type: choice
+        options: [duman, tam]
+        default: duman
 
+# En az yetki: yalnız "yayinla" işi yazma izni alır ve o iş depo kodu çalıştırmaz.
 permissions:
   contents: read
 
+# Çalıştırmalar birbirini İPTAL ETMEZ, sıraya girer. Tam ve duman AYRI
+# sıradadır. Neden: GitHub bir sırada yalnız EN SON bekleyen çalıştırmayı tutar;
+# tek sıra olsaydı, bekleyen bir tam isteğin yerini arkadan gelen bir kod
+# düzeltmesinin duman çalıştırması alır ve istek sessizce düşerdi. Ayrı sırada
+# bekleyen tam isteğin yerini ancak daha yeni bir tam istek alır (aynı dosyanın
+# son hali). Kip burada gönderimin commit listesinden kestirilir (iş başlamadan
+# git çalışmaz). Plan işi net farka da bakar; ikisi ayrışırsa (değiştirilip
+# geri alınan, silinip yeniden eklenen istek, önceki commit'i olmayan zorla
+# gönderim) SIRANIN kipi uygulanır ve uyarı düşer. Ayrışan kip yanlış sırada
+# beklerdi: tam sıraya düşen bir duman çalıştırması orada bekleyen isteğin
+# yerini alır, duman sırasında bekleyen bir tam isteğin yerini de arkadan
+# gelen bir kod gönderimi alırdı; iki durumda da istek sessizce düşerdi.
+# Aynı ifade plan işinde SIRA_KIPI olarak durur (testi ikisini karşılaştırır).
+concurrency:
+  group: "forklift-egit-${{ (inputs.kip == 'tam' || contains(toJSON(github.event.commits.*.modified), 'egitim/forklift/istek.json')) && 'tam' || 'duman' }}"
+  cancel-in-progress: false
+
+# Açıkça bash: GitHub ancak o zaman "-eo pipefail" ile çalıştırır; "tee" ile
+# günlüğe yazılan bir komutun hatası da adımı düşürür.
+defaults:
+  run:
+    shell: bash
+
 jobs:
-  yoklama:
-    name: Yoklama
+  plan:
+    name: Plan
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 10
+    outputs:
+      mod: ${{ steps.plan.outputs.mod }}
+      varyantlar: ${{ steps.plan.outputs.varyantlar }}
+      devirler: ${{ steps.plan.outputs.devirler }}
+      etiket: ${{ steps.plan.outputs.etiket }}
+      istek: ${{ steps.plan.outputs.istek }}
     steps:
-      - name: LOCO görüntü arşivinin bağlantıları
-        run: |
-          for adres in \
-            "https://go.mytum.de/239870" \
-            "https://webdisk.ads.mwn.de/Handlers/AnonymousDownload.ashx?folder=73e976ba&path=LOCO%5Cv1%5Cdataset.zip" \
-            "https://syncandshare.lrz.de/dl/fiLs87iyphDhmTKh7Xb347sG/dataset.zip"; do
-            echo "== $adres"
-            curl -sSIL --max-redirs 10 --max-time 60 "$adres" \
-              | grep -iE '^(HTTP/|location:|content-type:|content-length:|content-disposition:|accept-ranges:)' || true
-            echo "-- ilk 64 KB (kısmi indirme):"
-            curl -sS -L --max-redirs 10 --max-time 120 -r 0-65535 -o parca.bin \
-              -w 'durum %{http_code}, son adres %{url_effective}, tür %{content_type}, inen %{size_download}\n' \
-              "$adres" || true
-            file parca.bin || true
-            rm -f parca.bin
-          done
+      # Bütün geçmiş: gönderim birden çok commit taşıyabilir, karşılaştırma
+      # gönderimden önceki son commit'le yapılır.
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
 
-      - name: CPU PyTorch paketi
+      - id: plan
+        name: Kipi ve varyantları belirle
+        env:
+          OLAY: ${{ github.event_name }}
+          ELLE_KIP: ${{ inputs.kip }}
+          ONCEKI: ${{ github.event.before }}
+          DAL: ${{ github.ref }}
+          # concurrency.group'taki ifadenin AYNISI: çalıştırmanın beklediği sıra
+          SIRA_KIPI: ${{ (inputs.kip == 'tam' || contains(toJSON(github.event.commits.*.modified), 'egitim/forklift/istek.json')) && 'tam' || 'duman' }}
         run: |
-          python3 --version
-          curl -sSI --max-time 30 https://download.pytorch.org/whl/cpu/torch/ | head -3 || true
-          python3 -m pip download --no-deps --only-binary=:all: --python-version 3.12 \
-            --platform manylinux_2_28_x86_64 -d paket \
-            --index-url https://download.pytorch.org/whl/cpu torch==2.14.0 torchvision==0.29.0 \
-            && ls -la paket || echo "CPU dizininden indirilemedi"
+          istek=egitim/forklift/istek.json
+          if [ "$OLAY" = workflow_dispatch ]; then
+            mod="$ELLE_KIP"
+            neden="elle başlatıldı"
+            # Tam kip ön sürüm yayımlar: yalnız main'deki (birleşmiş) koddan
+            if [ "$mod" = tam ] && [ "$DAL" != refs/heads/main ]; then
+              echo "::error title=Tam eğitim yalnız main'den::$DAL dalından tam kip istendi. Ön sürüm birleşmemiş bir commit'e bağlanmasın; dalı main'e birleştirip oradan başlatın (ya da duman seçin)."
+              exit 1
+            fi
+          else
+            # Yeni dal (önceki commit 000...) ya da yeniden yazılmış geçmiş:
+            # önceki commit yoksa yalnız son commit'in kendi değişikliğine bakılır.
+            taban="$ONCEKI"
+            if [[ "$taban" =~ ^0*$ ]] || ! git cat-file -e "$taban^{commit}" 2>/dev/null; then
+              echo "::warning title=Önceki commit yok::Gönderimin öncesi ($ONCEKI) bulunamadı; yalnız son commit'e bakılıyor."
+              taban=$(git rev-parse -q --verify "$GITHUB_SHA^1" || true)
+            fi
+            degisen=""
+            if [ -n "$taban" ]; then
+              echo "Gönderimin değiştirdiği dosyalar ($taban..$GITHUB_SHA):"
+              git diff --name-status "$taban" "$GITHUB_SHA"
+              # Yalnız DEĞİŞTİRİLEN istek sayılır (M). Dosyanın ilk eklenmesi (A)
+              # boru hattı hiç sınanmadan saatlerce eğitim başlatmasın.
+              degisen=$(git diff --name-only --diff-filter=M "$taban" "$GITHUB_SHA" -- "$istek")
+            fi
+            if [ -n "$degisen" ]; then
+              mod=tam
+              neden="$istek değişti"
+            else
+              mod=duman
+              neden="$istek değişmedi"
+            fi
+            # Çalıştırma, commit listesinden kestirilen kipin sırasında bekledi
+            # (concurrency). Ayrışırsa sıranın kipi uygulanır: bekleyen bir tam
+            # istek yanlış sıradaki bir çalıştırmayla sessizce düşmesin.
+            if [ "$mod" != "$SIRA_KIPI" ]; then
+              echo "::warning title=Kip sırayla ayrıştı::Net fark '$mod' diyor ($neden), commit listesi '$SIRA_KIPI' (çalıştırma bu kipin sırasında bekledi). Sıranın kipi uygulanıyor: $SIRA_KIPI."
+              mod="$SIRA_KIPI"
+              neden="sıranın kipi: commit listesi"
+            fi
+          fi
+          case "$mod" in
+            duman | tam) ;;
+            *)
+              echo "::error title=Geçersiz kip::'$mod' (duman ya da tam olmalı)"
+              exit 1
+              ;;
+          esac
+          echo "::notice title=Forklift kipi::$mod ($neden)"
+          # istek.json her kipte denetlenir: bozuk bir istek saatler sonra
+          # değil, ilk gönderimde görünsün. Boy ve kip adları ortak.py'den.
+          MOD="$mod" python3 - <<'PY'
+          import json
+          import os
+          import sys
 
+          sys.path.insert(0, "egitim/forklift")
+          import ortak
+
+          YOL = "egitim/forklift/istek.json"
+          # Duman: en hızlı boy, iki kip, 4 devir. Bacak iş akışı dumanda ilk iki
+          # bacağı birer devirde durdurur: 1. bacak mozaikli devri, 2. bacak
+          # sürdürüp mozaiği kapatır, 3. bacak bitirir. Neden 4: egit.py'de
+          # no_aug_epochs en az 2 ve YOLOX mozaiği "devir + 1 == devir sayısı -
+          # no_aug_epochs" olan devrin BAŞINDA kapatır; 3 devirde hiç mozaik
+          # olmazdı.
+          DUMAN_VARYANTLARI = ["tiny-v1", "tiny-v2"]
+          DUMAN_DEVRI = 4
+          EN_COK_DEVIR = 300
+
+
+          def dur(ileti):
+              print(f"::error title=istek.json geçersiz::{ileti}")
+              sys.exit(1)
+
+
+          try:
+              with open(YOL, encoding="utf-8") as dosya:
+                  istek = json.load(dosya)
+          except (OSError, ValueError) as hata:
+              dur(f"{YOL} okunamadı: {hata}")
+          if not isinstance(istek, dict) or set(istek) != {"varyantlar", "devir", "not"}:
+              dur('anahtarlar tam olarak "varyantlar", "devir" ve "not" olmalı')
+          gecerli = [f"{boy}-{kip}" for boy in ortak.BOYLAR for kip in ortak.KIPLER]
+          varyantlar = istek["varyantlar"]
+          if (
+              not isinstance(varyantlar, list)
+              or not varyantlar
+              or not all(isinstance(v, str) and v in gecerli for v in varyantlar)
+              or len(set(varyantlar)) != len(varyantlar)
+          ):
+              dur(f"varyantlar boş olmayan, tekrarsız bir liste olmalı; geçerli adlar: {gecerli}")
+          devir = istek["devir"]
+          if not isinstance(devir, dict) or not set(devir) <= set(ortak.BOYLAR):
+              dur(f"devir bir nesne olmalı, anahtarları boy adları: {list(ortak.BOYLAR)}")
+          for boy in sorted({v.split("-")[0] for v in varyantlar}):
+              sayi = devir.get(boy)
+              if isinstance(sayi, bool) or not isinstance(sayi, int) or not 1 <= sayi <= EN_COK_DEVIR:
+                  dur(f'devir["{boy}"] 1-{EN_COK_DEVIR} arası bir tam sayı olmalı: {sayi!r}')
+          if not isinstance(istek["not"], str) or not istek["not"].strip():
+              dur("not boş olmayan bir metin olmalı")
+
+          mod = os.environ["MOD"]
+          if mod == "tam":
+              secilen = varyantlar
+              devirler = {v: devir[v.split("-")[0]] for v in secilen}
+          else:
+              secilen = list(DUMAN_VARYANTLARI)
+              devirler = {v: DUMAN_DEVRI for v in secilen}
+          # Çalıştırma numarası yeniden çalıştırmada değişmez: bütün işleri
+          # yeniden çalıştırılan bir tam koşu, saatlerce eğitip yayında "etiket
+          # zaten var" diye düşmesin diye deneme numarasını da taşır.
+          etiket = "forklift-r" + os.environ["GITHUB_RUN_NUMBER"]
+          deneme = os.environ.get("GITHUB_RUN_ATTEMPT", "1")
+          if deneme != "1":
+              etiket += "-d" + deneme
+          ciktilar = {
+              "mod": mod,
+              "varyantlar": json.dumps(secilen, separators=(",", ":")),
+              "devirler": json.dumps(devirler, separators=(",", ":")),
+              "etiket": etiket,
+              "istek": json.dumps(istek, separators=(",", ":")),
+          }
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as dosya:
+              for ad, deger in ciktilar.items():
+                  dosya.write(f"{ad}={deger}\n")
+          print(f"Kip: {mod}; varyantlar ve devirler: {devirler}; etiket: {etiket}")
+          PY
+
+  veri:
+    name: Veri (LOCO)
+    needs: plan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      # Eğitimin süresini makine belirler (eski yoklama işinin yazdıkları).
       - name: Makine
         run: |
           nproc
-          lscpu | grep -E 'Model name|^Flags' | cut -c1-240
+          lscpu | grep -E 'Model name|^CPU\(s\)' || true
           free -g
-          df -h / /mnt || true
+          df -h /
+
+      # Anahtar yalnız veri betiklerinden türetilir: hazırlığı değiştiren her
+      # şey (veri.py, ortak.py) yeni bir veri seti demektir. Önbellekte TAM veri
+      # seti durur; duman kipi de aynısını kullanır, sınırlamayı bacak yapar.
+      - id: onbellek
+        name: Hazır veri seti önbellekte mi
+        uses: actions/cache/restore@v6
+        with:
+          path: veri-seti
+          key: forklift-veri-v1-${{ hashFiles('egitim/forklift/veri.py', 'egitim/forklift/ortak.py') }}
+
+      # veri.py her yönlendirme adımını, son adresi, türü ve boyutu günlüğe
+      # yazar; etiket ya da lisans özeti tutmazsa çıkış kodu 2 ile durur.
+      - name: LOCO'yu indir (etiketler, lisans, ~770 MB görüntü arşivi)
+        if: steps.onbellek.outputs.cache-hit != 'true'
+        run: python egitim/forklift/veri.py indir --hedef ham
+
+      # Sürümler eğitim ortamının sabit listesinden: iki yerde iki sürüm olmasın.
+      - name: Veri paketleri (numpy, OpenCV)
+        if: steps.onbellek.outputs.cache-hit != 'true'
+        run: |
+          grep -E '^(numpy|opencv-python-headless)==' egitim/forklift/gereksinimler.txt > "$RUNNER_TEMP/veri-paketleri.txt"
+          python -m pip install -r "$RUNNER_TEMP/veri-paketleri.txt"
+
+      - name: Veri setini hazırla (tam; sınırlama bacakta)
+        if: steps.onbellek.outputs.cache-hit != 'true'
+        run: |
+          python egitim/forklift/veri.py hazirla --kaynak ham --hedef veri-seti
+          rm -f ham/loco.zip
+
+      # Önbellek içeriği imzalı değildir; her çalıştırmada denetlenir: JSON'lar
+      # ve görüntü baytları hazirlik.json'daki özetlerle (veri.py: bölüm başına
+      # "<dosya adı> <sha256>" satırlarının, ad sırasıyla, SHA-256'sı). Bozuk
+      # bir veri seti önbelleğe de yapıta da girmez.
+      - name: Veri setini denetle
+        run: |
+          python - <<'PY'
+          import hashlib
+          import json
+          import sys
+          from pathlib import Path
+
+          kok = Path("veri-seti")
+          kayit = json.loads((kok / "hazirlik.json").read_text(encoding="utf-8"))
+
+
+          def dosya_ozeti(yol):
+              ozet = hashlib.sha256()
+              with open(yol, "rb") as dosya:
+                  for parca in iter(lambda: dosya.read(1 << 20), b""):
+                      ozet.update(parca)
+              return ozet.hexdigest()
+
+
+          for bolum in ("egitim", "test"):
+              yol = kok / "annotations" / f"{bolum}.json"
+              ham = yol.read_bytes()
+              if hashlib.sha256(ham).hexdigest() != kayit["json_sha256"][f"{bolum}.json"]:
+                  print(f"::error title=Veri seti bozuk::{yol} hazirlik.json'daki özetle tutmuyor")
+                  sys.exit(1)
+              belge = json.loads(ham)
+              dosyalar = {g["file_name"] for g in belge["images"]}
+              eksik = sorted(ad for ad in dosyalar if not (kok / bolum / ad).is_file())
+              if eksik:
+                  print(f"::error title=Veri seti eksik::{bolum}: {len(eksik)} görüntü yok, ör. {eksik[:3]}")
+                  sys.exit(1)
+              goruntu_ozeti = hashlib.sha256()
+              for dosya in sorted((kok / bolum).iterdir()):
+                  goruntu_ozeti.update(f"{dosya.name} {dosya_ozeti(dosya)}\n".encode())
+              if goruntu_ozeti.hexdigest() != kayit["goruntu_sha256"][bolum]:
+                  print(f"::error title=Veri seti bozuk::{kok / bolum} görüntüleri hazirlik.json'daki özetle tutmuyor")
+                  sys.exit(1)
+              print(
+                  f"{bolum}: {len(belge['images'])} görüntü kaydı, {len(dosyalar)} dosya, "
+                  f"{len(belge['annotations'])} kutu"
+              )
+          print(json.dumps(kayit["bolumler"], ensure_ascii=False, indent=1))
+          print(f"::notice title=LOCO arşivi::sha256 {kayit.get('loco_arsiv_sha256')}")
+          PY
+
+      - name: Veri setini önbelleğe koy
+        if: steps.onbellek.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: veri-seti
+          key: ${{ steps.onbellek.outputs.cache-primary-key }}
+
+      # JPEG zaten sıkıştırılmıştır: yeniden sıkıştırmak yalnız zaman kaybı.
+      - uses: actions/upload-artifact@v7
+        with:
+          name: veri-seti
+          path: veri-seti/
+          retention-days: 3
+          compression-level: 0
+          overwrite: true
+          if-no-files-found: error
+
+  # Üç bacak zinciri. Bacak N, bacak N-1 KOŞTUYSA (başarılı ya da düşmüş)
+  # başlar: matris sonucu bütün varyantlarındır ve bir varyantın düşmesi,
+  # hâlâ süren (ör. s-v2) varyantları durdurmamalı. Düşen varyantın sonraki
+  # bacağı kendiliğinden durur: yapıtı yoksa indirme adımı düşer, ara kaydı
+  # eskiyse (BACAK) iş durur; eğitim asla sessizce sıfırdan ya da eski bir
+  # kayıttan başlamaz (forklift-egit-bacak.yml). Eğitimi bitmiş bir varyantın
+  # sonraki bacakları bir şey yapmadan kapanır. İptal edilen ya da atlanan
+  # bacaktan sonra zincir durur.
+  bacak1:
+    name: Bacak 1
+    needs: [plan, veri]
+    strategy:
+      fail-fast: false
+      matrix:
+        varyant: ${{ fromJSON(needs.plan.outputs.varyantlar) }}
+    uses: ./.github/workflows/forklift-egit-bacak.yml
+    with:
+      varyant: ${{ matrix.varyant }}
+      mod: ${{ needs.plan.outputs.mod }}
+      bacak: 1
+      devir: ${{ fromJSON(needs.plan.outputs.devirler)[matrix.varyant] }}
+
+  bacak2:
+    name: Bacak 2
+    needs: [plan, bacak1]
+    if: ${{ !cancelled() && (needs.bacak1.result == 'success' || needs.bacak1.result == 'failure') }}
+    strategy:
+      fail-fast: false
+      matrix:
+        varyant: ${{ fromJSON(needs.plan.outputs.varyantlar) }}
+    uses: ./.github/workflows/forklift-egit-bacak.yml
+    with:
+      varyant: ${{ matrix.varyant }}
+      mod: ${{ needs.plan.outputs.mod }}
+      bacak: 2
+      devir: ${{ fromJSON(needs.plan.outputs.devirler)[matrix.varyant] }}
+
+  bacak3:
+    name: Bacak 3
+    needs: [plan, bacak2]
+    if: ${{ !cancelled() && (needs.bacak2.result == 'success' || needs.bacak2.result == 'failure') }}
+    strategy:
+      fail-fast: false
+      matrix:
+        varyant: ${{ fromJSON(needs.plan.outputs.varyantlar) }}
+    uses: ./.github/workflows/forklift-egit-bacak.yml
+    with:
+      varyant: ${{ matrix.varyant }}
+      mod: ${{ needs.plan.outputs.mod }}
+      bacak: 3
+      devir: ${{ fromJSON(needs.plan.outputs.devirler)[matrix.varyant] }}
+
+  # Her varyant ayrı ölçülür: biri bitmediyse ya da düştüyse ötekiler yine
+  # ölçülür. Ölçüm, ürünün KENDİ ortamında (backend/requirements.txt) ve kendi
+  # kod yoluyla (app.analiz.tespit.Tespitci, .env.example'daki eşikler) yapılır.
+  olc:
+    name: Ölç
+    needs: [plan, veri, bacak3]
+    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.veri.result == 'success' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    strategy:
+      fail-fast: false
+      matrix:
+        varyant: ${{ fromJSON(needs.plan.outputs.varyantlar) }}
+    env:
+      VARYANT: ${{ matrix.varyant }}
+      MOD: ${{ needs.plan.outputs.mod }}
+      W: calisma
+      # OpenCV'nin örnek videosu: yürüyen insanlar, forklift YOK. Forklift
+      # tespitlerinin hepsi yanlış alarmdır; insan kaybı da burada ölçülür.
+      # Sürüm etiketinden (4.10.0, ürünün OpenCV'si): dal değişse de dosya aynı.
+      VIDEO_ADRESI: https://raw.githubusercontent.com/opencv/opencv/4.10.0/samples/data/vtest.avi
+      VIDEO_SHA256: 45cddc9490be69345cbdab64ca583be65987e864ca408038e648db99e10516cf
+      # Gerçek araçlar (egitim/forklift/arac_seti.sha256): Open Images V7
+      # doğrulama görüntüleri, Google'ın kamuya açık kovasından.
+      ARAC_SETI_ADRESI: https://open-images-dataset.s3.amazonaws.com/validation
+      PYTHONUTF8: "1"
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Varyantın çalışma klasörü
+        uses: actions/download-artifact@v8
+        with:
+          name: calisma-${{ matrix.varyant }}
+          path: calisma
+
+      - name: Eğitim bitti mi, adaylar var mı
+        run: |
+          if [ ! -f "$W/BITTI" ]; then
+            sonraki=$(cat "$W/SURUYOR" 2>/dev/null || echo bilinmiyor)
+            # BACAK: yapıtı yazan bacak. 3 değilse zincir erken durdu (sonraki
+            # bacak düştü): devir sayısı değil, o bacağın günlüğü okunmalı.
+            bacak=$(cat "$W/BACAK" 2>/dev/null || echo bilinmiyor)
+            if [ "$bacak" = 3 ]; then
+              echo "::error title=$VARYANT eğitimi bitmedi::Üç bacak yetmedi (sıradaki devir: $sonraki). istek.json'da bu boyun devir sayısını düşürün."
+            else
+              echo "::error title=$VARYANT eğitimi bitmedi::Bacak zinciri durdu: son ara kayıt $bacak. bacağın (sıradaki devir: $sonraki). Ondan sonraki bacağın günlüğüne bakın."
+            fi
+            exit 1
+          fi
+          for k in 0 1 2; do
+            if [ ! -s "$W/$VARYANT-k$k.onnx" ]; then
+              echo "::error title=Aday yok::$W/$VARYANT-k$k.onnx bulunamadı"
+              exit 1
+            fi
+          done
+          ls -la "$W"
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Ürünün paketleri (backend/requirements.txt)
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r backend/requirements.txt
+          # Ürün masaüstü OpenCV'sini kullanır; o da libGL ister. Makinede yoksa
+          # kurulur (sessizce değil: uyarı düşer).
+          if ! python -c "import cv2" 2>/dev/null; then
+            echo "::warning title=OpenCV açılmadı::libgl1 kuruluyor"
+            sudo apt-get update -q
+            sudo apt-get install -y -q libgl1
+          fi
+          python -c "import cv2, onnxruntime; print('opencv', cv2.__version__, 'onnxruntime', onnxruntime.__version__)"
+
+      - name: Resmi modeller (models/indir.sh, SHA-256 denetimli)
+        run: |
+          for deneme in 1 2 3; do
+            if bash models/indir.sh; then
+              break
+            fi
+            if [ "$deneme" -eq 3 ]; then
+              echo "::error title=Resmi modeller inmedi::models/indir.sh üç denemede de başarısız"
+              exit 1
+            fi
+            echo "::warning title=Resmi modeller::$deneme. deneme başarısız; 30 sn sonra yeniden"
+            sleep 30
+          done
+
+      - name: Test verisi
+        uses: actions/download-artifact@v8
+        with:
+          name: veri-seti
+          path: veri-seti
+
+      - name: Deneme videosu (vtest.avi, SHA-256 denetimli)
+        run: |
+          curl -fsSL --retry 5 --retry-all-errors -o vtest.avi "$VIDEO_ADRESI"
+          echo "$VIDEO_SHA256  vtest.avi" | sha256sum -c -
+
+      # Gerçek tır, otomobil ve otobüs fotoğrafları: LOCO'da da vtest'te de
+      # yok. Resmi modelin bulduğu aracı aday "forklift" derse tır park kuralı
+      # onu artık görmez (arac_seti_tr_fk; egitim/forklift/degerlendir.py).
+      # Görüntüler yalnız ölçülür: yapıta ve yayına girmez, olcum.json'da
+      # yalnız sayılar durur. Open Images görüntüleri "CC BY 2.0 olarak
+      # listelenmiş"tir (docs/16). İnmezse ya da bir özet tutmazsa ölçüm yine
+      # yapılır; yalnız araç seti kapısı ölçülmedi diye kalır (uyarıyla).
+      - name: Araç seti (Open Images, SHA-256 denetimli)
+        run: |
+          liste=egitim/forklift/arac_seti.sha256
+          mkdir -p arac-seti
+          if awk '{print $2}' "$liste" \
+            | xargs -P 8 -I{} curl -fsSL --retry 5 --retry-all-errors -o "arac-seti/{}" "$ARAC_SETI_ADRESI/{}" \
+            && (cd arac-seti && sha256sum -c --quiet "../$liste"); then
+            echo "Araç seti: $(find arac-seti -type f | wc -l) görüntü"
+          else
+            echo "::warning title=Araç seti inmedi::$ARAC_SETI_ADRESI erişilemedi ya da bir özet tutmadı; arac_seti_tr_fk ölçülmeyecek, kapısı kalacak."
+            rm -rf arac-seti
+          fi
+
+      # Üç aday: kişi önceliği k = 0, 1, 2 (egitim/forklift/model.py). Kapılar
+      # kalsa da ölçüm yazılır; kararı insan verir (yayında gecti ve kalan).
+      - name: Ürünün tespit motoruyla ölç
+        run: |
+          boy="${VARYANT%%-*}"
+          sinir=()
+          if [ "$MOD" = duman ]; then
+            sinir=(--sinir 50)
+          fi
+          arac=()
+          if [ -d arac-seti ]; then
+            arac=(--arac-seti arac-seti)
+          fi
+          mkdir -p aday
+          for k in 0 1 2; do
+            ad="$VARYANT-k$k"
+            python egitim/forklift/degerlendir.py --model "$W/$ad.onnx" \
+              --resmi "models/yolox_$boy.onnx" --veri veri-seti --video vtest.avi \
+              --esikler egitim/forklift/esikler.json --cikti "aday/$ad.olcum.json" \
+              --etiket "$ad" "${sinir[@]}" "${arac[@]}"
+            cp "$W/$ad.onnx" aday/
+          done
+          cd aday
+          sha256sum -- *.onnx *.olcum.json > "SHA256SUMS-$VARYANT"
+          cat "SHA256SUMS-$VARYANT"
+
+      # Yayın notlarının ve özetin tablosu tek yerde üretilir; "yayinla" ve
+      # "ozet" işleri depo kodu çalıştırmadan yalnız bu dosyayı ekler.
+      - name: Ölçüm tablosu
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          # fk_r'nin paydası (fk kutusu) boya bağlıdır: tiny 416'da s 640'tan
+          # az kutu değerlendirilir. Boylar arası kıyasta fk_r bütün de okunur.
+          SUTUNLAR = (
+              ("fk_r", "fk_r"),
+              ("fk_r_tum", "fk_r bütün"),
+              ("vg_r_artisi", "vg_r artışı"),
+              ("fk_ap50", "fk AP50"),
+              ("fk_kesinlik", "fk kesinlik"),
+              ("pt_fk", "transpalet fk"),
+              ("fk_fp_goruntu_basi", "fk YP/görüntü"),
+              ("insan_kaybi", "insan kaybı"),
+              ("arac_kaybi", "araç kaybı"),
+              ("arac_seti_tr_fk", "araç setinde fk"),
+              ("video_insan_kaybi", "video insan kaybı"),
+              ("video_fk_kare_orani", "video fk kare"),
+              ("gecikme_orani_p90", "gecikme p90 oranı"),
+          )
+
+
+          def bicim(deger):
+              if deger is None:
+                  return "-"
+              if isinstance(deger, float):
+                  return f"{deger:.3f}"
+              return str(deger)
+
+
+          varyant = os.environ["VARYANT"]
+          satirlar = [
+              f"### {varyant}",
+              "",
+              "| Aday | Kapılar | görüntü | fk kutusu | "
+              + " | ".join(b for _, b in SUTUNLAR)
+              + " | Kalan kapılar |",
+              "|---|---|---|---|" + "---|" * len(SUTUNLAR) + "---|",
+          ]
+          for yol in sorted(Path("aday").glob("*.olcum.json")):
+              olcum = json.loads(yol.read_text(encoding="utf-8"))
+              metrik = olcum["metrikler"]
+              fk_kutusu = (olcum.get("sayilar") or {}).get("fk_gercek")
+              satirlar.append(
+                  f"| {olcum['etiket']} | {'GEÇTİ' if olcum['gecti'] else 'KALDI'} | "
+                  f"{olcum['goruntu_sayisi']} | {bicim(fk_kutusu)} | "
+                  + " | ".join(bicim(metrik.get(ad)) for ad, _ in SUTUNLAR)
+                  + f" | {', '.join(olcum['kalan']) or '-'} |"
+              )
+          metin = "\n".join(satirlar) + "\n"
+          Path("aday", f"ozet-{varyant}.md").write_text(metin, encoding="utf-8")
+          print(metin)
+          PY
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: aday-${{ matrix.varyant }}
+          path: aday/
+          retention-days: 30
+          overwrite: true
+          if-no-files-found: error
+
+  # TEK ön sürüm, bütün adaylarla. Yazma izni YALNIZ burada ve bu iş depo kodu
+  # çalıştırmaz: checkout yok, pip yok; yalnız makinede hazır gelen gh, jq,
+  # sha256sum ve indirilen dosyalar. Duman kipinde de adımların çoğu koşar
+  # (özet denetimi, notlar, etiket denetimi): yayın yolu saatlerce süren bir
+  # tam eğitimin sonunda ilk kez denenmiş olmasın. YALNIZ "Ön sürümü yayınla"
+  # (gh release create ve yayındaki özet denetimi) ilk kez tam kipte koşar;
+  # düşerse yalnız bu iş yeniden çalıştırılır (aday yapıtları 30 gün durur,
+  # etiket değişmez). Duman kipi yazma izni gerektiren hiçbir şey yapmaz.
+  # Bir varyant ölçülemediyse ötekiler yine yayımlanır; notlarda "Eksik" yazar.
+  yayinla:
+    name: Yayınla
+    needs: [plan, olc]
+    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.olc.result != 'skipped' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      MOD: ${{ needs.plan.outputs.mod }}
+      ETIKET: ${{ needs.plan.outputs.etiket }}
+      VARYANTLAR: ${{ needs.plan.outputs.varyantlar }}
+      ISTEK: ${{ needs.plan.outputs.istek }}
+    steps:
+      # merge-multiple: yapıt bir tane de olsa çok da olsa dosyalar aynı klasöre
+      # iner (tek yapıt indirilirken indirici alt klasör açmaz).
+      - name: Adayları indir
+        uses: actions/download-artifact@v8
+        with:
+          pattern: aday-*
+          path: adaylar
+          merge-multiple: true
+
+      - name: Adayları denetle ve topla
+        run: |
+          mkdir -p yayin
+          : > eksik.txt
+          mapfile -t varyantlar < <(jq -r '.[]' <<<"$VARYANTLAR")
+          for varyant in "${varyantlar[@]}"; do
+            ozetler="SHA256SUMS-$varyant"
+            if [ ! -f "adaylar/$ozetler" ]; then
+              echo "::warning title=Eksik aday::$varyant ölçülemedi (eğitim ya da ölçüm düştü); yayında olmayacak."
+              echo "$varyant" >> eksik.txt
+              continue
+            fi
+            # Yalnız beklenen adlar (üç aday, üç ölçüm): liste üçüncü parti kod
+            # çalıştıran bir işten geliyor; yayına başka bir dosya sızmasın.
+            if [ "$(wc -l < "adaylar/$ozetler")" -ne 6 ]; then
+              echo "::error title=Eksik ya da fazla dosya::$ozetler 6 satır olmalı"
+              exit 1
+            fi
+            while read -r _ ad; do
+              if [[ ! "$ad" =~ ^$varyant-k[0-2]\.(onnx|olcum\.json)$ ]]; then
+                echo "::error title=Beklenmeyen dosya::$ozetler içinde: $ad"
+                exit 1
+              fi
+            done < "adaylar/$ozetler"
+            (cd adaylar && sha256sum -c "$ozetler")
+            while read -r _ ad; do
+              cp "adaylar/$ad" yayin/
+            done < "adaylar/$ozetler"
+            cat "adaylar/$ozetler" >> yayin/SHA256SUMS
+          done
+          if [ ! -s yayin/SHA256SUMS ]; then
+            echo "::error title=Yayımlanacak aday yok::Hiçbir varyant ölçülemedi."
+            exit 1
+          fi
+          (cd yayin && sha256sum -c SHA256SUMS)
+          ls -la yayin
+
+      - name: Sürüm notları
+        run: |
+          mapfile -t varyantlar < <(jq -r '.[]' <<<"$VARYANTLAR")
+          {
+            echo "# NextGen AI Forklift adayları (r$GITHUB_RUN_NUMBER)"
+            echo
+            echo "**Ön sürüm (aday):** sahada ölçülüp operatör onaylamadan uygulamaya konmaz."
+            echo
+            echo "- Çalıştırma: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+            echo "- Commit: $GITHUB_SHA"
+            echo "- İstek notu: $(jq -r '.not' <<<"$ISTEK")"
+            echo "- Yöntem: resmi YOLOX COCO modeli (Apache-2.0) donuk; forklift ek başı LOCO (TU München, CC0 1.0) ile eğitildi."
+            echo
+            echo "## Dosyalar"
+            echo
+            echo "- \`<boy>-<kip>-k<k>.onnx\`: birleşik model. k = kişi önceliği: forklift puanı x (1 - resmi insan puanı)^k. 0 düz birleştirme; 1, resmi puanı 0,5 ve üstü her insanı korur; 2 eşiği 0,382'ye indirir."
+            echo "- \`<boy>-<kip>-k<k>.olcum.json\`: ürünün kendi tespit motoruyla (Tespitci) yapılan ölçümün tamamı."
+            echo "- \`SHA256SUMS\`: bütün dosyaların SHA-256 özeti."
+            echo
+            echo "## Ölçümler"
+            echo
+            echo "fk_r: bulunan forklift oranı (IoU >= 0,5), kısa kenarı model girdisinde en az 16 piksel olan kutularda; paydası (fk kutusu) boya bağlıdır, fk_r bütün her boydaki kutuyu sayar. vg_r artışı: forklift ya da tır diye görülen forklift oranının resmi modele göre artışı. transpalet fk: forklift sanılan el transpaleti oranı. YP: forklift ve transpalet olmayan görüntüde forklift tespiti. Kayıplar resmi modelin tespitlerine göredir. Araç setinde fk: gerçek araç fotoğraflarında (Open Images) resmi modelin bulduğu araçlardan forklift sanılanların oranı. Video: OpenCV vtest.avi (forkliftsiz)."
+            echo
+            for varyant in "${varyantlar[@]}"; do
+              if [ -f "adaylar/ozet-$varyant.md" ]; then
+                cat "adaylar/ozet-$varyant.md"
+                echo
+              fi
+            done
+            if [ -s eksik.txt ]; then
+              echo "**Eksik:** $(paste -sd ' ' eksik.txt) (eğitim ya da ölçüm düştü; ayrıntı çalıştırmanın günlüğünde)."
+            fi
+          } > notlar.md
+          cat notlar.md
+
+      # Yayımlanmış bir sürümün üstüne ASLA yazılmaz. Yalnız bu çalıştırmanın
+      # yarım kalmış taslağı (yükleme koptu, iş yeniden çalıştırıldı) silinir.
+      - name: Etiket boş mu
+        run: |
+          if cikti=$(gh api "repos/$GH_REPO/git/ref/tags/$ETIKET" 2>&1); then
+            echo "::error title=Etiket zaten var::$ETIKET zaten var; yayımlanmış sürümün üstüne yazılmaz. Yeni bir çalıştırma yeni bir etiket alır."
+            exit 1
+          elif ! grep -q "HTTP 404" <<<"$cikti"; then
+            echo "::error title=Etiket denetlenemedi::$cikti"
+            exit 1
+          fi
+          if taslak=$(gh release view "$ETIKET" --json isDraft --jq .isDraft 2>/dev/null); then
+            if [ "$taslak" != true ]; then
+              echo "::error title=Sürüm zaten var::$ETIKET"
+              exit 1
+            fi
+            echo "Yarım kalmış taslak siliniyor: $ETIKET"
+            gh release delete "$ETIKET" --yes
+          fi
+          echo "$ETIKET boş."
+
+      - name: Ön sürümü yayınla
+        if: env.MOD == 'tam'
+        run: |
+          gh release create "$ETIKET" yayin/* --prerelease \
+            --title "NextGen AI Forklift adayları r$GITHUB_RUN_NUMBER" \
+            --notes-file notlar.md --target "$GITHUB_SHA"
+          # Yayındaki her dosya yereldekiyle aynı mı: GitHub'ın kendi ölçtüğü
+          # SHA-256 (digest) ile. Özet henüz yoksa yalnız adlar karşılaştırılır.
+          gh api "repos/$GH_REPO/releases/tags/$ETIKET" \
+            --jq '.assets[] | "\(.name)\t\(.digest // "")"' | sort > yayinda.tsv
+          for dosya in yayin/*; do
+            printf '%s\tsha256:%s\n' "$(basename "$dosya")" "$(sha256sum "$dosya" | cut -d' ' -f1)"
+          done | sort > yerel.tsv
+          if ! diff <(cut -f1 yayinda.tsv) <(cut -f1 yerel.tsv); then
+            echo "::error title=Yayındaki dosyalar eksik::$ETIKET"
+            exit 1
+          fi
+          if awk -F'\t' '$2 == ""' yayinda.tsv | grep -q .; then
+            echo "::warning title=Özet yok::GitHub dosya özetlerini (digest) vermedi; yalnız adlar karşılaştırıldı."
+          elif ! diff yayinda.tsv yerel.tsv; then
+            echo "::error title=Yayındaki dosya farklı::$ETIKET"
+            exit 1
+          fi
+          echo "::notice title=Ön sürüm yayınlandı::$GITHUB_SERVER_URL/$GH_REPO/releases/tag/$ETIKET"
+
+      - name: Duman - yayımlanmadı
+        if: env.MOD != 'tam'
+        run: |
+          dosyalar=(yayin/*)
+          echo "::notice title=Duman kipi::Sürüm oluşturulmadı. Tam kipte $ETIKET etiketiyle şunlar yayımlanırdı: ${dosyalar[*]#yayin/}"
+
+  # Her durumda koşar ve günlüğün SONUNA ölçümleri yazar: sonucu okuyan
+  # (insan ya da araç) tek bir işin son satırlarına bakar.
+  ozet:
+    name: Özet
+    needs: [plan, veri, bacak1, bacak2, bacak3, olc, yayinla]
+    if: ${{ always() }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Ölçümleri indir
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          pattern: aday-*
+          path: adaylar
+          merge-multiple: true
+
+      - name: Sonuç
+        env:
+          ISLER: ${{ toJSON(needs) }}
+          MOD: ${{ needs.plan.outputs.mod }}
+          ETIKET: ${{ needs.plan.outputs.etiket }}
+        run: |
+          shopt -s nullglob
+          olcumler=(adaylar/*.olcum.json)
+          isler=$(jq -c 'map_values(.result)' <<<"$ISLER")
+          yayin=""
+          if [ "$MOD" = tam ] && [ "$(jq -r '.yayinla.result' <<<"$ISLER")" = success ]; then
+            yayin="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/tag/$ETIKET"
+          fi
+          {
+            echo "## Forklift eğitimi: ${MOD:-kip yok} (${ETIKET:-etiket yok})"
+            echo
+            echo "| İş | Sonuç |"
+            echo "|---|---|"
+            jq -r 'to_entries[] | "| \(.key) | \(.value.result) |"' <<<"$ISLER"
+            echo
+            if [ -n "$yayin" ]; then
+              echo "Ön sürüm: $yayin"
+              echo
+            fi
+            for tablo in adaylar/ozet-*.md; do
+              cat "$tablo"
+              echo
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ ${#olcumler[@]} -gt 0 ]; then
+            adaylar=$(jq -c -s 'map({key: .etiket, value: ({gecti, kalan, goruntu: .goruntu_sayisi, fk_gercek: .sayilar.fk_gercek} + (.metrikler | {fk_r, fk_r_tum, vg_r_artisi, fk_ap50, fk_kesinlik, pt_fk, fk_fp_goruntu_basi, insan_kaybi, arac_kaybi, tr_fk, arac_seti_tr_fk, video_insan_kaybi, video_fk_kare_orani, gecikme_orani_p90}))}) | from_entries' "${olcumler[@]}")
+          else
+            adaylar='{}'
+          fi
+          ozet=$(jq -c -n --arg mod "$MOD" --arg etiket "$ETIKET" --arg yayin "$yayin" \
+            --argjson isler "$isler" --argjson adaylar "$adaylar" \
+            '{mod: $mod, etiket: $etiket, yayin: $yayin, isler: $isler, adaylar: $adaylar}')
+          echo "::notice title=Forklift olcumu::${ozet//%/%25}"
+          echo "===== FORKLIFT-SONUC-BASLA ====="
+          echo "FORKLIFT_CALISTIRMA $(jq -c 'del(.adaylar)' <<<"$ozet")"
+          if [ ${#olcumler[@]} -eq 0 ]; then
+            echo "OLCUM_JSON_YOK hiçbir aday ölçülemedi (yukarıdaki iş sonuçlarına bakın)"
+          fi
+          for olcum in "${olcumler[@]}"; do
+            echo "OLCUM_JSON $(jq -c . "$olcum")"
+          done
+          echo "===== FORKLIFT-SONUC-BITTI ====="

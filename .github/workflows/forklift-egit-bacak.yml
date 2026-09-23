@@ -1,0 +1,366 @@
+# Forklift eğitiminin TEK bacağı: bir varyantın (ör. tiny-v1) en çok ~5,5
+# saatlik eğitim dilimi. forklift-egit.yml bunu her varyant için üç kez, sırayla
+# çağırır; her bacak bir öncekinin çalışma klasöründen (calisma-<varyant>
+# yapıtı) sürer. Eğitimi bitiren bacak birleşik ONNX'leri de üretir ve resmi
+# modelle denetler.
+#
+# TUZAK: 2. ve 3. bacak önceki bacağın ara kaydı OLMADAN asla başlamaz.
+# Başlasaydı eğitim sessizce sıfırdan başlar, son bacağın birkaç devri "bitmiş
+# model" sanılırdı. Yapıt yoksa indirme adımı düşer; ara kayıt eksikse ya da
+# önceki bacağın değilse (BACAK dosyası) iş durur. Eğitim önceki bir bacakta
+# bittiyse (BITTI) bu bacak hiçbir şey yapmaz ve yapıtı yeniden yüklemez.
+#
+# TUZAK: eğitim ile yükleme arasında AĞ İŞİ YOK. Ağdan inen her şey (paketler,
+# YOLOX, ağırlık, veri, resmi ONNX'ler) eğitimden önce ve yeniden denemeyle
+# iner; eğitimden sonra yalnız yerel adımlar (kart, dışa aktarım, denetim)
+# koşar. Yoksa geçici bir ağ hatası saatlerce süren eğitimi yüklenmeden
+# kaybettirirdi.
+name: Forklift eğitim bacağı
+
+on:
+  workflow_call:
+    inputs:
+      varyant:
+        description: "<boy>-<kip>, ör. tiny-v1"
+        type: string
+        required: true
+      mod:
+        description: "duman ya da tam"
+        type: string
+        required: true
+      bacak:
+        description: "Bacak numarası (1, 2, 3)"
+        type: number
+        required: true
+      devir:
+        description: "Toplam devir (bütün bacaklar birlikte)"
+        type: number
+        required: true
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  egit:
+    name: Eğitim
+    runs-on: ubuntu-24.04
+    # GitHub'ın makinesinde bir iş en çok 360 dk sürer. egit.py iş başından
+    # sayılan SURE_SN (330 dk) dolmadan devir sınırında durur; kalan süre dışa
+    # aktarım, denetim ve yüklemeye yeter.
+    timeout-minutes: 350
+    env:
+      VARYANT: ${{ inputs.varyant }}
+      MOD: ${{ inputs.mod }}
+      BACAK: ${{ inputs.bacak }}
+      DEVIR: ${{ inputs.devir }}
+      W: ${{ github.workspace }}/calisma/${{ inputs.varyant }}
+      # Duman: ilk iki bacak 1 sn bütçeyle birer devirde durur (egit.py her
+      # çalıştırmada en az bir devir ilerler); ara kayıt, sürdürme ve üç
+      # bacaklı zincir her dumanda gerçekten sınanır. Tam: 330 dk.
+      SURE_SN: ${{ (inputs.mod == 'duman' && inputs.bacak < 3) && '1' || '19800' }}
+      PYTHONUNBUFFERED: "1"
+      PYTHONUTF8: "1"
+    steps:
+      # İLK adım: egit.py süre bütçesini bu andan sayar (kurulum dahil).
+      - name: İşin başlangıç saati
+        run: echo "DALSAN_IS_BASLANGICI=$(date +%s)" >> "$GITHUB_ENV"
+
+      # Adlar plan işinde ortak.py'ye göre denetlendi; burada yalnız biçim.
+      - name: Girdileri denetle
+        run: |
+          if [[ ! "$VARYANT" =~ ^(tiny|s)-(v1|v2)$ ]]; then
+            echo "::error title=Geçersiz varyant::$VARYANT"
+            exit 1
+          fi
+          if [ "$MOD" != duman ] && [ "$MOD" != tam ]; then
+            echo "::error title=Geçersiz kip::$MOD"
+            exit 1
+          fi
+          if [[ ! "$BACAK" =~ ^[1-9]$ ]] || [[ ! "$DEVIR" =~ ^[1-9][0-9]*$ ]]; then
+            echo "::error title=Geçersiz girdi::bacak $BACAK, devir $DEVIR"
+            exit 1
+          fi
+          {
+            echo "BOY=${VARYANT%%-*}"
+            echo "KIP=${VARYANT#*-}"
+          } >> "$GITHUB_ENV"
+          echo "$VARYANT: $BACAK. bacak, toplam $DEVIR devir, kip $MOD"
+
+      # Checkout'a kimlik bilgisi bırakılmaz: bu işte üçüncü parti kod (pip
+      # paketleri, YOLOX) çalışır.
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      # continue-on-error YOK: yapıt yoksa iş burada düşer, sıfırdan başlamaz.
+      - name: Önceki bacağın çalışma klasörü (yoksa DURUR)
+        if: inputs.bacak > 1
+        uses: actions/download-artifact@v8
+        with:
+          name: calisma-${{ inputs.varyant }}
+          path: calisma/${{ inputs.varyant }}
+
+      - id: durum
+        name: Bu bacakta iş var mı
+        run: |
+          if [ "$BACAK" -eq 1 ]; then
+            echo "egit=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ -f "$W/BITTI" ]; then
+            echo "$VARYANT eğitimi önceki bir bacakta bitti; bu bacakta iş yok, yapıt yeniden yüklenmez."
+            echo "egit=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ ! -f "$W/SURUYOR" ] || [ ! -f "$W/son.pth" ]; then
+            echo "::error title=Ara kayıt eksik::$VARYANT: önceki bacağın yapıtında son.pth ya da SURUYOR yok. Eğitim sıfırdan başlatılmaz."
+            exit 1
+          fi
+          onceki=$(cat "$W/BACAK" 2>/dev/null || echo yok)
+          if [ "$onceki" != "$((BACAK - 1))" ]; then
+            echo "::error title=Ara kayıt eski::$VARYANT: yapıt $onceki. bacağın, beklenen $((BACAK - 1)). bacak. Eğitim eski bir kayıttan sürdürülmez."
+            exit 1
+          fi
+          echo "$VARYANT: $onceki. bacaktan sürüyor, sıradaki devir $(cat "$W/SURUYOR")"
+          echo "egit=true" >> "$GITHUB_OUTPUT"
+
+      # Resmi ONNX'ler eğitimden sonraki denetim içindir ama eğitimden ÖNCE
+      # iner (yeniden denemeyle): eğitim ile yükleme arasında ağ işi olmasın.
+      - name: Resmi ONNX modelleri (models/indir.sh, SHA-256 denetimli)
+        if: steps.durum.outputs.egit == 'true'
+        run: |
+          for deneme in 1 2 3; do
+            if bash models/indir.sh; then
+              break
+            fi
+            if [ "$deneme" -eq 3 ]; then
+              echo "::error title=Resmi modeller inmedi::models/indir.sh üç denemede de başarısız"
+              exit 1
+            fi
+            echo "::warning title=Resmi modeller::$deneme. deneme başarısız; 30 sn sonra yeniden"
+            sleep 30
+          done
+
+      - name: Python 3.12
+        if: steps.durum.outputs.egit == 'true'
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: egitim/forklift/gereksinimler.txt
+
+      # torch PyTorch'un CPU dizininden: PyPI'deki Linux paketi CUDA'lıdır ve
+      # birkaç GB tutar. O dizin erişilemezse PyPI'ye düşülür (uyarıyla).
+      # SIRA ÖNEMLİ: torch ÖNCE. gereksinimler.txt'teki thop sürümsüz "torch"
+      # ister; torch kurulu değilse pip onu PyPI'den (CUDA'lı) çeker.
+      - name: Eğitim paketleri (CPU torch)
+        if: steps.durum.outputs.egit == 'true'
+        run: |
+          python -m pip install --upgrade pip
+          if ! python -m pip install torch==2.14.0 torchvision==0.29.0 --index-url https://download.pytorch.org/whl/cpu; then
+            echo "::warning title=CPU torch dizini::download.pytorch.org'dan kurulamadı; PyPI'den kuruluyor (CUDA'lı, büyük paket)"
+            python -m pip install torch==2.14.0 torchvision==0.29.0
+          fi
+          python -m pip install -r egitim/forklift/gereksinimler.txt
+          python - <<'PY'
+          import torch
+          import torchvision
+
+          # gereksinimler.txt torch'u değiştirmemiş olmalı (thop -> torch)
+          if not torch.__version__.startswith("2.14.0"):
+              raise SystemExit(f"torch 2.14.0 bekleniyordu, kurulu: {torch.__version__}")
+          print(
+              "torch", torch.__version__, "torchvision", torchvision.__version__,
+              "cuda", torch.version.cuda, "iş parçacığı", torch.get_num_threads(),
+          )
+          PY
+          lscpu | grep -E 'Model name|^CPU\(s\)' || true
+
+      # YOLOX pip'ten değil, sabitlenmiş commit'ten (ortak.YOLOX_COMMIT).
+      - name: YOLOX kaynağı (sabit commit)
+        if: steps.durum.outputs.egit == 'true'
+        run: |
+          yolox_commit=$(python -c 'import sys; sys.path.insert(0, "egitim/forklift"); import ortak; print(ortak.YOLOX_COMMIT)')
+          kaynak="$RUNNER_TEMP/yolox"
+          git init -q "$kaynak"
+          for deneme in 1 2 3; do
+            if git -C "$kaynak" fetch -q --depth 1 https://github.com/Megvii-BaseDetection/YOLOX.git "$yolox_commit"; then
+              break
+            fi
+            if [ "$deneme" -eq 3 ]; then
+              echo "::error title=YOLOX inmedi::git fetch üç denemede de başarısız"
+              exit 1
+            fi
+            echo "::warning title=YOLOX::$deneme. deneme başarısız; 30 sn sonra yeniden"
+            sleep 30
+          done
+          git -C "$kaynak" checkout -q FETCH_HEAD
+          if [ "$(git -C "$kaynak" rev-parse HEAD)" != "$yolox_commit" ]; then
+            echo "::error title=YOLOX commit tutmuyor::beklenen $yolox_commit"
+            exit 1
+          fi
+          PYTHONPATH="$kaynak" python -c "import yolox; print('YOLOX', yolox.__version__, yolox.__file__)"
+          echo "PYTHONPATH=$kaynak" >> "$GITHUB_ENV"
+
+      - name: Resmi YOLOX ağırlığı (SHA-256 denetimli)
+        if: steps.durum.outputs.egit == 'true'
+        run: |
+          python egitim/forklift/veri.py agirlik --boy "$BOY" --hedef "$RUNNER_TEMP/agirlik"
+          echo "RESMI_PTH=$RUNNER_TEMP/agirlik/yolox_$BOY.pth" >> "$GITHUB_ENV"
+
+      - name: Veri seti
+        if: steps.durum.outputs.egit == 'true'
+        uses: actions/download-artifact@v8
+        with:
+          name: veri-seti
+          path: veri-seti
+
+      # Duman: eğitim JSON'unun ilk 64 görüntüsü (4 devir plan işinden, her
+      # bacakta aynı 64 görüntü).
+      # Görüntü dosyalarına dokunulmaz; yalnız bu makinedeki JSON kısalır.
+      - name: Duman - eğitimi 64 görüntüyle sınırla
+        if: steps.durum.outputs.egit == 'true' && inputs.mod == 'duman'
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          SINIR = 64
+          yol = Path("veri-seti/annotations/egitim.json")
+          belge = json.loads(yol.read_text(encoding="utf-8"))
+          belge["images"] = belge["images"][:SINIR]
+          kimlikler = {g["id"] for g in belge["images"]}
+          belge["annotations"] = [e for e in belge["annotations"] if e["image_id"] in kimlikler]
+          yol.write_text(json.dumps(belge, separators=(",", ":")), encoding="utf-8")
+          forklift = sum(1 for e in belge["annotations"] if e["category_id"] == 1)
+          print(
+              f"duman: {len(belge['images'])} görüntü kaydı, "
+              f"{len(belge['annotations'])} kutu ({forklift} forklift)"
+          )
+          PY
+
+      - id: egitim
+        name: Eğit (süre bütçeli; bitmezse ara kayıt bırakır)
+        if: steps.durum.outputs.egit == 'true'
+        run: |
+          python egitim/forklift/egit.py --veri veri-seti --boy "$BOY" --kip "$KIP" \
+            --resmi-pth "$RESMI_PTH" --calisma "$W" --devir "$DEVIR" --sure-sn "$SURE_SN" \
+            --is-parcacigi 4 --veri-isci 2
+          echo "$BACAK" > "$W/BACAK"
+          python -m pip freeze > "$W/paketler-bacak$BACAK.txt"
+          if [ -f "$W/BITTI" ]; then
+            echo "bitti=true" >> "$GITHUB_OUTPUT"
+            echo "::notice title=$VARYANT eğitimi bitti::$BACAK. bacakta, $DEVIR devir"
+          elif [ -f "$W/SURUYOR" ]; then
+            echo "bitti=false" >> "$GITHUB_OUTPUT"
+            echo "$VARYANT sürüyor: sıradaki devir $(cat "$W/SURUYOR"); sonraki bacak sürdürecek."
+          else
+            echo "::error title=Eğitim durumu belirsiz::$W içinde ne BITTI ne SURUYOR var"
+            exit 1
+          fi
+
+      # Model kartı ONNX'in üst verisine yazılır (dalsan_model_karti): dosya
+      # nereden, hangi veriyle, hangi çalıştırmada üretildi.
+      - name: Model kartı
+        if: steps.egitim.outputs.bitti == 'true'
+        run: |
+          python - <<'PY'
+          import hashlib
+          import json
+          import os
+          import sys
+          from datetime import UTC, datetime
+          from pathlib import Path
+
+          sys.path.insert(0, "egitim/forklift")
+          import ortak
+
+
+          def ozet(yol):
+              karma = hashlib.sha256()
+              with open(yol, "rb") as dosya:
+                  for parca in iter(lambda: dosya.read(1 << 20), b""):
+                      karma.update(parca)
+              return karma.hexdigest()
+
+
+          ortam = os.environ
+          hazirlik = json.loads(Path("veri-seti/hazirlik.json").read_text(encoding="utf-8"))
+          egitim_json = Path("veri-seti/annotations/egitim.json")
+          kart = {
+              "ad": "NextGen AI Forklift adayı",
+              "tarih": datetime.now(UTC).isoformat(timespec="seconds"),
+              "boy": ortam["BOY"],
+              "kip": ortam["KIP"],
+              "devir": int(ortam["DEVIR"]),
+              "calistirma_kipi": ortam["MOD"],
+              "loco_commit": ortak.LOCO_COMMIT,
+              "loco_arsiv_sha256": hazirlik.get("loco_arsiv_sha256"),
+              "yolox_commit": ortak.YOLOX_COMMIT,
+              "resmi_pth_sha256": ozet(ortam["RESMI_PTH"]),
+              "veri_hazirlik_sha256": ozet("veri-seti/hazirlik.json"),
+              "egitim_json_sha256": ozet(egitim_json),
+              "egitim_goruntu_kaydi": len(json.loads(egitim_json.read_bytes())["images"]),
+              "calistirma": (
+                  f"{ortam['GITHUB_SERVER_URL']}/{ortam['GITHUB_REPOSITORY']}"
+                  f"/actions/runs/{ortam['GITHUB_RUN_ID']}"
+              ),
+              "calistirma_no": int(ortam["GITHUB_RUN_NUMBER"]),
+              "git_sha": ortam["GITHUB_SHA"],
+          }
+          Path(ortam["W"], "kart.json").write_text(
+              json.dumps(kart, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+          )
+          print(json.dumps(kart, ensure_ascii=False, indent=2))
+          PY
+
+      # Üç aday, kişi önceliği k = 0, 1, 2: forklift puanı resmi insan puanıyla
+      # bastırılır (egitim/forklift/model.py). Hangisinin kullanılacağına ölçüm
+      # bakılarak karar verilir.
+      - name: Birleşik ONNX'leri dışa aktar (k = 0, 1, 2)
+        if: steps.egitim.outputs.bitti == 'true'
+        run: |
+          for k in 0 1 2; do
+            python egitim/forklift/model.py disa-aktar --boy "$BOY" --kip "$KIP" \
+              --resmi-pth "$RESMI_PTH" --ek-bas "$W/ek_bas.pth" --cikti "$W/$VARYANT-k$k.onnx" \
+              --kart "$W/kart.json" --kisi-onceligi "$k"
+          done
+
+      # Sözleşme: eski sınıfların puanları ve kutular resmi ONNX'le aynı olmalı
+      # (her çapada). Tutmayan aday yapıta girmez, ölçülmez. Resmi ONNX'ler
+      # eğitimden önce indi (ağ işi yok).
+      - name: Eski sınıflar resmi modelle aynı mı (20 test görüntüsü)
+        if: steps.egitim.outputs.bitti == 'true'
+        run: |
+          for k in 0 1 2; do
+            python egitim/forklift/model.py denetle --boy "$BOY" --onnx "$W/$VARYANT-k$k.onnx" \
+              --resmi-onnx "models/yolox_$BOY.onnx" --goruntu veri-seti/test --sinir 20 \
+              | tee "$W/denetim-k$k.txt"
+          done
+
+      # Aynı ad, her bacakta yenisiyle değişir (overwrite). Bacak düşerse
+      # yükleme yapılmaz; bu varyantın zinciri orada durur (sonraki bacak
+      # eski kaydı BACAK dosyasından tanır), ötekiler sürer (forklift-egit.yml).
+      - name: Çalışma klasörünü yükle
+        if: steps.durum.outputs.egit == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: calisma-${{ inputs.varyant }}
+          path: calisma/${{ inputs.varyant }}/
+          retention-days: 7
+          overwrite: true
+          if-no-files-found: error
+
+      # Duman: model testleri de GitHub'ın makinesinde, gerçek resmi ağırlıkla
+      # koşar (ürün ortamında torch yok, orada atlanırlar). Yüklemeden SONRA:
+      # test düşse de bu iş kırmızı olur ama adaylar ölçülür; bir duman
+      # çalıştırması olabildiğince çok şey söylesin.
+      - name: Duman - model testleri
+        if: steps.egitim.outputs.bitti == 'true' && inputs.mod == 'duman' && startsWith(inputs.varyant, 'tiny-')
+        run: |
+          python -m pip install pytest==9.1.1
+          FORKLIFT_RESMI_PTH="$RESMI_PTH" python -m pytest -q tests/test_forklift_modeli.py

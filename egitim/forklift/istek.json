@@ -1,0 +1,5 @@
+{
+  "varyantlar": ["tiny-v1", "tiny-v2", "s-v1", "s-v2"],
+  "devir": {"tiny": 30, "s": 20},
+  "not": "Dört aday: tiny ve s boyu, v1 ve v2 kipi. Yeni bir tam eğitim istemek için bu dosyayı değiştirip main'e gönderin (ör. bu notu güncelleyin); dosyanın ilk eklenmesi yalnız duman sınamasını başlatır."
+}
