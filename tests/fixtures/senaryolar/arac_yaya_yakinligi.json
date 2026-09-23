@@ -1,0 +1,52 @@
+{
+  "ad": "Yanından geçen forklift: tek araç-yaya yakınlığı olayı",
+  "aciklama": "Zemin 20 x 20 m kalibre. Kişi (0,5; 0,5)'te durur. Forklift 2-14 sn arasında x 0,1'den 0,9'a 1,3 m/sn ile geçer, 2,4 m yanından. 3 m içine ~6,65 sn'de girer (3 ardışık ölçüm: olay ~7,0 sn'de açılır); histerezisle 3,5 m'yi ~9,9 sn'de aşar: tek olay, Kritik.",
+  "fps": 6,
+  "sure_s": 18,
+  "kalibrasyon": [[20.0, 0.0, 0.0], [0.0, 20.0, 0.0], [0.0, 0.0, 1.0]],
+  "bolgeler": [],
+  "kurallar": [
+    {
+      "id": 1,
+      "tip": "safe_distance",
+      "bolge_id": null,
+      "hedefler": [
+        "person",
+        "forklift",
+        "truck"
+      ],
+      "params": {
+        "distance_m": 3.0,
+        "min_frames": 3,
+        "require_moving_vehicle": true,
+        "min_speed_mps": 0.3,
+        "histerezis_m": 0.5
+      },
+      "cooldown_s": 90
+    }
+  ],
+  "nesneler": [
+    {
+      "sinif": "person",
+      "boy": 0.3,
+      "en": 0.06,
+      "yol": [[0, 0.5, 0.5], [17, 0.5, 0.5]]
+    },
+    {
+      "sinif": "forklift",
+      "boy": 0.22,
+      "en": 0.12,
+      "yol": [[2, 0.1, 0.62], [14, 0.9, 0.62], [15, 0.9, 0.62]]
+    }
+  ],
+  "beklenen": [
+    {
+      "kod": "VEHICLE_PERSON_PROXIMITY",
+      "onem": "critical",
+      "baslangic_s": 7.0,
+      "bitis_s": 9.9,
+      "sebep": "kosul_bitti",
+      "tolerans_s": 0.5
+    }
+  ]
+}

@@ -1,0 +1,57 @@
+{
+  "ad": "Geçitten geçen yaya uyarı üretmez, yoldan geçen üretir",
+  "aciklama": "Araç yolu yatay bir şerit (y 0,4-0,7); ortasında dikey bir yaya-araç geçidi (x 0,45-0,55). İlk kişi yolu geçitten geçer (0-8 sn): olay yok. İkinci kişi yolu geçidin dışından geçer (10-18 sn): 'Araç yolunda yaya', yolda araç olmadığı için Orta.",
+  "fps": 6,
+  "sure_s": 24,
+  "bolgeler": [
+    {
+      "id": 1,
+      "tip": "vehicle_area",
+      "poligon": [[0.0, 0.4], [1.0, 0.4], [1.0, 0.7], [0.0, 0.7]]
+    },
+    {
+      "id": 2,
+      "tip": "crossing",
+      "poligon": [[0.45, 0.35], [0.55, 0.35], [0.55, 0.75], [0.45, 0.75]]
+    }
+  ],
+  "kurallar": [
+    {
+      "id": 1,
+      "tip": "zone_intrusion",
+      "bolge_id": 1,
+      "hedefler": [
+        "person"
+      ],
+      "params": {
+        "mode": "inside",
+        "min_dwell_s": 1.5
+      },
+      "cooldown_s": 60
+    }
+  ],
+  "nesneler": [
+    {
+      "sinif": "person",
+      "boy": 0.25,
+      "en": 0.06,
+      "yol": [[0, 0.5, 0.2], [8, 0.5, 0.9]]
+    },
+    {
+      "sinif": "person",
+      "boy": 0.25,
+      "en": 0.06,
+      "yol": [[10, 0.2, 0.2], [18, 0.2, 0.9]]
+    }
+  ],
+  "beklenen": [
+    {
+      "kod": "PERSON_IN_VEHICLE_LANE",
+      "onem": "medium",
+      "baslangic_s": 13.8,
+      "bitis_s": 15.7,
+      "sebep": "kosul_bitti",
+      "tolerans_s": 0.5
+    }
+  ]
+}

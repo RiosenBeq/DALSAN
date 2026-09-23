@@ -1,0 +1,42 @@
+{
+  "ad": "Hızlı giden forklift: hız aşımı, durunca biter",
+  "aciklama": "Zemin 20 x 20 m kalibre. Forklift 1-5 sn arasında 16 m'yi 4 m/sn ile gider (sınır 2,5), sonra 12 sn'ye kadar durur. Takip doğrulanıp 5 ölçümün ortancası sınırı aşınca (~2,0 sn) olay açılır; durunca ortanca birkaç ölçümde düşer ve olay son hızlı ölçümde (~5,3 sn) biter.",
+  "fps": 6,
+  "sure_s": 14,
+  "kalibrasyon": [[20.0, 0.0, 0.0], [0.0, 20.0, 0.0], [0.0, 0.0, 1.0]],
+  "bolgeler": [],
+  "kurallar": [
+    {
+      "id": 1,
+      "tip": "vehicle_speed",
+      "bolge_id": null,
+      "hedefler": [
+        "forklift",
+        "truck"
+      ],
+      "params": {
+        "speed_limit_mps": 2.5,
+        "window_size": 5
+      },
+      "cooldown_s": 60
+    }
+  ],
+  "nesneler": [
+    {
+      "sinif": "forklift",
+      "boy": 0.22,
+      "en": 0.12,
+      "yol": [[1, 0.1, 0.6], [5, 0.9, 0.6], [12, 0.9, 0.6]]
+    }
+  ],
+  "beklenen": [
+    {
+      "kod": "VEHICLE_OVERSPEED",
+      "onem": "high",
+      "baslangic_s": 2.0,
+      "bitis_s": 5.3,
+      "sebep": "kosul_bitti",
+      "tolerans_s": 0.5
+    }
+  ]
+}

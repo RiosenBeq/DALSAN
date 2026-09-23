@@ -364,3 +364,29 @@ Kurduğu değerler:
 görüş alanına yol dışında kalan çalışma istasyonları da giriyorsa, o alanlar
 sürekli ihlal üretir. Böyle bir sahnede yolu değil, **yasak alanı** çizip
 `mode=inside` kullanmak daha doğrudur.
+
+## Ek — Uçtan uca senaryolar (regresyon takımı)
+
+`tests/fixtures/senaryolar/*.json` dosyalarının her biri bir sahneyi ve o sahnede
+beklenen olayları anlatır. `tests/test_uctan_uca_olaylar.py` her senaryo için
+sentetik bir mp4 yazar ve kareleri gerçek hattan geçirir: takip (ByteTrack),
+kural motoru, olay yaşam döngüsü ve süpervizörün olay yazma yolu. Dedektör
+yerine senaryoyu okuyan bir sahte kullanılır; model gerekmez. Bulunan olaylar
+kod, önem, başlangıç, bitiş ve bitiş sebebiyle ± toleransla karşılaştırılır;
+veritabanındaki satırlar da denetlenir.
+
+| Alan | Anlamı |
+|---|---|
+| `ad`, `aciklama` | Sahne neyi sınıyor; sahadan geldiyse hangi olay, hangi tarih |
+| `fps`, `sure_s` | Örnekleme hızı ve sahnenin süresi (bitişten sonra en az `bitis_s` + 0,5 sn pay) |
+| `kalibrasyon` | (isteğe bağlı) 3x3 homografi: normalize görüntü → metre |
+| `bolgeler` | `id`, `tip` (bölge tipi kodu), `poligon` (normalize) |
+| `kurallar` | `id`, `tip`, `bolge_id`, `hedefler`, `params` (şema varsayılanlarıyla tamamlanır), `cooldown_s` |
+| `nesneler` | `sinif`, `boy` ve `en` (kareye oranla), `yol`: `[t, x, y]` ayak noktası anahtar kareleri (doğrusal ara değer), `gorunmez`: örtülü aralıklar |
+| `beklenen` | `kod`, `onem`, `baslangic_s`, `bitis_s` (sürüyorsa `null`), `sebep`, `tolerans_s` |
+
+**Sahadan gelen yanlış alarm buraya eklenir.** Olay detayındaki kanıt
+fotoğrafından ve bölge çiziminden sahne kurulur, beklenen olay listesi (çoğu
+zaman boş) yazılır. Önce test kırmızıya döner, düzeltme onu yeşile çevirir; aynı
+hata ikinci kez gelmez.
+

@@ -1,0 +1,47 @@
+{
+  "ad": "Bir an görünmeyen kişi olayı ikiye bölmez",
+  "aciklama": "Kişi yasak alana girer ve durur; 7-8 sn arasında (1 sn) bir kolonun arkasında kalıp görünmez, sonra yine görünür; 12 sn'de çıkmaya başlar. Takip hafızası (2 sn) ve bitiş beklemesi (3 sn) kısa kaybı kapatır: TEK olay.",
+  "fps": 6,
+  "sure_s": 20,
+  "bolgeler": [
+    {
+      "id": 1,
+      "tip": "restricted",
+      "poligon": [[0.5, 0.2], [0.95, 0.2], [0.95, 0.95], [0.5, 0.95]]
+    }
+  ],
+  "kurallar": [
+    {
+      "id": 1,
+      "tip": "zone_intrusion",
+      "bolge_id": 1,
+      "hedefler": [
+        "person"
+      ],
+      "params": {
+        "mode": "inside",
+        "min_dwell_s": 2.0
+      },
+      "cooldown_s": 60
+    }
+  ],
+  "nesneler": [
+    {
+      "sinif": "person",
+      "boy": 0.3,
+      "en": 0.08,
+      "yol": [[0, 0.1, 0.6], [4, 0.7, 0.6], [12, 0.7, 0.6], [15, 0.1, 0.6], [16, 0.1, 0.6]],
+      "gorunmez": [[7.0, 8.0]]
+    }
+  ],
+  "beklenen": [
+    {
+      "kod": "RESTRICTED_ENTRY",
+      "onem": "high",
+      "baslangic_s": 4.7,
+      "bitis_s": 13.0,
+      "sebep": "kosul_bitti",
+      "tolerans_s": 0.5
+    }
+  ]
+}

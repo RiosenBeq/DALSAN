@@ -21,6 +21,21 @@ Muaf alan KKD kuralının kararından da oyuldu (docs/03 §3). Bu tipin kuralı
 yüz, gömme, isim/sicil ya da iz→personel eşlemesi taşıyabilecek bir sütun
 olmadığını bir test denetliyor (docs/17 §10.2). Statik damga `?v=32`.
 
+**2e-2 — uçtan uca senaryo takımı.** `tests/fixtures/senaryolar/*.json` +
+`tests/test_uctan_uca_olaylar.py`. Her senaryo için sentetik bir mp4 yazılıyor,
+kareler gerçek hattan geçiyor ve olaylar veritabanına kadar izleniyor:
+takip → kural → yaşam döngüsü → olay satırı. Dedektör yerine senaryoyu okuyan
+bir sahte var; model gerekmiyor ve sonuç belirlenimci. Kod, önem, başlangıç,
+bitiş ve bitiş sebebi ±0,5 sn ile karşılaştırılıyor. İlk beş sahne:
+- yasak alana giren ve çıkan kişi;
+- geçitten geçen yaya (olay yok) ile yolu geçitsiz geçen yaya;
+- yanından geçen forklift (histerezisle tek yakınlık olayı);
+- bir an görünmeyen kişi (tek olay);
+- hız aşımı (durunca biter).
+
+Beklenen zamanlar elle hesaplandı, ölçüm geometriyle birebir tuttu. Biçim ve
+"sahadan gelen yanlış alarm buraya eklenir" yöntemi docs/03'ün ekinde.
+
 ## Faz 2d görünür arıza ve sağlık (23.09.2026)
 
 Plan: `docs/17-V2-TASARIM.md` §3.5, §3.6, §9 ve §13 (2d satırı). Alt adımlar
