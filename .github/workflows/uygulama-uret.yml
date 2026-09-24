@@ -23,8 +23,10 @@ on:
       - "backend/**"
       - "masaustu/**"
       - "paketleme/**"
-      # Pakete giren kök dosya: paketlenmiş programın .env'i bundan üretilir
+      # Pakete giren kök dosyalar: paketlenmiş programın .env'i örnekten
+      # üretilir; lisans atfı pakete konur
       - ".env.example"
+      - "LICENSE-THIRD-PARTY"
       - ".github/workflows/uygulama-uret.yml"
   workflow_dispatch:
 

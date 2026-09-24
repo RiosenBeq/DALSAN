@@ -162,6 +162,7 @@ def test_windows_paketinde_sablon_stil_sema_ve_ornek_ayar_var(windows_tarifi):
         assert beklenen in hedefler
     kaynaklar = [Path(k).name for k, _ in windows_tarifi.kwargs("Analysis")["datas"]]
     assert ".env.example" in kaynaklar
+    assert "LICENSE-THIRD-PARTY" in kaynaklar  # BSD lisansları: not pakete girer
 
 
 def test_iki_tarifte_de_pencere_simgesi_pakete_giriyor(windows_tarifi, mac_tarifi):
@@ -693,6 +694,27 @@ def test_pakete_giren_her_dosya_degisince_paket_yeniden_uretilir():
         assert any(
             goreli == desen or goreli.startswith(desen.removesuffix("**")) for desen in desenler
         ), f"{goreli} değişince paket yeniden üretilmez"
+
+
+def test_pakete_giren_pencere_bilesenlerinin_lisansi_atfedilir():
+    """Paketlenmiş uygulama pywebview'ü ve içindeki WebView2 SDK'sını taşır; ikisinin
+    BSD lisansı ikili dağıtımda telif notunu ve koşulları ister."""
+    tanim = importlib.util.spec_from_file_location("paketleme_ortak_lisans", ORTAK)
+    ortak = importlib.util.module_from_spec(tanim)
+    tanim.loader.exec_module(ortak)
+    assert any(Path(k).name == "LICENSE-THIRD-PARTY" for k, _ in ortak.veri_dosyalari(KOK))
+    metin = (KOK / "LICENSE-THIRD-PARTY").read_text(encoding="utf-8")
+    gereksinim = (PAKETLEME / "requirements-paketleme.txt").read_text(encoding="utf-8")
+    assert "pywebview==" in gereksinim
+    for parca in (
+        "Copyright (c) 2014-2017, Roman Sirokov",
+        "Copyright (C) Microsoft Corporation",
+        "Redistributions in binary form must reproduce",
+        "pythonnet",
+        "PyObjC",
+        "paketleme/requirements-paketleme.txt",
+    ):
+        assert parca in metin, parca
 
 
 def test_uretim_isi_paketi_acip_sinar():

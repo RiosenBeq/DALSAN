@@ -83,8 +83,105 @@ bir ek baş ekler; bu nedenle Apache-2.0 kapsamında YOLOX'tan türetilmiş bir
 verisini, başlangıç ağırlıklarının SHA-256 özetini ve eğitim tarihini taşır.
 
 --------------------------------------------------------------------------
+6) Masaüstü uygulamasının izleme penceresi (Windows .exe / Mac .app)
+--------------------------------------------------------------------------
+Paketlenmiş uygulama (docs/13) izleme ekranını kendi penceresinde açmak için
+aşağıdaki bileşenleri İÇİNDE taşır. Sürümleri
+paketleme/requirements-paketleme.txt dosyasındadır; sunucu kurulumuna
+(backend/requirements.txt) girmezler.
+
+pywebview - işletim sisteminin web görünümünü pencereye bağlar
+Telif hakkı: Copyright (c) 2014-2017, Roman Sirokov
+Lisans:      BSD 3-Clause License (metni aşağıda)
+Kaynak:      https://github.com/r0x0r/pywebview
+
+Microsoft Edge WebView2 SDK - Windows'ta pywebview'ün içinde gelen
+Microsoft.Web.WebView2.Core.dll, Microsoft.Web.WebView2.WinForms.dll ve
+WebView2Loader.dll. WebView2 çalışma zamanının kendisi Windows'un parçasıdır,
+pakete girmez.
+Telif hakkı: Copyright (C) Microsoft Corporation. All rights reserved.
+Lisans:      BSD tarzı lisans (metni aşağıda)
+Kaynak:      https://www.nuget.org/packages/Microsoft.Web.WebView2
+
+Windows'ta ayrıca: pythonnet (MIT, The Contributors of the Python.NET
+Project), clr_loader (MIT, Benedikt Reinartz), cffi (MIT ya da MIT-0,
+sürüme göre) ve pycparser (BSD-3-Clause, Eli Bendersky).
+Mac'te ayrıca: PyObjC (MIT, Ronald Oussoren ve katkıda bulunanlar).
+İki platformda: bottle (MIT, Marcel Hellkamp), proxy_tools (MIT, Jonathan
+Tushman) ve typing_extensions (Python Software Foundation License 2.0).
+
+Uygulama PyInstaller ile paketlenir (GPL-2.0; paketlenen programın
+dağıtımına izin veren "bootloader" istisnasıyla).
+
+pywebview ve WebView2 SDK lisansları, ikili dağıtımda telif notunun,
+koşulların ve sorumluluk reddinin belgelerle birlikte verilmesini ister. Bu
+dosya bu yüzden uygulamanın paketine de konur (paketleme/paketleme_ortak.py).
+
+pywebview lisans metni:
+
+BSD 3-Clause License
+
+Copyright (c) 2014-2017, Roman Sirokov
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+* Redistributions of source code must retain the above copyright notice, this
+  list of conditions and the following disclaimer.
+
+* Redistributions in binary form must reproduce the above copyright notice,
+  this list of conditions and the following disclaimer in the documentation
+  and/or other materials provided with the distribution.
+
+* Neither the name of the copyright holder nor the names of its
+  contributors may be used to endorse or promote products derived from
+  this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+Microsoft Edge WebView2 SDK lisans metni:
+
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are
+met:
+
+   * Redistributions of source code must retain the above copyright
+notice, this list of conditions and the following disclaimer.
+   * Redistributions in binary form must reproduce the above
+copyright notice, this list of conditions and the following disclaimer
+in the documentation and/or other materials provided with the
+distribution.
+   * The name of Microsoft Corporation, or the names of its contributors
+may not be used to endorse or promote products derived from this
+software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+--------------------------------------------------------------------------
 Diğer bileşenler
 --------------------------------------------------------------------------
-Python bağımlılıklarının tam listesi ve sürümleri
-backend/requirements.txt dosyasındadır; her paketin lisansı kendi deposunda
-yayımlanmıştır.
+Python bağımlılıklarının tam listesi ve sürümleri backend/requirements.txt
+(sunucu) ve paketleme/requirements-paketleme.txt (masaüstü uygulaması)
+dosyalarındadır; her paketin lisansı kendi deposunda yayımlanmıştır.
