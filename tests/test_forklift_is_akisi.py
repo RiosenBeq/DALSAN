@@ -417,6 +417,20 @@ def test_bacak_sifirdan_baslamaz(bacak):
     )
 
 
+def test_bacak_disa_aktarim_duserse_egitilmis_basi_ayri_adla_saklar(bacak):
+    """Eğitim bitti, bir aday dışa aktarımda ya da sözleşme denetiminde düştü:
+    zincirin kaydı ezilmez (olağan yükleme yapılmaz) ama eğitilmiş baş ayrı adla
+    kalır; saatlerce süren eğitim kaybolmaz."""
+    adimlar = bacak["jobs"]["egit"]["steps"]
+    yukle = _adim(bacak, "egit", "Çalışma klasörünü yükle")
+    sakla = _adim(bacak, "egit", "Eğitilmiş başı sakla (dışa aktarım ya da denetim düştüyse)")
+    assert _ifade(sakla["if"]) == "failure() && steps.egitim.outputs.bitti == 'true'"
+    assert sakla["with"]["name"] == "egitilmis-${{ inputs.varyant }}"
+    assert sakla["with"]["name"] != yukle["with"]["name"]
+    assert sakla["with"]["path"] == yukle["with"]["path"]
+    assert adimlar.index(yukle) < adimlar.index(sakla)
+
+
 def test_bacak_torch_cpu_dizininden_once_kurar(bacak):
     betik = _adim(bacak, "egit", "Eğitim paketleri (CPU torch)")["run"]
     assert "torch==2.14.0 torchvision==0.29.0" in betik
@@ -1221,6 +1235,23 @@ def test_yayinla_tam_kipte_tek_on_surum(ana, tmp_path):
     assert cagri[cagri.index("--target") + 1] == ortam["GITHUB_SHA"]
     assert cagri[cagri.index("--title") + 1] == "NextGen AI Forklift adayları r7"
     assert "::notice title=Ön sürüm yayınlandı::" in sonuclar[-1].stdout
+
+
+@arac_gerekli
+def test_yeniden_calistirilan_kosunun_basligi_etiketle_ayni(ana, tmp_path):
+    """Yeniden çalıştırılan tam koşunun etiketi -dN alır; başlık ve notlar da onu
+    yazar (eskiden yalnız çalıştırma numarası: yayın etiketiyle ayrışıyordu)."""
+    _aday_klasoru(tmp_path / "adaylar", "tiny-v1")
+    ortam = _yayin_ortami(tmp_path, "tam", ["tiny-v1"])
+    ortam["ETIKET"] = "forklift-r7-d2"
+    sonuclar = _yayinla_adimlari(ana, tmp_path, ortam, *YAYIN_ADIMLARI)
+    assert [s.returncode for s in sonuclar] == [0, 0, 0, 0], sonuclar[-1].stdout
+    notlar = (tmp_path / "notlar.md").read_text(encoding="utf-8")
+    assert notlar.startswith("# NextGen AI Forklift adayları (r7-d2)")
+    assert "varsayılan model yapılmaz" in notlar
+    cagri = next(c for c in _gh_cagrilari(ortam) if c[:2] == ["release", "create"])
+    assert cagri[2] == "forklift-r7-d2"
+    assert cagri[cagri.index("--title") + 1] == "NextGen AI Forklift adayları r7-d2"
 
 
 @arac_gerekli

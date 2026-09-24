@@ -690,9 +690,9 @@ jobs:
         run: |
           mapfile -t varyantlar < <(jq -r '.[]' <<<"$VARYANTLAR")
           {
-            echo "# NextGen AI Forklift adayları (r$GITHUB_RUN_NUMBER)"
+            echo "# NextGen AI Forklift adayları (${ETIKET#forklift-})"
             echo
-            echo "**Ön sürüm (aday):** sahada ölçülüp operatör onaylamadan uygulamaya konmaz."
+            echo "**Ön sürüm (aday):** kapıları geçen aday uygulamada Ayarlar'dan seçilebilir yapılır; sahada ölçülüp operatör onaylamadan varsayılan model yapılmaz."
             echo
             echo "- Çalıştırma: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
             echo "- Commit: $GITHUB_SHA"
@@ -746,7 +746,7 @@ jobs:
         if: env.MOD == 'tam'
         run: |
           gh release create "$ETIKET" yayin/* --prerelease \
-            --title "NextGen AI Forklift adayları r$GITHUB_RUN_NUMBER" \
+            --title "NextGen AI Forklift adayları ${ETIKET#forklift-}" \
             --notes-file notlar.md --target "$GITHUB_SHA"
           # Yayındaki her dosya yereldekiyle aynı mı: GitHub'ın kendi ölçtüğü
           # SHA-256 (digest) ile. Özet henüz yoksa yalnız adlar karşılaştırılır.

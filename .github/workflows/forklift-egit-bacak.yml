@@ -356,6 +356,20 @@ jobs:
           overwrite: true
           if-no-files-found: error
 
+      # Eğitim bitti ama dışa aktarım ya da sözleşme denetimi düştü: yukarıdaki
+      # yükleme yapılmaz (zincirin kaydı bozuk bir halle ezilmesin). Saatlerce
+      # eğitilmiş baş yine de kaybolmasın: AYRI adla saklanır, elle incelenip
+      # yeniden dışa aktarılabilir (egitim/forklift/model.py disa-aktar).
+      - name: Eğitilmiş başı sakla (dışa aktarım ya da denetim düştüyse)
+        if: failure() && steps.egitim.outputs.bitti == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: egitilmis-${{ inputs.varyant }}
+          path: calisma/${{ inputs.varyant }}/
+          retention-days: 7
+          overwrite: true
+          if-no-files-found: warn
+
       # Duman: model testleri de GitHub'ın makinesinde, gerçek resmi ağırlıkla
       # koşar (ürün ortamında torch yok, orada atlanırlar). Yüklemeden SONRA:
       # test düşse de bu iş kırmızı olur ama adaylar ölçülür; bir duman
