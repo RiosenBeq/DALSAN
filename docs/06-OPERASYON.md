@@ -397,6 +397,8 @@ sistem politikayı teknik olarak zorlar, politikayı belirlemez.
 ## 6. Log okuma
 
 Günlük dosyası: `veri/loglar/sistem.log` (5 MB'ta döner, son 3 kopya saklanır).
+Windows ve Mac uygulamasında bu klasör kullanıcı klasöründedir (docs/13 §4);
+hata mesajları dosyanın yerini kuruluma göre söyler.
 Kontrol Paneli aynı satırları penceresinde gösterir.
 
 ```bash

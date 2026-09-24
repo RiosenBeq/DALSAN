@@ -187,6 +187,16 @@ tarayici-profili/       ← izleme penceresinin önbelleği (YEDEKLENMEZ, siline
 
 **Yedek alırken kopyalanacak klasör budur.**
 
+Uygulamanın kendi metinleri de bu klasörü söyler: hata mesajları günlüğü,
+giriş ve teşhis sayfası ayar dosyasını, kılavuz ve Anons sayfası seslerin,
+yedek düğmesi yedeklerin yerini yukarıdaki biçimde
+(`%LOCALAPPDATA%\NextGen Detector\veri\loglar\sistem.log` gibi) verir.
+Sayfalarda görünen yol Dosya Gezgini'nin adres çubuğuna ya da Finder'da
+**Git → Klasöre Git** kutusuna olduğu gibi yapıştırılabilir. (Kontrol Paneli'nin
+günlük satırları JSON biçimindedir; orada Windows yolundaki ters bölüler çift
+görünür.) Eski bir kurulumdan kalan kayıtlar programın yanındaki klasörden
+okunuyorsa metinler "program klasörü" der (`backend/app/kaynaklar.py`).
+
 Bu bilgisayardaki **geliştirme kurulumunun** veri yolu değişmedi: o hâlâ proje
 klasöründeki `veri/` klasörünü kullanır. İkisi birbirine karışmaz.
 

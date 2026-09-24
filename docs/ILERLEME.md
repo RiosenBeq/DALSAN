@@ -1,5 +1,35 @@
 # İlerleme
 
+## Uygulamanın söylediği dosya yerleri (24.09.2026)
+
+Sabahki denetimin açık bıraktığı madde. Hata mesajları ve sayfalar günlüğün, ayar
+dosyasının, yedeklerin ve anons seslerinin yerini "program klasöründeki ...", "kök
+klasördeki .env", "proje klasörü" diye söylüyordu; Windows ve Mac uygulamasında veri
+kullanıcı klasöründedir ve programın klasöründe aranan dosya bulunamaz. En tehlikelisi
+bozuk kayıt dosyası mesajıydı: yedeği programın klasörüne koydurttuğu için uygulama onu
+hiç okumuyor, sistem yine açılmıyordu. Bu mesaj artık Kontrol Paneli'nin "Yedekten Geri
+Yükle" düğmesine yollar ve iki klasörü doğru söyler.
+
+Yer artık `app/kaynaklar.py`'den gelir: uygulamada
+`%LOCALAPPDATA%\NextGen Detector\veri\loglar\sistem.log` ya da
+`~/Library/Application Support/NextGen Detector/...` (adres çubuğuna yapıştırılabilir,
+kullanıcı adı içermez), eski düzende veri programın yanında kaldıysa "program klasörü",
+Docker'da ayar dosyası `ayar/.env`. Hesap hata yolunda da çağrıldığı için disk okunamazsa
+patlamaz, "program klasörü"ne düşer. Kılavuz uygulamada Başlat betiğini, "İlk Kurulumu Yap"
+düğmesini ve python.org'un sertifika dosyasını anlatmıyor (üçü de uygulamada yok), sistemin
+kendiliğinden başladığını ve ekranın kendi penceresinde açıldığını söylüyor; pakete
+girmeyen belgeleri destek ekibinden istetiyor. Sertifika hata mesajı da uygulamada
+python.org tarifini vermiyor. Ayar hatasıyla açılmayan uygulamada Kontrol Paneli ayar
+dosyasının yerini yazıyor. Bir test, kullanıcıya gidebilecek bütün metinleri (belge
+dizeleri ve şablon yorumları dışında) elle yazılmış yer kalıplarına karşı tarar; bu
+değişiklikten önceki 30 yeri buluyor.
+
+Kalan: Docker ve systemd kurulumunda kılavuzun başlatma bölümü hâlâ Kontrol Paneli'ni ve
+Başlat betiğini anlatır (orada sistem hizmet olarak çalışır, docs/06). KKD, Ayarlar ve
+uyarı sayfalarındaki docs/04, docs/07 ve docs/15 göndermeleri uygulamayla gelmeyen
+belgelere gider. Kontrol Paneli günlüğü JSON satırı gösterdiği için Windows yolları orada
+çift ters bölüyle görünür.
+
 ## Denetim (24.09.2026 sabah)
 
 Operatör: *"Eksik kalan hatalı olan var mı kontrol yap"*. main (96a19a2) yeşildi (3.11'de
@@ -41,7 +71,7 @@ Açık (karar ya da ayrı iş):
 - Forklift modeli inmezse sistemin kendiliğinden hazır modele geçmesi: bugün kullanıcı
   Ayarlar'dan döner. Kendiliğinden geçmek bir ürün kararıdır.
 - Hata metinlerindeki "program klasöründeki veri/loglar/sistem.log" paketlenmiş uygulamada
-  kullanıcı klasörüdür (uygulamanın on kadar yerinde geçer).
+  kullanıcı klasörüdür: düzeltildi (üstteki bölüm).
 - Eğitim hattı: her bacağın kaydı aynı adla üzerine yazılır, yükleme yarıda kalırsa önceki
   kayıt da gider; "bütün işleri yeniden çalıştır" önceki denemenin yapıtlarını kullanabilir.
   İkisi de olası değil ama iz bırakır.
