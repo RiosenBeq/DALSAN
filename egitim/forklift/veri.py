@@ -8,6 +8,8 @@ kullanır; torch GEREKMEZ: CI'da veri işi eğitimden ayrı, hafif bir Python'la
     python egitim/forklift/veri.py hazirla --kaynak DIR --hedef OUT
         [--en-uzun-kenar 1280] [--sinir N] [--forklift-tekrar 3]
     python egitim/forklift/veri.py agirlik --boy tiny --hedef yolox_tiny.pth
+    python egitim/forklift/veri.py birlestir --loco OUT --saha SAHA.zip --hedef BIRLESIK
+        [--saha-tekrar 3]
 
 `indir`: LOCO etiket JSON'u ve LICENSE dosyası sabitlenmiş commit'ten iner;
 SHA-256'ları ortak.py'deki değerle tutmazsa çıkış kodu 2. Görüntü arşivi
@@ -41,6 +43,29 @@ yalnız başarıyla biterse OUT adını alır). Bir JSON yolu içeriği farklı 
 çok zip üyesine uyuyorsa (ör. önizleme ya da yinelenmiş bir ağaç) de çıkış
 kodu 2: hangisinin asıl görüntü olduğu sessizce tahmin edilmez.
 
+`birlestir`: `hazirla` çıktısını (OUT) fabrikanın kendi kameralarından
+toplanıp etiketlenen veriyle birleştirir (operatör, 24.09.2026: "gidip
+fabrikadan daha çok görüntü çekip mi yükleyeyim ve sadece yüklesem yeter
+mi"). SAHA, programın Forklift sayfasındaki "Eğitim verisini indir" zip'i ya
+da açılmış klasörüdür (düzeni OUT'unkiyle aynı, üstüne manifest.json).
+Paketin her dosyası manifest'teki SHA-256'yla denetlenir; kategoriler, dosya
+adları, kutular ve gün bölmesi (test günü eğitimde yok) tutmazsa çıkış kodu
+2 ve yarım klasör bırakılmaz:
+
+    BIRLESIK/egitim/*.jpg          LOCO eğitim görüntüleri (sabit bağlantı, olmazsa
+                                   kopya) ve fabrikanın eğitim günlerinin kareleri
+    BIRLESIK/test/*.jpg            yalnız fabrikanın test günleri
+    BIRLESIK/annotations/egitim.json  LOCO girdileri (kendi forklift tekrarıyla) ve
+                                   fabrika kareleri; her fabrika karesi (forkliftli
+                                   ya da değil) toplam --saha-tekrar kez listelenir
+    BIRLESIK/annotations/test.json    fabrikanın test günleri (docs/17 §14: kabul
+                                   ölçümü etiketli saha test günüdür)
+    BIRLESIK/birlestirme.json      kaynak özetleri, sayılar, uyarılar
+
+Fabrika kareleri kişisel veridir (KVKK): bu komut onları yalnız yerel
+klasörde işler; eğitim kapalı bir bilgisayarda yapılır (yerel.py), GitHub
+hattına hiç girmez.
+
 Çıkış kodları: 0 başarı; 1 indirme denemeleri tükendi (ağ, sunucu); 2 özet
 tutmadı, içerik ya da girdi hatalı, arşiv JSON'la uyuşmuyor.
 """
@@ -51,6 +76,9 @@ import argparse
 import hashlib
 import http.client
 import json
+import math
+import os
+import re
 import shutil
 import sys
 import tempfile
@@ -1167,6 +1195,489 @@ def hazirla(
 
 
 # ---------------------------------------------------------------------------
+# Birleştirme: LOCO ve fabrikanın kendi verisi
+# ---------------------------------------------------------------------------
+
+SAHA_MANIFESTI = "manifest.json"
+# backend/app/egitim/forklift_verisi.py MANIFEST_SURUMU ile aynı (test denetler)
+SAHA_MANIFEST_SURUMU = 1
+SAHA_BENIOKU = "BENIOKU.txt"
+SAHA_KUMELERI = ("egitim", "test")
+BIRLESTIRME_KAYDI = "birlestirme.json"
+BIRLESTIRME_SURUMU = 1
+# Fabrika karesinin adı (forklift_verisi.Kare.cikti_adi): "saha-000042.jpg". Başka
+# her ad reddedilir: paketten gelen bir ad klasörün dışına yazamasın.
+_SAHA_DOSYA_ADI = re.compile(r"saha-[0-9]{6,}\.jpg")
+# LOCO hazırlığının dosya adı (_bolumu_yaz): "000042.jpg".
+_LOCO_DOSYA_ADI = re.compile(r"[0-9]{6,}\.jpg")
+# Kutunun görüntü sınırını bu kadar piksel aşmasına göz yumulur (yuvarlama).
+_SINIR_PAYI_PX = 1.0
+# Test günlerindeki forklift kutusu bundan azsa uyarı yazılır. Oran n kutuyla
+# ölçülür; %95 güven aralığının yarı genişliği yaklaşık 1,96 x kök(p(1 - p) / n)
+# olur: p = 0,8 iken n = 50'de ±0,11. Daha az kutuyla ölçülen oran, kapı
+# eşiğinin (fk_r 0,60) hangi yanında olduğunu güvenle söyleyemez.
+AZ_TEST_KUTUSU = 50
+_SAHA_BENIOKU_YEDEGI = (
+    "Bu klasördeki saha-*.jpg görüntüleri fabrikanın kendi kameralarındandır ve\n"
+    "çalışanları da gösterebilir: kişisel veridir (KVKK). İnternete, herkese açık\n"
+    "bir depoya ya da paylaşılan bir klasöre KOYMAYIN.\n"
+)
+
+
+class SahaPaketi:
+    """Forklift sayfasının indirdiği veri paketi: zip dosyası ya da açılmış klasör."""
+
+    def __init__(self, yol: Path) -> None:
+        self.yol = yol
+        self._arsiv: zipfile.ZipFile | None = None
+        if yol.is_file():
+            try:
+                self._arsiv = zipfile.ZipFile(yol)
+            except (zipfile.BadZipFile, OSError) as hata:
+                raise ButunlukHatasi(f"{yol} zip olarak açılamadı: {hata!r}") from hata
+        elif not yol.is_dir():
+            raise ButunlukHatasi(f"fabrika veri paketi bulunamadı: {yol}")
+
+    def var_mi(self, ad: str) -> bool:
+        if self._arsiv is not None:
+            return ad in self._arsiv.NameToInfo
+        return (self.yol / ad).is_file()
+
+    def oku(self, ad: str) -> bytes:
+        """Paketteki bir dosya. `ad` her zaman sabit ya da denetlenmiş bir addır."""
+        try:
+            if self._arsiv is not None:
+                return self._arsiv.read(ad)
+            return (self.yol / ad).read_bytes()
+        except (KeyError, FileNotFoundError) as hata:
+            raise ButunlukHatasi(
+                f"{self.yol}: {ad} yok; paket eksik. Forklift sayfasından yeniden indirin."
+            ) from hata
+        except (zipfile.BadZipFile, zlib.error, EOFError, RuntimeError, OSError) as hata:
+            raise ButunlukHatasi(f"{self.yol}: {ad} okunamadı: {hata!r}") from hata
+
+    def kapat(self) -> None:
+        if self._arsiv is not None:
+            self._arsiv.close()
+
+    def __enter__(self) -> SahaPaketi:
+        return self
+
+    def __exit__(self, *_hata: object) -> None:
+        self.kapat()
+
+
+def _kategoriler_tutuyor_mu(belge: dict) -> bool:
+    try:
+        return {k["name"]: k["id"] for k in belge["categories"]} == _KATEGORI_KIMLIGI
+    except (KeyError, TypeError):
+        return False
+
+
+def _tam_sayi_mi(deger: object) -> bool:
+    return isinstance(deger, int) and not isinstance(deger, bool)
+
+
+def saha_belgesini_denetle(belge: object, kume: str) -> None:
+    """Fabrika paketinin bir kümesinin COCO belgesini denetler; kusurda ButunlukHatasi.
+
+    Program bu belgeyi kendisi yazar; denetim, elle düzenlenmiş ya da bozulmuş
+    bir paketin eğitime sessizce girmemesi içindir. İlk birkaç kusur iletide
+    örnek olarak yazılır.
+    """
+    kusurlar: list[str] = []
+    if not isinstance(belge, dict) or not all(
+        isinstance(belge.get(ad), list) for ad in ("images", "annotations", "categories")
+    ):
+        raise ButunlukHatasi(f"annotations/{kume}.json COCO belgesi değil")
+    if not _kategoriler_tutuyor_mu(belge):
+        raise ButunlukHatasi(
+            f"annotations/{kume}.json kategorileri beklenmedik: "
+            f"{belge['categories']!r} (beklenen {list(KATEGORILER)!r})"
+        )
+    boyutlar: dict[int, tuple[int, int]] = {}
+    adlar: set[str] = set()
+    for giris in belge["images"]:
+        if not isinstance(giris, dict):
+            kusurlar.append(f"görüntü girdisi sözlük değil: {giris!r}")
+            continue
+        kimlik, ad = giris.get("id"), giris.get("file_name")
+        genislik, yukseklik, gun = giris.get("width"), giris.get("height"), giris.get("gun")
+        if not _tam_sayi_mi(kimlik) or kimlik in boyutlar:
+            kusurlar.append(f"görüntü kimliği geçersiz ya da yinelenmiş: {kimlik!r}")
+        elif not isinstance(ad, str) or not _SAHA_DOSYA_ADI.fullmatch(ad) or ad in adlar:
+            kusurlar.append(f"görüntü {kimlik}: dosya adı geçersiz ya da yinelenmiş: {ad!r}")
+        elif (
+            not (_tam_sayi_mi(genislik) and _tam_sayi_mi(yukseklik)) or min(genislik, yukseklik) < 1
+        ):
+            kusurlar.append(f"görüntü {kimlik}: boyut geçersiz: {genislik!r}x{yukseklik!r}")
+        elif not isinstance(gun, str) or not gun:
+            kusurlar.append(f"görüntü {kimlik}: gün yok")
+        else:
+            boyutlar[kimlik] = (genislik, yukseklik)
+            adlar.add(ad)
+    for etiket in belge["annotations"]:
+        try:
+            genislik, yukseklik = boyutlar[etiket["image_id"]]
+            x, y, w, h = (float(d) for d in etiket["bbox"])
+            gecerli = (
+                etiket["category_id"] in _KATEGORI_ADI
+                and all(math.isfinite(d) for d in (x, y, w, h))
+                and w > 0
+                and h > 0
+                and x >= -_SINIR_PAYI_PX
+                and y >= -_SINIR_PAYI_PX
+                and x + w <= genislik + _SINIR_PAYI_PX
+                and y + h <= yukseklik + _SINIR_PAYI_PX
+            )
+        except (KeyError, TypeError, ValueError):
+            gecerli = False
+        if not gecerli:
+            kusurlar.append(f"geçersiz kutu: {etiket!r}")
+    if kusurlar:
+        raise ButunlukHatasi(
+            f"annotations/{kume}.json'da {len(kusurlar)} kusur (ör. {' | '.join(kusurlar[:3])}). "
+            "Paket elle değiştirilmiş ya da bozuk: Forklift sayfasından yeniden indirin."
+        )
+
+
+@dataclass(frozen=True)
+class SahaVerisi:
+    """Denetlenmiş fabrika paketi: manifest ve iki kümenin COCO belgeleri."""
+
+    manifest: dict
+    manifest_sha256: str
+    belgeler: dict[str, dict]
+
+
+def saha_paketini_oku(paket: SahaPaketi) -> SahaVerisi:
+    """manifest.json ve iki COCO belgesini okur, özetlerini ve tutarlılığını denetler.
+
+    Görüntülerin özetleri kopyalanırken denetlenir (birlestir).
+    """
+    ham = paket.oku(SAHA_MANIFESTI)
+    try:
+        manifest = json.loads(ham)
+    except ValueError as hata:
+        raise ButunlukHatasi(f"{paket.yol}: {SAHA_MANIFESTI} okunamadı: {hata}") from hata
+    surum = manifest.get("surum") if isinstance(manifest, dict) else None
+    if surum != SAHA_MANIFEST_SURUMU:
+        raise ButunlukHatasi(
+            f"{paket.yol}: paket sürümü {surum!r}, bu betik {SAHA_MANIFEST_SURUMU} bekliyor. "
+            "Eğitim klasörünü programla aynı sürümden alın."
+        )
+    ozetler = manifest.get("sha256")
+    if not isinstance(ozetler, dict):
+        raise ButunlukHatasi(f"{paket.yol}: {SAHA_MANIFESTI}'te dosya özetleri yok")
+    belgeler: dict[str, dict] = {}
+    for kume in SAHA_KUMELERI:
+        ad = f"annotations/{kume}.json"
+        veri_ = paket.oku(ad)
+        if ozetler.get(ad) != hashlib.sha256(veri_).hexdigest():
+            raise ButunlukHatasi(
+                f"{paket.yol}: {ad} manifest'teki özetle tutmuyor; paket değişmiş ya da "
+                "bozuk. Forklift sayfasından yeniden indirin."
+            )
+        try:
+            belge = json.loads(veri_)
+        except ValueError as hata:
+            raise ButunlukHatasi(f"{paket.yol}: {ad} okunamadı: {hata}") from hata
+        saha_belgesini_denetle(belge, kume)
+        for giris in belge["images"]:
+            if f"{kume}/{giris['file_name']}" not in ozetler:
+                raise ButunlukHatasi(
+                    f"{paket.yol}: {kume}/{giris['file_name']} manifest'te yok; paket eksik"
+                )
+        belgeler[kume] = belge
+    gunler = {kume: {g["gun"] for g in belgeler[kume]["images"]} for kume in SAHA_KUMELERI}
+    ortak_gun = sorted(gunler["egitim"] & gunler["test"])
+    adlar = [g["file_name"] for kume in SAHA_KUMELERI for g in belgeler[kume]["images"]]
+    if ortak_gun or len(adlar) != len(set(adlar)):
+        raise ButunlukHatasi(
+            f"{paket.yol}: aynı gün ya da aynı kare hem eğitimde hem testte "
+            f"(ör. {', '.join(ortak_gun[:3]) or 'ortak dosya adı'}). Test günleri eğitimde "
+            "görülmemiş olmalı; paketi Forklift sayfasından yeniden indirin."
+        )
+    return SahaVerisi(manifest, hashlib.sha256(ham).hexdigest(), belgeler)
+
+
+def _kutu_sayilari(belge: dict) -> dict[str, int]:
+    sayim = Counter(_KATEGORI_ADI[e["category_id"]] for e in belge["annotations"])
+    return {sinif: sayim[sinif] for sinif in ortak.EK_SINIFLAR}
+
+
+def birlesik_egitim_belgesi(
+    loco: dict, saha: dict, *, saha_tekrar: int = 3, bilgi: dict | None = None
+) -> dict:
+    """LOCO'nun ve fabrikanın eğitim belgeleri -> tek COCO belgesi.
+
+    Kimlikler 1'den yeniden verilir; LOCO'nun kendi tekrar girdilerinin
+    "asil_id"si yeni kimliğe çevrilir. Fabrika kareleri LOCO'dan sonra gelir,
+    "alt_kume" "saha" olur ve her biri (forkliftli ya da değil) toplam
+    `saha_tekrar` kez listelenir: ek girdiler aynı dosyayı gösterir ve
+    "asil_id" taşır. Hedef ortam, LOCO'nun binlerce karesi arasında
+    kaybolmasın; forkliftsiz fabrika karesi de yanlış alarmı öğretir.
+    """
+    if saha_tekrar < 1:
+        raise ValueError(f"saha_tekrar en az 1 olmalı: {saha_tekrar}")
+    goruntuler: list[dict] = []
+    etiketler: list[dict] = []
+
+    def kutulari(belge: dict) -> dict[object, list[dict]]:
+        sozluk: dict[object, list[dict]] = defaultdict(list)
+        for etiket in belge["annotations"]:
+            sozluk[etiket["image_id"]].append(etiket)
+        return sozluk
+
+    def ekle(giris: dict, kutular: list[dict], asil_id: int | None) -> int:
+        kimlik = len(goruntuler) + 1
+        yeni = {ad: deger for ad, deger in giris.items() if ad not in ("id", "asil_id")}
+        yeni["id"] = kimlik
+        if asil_id is not None:
+            yeni["asil_id"] = asil_id
+        goruntuler.append(yeni)
+        for etiket in kutular:
+            x, y, w, h = (float(d) for d in etiket["bbox"])
+            etiketler.append(
+                {
+                    "id": len(etiketler) + 1,
+                    "image_id": kimlik,
+                    "category_id": etiket["category_id"],
+                    "bbox": [x, y, w, h],
+                    "area": round(w * h, 2),
+                    "iscrowd": 0,
+                }
+            )
+        return kimlik
+
+    loco_kutulari = kutulari(loco)
+    yeni_kimlik: dict[object, int] = {}
+    for giris in loco["images"]:
+        asil = giris.get("asil_id")
+        if asil is not None and asil not in yeni_kimlik:
+            raise ButunlukHatasi(f"LOCO eğitim belgesinde tekrar girdisi asılından önce: {giris!r}")
+        yeni_kimlik[giris["id"]] = ekle(
+            giris, loco_kutulari.get(giris["id"], []), None if asil is None else yeni_kimlik[asil]
+        )
+    saha_kutulari = kutulari(saha)
+    asillar = [
+        (ekle(dict(giris, alt_kume="saha"), saha_kutulari.get(giris["id"], []), None), giris)
+        for giris in saha["images"]
+    ]
+    for _ in range(saha_tekrar - 1):
+        for kimlik, giris in asillar:
+            ekle(dict(giris, alt_kume="saha"), saha_kutulari.get(giris["id"], []), kimlik)
+    belge: dict = {} if bilgi is None else {"info": bilgi}
+    belge.update(
+        images=goruntuler, annotations=etiketler, categories=[dict(k) for k in KATEGORILER]
+    )
+    return belge
+
+
+def saha_test_belgesi(saha: dict, bilgi: dict | None = None) -> dict:
+    """Fabrikanın test belgesi; "alt_kume" kameradır (ölçüm kamera başına da dökülür)."""
+    goruntuler = []
+    for giris in saha["images"]:
+        kamera = giris.get("kamera_id")
+        alt_kume = f"kamera-{kamera}" if _tam_sayi_mi(kamera) else "kamera-silinmis"
+        goruntuler.append(dict(giris, alt_kume=alt_kume))
+    belge: dict = {} if bilgi is None else {"info": bilgi}
+    belge.update(
+        images=goruntuler,
+        annotations=[dict(e) for e in saha["annotations"]],
+        categories=[dict(k) for k in KATEGORILER],
+    )
+    return belge
+
+
+def _loco_egitimini_oku(loco: Path) -> tuple[dict, str]:
+    """Hazırlanmış LOCO'nun eğitim belgesi ve özeti; yarım ya da değişmişse ButunlukHatasi."""
+    json_yolu = loco / "annotations" / "egitim.json"
+    kayit_yolu = loco / HAZIRLIK_KAYDI
+    for yol in (json_yolu, kayit_yolu):
+        if not yol.is_file():
+            raise ButunlukHatasi(
+                f"{yol} yok. Önce: python egitim/forklift/veri.py hazirla --kaynak DIR "
+                f"--hedef {loco}"
+            )
+    try:
+        kayit = json.loads(kayit_yolu.read_text(encoding="utf-8"))
+        ham = json_yolu.read_bytes()
+    except (OSError, ValueError) as hata:
+        raise ButunlukHatasi(f"{loco} okunamadı: {hata!r}") from hata
+    ozet = hashlib.sha256(ham).hexdigest()
+    beklenen = (
+        (kayit.get("json_sha256") or {}).get("egitim.json") if isinstance(kayit, dict) else None
+    )
+    if ozet != beklenen:
+        raise ButunlukHatasi(
+            f"{json_yolu} hazırlık kaydındaki özetle tutmuyor: LOCO veri seti yarım ya da "
+            "değişmiş. Klasörü silip yeniden hazırlayın."
+        )
+    belge = json.loads(ham)
+    if not _kategoriler_tutuyor_mu(belge):
+        raise ButunlukHatasi(f"{json_yolu}: kategoriler beklenmedik")
+    return belge, ozet
+
+
+def birlestir(loco: Path, saha: Path, hedef: Path, *, saha_tekrar: int = 3) -> dict:
+    """Hazırlanmış LOCO (loco) + fabrika paketi (saha) -> hedef; birlestirme.json'u döndürür.
+
+    Hedef yoksa ya da boşsa yazılır; iş hedefin yanındaki geçici klasörde yapılır
+    ve yalnız başarıyla biterse hedef adını alır (hazirla gibi). LOCO görüntüleri
+    sabit bağlantıyla (disk harcamadan) konur, olmazsa kopyalanır.
+    """
+    if saha_tekrar < 1:
+        raise ButunlukHatasi(f"--saha-tekrar en az 1 olmalı: {saha_tekrar}")
+    if hedef.exists() and (not hedef.is_dir() or any(hedef.iterdir())):
+        raise ButunlukHatasi(
+            f"Hedef klasör boş değil: {hedef}. Eski birleştirmenin üstüne yazılmaz; "
+            "klasörü silin ya da başka bir hedef verin."
+        )
+    baslangic = time.monotonic()
+    loco_belge, loco_ozeti = _loco_egitimini_oku(loco)
+    loco_adlari = sorted({str(g["file_name"]) for g in loco_belge["images"]})
+    tuhaf = [ad for ad in loco_adlari if not _LOCO_DOSYA_ADI.fullmatch(ad)]
+    if tuhaf:
+        raise ButunlukHatasi(f"{loco}: LOCO dosya adı beklenmedik: {tuhaf[:3]}")
+    with SahaPaketi(saha) as paket:
+        saha_verisi = saha_paketini_oku(paket)
+        ozetler = saha_verisi.manifest["sha256"]
+        hedef.parent.mkdir(parents=True, exist_ok=True)
+        gecici = Path(tempfile.mkdtemp(prefix=f".{hedef.name}-birlestirme-", dir=hedef.parent))
+        tamam = False
+        try:
+            for klasor in ("annotations", *SAHA_KUMELERI):
+                (gecici / klasor).mkdir()
+            baglanti = kopya = 0
+            for ad in loco_adlari:
+                kaynak = loco / "egitim" / ad
+                if not kaynak.is_file():
+                    raise ButunlukHatasi(f"{kaynak} yok: LOCO veri seti eksik")
+                try:
+                    os.link(kaynak, gecici / "egitim" / ad)
+                    baglanti += 1
+                except OSError:
+                    shutil.copyfile(kaynak, gecici / "egitim" / ad)
+                    kopya += 1
+            for kume in SAHA_KUMELERI:
+                for giris in saha_verisi.belgeler[kume]["images"]:
+                    ad = giris["file_name"]
+                    veri_ = paket.oku(f"{kume}/{ad}")
+                    if hashlib.sha256(veri_).hexdigest() != ozetler[f"{kume}/{ad}"]:
+                        raise ButunlukHatasi(
+                            f"{paket.yol}: {kume}/{ad} manifest'teki özetle tutmuyor; paket "
+                            "bozuk. Forklift sayfasından yeniden indirin."
+                        )
+                    (gecici / kume / ad).write_bytes(veri_)
+            saha_egitim = saha_verisi.belgeler["egitim"]
+            saha_test = saha_verisi.belgeler["test"]
+            ortak_bilgi = {
+                "loco_commit": ortak.LOCO_COMMIT,
+                "saha_manifest_sha256": saha_verisi.manifest_sha256,
+            }
+            egitim_belgesi = birlesik_egitim_belgesi(
+                loco_belge,
+                saha_egitim,
+                saha_tekrar=saha_tekrar,
+                bilgi=dict(
+                    ortak_bilgi,
+                    aciklama="LOCO (TU München, CC0 1.0) ve fabrikanın kendi kareleri",
+                    bolum="egitim",
+                    saha_tekrar=saha_tekrar,
+                ),
+            )
+            test_belgesi = saha_test_belgesi(
+                saha_test,
+                bilgi=dict(
+                    ortak_bilgi,
+                    aciklama="Fabrikanın test günleri (eğitimde yok)",
+                    bolum="test",
+                    kaynak="saha",
+                ),
+            )
+            json_ozetleri = {
+                "egitim.json": _json_yaz(gecici / "annotations" / "egitim.json", egitim_belgesi),
+                "test.json": _json_yaz(gecici / "annotations" / "test.json", test_belgesi),
+            }
+            benioku = (
+                paket.oku(SAHA_BENIOKU)
+                if paket.var_mi(SAHA_BENIOKU)
+                else _SAHA_BENIOKU_YEDEGI.encode("utf-8")
+            )
+            (gecici / SAHA_BENIOKU).write_bytes(benioku)
+            if (loco / LISANS_DOSYASI).is_file():
+                shutil.copyfile(loco / LISANS_DOSYASI, gecici / LISANS_DOSYASI)
+
+            test_kutusu = _kutu_sayilari(saha_test)
+            uyarilar = [str(u) for u in saha_verisi.manifest.get("uyarilar") or []]
+            if not saha_test["images"]:
+                uyarilar.append(
+                    "Fabrika test günü yok: model fabrikada ölçülemez. En az iki ayrı günün "
+                    "karesini etiketleyip paketi yeniden indirin."
+                )
+            elif test_kutusu[FORKLIFT] < AZ_TEST_KUTUSU:
+                uyarilar.append(
+                    f"Fabrikanın test günlerinde yalnız {test_kutusu[FORKLIFT]} forklift kutusu "
+                    f"var (en az {AZ_TEST_KUTUSU} önerilir): oranlar birkaç kutuyla ölçülür, "
+                    "kapıların hangi yanında olduğu güvenle söylenemez."
+                )
+            if not _kutu_sayilari(saha_egitim)[FORKLIFT]:
+                uyarilar.append(
+                    "Fabrikanın eğitim günlerinde forklift kutusu yok: model fabrikadaki "
+                    "forklifti eğitimde hiç görmez."
+                )
+            rapor = {
+                "surum": BIRLESTIRME_SURUMU,
+                "saha_tekrar": saha_tekrar,
+                "loco": {
+                    "egitim_json_sha256": loco_ozeti,
+                    "goruntu": len(loco_adlari),
+                    "goruntu_kaydi": len(loco_belge["images"]),
+                    "kutu_kaydi": _kutu_sayilari(loco_belge),
+                },
+                "saha": {
+                    "manifest_sha256": saha_verisi.manifest_sha256,
+                    "olusturma_utc": saha_verisi.manifest.get("olusturma_utc"),
+                    "gun_bolmesi": saha_verisi.manifest.get("gun_bolmesi"),
+                    "egitim": {
+                        "kare": len(saha_egitim["images"]),
+                        "kutu": _kutu_sayilari(saha_egitim),
+                    },
+                    "test": {"kare": len(saha_test["images"]), "kutu": test_kutusu},
+                },
+                "egitim_goruntu_kaydi": len(egitim_belgesi["images"]),
+                "json_sha256": json_ozetleri,
+                "loco_goruntu_baglantisi": {"sabit_baglanti": baglanti, "kopya": kopya},
+                "uyarilar": uyarilar,
+            }
+            (gecici / BIRLESTIRME_KAYDI).write_text(
+                json.dumps(rapor, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+            )
+            gecici.chmod(0o755)  # mkdtemp 0700 açar
+            if hedef.exists():
+                hedef.rmdir()  # boş olduğu yukarıda denetlendi
+            gecici.rename(hedef)
+            tamam = True
+        finally:
+            if not tamam:
+                shutil.rmtree(gecici, ignore_errors=True)
+    for uyari in uyarilar:
+        _yaz(f"UYARI: {uyari}")
+    ozet_satiri = {
+        "sure_sn": round(time.monotonic() - baslangic, 1),
+        "egitim_goruntu_kaydi": rapor["egitim_goruntu_kaydi"],
+        "saha_egitim_kare": rapor["saha"]["egitim"]["kare"],
+        "saha_test_kare": rapor["saha"]["test"]["kare"],
+        "saha_test_forklift": test_kutusu[FORKLIFT],
+        "uyari": len(uyarilar),
+    }
+    _yaz(f"birleştirme bitti: {hedef}")
+    print("BIRLESTIRME_OZETI " + json.dumps(ozet_satiri, separators=(",", ":")), flush=True)
+    return rapor
+
+
+# ---------------------------------------------------------------------------
 # Komut satırı
 # ---------------------------------------------------------------------------
 
@@ -1201,6 +1712,15 @@ def _ayristirici() -> argparse.ArgumentParser:
     agirlik.add_argument(
         "--hedef", type=Path, required=True, help=".pth dosyası ya da içine yazılacak klasör"
     )
+    birlestir_ = komutlar.add_parser(
+        "birlestir", help="hazırlanmış LOCO + fabrikanın kendi verisi (Forklift sayfası zip'i)"
+    )
+    birlestir_.add_argument("--loco", type=Path, required=True, help="`hazirla` çıktısı")
+    birlestir_.add_argument(
+        "--saha", type=Path, required=True, help="Forklift sayfasının zip'i ya da açılmış klasörü"
+    )
+    birlestir_.add_argument("--hedef", type=Path, required=True, help="birleşik veri klasörü")
+    birlestir_.add_argument("--saha-tekrar", type=_pozitif_tamsayi, default=3)
     return ayristirici
 
 
@@ -1222,6 +1742,13 @@ def main(argv: Sequence[str] | None = None) -> int:
                 en_uzun_kenar=secenekler.en_uzun_kenar,
                 sinir=secenekler.sinir,
                 forklift_tekrar=secenekler.forklift_tekrar,
+            )
+        elif secenekler.komut == "birlestir":
+            birlestir(
+                secenekler.loco,
+                secenekler.saha,
+                secenekler.hedef,
+                saha_tekrar=secenekler.saha_tekrar,
             )
         else:
             adres, ozet = ortak.RESMI_AGIRLIKLAR[secenekler.boy]
