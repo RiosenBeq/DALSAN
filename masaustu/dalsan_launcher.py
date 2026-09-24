@@ -1263,8 +1263,8 @@ def arayuzu_baslat():
             messagebox.showinfo(
                 "Yedek yok",
                 "Henüz hiç yedek alınmamış.\n\n"
-                "Yedek almak için sistemi başlatıp izleme ekranındaki\n"
-                "\"Yedek Al\" düğmesini kullanın.",
+                "Yedek almak için sistemi başlatıp izleme ekranının\n"
+                "Teşhis sayfasındaki \"Veritabanını Yedekle\" düğmesini kullanın.",
             )
             return
 

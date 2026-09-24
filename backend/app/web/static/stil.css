@@ -16,10 +16,10 @@
    bir yazı tipi, sistemin kendisi sorunsuz çalışırken arayüzü yarı çizilmiş
    gösterirdi. Ayrıntı ve lisanslar: static/vendor/LISANSLAR.md
 
-   İKİ DOSYA ZORUNLU. `latin` altkümesinde Türkçenin ş, ğ, ı ve İ harfleri
-   YOKTUR; onlar `latin-ext` içindedir. Yalnız biri konsaydı ekrandaki her
-   Türkçe kelime yedek yazı tipine düşer ve satırlar iki farklı yazı tipiyle
-   karışık görünürdü. `unicode-range` sayesinde tarayıcı yalnız gerekeni
+   İKİ DOSYA ZORUNLU. `latin` altkümesinde Türkçenin ş, ğ ve İ harfleri
+   (büyükleriyle) YOKTUR; onlar `latin-ext` içindedir, ı ise `latin`'dedir.
+   Yalnız biri konsaydı bu harfler yedek yazı tipine düşer ve satırlar iki
+   farklı yazı tipiyle karışık görünürdü. `unicode-range` sayesinde tarayıcı yalnız gerekeni
    indirir.
 
    font-display: swap - yazı tipi inene kadar metin GÖRÜNÜR kalır. 'block'

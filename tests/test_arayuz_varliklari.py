@@ -11,9 +11,10 @@ Korunan üç şey:
    güvenlik duvarı dış adresleri engelleyebilir. CDN'den gelmeyen bir yazı
    tipi, sistemin kendisi sorunsuz çalışırken arayüzü yarı çizilmiş
    gösterirdi.
-2. **Türkçe harfler.** `latin` altkümesinde ş, ğ, ı ve İ YOKTUR. Yalnız o
-   dosya konsaydı ekrandaki her Türkçe kelime yedek yazı tipine düşer ve
-   satırlar iki farklı yazı tipiyle karışık görünürdü.
+2. **Türkçe harfler.** `latin` altkümesinde ş, ğ ve İ (büyükleriyle) YOKTUR;
+   onlar `latin-ext`'tedir, ı ise `latin`'dedir. Yalnız biri konsaydı bu
+   harfler yedek yazı tipine düşer ve satırlar iki farklı yazı tipiyle karışık
+   görünürdü.
 3. **Simge yazının YERİNE GEÇMEZ.** Yalnız simge konsaydı yazılım bilmeyen
    kullanıcı "bu resim ne demek" diye durmak zorunda kalırdı (CLAUDE.md §8).
 """
@@ -89,7 +90,7 @@ def test_vendor_klasoru_sismiyor():
 
 
 def test_turkce_harfler_icin_iki_altkume_de_var(stil):
-    """`latin` altkümesinde ş, ğ, ı ve İ YOKTUR; onlar latin-ext'tedir.
+    """`latin` altkümesinde ş, ğ ve İ YOKTUR; onlar latin-ext'tedir (ı latin'dedir).
 
     Yalnız biri konsaydı her Türkçe kelime yedek yazı tipine düşerdi.
     """

@@ -22,8 +22,8 @@
     <h3>Veri toplama: KAPALI - Rev.02 onayı bekleniyor</h3>
     <p class="not">Kamera görüntüsünden kişi görüntüsü toplamak kişisel veri işlemektir
       (KVKK). Toplama, DALSAN İSG Rev.02 ek protokolü imzalanıp çalışanlara aydınlatma
-      yapılmadan açılmamalıdır. Kapalıyken hiçbir kişi görüntüsü saklanmaz; kurallar ve
-      uyarılar bundan etkilenmez.{% if toplama.degisti %} Son değişiklik: {{ toplama.degisti }}.{% endif %}</p>
+      yapılmadan açılmamalıdır. Kapalıyken KKD veri seti için kişi görüntüsü saklanmaz;
+      kurallar, uyarılar ve kuralların kanıt fotoğrafları bundan etkilenmez.{% if toplama.degisti %} Son değişiklik: {{ toplama.degisti }}.{% endif %}</p>
     <form method="post" action="/kkd/toplama" class="dikey-form dar">
       <input type="hidden" name="ac" value="1">
       <label class="yatay"><input type="checkbox" name="onay" value="1" required>

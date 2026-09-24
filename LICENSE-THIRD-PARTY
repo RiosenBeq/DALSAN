@@ -58,8 +58,8 @@ Kaynak:      https://rsms.me/inter/
 Lisans metni: https://github.com/rsms/inter/blob/master/LICENSE.txt
 
 Kullanım: latin ve latin-ext altkümeleri woff2 olarak depoya KOPYALANMIŞTIR
-(backend/app/web/static/vendor/). İkisi birden gereklidir: Türkçenin ş, ğ, ı
-ve İ harfleri latin-ext altkümesindedir.
+(backend/app/web/static/vendor/). İkisi birden gereklidir: Türkçenin ş, ğ ve İ
+harfleri (büyükleriyle) latin-ext altkümesinde, ı harfi latin altkümesindedir.
 
 --------------------------------------------------------------------------
 5) LOCO - forklift modelinin eğitim ve test verisi

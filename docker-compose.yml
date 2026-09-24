@@ -46,7 +46,10 @@ services:
       start_period: 40s
 
     # --- GPU (yalnızca Linux + NVIDIA sürücüsü + NVIDIA Container Toolkit) ---
-    # Aşağıdaki bloğu açın ve .env dosyasında CIKARIM_CIHAZI=cuda yapın.
+    # BUGÜNKÜ İMAJ GPU KULLANAMAZ: yalnız CPU'lu onnxruntime kurulur
+    # (backend/requirements.txt); CIKARIM_CIHAZI=cuda uyarıyla CPU'ya düşer.
+    # GPU için onnxruntime-gpu kuran ayrı bir imaj gerekir (docs/17 §12.4); o
+    # imajla bu bloğu açıp ayar/.env içinde CIKARIM_CIHAZI=cuda yapın.
     # Mac ve Windows'ta bu blok ÇALIŞMAZ, kapalı bırakın.
     # deploy:
     #   resources:
