@@ -12,15 +12,16 @@
 |---|---|---|
 | **İnsan** | Hazır model (COCO `person`) | Yeşil |
 | **Tır / araç** | Hazır model (`truck`, `bus`, `car`) | Mavi |
-| **Forklift** | **Şimdilik araç olarak** görünür - hazır modelde forklift sınıfı yoktur (docs/08 R1). Saha görüntüsüyle ince ayar yapılınca ayrı sınıf olur | Turuncu (ayrı sınıf geldiğinde) |
+| **Forklift** | Hazır modellerde forklift sınıfı yoktur; forklift **araç (tır)** olarak görünür (docs/08 R1). Forklift tanıyan model seçildiğinde ayrı sınıf olur (§5) | Turuncu (forklift tanıyan modelle) |
 | **Baret** | KKD sınıflandırıcısı - **henüz eğitilmedi**, veri toplanıyor (docs/04) | Kişi kutusunda **B** rozeti |
 | **Reflektörlü yelek** | Aynı sınıflandırıcı | Kişi kutusunda **Y** rozeti, **sarı** |
 | **Kural ihlali** | Kural motoru | Kutu **kırmızıya** döner ve kalınlaşır |
-| **Çizdiğiniz bölge** | - | Mavi çerçeve |
+| **Çizdiğiniz bölge** | - | Mor çerçeve |
 
 Rozetlerin üç durumu vardır: **dolu = var**, **kırmızı çarpı = yok**,
 **gri soru işareti = belirsiz**. **Belirsiz asla ihlal sayılmaz** (docs/04 §1).
-KKD modeli eğitilene kadar tüm kişiler belirsiz görünür - bu normaldir, arıza değil.
+KKD modeli yüklü değilken kişi kutusunda B/Y rozeti hiç çizilmez ve kural motoru
+herkesi belirsiz sayar - bu normaldir, arıza değil.
 
 Aynı tablo arayüzde de vardır: kamera sayfasındaki **Renk anahtarı**.
 
@@ -52,7 +53,7 @@ uyarı satırı** çıkar ve ne yapılacağını yazar. Ölçülen dört durum:
 | **Görüntü çok karanlık** | Ortalama parlaklık çok düşük | Alana ışık ekleyin; kameranın gece modunu (IR) açın; `.env` → `GORUNTU_IYILESTIRME=otomatik` |
 | **Görüntü aşırı parlak** | Kameraya doğrudan ışık geliyor | Kamerayı yeniden konumlandırın (kalıcı çözüm budur) |
 | **Görüntü bulanık** | Netlik düşük | Kamera camını silin; odağı kontrol edin; substream yerine ana akışı deneyin |
-| **Kontrast düşük** | Sisli/dumanlı görünüm | `.env` → `GORUNTU_IYILESTIRME=otomatik` |
+| **Görüntünün kontrastı düşük** | Sisli/dumanlı görünüm | `.env` → `GORUNTU_IYILESTIRME=otomatik` |
 
 ### `GORUNTU_IYILESTIRME=otomatik` ne yapar
 
@@ -84,11 +85,13 @@ TESPIT_EN_KUCUK_KENAR_PX=12      # bundan küçük kutular atılır
 2. `TESPIT_INSAN_GUVEN_ESIGI` değerini **0,05'lik adımlarla** düşürün (0,28 → 0,23 → 0,18).
 3. Uzaktaki küçük nesne için `TESPIT_EN_KUCUK_KENAR_PX` değerini düşürün (12 → 8).
 4. Hâlâ olmuyorsa daha isabetli modele geçin: Ayarlar → "Tanıma modeli" →
-   **NextGen AI İsabetli**, sonra Kontrol Paneli'nden yeniden başlatın
+   **NextGen AI İsabetli**, sonra sistemi yeniden başlatın (masaüstünde Kontrol
+   Paneli'nde Durdur → Sistemi Başlat; sunucuda docs/06 §7)
    (daha yavaş ama küçük nesnelerde belirgin daha iyi; ilk açılışta kendisi iner).
 
 **Yanlış tespit çoksa** (olmayan nesneye kutu):
-1. Aynı eşikleri **yükseltin**.
+1. Aynı eşikleri **yükseltin** (insan eşiği genel eşiği geçemez: daha yüksek
+   yazılırsa insanda da genel eşik uygulanır).
 2. `TESPIT_EN_KUCUK_KENAR_PX` değerini yükseltin (12 → 20): uzak gürültü elenir.
 3. Kalabalık sahnede kutular birbirine giriyorsa `TESPIT_NMS_ESIGI` değerini
    0,5-0,6 arasında deneyin.
@@ -101,13 +104,28 @@ TESPIT_EN_KUCUK_KENAR_PX=12      # bundan küçük kutular atılır
 
 ## 5. Forklift hakkında dürüst not
 
-Hazır COCO modelinde **forklift sınıfı yoktur.** Forklift bugün çoğu zaman
-`truck` (tır/araç) olarak görünür ve güvenli mesafe kuralı onu araç sayar -
-yani kural **çalışır**, ama ekranda "forklift" yerine "tır" yazar.
+Hazır modellerde (**NextGen AI Hızlı** ve **İsabetli**, COCO sınıfları)
+**forklift sınıfı yoktur.** Forklift bu modellerle çoğu zaman `truck` (tır/araç)
+olarak görünür ve güvenli mesafe kuralı onu araç sayar - yani kural **çalışır**,
+ama ekranda "forklift" yerine "tır" yazar.
 
-Gerçek forklift sınıfı, sahadan toplanan görüntülerle ince ayar yapıldığında
-gelir (3-4. hafta işi, docs/08 R1). O gün değişecek tek yer
-`backend/app/analiz/tespit.py` içindeki sınıf eşleme tablosudur.
+Forklift tanıyan model ayrı bir eğitim hattında hazırlanır: açık LOCO veri
+setiyle (CC0) GitHub Actions'ta eğitilir ve hazır modelin insan ve araç
+tespitine dokunmadan üstüne forklift sınıfı ekler (`egitim/forklift/`, docs/17
+§12.3). Aday ancak `egitim/forklift/esikler.json`'daki geçitleri geçerse
+kaydedilir: insan ve araç tespitinde kayıp yok denecek kadar az, forklift
+yakalama oranı en az %60, yanlış alarm ve gecikme sınırları içinde. Kaydedilen
+model Ayarlar → "Tanıma modeli"nde seçilebilir olur; varsayılan model saha
+ölçümü ve operatör onayı olmadan değişmez. Bir modelin hangi sınıfları
+tanıdığı model dosyasının içinden okunur (`dalsan_classes`,
+`backend/app/analiz/tespit.py`): yeni model için kod değişmez.
+
+**Bugün kayıtlı forklift modeli yok**; eğitim sürüyor, sonuçlar
+`docs/ILERLEME.md`'de.
+
+Seçilen forklift modeli inmezse ya da açılamazsa sistem durmaz: tabanındaki
+hazır modelle insan ve araç tespitine devam eder, ana sayfada sebebini yazar ve
+Olaylar'a "Seçili model yerine hazır model çalışıyor" düşer (docs/06 §7).
 
 ---
 
@@ -116,7 +134,7 @@ gelir (3-4. hafta işi, docs/08 R1). O gün değişecek tek yer
 | Belirti | Sebep / çözüm |
 |---|---|
 | "Kameraya ağ üzerinden ulaşılamıyor" | IP veya port yanlış; kamera kapalı; ağ kablosu takılı değil |
-| "Ulaşıldı ama görüntü akışı açılamadı" | Kullanıcı adı/şifre veya akış yolu yanlış. Şifrede `@ : / #` varsa `%40 %3A %2F %23` yazın |
+| "Kameraya ulaşıldı ama görüntü akışı açılamadı" | Kullanıcı adı/şifre veya akış yolu yanlış. Şifrede `@ : / #` varsa `%40 %3A %2F %23` yazın |
 | "Kameraya bağlanıldı ama görüntü gelmedi" | NVR'ın eşzamanlı bağlantı sınırı dolmuş olabilir; ya da akış H.265 ve çözülemiyor - kamerada H.264 seçin |
 | "Video dosyası bulunamadı" | Tam yol gerekir. Mac: dosyayı Finder'da seçip **Option+Command+C**. Windows: dosyaya **Shift + sağ tık → "Yol olarak kopyala"** |
 | Kamera "bağlanıyor"da kalıyor | İlk bağlantı 30 saniye sürebilir; 60 saniye içinde görüntü gelmezse "çevrimdışı" olur ve sebebi yazar. Çalışırken kopan kamera ise ~10 saniyede "çevrimdışı" görünür (Ayarlar → Takip ve kamera bağlantısı) |
@@ -153,10 +171,13 @@ Koşul: **"Bölge DIŞINDA olmak ihlal"**.
 
 ## Zemindeki boyadan alan tanıma
 
-Kamera sayfasındaki **"Canlı görüntüde alanları bul"** düğmesi, zemindeki sarı ve
-beyaz boyayı arayıp hazır bir bölge çizimi önerir. Öneriyi kabul etmek zorunda
-değilsiniz: kartına tıklarsanız çizim tuvale yüklenir, köşelerini sürükleyip
-düzeltirsiniz. **Sistem hiçbir bölgeyi kendiliğinden kaydetmez.**
+Kamera sayfasındaki **"Alanları otomatik bul"** düğmesi, zemindeki sarı ve
+beyaz boyayı arayıp hazır bir bölge çizimi önerir. Sayfa sade görünümle açılır:
+bu düğme ve aşağıdaki **Kareyi dondur** / **Ekran görüntüsü yükle** düğmeleri,
+sayfanın üstündeki **Gelişmiş araçlar**'a basınca görünür (seçim tarayıcıda
+hatırlanır). Öneriyi kabul etmek zorunda değilsiniz: kartına tıklarsanız çizim
+tuvale yüklenir, köşelerini sürükleyip düzeltirsiniz. **Sistem hiçbir bölgeyi
+kendiliğinden kaydetmez.**
 
 ### Ne bulur, ne bulamaz
 
@@ -210,8 +231,9 @@ de** vardır: analiz, bölgeleri videoya taralı çizer. Böylece ekranda görd�
 alanla sistemin değerlendirdiği alan aynıdır - "acaba bölge doğru yere mi oturdu"
 sorusu görüntüye bakarak cevaplanır.
 
-Tarama bir **vurgu**, örtü değildir: çizgiler alanın ancak %8'ini kaplar, altındaki
-insan ve araç kutuları okunur kalır.
+Tarama bir **vurgu**, örtü değildir: canlı görüntüde çizgiler, çözünürlüğe göre
+alanın yaklaşık %7-22'sini kaplar (720p'de ~%7, 1080p'de ~%22); aradaki görüntü
+açık kalır, altındaki insan ve araç kutuları okunur kalır.
 
 Üst üste binen iki bölgeye tıklarsanız **küçük olan** seçilir - büyük bir bölgenin
 içindeki küçük bölgeye başka türlü tıklanamazdı.
@@ -230,7 +252,7 @@ tek şey, kaydettiğiniz bölgedir.
 
 Ekran görüntüsü bölge çizdirir ama **kuralları çalıştırmaz**: hareket yoktur,
 takip yoktur, dolayısıyla ihlal de çıkmaz. Gerçek bir denemeye ihtiyacınız
-varsa **Kameralar → Video Yükle** sayfasını kullanın.
+varsa **Kameralar → Video ile Test** sayfasını kullanın.
 
 1. **Gözat** ile bilgisayarınızdaki bir video dosyasını seçin (MP4, MOV, AVI,
    MKV, M4V - en fazla 1 GB). Dosyanın tam yolunu yazmanız gerekmez.
@@ -279,18 +301,21 @@ dokunmaz. Yeriniz daralırsa bu sayfadan **Sil** deyin.
 
 ## Bölgedeki nesneleri sayma
 
-Bölge çizdiğiniz anda sayım başlar - **kural kurmanız gerekmez.** Sayılar hem
-kamera sayfasındaki *Bölge sayımı* bölümünde hem de canlı görüntünün üstünde,
-bölgenin köşesinde görünür.
+Bölge çizdiğiniz anda sayım başlar - **kural kurmanız gerekmez.** Sayılar
+kamera sayfasındaki *Bölge sayımı* bölümünde görünür; o anki sayı ayrıca Canlı
+duvar gibi izleme ekranlarında, canlı görüntünün üstünde bölgenin köşesinde
+yazar (kamera sayfasının kendi görüntüsünde bölgeleri tarayıcı çizdiği için
+orada yazmaz).
 
 | Sayı | Cevapladığı soru |
 |---|---|
 | İçeride | Şu anda bölgede kaç nesne var? |
 | Giren | Sayaç sıfırlandığından beri kaç **ayrı** nesne girdi? |
-| En çok | Aynı anda en fazla kaç tane görüldü? |
+| En çok | Aynı anda en fazla kaç tane görüldü? (sınıf başına) |
 
 Aynı kişi bölgede ne kadar dursa da bir kez sayılır. Vardiya başında
-**"Giriş sayaçlarını sıfırla"** düğmesine basın; yalnız "giren" sıfırlanır.
+**"Giriş sayaçlarını sıfırla"** düğmesine basın; "giren" ve "en çok"
+sıfırlanır, "içeride" sıfırlanmaz.
 
 **Sayım hiçbir uyarı ya da anons üretmez.** İhlal için bölgeye bir kural
 bağlamanız gerekir.

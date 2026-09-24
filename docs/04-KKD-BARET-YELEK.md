@@ -28,7 +28,8 @@ Model negatif örnek görmeden "baretsiz"i öğrenemez. Çözüm Bölüm 4'te.
 
 Model üç durum üretir: `yes` / `no` / `unknown`. Yalnızca `no`, ve yalnızca yeterli
 zamansal destekle, olay üretir. `unknown` **hiçbir zaman** uyarı üretmez.
-Bu kural `rules/ppe.py` içinde açıkça kodlanır ve testle korunur.
+Bu kural `rules/kkd.py` içinde açıkça kodlanır ve testle korunur
+(`tests/rules/test_kkd.py` `test_belirsiz_asla_olay_uretmez`).
 
 ---
 
@@ -40,10 +41,10 @@ sınıflandırıcı** çalıştır.
 ```
 Kare
  └─ Detector → person bbox + track_id      (zaten pipeline'da var)
-      └─ bbox KKD bölgesinde mi?  ─hayır─▶ atla
-           └─ bbox yüksekliği ≥ eşik? ─hayır─▶ unknown, olay yok
-                └─ crop (üstten %10 padding) → 128×256'ya resize
-                     └─ PPE sınıflandırıcı → {helmet: p, vest: p, visibility: p}
+      └─ bbox KKD bölgesinde mi? (muaf alan oyulur)  ─hayır─▶ atla
+           └─ iz başına 5 karede bir: crop (üstten %10 padding) → 128×256'ya resize
+                └─ PPE sınıflandırıcı → baret: [var, yok, görünmüyor], yelek: [var, yok, görünmüyor]
+                     └─ kural: bbox yüksekliği < eşik, kesik kutu ya da güven düşük ─▶ unknown
                           └─ track'e yaz → zamansal oylama → karar
 ```
 
@@ -62,11 +63,13 @@ geometrik olarak kişiye eşlemek.
 | Görsel açıklanabilirlik | Kişi kutusu renkle işaretlenir | Baretin etrafında kutu - daha güzel |
 
 Tek dezavantajı görsel açıklanabilirlik; MVP'de kişi kutusunun renklendirilmesi
-(yeşil = uyumlu, kırmızı = ihlal, gri = belirsiz) yeterlidir.
+(yeşil = uyumlu, ince kırmızı = son gözlemde eksik, kalın kırmızı = ihlal,
+gri = belirsiz) yeterlidir.
 
 **Ayrıca:** iki aşamalı yöntem, insan dedektörünü zaten çalıştırdığımız için
-ek GPU maliyeti neredeyse sıfırdır. 4 kamerada, 5 karede bir, kişi başına 128×256
-bir sınıflandırma - ölçülemeyecek kadar ucuz.
+ek GPU maliyeti getirmez: sınıflandırıcı CPU'da, tek iş parçacığıyla çalışır.
+4 kamerada, 5 karede bir, kişi başına 128×256 bir sınıflandırma - ucuz olması
+beklenir ama ölçülmedi; süre §6.6 adım 5'teki komutla ölçülür.
 
 ---
 
@@ -81,7 +84,8 @@ Baret, kişi boyunun yaklaşık **1/8'i** kadardır. Yelek ise gövdenin ~1/3'ü
 | 80-120 px | 10-15 px | Güvenilmez → `unknown` | Sınırda |
 | < 80 px | < 10 px | İmkânsız | Güvenilmez |
 
-**Varsayılan eşikler:** `min_person_height_px`: baret için **120**, yelek için **80**.
+**Varsayılan eşikler:** baret için `min_person_height_px` **120**, yelek için
+`min_vest_height_px` **80**.
 
 ### Bunun saha karşılığı
 
@@ -156,11 +160,13 @@ bilgilendirilmiş onay alınmalıdır. Bu, DALSAN'ın aydınlatma metninden ayr�
 Sistem 2. haftadan itibaren kişi tespiti yapabilir hale gelir. O andan itibaren:
 
 - Her KKD bölgesindeki kişi crop'ları, **saatte sınırlı sayıda örneklenerek** diske yazılır
-  (ör. kamera başına saatte 60 crop, rastgele zamanlarda - aynı kişinin ardışık 200 karesi
-  değil)
+  (kamera başına saatte en çok `KKD_ORNEK_SAAT_LIMIT`, varsayılan 60: iki deneme arası en
+  az 3600/limit saniye, her denemede en çok bir kişi - aynı kişinin ardışık 200 karesi değil)
 - Bu, pozitif örnekleri ve **gerçek çeşitliliği** (ışık, toz, hava, vardiya, kıyafet)
   ücretsiz toplar
-- Toplama, retention politikasına tabidir ve etiketleme bitince ham crop'lar silinir
+- Toplama, retention politikasına tabidir: iki etiketi tamamlanmamış crop
+  `KKD_HAM_VERI_SAKLAMA_GUN` (varsayılan 30) gün sonra bakımda silinir; etiketlenen crop
+  veri setidir ve bakım onu silmez
 
 **Toplama kapısı (KVKK, docs/17 §5.8).** Otomatik toplama yalnız KKD sayfasındaki
 **"Veri toplama"** kapısı açıkken yapılır; varsayılan **KAPALI**'dır. Açmak için
@@ -170,8 +176,8 @@ Kapı her örnekten hemen önce okunur: kapatınca toplama **aynı anda** durur,
 yeniden başlatma gerekmez. Kapı okunamazsa kapalı sayılır. Ayrıca:
 - **muaf alandaki** (`ppe_exempt`: kabin, ofis köşesi) kişiden örnek alınmaz;
 - KKD kuralının `min_person_height_px`'inden kısa kişiden örnek alınmaz. Sayı
-  kuraldan okunur, ikinci kez yazılmaz; kural yoksa şemanın varsayılanı (120)
-  geçerlidir.
+  kuraldan okunur, ikinci kez yazılmaz (kamerada birden çok KKD kuralı varsa en
+  küçüğü); kural yoksa şemanın varsayılanı (120) geçerlidir.
 
 Yüz, isim, sicil ve iz → personel eşlemesi hiçbir yerde saklanmaz; bunu taşıyacak
 bir sütun olmadığını `tests/test_kkd_toplama_kapisi.py` denetler.
@@ -214,6 +220,12 @@ yanlış alarmı azaltan en güçlü tek unsurdur.
 ## 5. Etiketleme
 
 ### 5.1 Araç
+
+**Üründe (docs/09 #5):** etiketleme uygulamanın KKD sayfasında yapılır: her kırpıkta
+Baret ve Yelek için üç düğme, Var / Yok / Belirsiz. İki etiketi de verilen kırpık
+listeden düşer ve veri setine girer. Aşağıdaki ilk plan bu kararla değişti: CVAT,
+Label Studio ya da klasör yöntemi kurulmaz; olay ekranında "etiketle" düğmesi
+yoktur (geri besleme döngüsü docs/07 #2).
 
 - **CVAT** (kendi sunucunda, ücretsiz) veya **Label Studio** - sınıflandırma projesi
 - Ya da en basiti: crop'ları klasörlere ayır → `helmet_yes/`, `helmet_no/`, `helmet_unknown/`
@@ -281,7 +293,10 @@ en sık yapılan hatadır ve müşteriye yanlış vaat verilmesine yol açar.
 Bölmenin birimi Türkiye yerel günüdür: bir günün bütün kameraları aynı kümededir.
 Böylece aynı anı iki kameradan gören kareler de ayrılmaz. Günler sırayla bölünür:
 doğrulama %12,5, test %25, en az üç günde her kümeye en az bir gün düşer. Üçten az
-gün varsa sayfa ve manifest bunu uyarı olarak yazar. Uzmanın alacağı zip:
+gün varsa sayfa ve manifest bunu uyarı olarak yazar. Planlı çekim seansının
+kırpıkları ayrıca işaretlenmez, çekildiği günün kümesine düşer: yukarıdaki
+örnekteki "planlı çekim seansının bir bölümü"nü test kümesine ayırmayı ürün
+yapmaz. Uzmanın alacağı zip:
 
 | Dosya | İçerik |
 |---|---|
@@ -303,12 +318,13 @@ Zor örnekler (`zor_ornek` sütunu) KKD sayfasında kart başına işaretlenir; 
   EfficientNet-B0 veya ResNet-18 sınıfı. 4 kameralı bir sistemde bunların hepsi
   fazlasıyla hızlıdır; seçim bakım kolaylığına göre yapılır.
 - **Giriş:** kişi crop'u, üstten %10 padding ile, **128×256** (portre en-boy korunur)
-- **Çıkış:** 4 logit → `helmet_yes`, `helmet_no`, `vest_yes`, `vest_no`
-  (her çift kendi içinde softmax; `unknown` **ayrı sınıf değil**, düşük güvenden türer)
+- **Çıkış:** her KKD için 3 sınıflı softmax (`yes`/`no`/`unknown`): `baret` ve
+  `yelek` adlı iki çıktı, sıra [var, yok, görünmüyor] (§6.6 sözleşmesi)
 
-Alternatif ve daha temiz olan: her KKD için 3 sınıflı softmax (`yes`/`no`/`unknown`).
-`unknown`'ı etiketlediğimiz için bu mümkündür ve **tercih edilendir** - model
-"göremiyorum"u açıkça öğrenir.
+`unknown`'ı etiketlediğimiz için bu mümkündür ve ürünün kabul ettiği tek biçim
+budur - model "göremiyorum"u açıkça öğrenir. İlk taslaktaki 4 logit
+(`helmet_yes`, `helmet_no`, `vest_yes`, `vest_no`; `unknown` yalnız düşük güvenden
+türer) sözleşmeye uymaz: sistem böyle bir modeli yüklemez.
 
 ### 6.2 Augmentasyon
 
@@ -369,7 +385,8 @@ yüklenmez; Olaylar'a "Model yüklenemedi" düşer ve KKD sayfası sebebini yaza
    doğrulandı" yazar. Aynı sürüm adı her KKD olayına `details.ppe.model_version`
    olarak girer.
 5. `python -m tests.hiz_kiyas --kkd` sınıflandırıcının hedef donanımdaki süresini
-   ölçer. Bütçe aşılırsa önce KKD kadansı büyütülür, sonra GPU gerekir.
+   ölçer. Bütçe aşılırsa önce KKD kadansı büyütülür, sonra GPU gerekir (GPU tespit
+   modelini taşır; sınıflandırıcı CPU'da kalır).
 
 **Model değişince** anonsu açık KKD kuralları kendiliğinden gölge moda döner ve
 Olaylar'a "KKD modeli değişti" düşer: yeni sürümün isabeti ölçülmeden hoparlör
@@ -385,12 +402,14 @@ PYTHONPATH=backend .venv/bin/python -m app.egitim.degerlendirme dalsan-kkd-veri-
 ```
 
 - **Girdi:** KKD sayfasından indirilen veri seti ve değerlendirilecek model. Veri
-  setindeki her dosya manifest'in sha256'sıyla, model de `SHA256SUMS` ve §6.6
-  sözleşmesiyle denetlenir; model sahadaki yoldan (`KkdSiniflandirici`) yüklenir.
+  setinden okunan her dosya (`etiketler.csv` ve seçilen kümenin kırpıkları)
+  manifest'in sha256'sıyla, model de `SHA256SUMS` ve §6.6 sözleşmesiyle denetlenir;
+  model sahadaki yoldan (`KkdSiniflandirici`) yüklenir.
 - **Küme:** varsayılan **test** günleri (§5.4). `--kume val|train|tum` seçilebilir;
   eğitim günlerindeki sayı ezberi ölçer ve rapor bunu yazar.
-- **Güven eşiği:** `--min-guven` (varsayılan KKD kuralının `min_confidence`'ı, 0,7).
-  Altı belirsiz sayılır, sahadaki kural gibi.
+- **Güven eşiği:** `--min-guven` (varsayılan KKD kuralının şemadaki `min_confidence`'ı,
+  0,7; sahadaki kuralın değeri okunmaz, değiştirildiyse elle verilir). Altı belirsiz
+  sayılır, sahadaki kural gibi.
 - **Rapor:** kalem başına var / yok / görünmüyor karışıklık tablosu; "yok" için
   precision (paydası "yok" tahminleri: görünmüyor etiketine "yok" demek de yanlış
   alarmdır) ve recall (paydası "yok" etiketleri: belirsiz kalan "yok" da kaçmıştır);
@@ -418,25 +437,30 @@ Her `person` track'i için son N değerlendirmenin (kare değil - 5 karede bir
 değerlendiriliyor) kayan penceresi tutulur:
 
 ```python
-# rules/ppe.py - saf mantık, CV bağımlılığı yok
-def evaluate_ppe(track_history, params) -> PpeDecision:
-    # 1. Bölge içinde mi ve yeterince uzun süredir mi
-    # 2. Yeterli sayıda geçerli (unknown olmayan) gözlem var mı
-    # 3. Geçerli gözlemlerin çoğunluğu 'no' mu ve güven eşiğin üstünde mi
-    # 4. Değilse: unknown → olay yok
+# rules/kkd.py - saf mantık, CV bağımlılığı yok
+class KkdDegerlendirici:
+    def degerlendir(self, baglam) -> list[Ihlal]:
+        # Her kişi ve her kalem (baret, yelek) için ayrı:
+        # 1. Bölge içinde mi ve en az min_dwell_s süredir mi
+        # 2. Penceredeki geçerli (unknown olmayan) gözlem en az min_valid_observations mı
+        #    (boyu eşiğin altındaki, kesik ya da güveni min_confidence'ın altındaki
+        #    gözlem unknown sayılır)
+        # 3. Geçerli gözlemlerin en az violation_ratio'su 'no' mu → ihlal (cooldown'a tabi)
+        # 4. Gözlem yetmiyorsa: unknown → olay yok; oran tutmuyorsa: yes → olay yok
 ```
 
 **Varsayılan parametreler:**
 
 | Parametre | Varsayılan | Anlamı |
 |---|---|---|
-| `min_person_height_px` | 120 (baret) / 80 (yelek) | Altında değerlendirme yapılmaz |
+| `min_person_height_px` | 120 | Baret için: altında değerlendirme yapılmaz |
+| `min_vest_height_px` | 80 | Yelek için: altında değerlendirme yapılmaz |
 | `min_confidence` | 0.70 | Kalibre edilmiş güven eşiği |
 | `window_size` | 15 | Son 15 değerlendirme |
 | `min_valid_observations` | 8 | En az 8'i `unknown` olmayacak |
 | `violation_ratio` | 0.75 | Geçerli gözlemlerin ≥ %75'i `no` diyecek |
 | `min_dwell_s` | 3.0 | Kişi bölgede en az 3 sn kalacak |
-| `cooldown_s` | 180 | Aynı track için 3 dk tekrar uyarı yok |
+| `cooldown_s` | 180 | Aynı track ve kalem için 3 dk tekrar uyarı yok |
 | `require_full_bbox` | true | Kare kenarında kesik kutular değerlendirilmez |
 
 Bu parametrelerin hepsi **arayüzden düzenlenebilir** ve değişiklik yeniden başlatma
@@ -491,13 +515,13 @@ düzelmeyecek bir güven kaybı yaratır.
 
 | Kaynak | Belirti | Çare |
 |---|---|---|
-| Kişi çok uzak | `unknown` yerine `no` çıkıyor | `min_person_height_px` ↑ |
+| Kişi çok uzak | `unknown` yerine `no` çıkıyor | `min_person_height_px` (baret) / `min_vest_height_px` (yelek) ↑ |
 | Sırtı dönük, baret açıdan görünmüyor | Aralıklı `no` | `min_confidence` ↑, `violation_ratio` ↑ |
 | Toz/parlama | Kümelenmiş yanlış alarm, belirli saatte | Augmentasyona o koşulun verisini ekle, yeniden eğit |
 | Kişi bölge sınırında | Girip çıkıyor, tekrar uyarı | Bölgeyi içeri çek, `min_dwell_s` ↑ |
 | Forklift kabinindeki operatör | Sürekli ihlal | Politika kararı (5.3 #4) + kabin alanını bölgeden çıkar |
 | Hi-vis mont yelek sayılmıyor | Kışın patlama | Politika kararı (5.3 #1) + veriye mont ekle |
-| İki kişi üst üste | Yanlış crop | `require_full_bbox` + oklüzyon oranı kontrolü |
+| İki kişi üst üste | Yanlış crop | `require_full_bbox` + `max_kisi_ortusmesi` (iki kişi kutusunun örtüşme eşiği; varsayılan kapalı) |
 
 ---
 

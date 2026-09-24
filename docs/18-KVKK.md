@@ -6,7 +6,7 @@
 > teyidi bekler.** Veri sorumlusu müşteridir; aydınlatma metnini ve levhayı
 > müşteri hazırlar (docs/00 "KVKK - atlanamaz").
 
-Son güncelleme: 23.09.2026 (Faz 5c).
+Son güncelleme: 24.09.2026 (Faz 5c; yazılım davranışı kodla karşılaştırıldı).
 
 ---
 
@@ -21,8 +21,8 @@ Son güncelleme: 23.09.2026 (Faz 5c).
 | Amaç sınırı | 8770 (sürekli gözetim, performans/disiplin takibi meşru amaç değil) | Yalnız İSG olayları; kişi bazlı rapor ve "en çok ihlal yapan kişi" yok; uyarılar bölge ve konum bazlı | Rapor, Olaylar | bekliyor |
 | İnsan onayı | m.11/1-g | Kişi aleyhine sonuç doğmadan İSG uzmanı incelemesi şartı aydınlatma metnine yazılır; ürün yalnız "inceleme" işaretleri sunar | Olay inceleme ekranı | bekliyor |
 | Çalışan görüşü | 6331 m.18/1-b | Kurulum listesine "İSG kurulu / çalışan temsilcisine danışıldı" maddesi **eklenmedi**: uygulanabilirliği avukata sorulacak (docs/17 §10.1) | - | **soru** |
-| Saklama | m.4/2-d, m.7; Silme Yönetmeliği (6 ayda bir periyodik imha; imha kaydı en az 3 yıl); sabit gün yok | Olay 180, fotoğraf 90, etiketsiz KKD kırpığı 30, sistem olayı 90 gün (`.env`, Ayarlar sayfası). Bakım günde bir çalışır ve her koşuda imha kaydı yazar (§4). Gün sayılarını müşteri ve avukat belirler (docs/17 S5 açık) | docs/06 §5; Ayarlar → KVKK | bekliyor |
-| Uyarı kaydı arşivi | Operatör kararı (23.09.2026); m.7 (imha) | Teslim kaydı (hangi uyarı hangi kanaldan, ne sonuçla) 15 günde bir masaüstüne CSV olarak yazılır, doğrulanır, sonra silinir; imha kaydında sayı ve dosya adı durur (§4). Kayıtta kişi bilgisi yoktur (kamera, bölüm, olay no, kanal). **Masaüstündeki kopya sistemin saklama süresine tabi değildir**: kim erişir, ne kadar tutulur müşterinin politikasıdır | Ayarlar → Saklama süreleri; `olaylar/uyari_arsivi.py` | bekliyor |
+| Saklama | m.4/2-d, m.7; Silme Yönetmeliği (6 ayda bir periyodik imha; imha kaydı en az 3 yıl); sabit gün yok | Olay 180, fotoğraf 90, etiketsiz KKD kırpığı 30, sistem olayı 90 gün (`.env`, Ayarlar sayfası). Etiketli KKD kırpığı veri setidir, bakım onu silmez. Bakım günde bir çalışır ve her koşuda imha kaydı yazar (§4). Gün sayılarını müşteri ve avukat belirler (docs/17 S5 açık) | docs/06 §5; Ayarlar → KVKK | bekliyor |
+| Uyarı kaydı arşivi | Operatör kararı (23.09.2026); m.7 (imha) | Teslim kaydı (hangi uyarı hangi kanaldan, ne sonuçla) 15 günde bir masaüstüne (masaüstü yoksa, ör. Docker'da, `veri/arsiv/uyari-kayitlari`'na) CSV olarak yazılır, doğrulanır, sonra silinir; imha kaydında sayı ve dosyanın yolu durur (§4). Kayıtta kişi bilgisi yoktur (kamera, bölüm, olay no, kanal). **Masaüstündeki kopya sistemin saklama süresine tabi değildir**: kim erişir, ne kadar tutulur müşterinin politikasıdır | Ayarlar → Saklama süreleri; `olaylar/uyari_arsivi.py` | bekliyor |
 | Olay dondurma | 8770 ("hukuki süreçte yalnız ilgili kayıt") | Olay sayfasında "Dondur": olay, kanıt fotoğrafı ve uyarı teslim kaydı süre dolsa da silinmez (§3) | Olay sayfası; `events.hold` | bekliyor |
 | Erişim ve güvenlik | m.12; Kurul 2018/10; 8770 yetki matrisi | Tek yönetici şifresi (Docker'da zorunlu) + erişim izi (§2); giriş kilidi, köken ve sunucu adı denetimi, oturum sırrı (docs/17 §10.5) | Ayarlar → KVKK | bekliyor |
 | Mahremiyet alanları | 2022/797; 8769 (dar açı, maskeleme) | Tuvalet, soyunma odası, duş, mescit, dinlenme ve emzirme odası görüş alanında olamaz; önce kamera açısı düzeltilir. Yazılım bunu göremez: her kamera sayfasında elle onaylanır, kamera adresi değişince onay kalkar | Kamera sayfası "Mahremiyet kontrolü"; kurulum listesi adım 9 | bekliyor |
@@ -32,9 +32,11 @@ Son güncelleme: 23.09.2026 (Faz 5c).
 
 ## 2. Erişim izi (`access_log`)
 
-Kişisel veriye dokunan ya da onu koruyan ayarı değiştiren her istek bir satır
-bırakır: **zaman, istemci adresi, ne yapıldı, neye.** Ayarlar sayfasının en
-altında "KVKK: erişim ve imha kayıtları" bölümünde okunur.
+Kişisel veriye dokunan ya da onu koruyan ayarı değiştiren aşağıdaki istekler
+birer satır bırakır: **zaman, istemci adresi, ne yapıldı, neye.** Canlı kamera
+önizlemesini izlemek ve KKD kırpığına etiket vermek iz bırakmaz (kırpığın
+görüntülenmesi bırakır). Ayarlar sayfasının en altında "KVKK: erişim ve imha
+kayıtları" bölümünde okunur.
 
 | Ne yapıldı (`action`) | Ne zaman yazılır | Neye (`target`) |
 |---|---|---|
@@ -76,10 +78,10 @@ Dondurma ve kaldırma erişim izine düşer. Yetki yönetici şifresinin sahibin
 ## 4. İmha kaydı (`purge_log`)
 
 Her bakım koşusu (günde bir) bir satır yazar: silinen olay, fotoğraf ve KKD
-örneği sayısı, dondurulduğu için silinmeyen olay sayısı, masaüstüne arşivlenip
-silinen uyarı kaydı sayısı ve dosyasının adı (şema 011) ve o günkü saklama gün
-sayıları. Kişisel veri içermez. Silme Yönetmeliği imha kaydının en az 3 yıl
-saklanmasını ister; bakım bu tabloyu hiç silmez.
+örneği sayısı, dondurulduğu için silinmeyen olay sayısı, arşivlenip silinen
+uyarı kaydı sayısı ve CSV dosyasının tam yolu (ekranda yalnız adı; şema 011) ve
+o günkü saklama gün sayıları. Kişisel veri içermez. Silme Yönetmeliği imha
+kaydının en az 3 yıl saklanmasını ister; bakım bu tabloyu hiç silmez.
 
 ## 5. Saklanmayanlar
 

@@ -17,9 +17,10 @@
 | İmzalayanlar | ______ |
 | Çalışan aydınlatması yapıldı (tarih, yöntem) | ______ |
 
-İmzadan önce KKD sayfasındaki **veri toplama kapısı kapalı** kalır; kapalıyken hiçbir
-kişi görüntüsü saklanmaz (docs/04 §4, docs/17 §5.8). Açarken sayfa bu imzanın
-yapıldığını ayrıca onaylatır ve açılışı Olaylar'a yazar.
+İmzadan önce KKD sayfasındaki **veri toplama kapısı kapalı** kalır; kapalıyken KKD
+veri seti için hiçbir kişi görüntüsü saklanmaz (docs/04 §4, docs/17 §5.8; kuralların
+kanıt fotoğrafı bundan etkilenmez). Açarken sayfa bu imzanın yapıldığını ayrıca
+onaylatır ve açılışı Olaylar'a yazar.
 
 ## 2. Kapsam (docs/17 S3)
 

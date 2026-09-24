@@ -10,7 +10,8 @@ dördüyle çözülüp çözülemediği sorgulanır.
 | `ppe_violation` | **Yeni kapsam** - baret / yelek |
 | `vehicle_speed` | **Yeni kapsam** - fabrika içi hız sınırı (docs/07 #15'ten geldi) |
 
-Ortak çıktı: `Violation(rule_id, camera_id, track_ids, measured_value, zone_id, evidence)`.
+Ortak çıktı: `Ihlal(kural_id, kamera_id, takip_idler, bolge_id, olculen, detaylar)`
+(`rules/tipler.py`; KKD'de ayrıca `kalem`; olay kodunu ve önemi motor ekler, §5.2).
 Ortak filtre: cooldown. Ortak ilke: **kare değil, track bazlı karar.**
 
 ---
@@ -94,9 +95,10 @@ yeterince tutarlı biçimde takmıyor mu?
 
 | Parametre | Varsayılan | Anlam |
 |---|---|---|
-| `zone_id` | **zorunlu** | KKD kuralı bölgesiz tanımlanamaz |
+| `zone_id` | **zorunlu** | KKD kuralı bölgesiz tanımlanamaz; bölge "KKD zorunlu alan" tipinde olmalı |
 | `required_ppe` | `["helmet","vest"]` | Alt küme seçilebilir |
-| `min_person_height_px` | 120 (baret) / 80 (yelek) | Altında değerlendirme yok |
+| `min_person_height_px` | 120 | Baret için: altında baret değerlendirmesi yok |
+| `min_vest_height_px` | 80 | Yelek için: altında yelek değerlendirmesi yok |
 | `min_confidence` | 0.70 | Kalibre edilmiş güven eşiği |
 | `window_size` | 15 | Kayan pencere (değerlendirme sayısı) |
 | `min_valid_observations` | 8 | Penceredeki `unknown` olmayan minimum gözlem |
@@ -114,7 +116,7 @@ beklemedir: yalnız yelek eksikse yalnız `PPE_NO_VEST` (orta) açılır, ikisi 
 `PPE_NO_HELMET` (yüksek) ve `PPE_NO_VEST` iki ayrı olay olur. Olay anahtarı
 `(kural, kamera, iz, kalem)`; bir kalemin kararı belirsize dönerse yalnız o
 kalemin olayı `belirsiz` sebebiyle kapanır. `details.eksik_kkd` tek elemanlıdır;
-ayrıntı iki kalemin kararını da taşır.
+ayrıntı kuralın istediği bütün kalemlerin kararını taşır.
 
 **Gölge ve model sürümü.** KKD kuralı gölge modda doğar (hazır kural da formdan
 kurulan da); form anonsu açamaz. Anonsu Komuta → Uyarı zinciri açar ve o an yüklü
@@ -148,7 +150,8 @@ unknown → HİÇBİR ZAMAN olay üretmez
 eşik altı · baş/gövde görünmüyor (modelin "görünmüyor" çıkışı) · kabindeki sürücü
 (`surucu_muaf`: ayak noktası forklift/tır kutusunda ya da kişi kutusu araçla
 `surucu_ortusme_orani` kadar örtüşüyor) · üst üste iki kişi (`max_kisi_ortusmesi`)
-· bulanık kırpık (`min_netlik`). Son üçü o karede İKİ kalemi de belirsiz yapar.
+· bulanık kırpık (`min_netlik`). Son üçü o karede kuralın istediği kalemlerin
+hepsini belirsiz yapar.
 Örtüşme ve netlik eşikleri gölge moddaki ölçümle seçilir; ölçülene kadar kapalıdır.
 
 **KKD muaf alan (`ppe_exempt`).** Zorunlu alanın içine çizilen muaf alan (kabin,
@@ -157,8 +160,9 @@ iki yerde uygulanır: kural kararında (`rules/kkd.py`) ve kırpığı üreten k
 (`boru_hatti.kkd_bolgesinde_mi`). Böylece muaf alandan KKD sınıflandırması
 yapılmaz, veri örneği de alınmaz (docs/17 §5.5). Kapalı muaf alan oymaz.
 
-**Kanıtın yokluğu ihlalin varlığı değildir.** Bu cümle `rules/ppe.py` başına yorum
-olarak yazılır ve testle korunur (`test_unknown_never_produces_event`).
+**Kanıtın yokluğu ihlalin varlığı değildir.** Bu cümle `rules/kkd.py` başına yorum
+olarak yazılır ve testle korunur (`tests/rules/test_kkd.py`
+`test_belirsiz_asla_olay_uretmez`).
 
 ### Olay kaydına yazılan kanıt
 
@@ -167,9 +171,9 @@ olarak yazılır ve testle korunur (`test_unknown_never_produces_event`).
 ```json
 {
   "ppe": {
-    "required": ["helmet"],
+    "required": ["helmet", "vest"],
     "helmet": {"decision": "no", "valid_obs": 11, "negative_obs": 9, "mean_conf": 0.83},
-    "vest": {"decision": "yes"},
+    "vest": {"decision": "yes", "valid_obs": 12, "negative_obs": 0, "mean_conf": 0.91},
     "person_height_px": 168,
     "model_version": "kkd-3f2a9c1b04de",
     "dwell_s": 5.2
@@ -178,8 +182,8 @@ olarak yazılır ve testle korunur (`test_unknown_never_produces_event`).
 }
 ```
 
-`model_version` sınıflandırıcının sürümüdür: dosya adı + sha256'nın ilk 12 hanesi
-(docs/04 §6.6).
+`model_version` sınıflandırıcının sürümüdür: uzantısız dosya adı + sha256'nın ilk
+12 hanesi (docs/04 §6.6).
 
 `model_version` olmadan "model iyileşti mi" sorusu cevaplanamaz. Zorunludur.
 
@@ -225,15 +229,17 @@ sayfasından tek formla kurulur.
 
 ## 5. Cooldown - ortak filtre
 
-Anahtar: `(rule_id, camera_id, track_id)` - mesafe kuralında `(rule_id, camera_id, track_id_pair)`.
+Anahtar: `(rule_id, camera_id, track_id)` - mesafe kuralında `(rule_id, camera_id, track_id_pair)`,
+KKD'de sona kalem eklenir (`helmet` / `vest`).
 
 Track kaybolup yeni ID ile döndüğünde cooldown sıfırlanır. Bu bilinen bir sınırdır:
 aynı kişi yeni track ID alırsa tekrar uyarı üretebilir. Track kalıcılığını artırmak
-(ByteTrack `track_buffer` parametresi) bunu azaltır; tamamen çözmek yeniden kimliklendirme
-(re-ID) gerektirir → Phase 2.
+(`.env` `TAKIP_HAFIZA_SN`; ByteTrack'in `lost_track_buffer`'ı) bunu azaltır; tamamen
+çözmek yeniden kimliklendirme (re-ID) gerektirir → Phase 2.
 
-**Anons cooldown'u ayrıdır ve daha uzundur.** Ekranda 3 olay görünmesi sorun değil;
-hoparlörün 3 kez bağırması sorundur.
+**Anons cooldown'u ayrıdır:** anahtarı iz değil `(kamera, mesaj, kanal)`'dır ve süresi
+`ANONS_BEKLEME_SN`'dir (varsayılan 30 sn); kritik bir olayın açılışı bastırılmaz.
+Ekranda 3 olay görünmesi sorun değil; hoparlörün 3 kez bağırması sorundur.
 
 ---
 
@@ -269,11 +275,12 @@ bölge ihlalinde de yön + bölge tipi + ihlali **o an tetikleyen** sınıftan �
 | ppe_violation | | | baret eksik / yalnız yelek eksik | `PPE_NO_HELMET` / `PPE_NO_VEST` | Yüksek / Orta |
 | vehicle_speed | | | | `VEHICLE_OVERSPEED` | Yüksek |
 
-Kural satırındaki `severity` `warning` ise (şema varsayılanı; bugünkü bütün
-kurallar) kodun varsayılan önemi geçerlidir; `critical` / `high` / `medium` /
-`low` yazılıysa o geçerlidir ve bağlam onu değiştirmez. Tanınmayan değer
-varsayılana düşer. Baret ve yelek birlikte eksikse bugün tek olay yazılır ve
-kodu baretinkidir; kalem başına ayrı olay Faz 3d'dedir.
+Kural satırındaki `severity` `warning` ise (şema varsayılanı; hazır kurallar ve
+formda "Varsayılan" seçilen kurallar) kodun varsayılan önemi geçerlidir;
+`critical` / `high` / `medium` / `low` yazılıysa o geçerlidir ve bağlam onu
+değiştirmez. Tanınmayan değer varsayılana düşer. Baret ve yelek birlikte eksikse
+iki ayrı olay yazılır (§3, Faz 3d); iki kalemi birden taşıyan eski bir olay
+baretin kodunu alır.
 
 **Kural formunda önem.** Formdaki *Önem* seçimi ya "Varsayılan"dır (`warning`)
 ya da açık bir düzey. "Varsayılan"ın yanında kuralın üretebileceği olaylar ve
@@ -312,7 +319,8 @@ Koşulun "sürüyor" sayılması girişten gevşektir (çıkış eşiği):
 Bitiş sebepleri olayın ayrıntısına yazılır (`kapanis_sebebi`): koşul bitti, oy
 belirsizleşti, iz kayboldu, kural değişti (kural düzenlenince ya da silinince
 açık olayı hemen biter; başka kuralların olayları sürer), kamera görüntüsü
-kesildi, kamera ayarı değişti, sistem durdu, sistem yeniden başladı.
+kesildi, kamera ayarı değişti, kamera işleme hattı hatalar yüzünden yeniden
+kuruldu, sistem durdu, sistem yeniden başladı.
 
 Kapandıktan sonra aynı kişi aynı kurala yeniden takılırsa yeni olay, ancak
 kuralın bekleme süresi dolunca açılır - bugünkü tekrar bastırma kuralı.
@@ -325,7 +333,8 @@ kuralın bekleme süresi dolunca açılır - bugünkü tekrar bastırma kuralı.
   `histerezis_m` yalnız güvenli mesafede görünür.
 - Kaydetmek, formda **olmayan** bir parametreyi varsayılana döndürmez: aynı
   tipteki kuralın önceki değeri korunur. Boş bırakılan sayı alanı da önceki
-  değerde (yeni kuralda şema varsayılanında) kalır. Tip değiştirilirse eski
+  değerde (yeni kuralda şema varsayılanında) kalır; `max_kisi_ortusmesi` ve
+  `min_netlik` hariç: onlarda boş "kapalı" demektir. Tip değiştirilirse eski
   tipin parametreleri taşınmaz.
 - Cooldown yeni kuralda tipin varsayılanıyla dolar (§5) ve tip değişince -
   elle değiştirilmediyse - yeni tipinkine geçer.
@@ -375,7 +384,7 @@ tıkla kurar (`web/ortak.py` `HAZIR_KURALLAR`, `EK_HAZIR_KURALLAR`). Eşikler
 | Yasak bölge | yasak bölge kuralı | kişi · içinde | `restricted_entry` (şema 007) | hayır |
 | Yükleme alanı | yükleme alanı kuralı | kişi · içinde | - | hayır |
 | Tır park alanı | tır konumlanma | tır · dışında | `vehicle_position` | hayır |
-| KKD zorunlu alan | KKD (baret/yelek) | kişi | kullanıcı seçer | hayır |
+| KKD zorunlu alan | KKD (baret/yelek) | kişi | kullanıcı seçer | **evet** (anonsu Uyarı zinciri açar, §3) |
 
 Ek kurallar **gölge modda** doğar: olay yazılır, hoparlör susar. Sahada yanlış
 alarm oranı görülmeden yeni bir kural anons yapmasın diye; operatör Kurallar

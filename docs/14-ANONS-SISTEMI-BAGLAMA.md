@@ -6,7 +6,7 @@ altyapısına bağlanması gerekir. Bu belge o işi adım adım tarif eder.
 > **Önce şunu bilin:** Anons kurulamıyorsa proje durmaz (kabul kriteri K6,
 > `01-MVP-KAPSAM.md`): sesli kanal yokken de uyarılar ekranda görünür, olaylar
 > kanıt fotoğrafıyla kaydedilir. Ama sistem bu eksiği **gizlemez** (docs/17
-> K21, Ç39): kurulum listesindeki "Sesli anons" adımı, sistem şeridi ve
+> K21, Ç39): kurulum listesindeki "Sesli anons kuruldu mu?" adımı, sistem şeridi ve
 > Kontrol Paneli kırmızı yazar; her ihlal "Uyarı hiçbir sesli kanala
 > ulaşamadı" diye kaydedilir ve sistem "hazır değil" görünür (§4.3). Sahadaki
 > kişinin duymadığı bir uyarı, ekrandaki bir uyarıyla aynı güvenliği vermez.
@@ -89,14 +89,14 @@ Sistem açısından fark yoktur: Bluetooth hoparlör de bir **ses çıkışıdı
    ```
 
    Hoparlör kapatılıp açılınca kendiliğinden bağlanıyor mu, kurulumda bir
-   kez deneyin. Bağlanmıyorsa sistem kanalı 30 sn içinde **"koptu"** gösterir
+   kez deneyin. Bağlanmıyorsa sistem kanalı 30-40 sn içinde **"koptu"** gösterir
    ve uyarı "Tüm fabrika" kanalına düşer, ama hoparlörü **program yeniden
    bağlamaz** (yeniden bağlanma bekçisi yazılmadı, docs/17 §7.5-3, S9):
    yukarıdaki `connect` komutu ya da işletim sisteminin Bluetooth menüsü
    gerekir. Sahada bu sık oluyorsa `07-YOL-HARITASI.md` #22'ye bakın.
 2. **Komuta → Anons sistemi → + Yeni kanal**: Tür = **Ses çıkışı**, "Ses
-   çıkışı" kutusunda listeden hoparlörü seçin (Linux'ta adı
-   `bluez_output.…` ile başlar).
+   çıkışı" kutusunda listeden hoparlörü seçin (Linux'ta adı `bluez_` ile
+   başlar: PipeWire'da `bluez_output.…`, PulseAudio'da `bluez_sink.…`).
 3. Kanalın satırındaki **▶ Dene**'ye basın: üç kısa bip duymalısınız.
 
 > **Kalıcı kurulum için kablo tercih edin.** Bluetooth iki yerde zayıftır:
@@ -165,11 +165,15 @@ Metinler taslaktır; son hâlini İSG belirler (docs/17 S21) ve Anons sayfasınd
 değiştirilir.
 
 **Dosya bağlanana kadar hoparlör susmaz.** Mesaja ses dosyası bağlanmamışsa,
-bağlı dosya bulunamıyorsa ya da proje klasörünün dışındaysa ses çıkışı kanalı
-sözlü anons yerine üretilmiş bir uyarı tonu (kesik "bip", yaklaşık 2 sn) çalar
-ve teslim kaydına "sözlü anons yerine uyarı tonu çalındı" yazılır. Uyarı yine
-ulaşmış sayılır. Anons sayfasında bu mesajlar "ses dosyası yok" rozetiyle
-görünür. Ton bir yedektir: kim ne yapmalı söylemez, sözlü kayıt yine gerekir
+bağlı dosya bulunamıyorsa ya da program klasörünün (Windows ve Mac uygulamasında
+veri klasörünün) dışındaysa ses çıkışı kanalı sözlü anons yerine üretilmiş bir
+uyarı tonu (kesik "bip", yaklaşık 2 sn) çalar ve teslim kaydına "sözlü anons
+yerine uyarı tonu çalındı" yazılır. Uyarı yine ulaşmış sayılır. Ses çıkışı
+kanalı varken dosyası bağlanmamış mesaj, gölgede olmayan açık bir kurala
+bağlıysa Anons sistemi ekranının mesaj listesinde "ses dosyası yok" rozetiyle,
+yolu yazılı ama dosyası bulunamayan mesaj Anons sayfasında "ses dosyası
+bulunamadı - uyarı tonu çalar" rozetiyle görünür. Ton bir yedektir: kim ne
+yapmalı söylemez, sözlü kayıt yine gerekir
 (operatör isteği 23.09.2026: risk anında hoparlörden uyarı verilsin).
 
 **Kurala mesaj seçilmemişse de hoparlör susmaz.** Kural formunda "mesaj yok"
@@ -217,8 +221,11 @@ Ses dosyası üretmenin yolları:
 Dosyaları program klasörünün içine (ör. `veri/sesler/`) koyun ve **Anons**
 sayfasında her mesajın yanına yolunu yazın: `veri/sesler/baret.wav`.
 
-> Yol, program klasörüne **göre** yazılır. Klasörün dışına çıkan bir yol
-> (`../` ya da `C:\...`) güvenlik gereği reddedilir.
+> Yol, program klasörüne **göre** yazılır; Windows ve Mac uygulamasında bu
+> klasör kullanıcının veri klasörüdür (`13-UYGULAMA-PAKETLEME.md` §4) ve Anons
+> sayfası adını yazar. Klasörün dışına çıkan bir yol (`../` ya da `C:\...`)
+> güvenlik gereği reddedilir; o yolda bulunmayan ya da `.wav` olmayan dosya da
+> kaydedilmez.
 
 ---
 
@@ -258,7 +265,7 @@ PipeWire'da WirePlumber'ın `main-systemwide` profili ya da
 | Belirti | Sebep | Çözüm |
 |---|---|---|
 | `docker compose up` "bind source path does not exist" der | Soket yok: ses sunucusu çalışmıyor ya da numara yanlış | `pactl info` host'ta çalışıyor mu; `DALSAN_UID` doğru mu |
-| Kanal "koptu", sebep "ses sunucusuna bağlanılamadı" | Ses yolu açılmadan container başlatıldı ya da soket erişilemiyor | Yukarıdaki komutla iki dosyayla başlatın |
+| Kanal "koptu", sebep "ses sunucusuna (PulseAudio/PipeWire) bağlanılamadı" | Ses yolu açılmadan container başlatıldı ya da soket erişilemiyor | Yukarıdaki komutla iki dosyayla başlatın |
 | **▶ Dene** "Access denied" / "Connection refused" | PulseAudio çerez istiyor (PipeWire istemez) | Çerezi bağlayın: `docker-compose.ses.yml`'e `- "/home/<kullanıcı>/.config/pulse/cookie:/run/dalsan-ses/cookie:ro"` ve ortam değişkeni `PULSE_COOKIE: /run/dalsan-ses/cookie` |
 | Sistem açılmıyor, günlükte "izin yok" | `veri/` ya da `ayar/` hâlâ root'a ait | `sudo chown -R "$(id -u):$(id -g)" veri ayar` |
 
@@ -313,7 +320,10 @@ Baret ihlalinde çağrılan adres: `http://10.0.0.9/play?file=helmet`
 
 Cihazda sekiz mesajın yanında `uyari` sesi de olmalı: mesajı olmayan kuralın
 olayı `http://10.0.0.9/play?file=uyari` ile gelir. Yoksa cihaz ya hata verir
-("uyarı ulaşmadı" alarmı çıkar) ya da sessizce hiçbir şey çalmaz.
+("uyarı ulaşmadı" alarmı çıkar) ya da sessizce hiçbir şey çalmaz. Kanal
+satırındaki **▶ Dene** de `deneme` anahtarıyla gelir
+(`http://10.0.0.9/play?file=deneme`); denemenin çalması için cihazda `deneme`
+sesi de olmalı.
 
 **Örnek 2 - Cihaz, metni okuyup seslendiriyor (metinden konuşma):**
 ```
@@ -327,13 +337,32 @@ Biçim (Ayarlar → Anons):  json
 Kanal adresi:             http://10.0.0.9:8080/anons
 ```
 Gönderilen gövde: `{"key": "helmet", "text": "Lütfen baretinizi takınız."}`
+(Türkçe harfler JSON kaçışıyla gider, ör. `ü` → `\u00fc`; JSON okuyan cihaz aynı
+metni görür.)
 
 ### 3.4 Adres kullanıcı adı/şifre içeriyorsa
 
-`http://kullanici:sifre@10.0.0.9/play` biçiminde yazılabilir. Sistem bu adresi
-**maskeler** - şifre hiçbir sayfada, hiçbir hata mesajında ve günlükte
-(`veri/loglar/sistem.log`) görünmez; formda `••••` olarak durur ve öyle
-bırakılırsa kayıtlı şifre korunur (docs/17 R18).
+`http://kullanici:sifre@10.0.0.9/play` biçiminde yazılır. Şifrede `@`, `:` ya
+da `/` varsa yüzde kaçışıyla yazın (`@` → `%40`, `:` → `%3A`, `/` → `%2F`).
+
+- **Gönderim:** sistem kimliği adresten ayırır ve cihaz isterse (HTTP 401) onun
+  istediği yöntemle gönderir: **Basic** ya da **Digest** (IP hoparlör ve
+  amfilerde ikisi de yaygındır). İstemeyen cihaza kimlik gitmez; kimlik yalnız
+  bu adresin sunucusuna verilir (`olaylar/anons.py` `_kimligi_ayir`, `_gonder`).
+- **Yanlış şifre:** cihaz 401 ya da 403 dönerse anons "Hoparlör isteği reddetti
+  (HTTP 401): kullanıcı adı ya da şifre yanlış veya eksik" der; bu bir ağ sorunu
+  değildir.
+- **Maske:** şifre hiçbir sayfada, hiçbir hata mesajında, teslim kaydında ve
+  günlükte (`veri/loglar/sistem.log`) görünmez; kanal listesinde ve formda
+  `••••` olarak durur ve öyle bırakılırsa kayıtlı kimlik korunur (docs/17 R18).
+- **Sağlık:** kanal yoklaması yalnız cihazın portuna TCP bağlantısına bakar;
+  şifrenin doğru olduğunu **▶ Dene** gösterir.
+
+> **24.09.2026'ya kadar bu biçim çalışmıyordu:** kimlik cihaza hiç gitmiyordu ve
+> portsuz adreste şifre hata metnine maskesiz girip son anons satırına, teslim
+> kaydına ve günlüğe düşüyordu. Analiz kapalıyken aynı kanalın **▶ Dene**'si 500
+> hatası veriyordu. O tarihten önce kurulmuş bir sistemde eski günlüklerde bu
+> metin kalmış olabilir (docs/ILERLEME.md, 24.09.2026).
 
 ### 3.5 Adres bu bilgisayarı gösteremez
 
@@ -351,14 +380,15 @@ Fabrikanın öbür ucundaki çalışanın, kendisiyle ilgisi olmayan bir uyarıy
 duymaması için kanallar **bölüme** bağlanır. Kanal formundaki "Bölüm" kutusu
 kameraların bölümlerini listeler.
 
-Seçim kuralı (`app/olaylar/anons.py` → `bolgeleri_sec`, docs/17 §7.3-1):
+Seçim kuralı (`app/olaylar/anons.py` → `bolgeleri_sec`; koptu kanalı atlayan
+hâli `_hedefleri_sec`, docs/17 §7.3-1):
 
 1. Olay, kameranın bölümüyle **birebir eşleşen BÜTÜN** açık kanallardan
    duyurulur (bir bölümde hem amfi hem IP hoparlör olabilir). **Koptu**
    durumundaki kanal atlanır (§4.3);
 2. bölümde açık kanal yoksa ya da bölümün bütün kanalları koptuysa **bölümü
    boş** olan kanallardan (**Tüm fabrika**). Atlanan kanal teslim kaydına
-   "Tüm fabrika'dan duyuruldu" diye yazılır;
+   "bölüm kanalı koptu; uyarı “Tüm fabrika” kanalından duyuruldu" diye yazılır;
 3. o da yoksa ses çıkmaz: uyarı yalnızca ekranda görünür, olay listesine
    "Uyarı hiçbir sesli kanala ulaşamadı" düşer ve sistem "hazır değil" görünür
    (§4.3). Her şey koptuysa kanallar yine denenir: belki şimdi bağlanmışlardır.
@@ -366,9 +396,11 @@ Seçim kuralı (`app/olaylar/anons.py` → `bolgeleri_sec`, docs/17 §7.3-1):
 Bölümlü kanal var ama "Tüm fabrika" kanalı yoksa Kontrol Paneli bunu sarı
 yazar (`yedek_ses_kanali_yok`): kanalı olmayan ya da kanalları kopan bölüm susar.
 
-> **Sık yapılan hata:** Kameranın alanı `sevkiyat`, hoparlörünki `Sevkiyat`
-> yazılırsa eşleşme olmaz (büyük/küçük harf duyarlıdır). İkisini kopyala-yapıştır
-> yapın.
+> **Sık yapılan hata:** Eşleşme büyük/küçük harf duyarlıdır. Kanalın bölümü
+> listeden seçildiği için ilk kurulumda tutar; ama kameranın alanı sonradan
+> değiştirilirse (ör. `Sevkiyat` → `sevkiyat`) kanal eski adda kalır, eşleşme
+> kopar ve kanal formunda bölümün yanında "(bu bölümde kamera yok)" yazar.
+> Kanalı düzenleyip bölümü listeden yeniden seçin.
 
 Her kanalın satırında **▶ Dene** düğmesi vardır ve kanal kapalıyken de çalışır.
 Kabloyu ve adresi, kanalı açmadan önce buradan sınayın. Mesaj listesindeki
@@ -421,7 +453,8 @@ tutulur; hoparlör susar.
 Sistemdeki en eski kayıt 15 günü doldurunca o ana kadarki bütün kayıtlar
 masaüstündeki "NextGen Detector uyarı kayıtları" klasörüne
 `uyari-kayitlari_<ilk gün>_<son gün>.csv` olarak yazılır (Excel'de açılır:
-zaman, kamera, bölüm, uyarı, önem, olay no, kanal, sonuç, gecikme), dosya geri
+uyarı zamanı, kamera, bölüm, uyarı, önem, olay no, aşama, kanal, kanal türü,
+sonuç, kare-ses gecikmesi, ayrıntı), dosya geri
 okunup doğrulanır, sonra sistemden silinir. Dosya yazılamazsa hiçbir kayıt
 silinmez ve Olaylar'a "Uyarı kayıtları arşivlenemedi" düşer. Süre ve klasör
 Ayarlar → Saklama süreleri'ndedir (`UYARI_KAYDI_ARSIV_GUN`,
@@ -480,7 +513,7 @@ Yeni kurulan bir kuralı ilk günden anonsa açmak, sistem henüz ayarlanmamış
 
 ```
 1. Kural kurulur, GÖLGE MODDA bırakılır
-      → olay yazılır, ekranda görünür, hoparlör SUSAR
+      → olay yazılır, olay listesinde görünür (uyarı bandı çıkmaz), hoparlör SUSAR
 2. En az 3 gün (KKD kurallarında daha uzun) böyle çalışır
 3. Komuta → Olay inceleme'den olaylar tek tek işaretlenir
       → "Doğru uyarı" / "Yanlış alarm"
@@ -526,20 +559,21 @@ Bu listeyi olduğu gibi iletebilirsiniz:
 | "Sesli uyarı yalnız Bluetooth hoparlöre dayanıyor" | Bluetooth dışında bağlı sesli kanal yok (GÖREV §7) | Kablolu bir ses çıkışı ya da IP hoparlör ekleyin (§2.1.1) |
 | Kontrol Paneli: "“Tüm fabrika” sesli kanalı yok" | Bölümlü kanal var, yedek yok | Bölümü boş bir kanal ekleyin (§4) |
 | Kanal satırında "çıkış seçilmedi" | Eski kayıtta çıkış adı boş (Linux) | Düzenle → çıkışı listeden seçip kaydedin |
-| "Mesaj denenemedi: … Tüm fabrika kanalı yok" | Mesaj denemesi Tüm fabrika kanalından çalar | Kanalları kendi **▶ Dene** düğmeleriyle sınayın ya da bölümü boş bir kanal ekleyin |
-| "Ses çalma komutu bulunamadı" | Linux'ta `alsa-utils` yok | `sudo apt install alsa-utils` |
-| "…mesajına ses dosyası bağlanmamış" | WAV yolu boş | Anons sayfasında dosya yolunu yazın |
-| "Dosya biçimi desteklenmiyor olabilir" | MP3 verilmiş | WAV'a çevirin (§2.3) |
+| "Mesaj denenemedi: … “Tüm fabrika” kanalı yok" | Mesaj denemesi Tüm fabrika kanalından çalar | Kanalları kendi **▶ Dene** düğmeleriyle sınayın ya da bölümü boş bir kanal ekleyin |
+| "Ses çalma komutu bulunamadı" | Linux'ta ses çalıcı (`paplay`/`aplay`) yok | `sudo apt install pulseaudio-utils` (günlükteki öneri; Bluetooth hoparlöre yalnız `paplay` çalar) |
+| "uyarı tonu - mesaja ses dosyası bağlanmamış" | Mesajın WAV yolu boş: sözlü anons yerine uyarı tonu çaldı | Anons sayfasında dosya yolunu yazın (§2.3) |
+| "Dosya biçimi desteklenmiyor olabilir" | Dosya gerçek bir WAV değil (ör. adı `.wav` yapılmış bir MP3; `.mp3` uzantılı dosyayı Anons sayfası zaten kaydetmez) | WAV'a çevirin (§2.3) |
 | "Anons adresine ulaşılamadı" | Cihaz kapalı / farklı ağ / yanlış port | Aynı ağda mı, adresi tarayıcıda açılıyor mu? |
 | Deneme çalışıyor, gerçek anons çalmıyor | Kural **gölge modda** | Uyarı zinciri → "Anonsu aç" |
 | Her ihlalde **aynı** ses çalıyor | `get` biçiminde adres `{anahtar}` taşımıyor | Adrese `{anahtar}` ekleyin (§3.2) |
 | Hoparlör aynı olayda üst üste bağırıyor | Bekleme süresi kısa | `ANONS_BEKLEME_SN` değerini artırın |
 | Yanlış bölümün hoparlörü çalıyor | Bölüm adları eşleşmiyor | Kamera **Alan**ı ile kanalın **Bölüm**ü birebir aynı olmalı (§4) |
-| Hoparlör söz yerine yalnız uyarı tonu çalıyor | Kurala anons mesajı bağlanmamış ya da mesaj kapalı | Kurallar → kuralı düzenle → anons mesajı seç; mesajı Anons sayfasında açın |
+| Hoparlör söz yerine yalnız uyarı tonu çalıyor | Kurala anons mesajı bağlanmamış, mesaj kapalı ya da mesajın ses dosyası yok / bulunamıyor (§2.3) | Kurallar → kuralı düzenle → anons mesajı seç; mesajı Anons sayfasında açın ve ses dosyasının yolunu yazın |
 | Mesajı olmayan kuralda IP hoparlör çalmıyor | Dosya çalan cihazda `uyari` sesi yok | Cihaza `uyari` adıyla bir uyarı sesi yükleyin ya da kurala anons mesajı seçin |
 
-Her denemenin sonucu **Anons sistemi** sayfasında son satır olarak yazar
-(çalındı / çalınamadı + sebep). Bir şey çalışmıyorsa önce oraya bakın.
+Son denemenin sonucu, analiz çalışırken **Anons sistemi** sayfasında mesaj
+listesinin altında ve Anons sayfasının "Son deneme" satırında yazar (çalındı /
+çalınamadı + sebep). Bir şey çalışmıyorsa önce oraya bakın.
 
 ---
 
@@ -549,11 +583,11 @@ Her denemenin sonucu **Anons sistemi** sayfasında son satır olarak yazar
 |---|---|
 | SIP/VoIP ile doğrudan hoparlöre çağrı | Ayrı bir yığın (SIP kütüphanesi, ses kodlayıcı) demektir. IP hoparlörlerin neredeyse tamamının HTTP tetikleyicisi var; onu kullanmak tek satır ayar. |
 | Metinden konuşma (sunucuda) | Yeni bir çalışma zamanı ve dil modeli. Ses dosyasını bir kez kaydetmek, hem daha net hem bedelsiz. `get` biçimiyle cihazın kendi seslendirmesi kullanılabilir. |
-| Anonsun gerçekten duyulduğunun doğrulanması | Geri besleme mikrofonu ve ölçüm gerektirir. Bugün cihazın "aldım" yanıtı kaydedilir; ötesi `07-YOL-HARITASI.md` #16. |
+| Anonsun gerçekten duyulduğunun doğrulanması | Geri besleme mikrofonu ve ölçüm gerektirir. Bugün her denemenin sonucu (çalıcının hatasız bitmesi, IP hoparlörün 2xx yanıtı) teslim kaydına yazılır (`07-YOL-HARITASI.md` #16, kapandı: çaldığı kesin, duyulduğu değil). Duyulduğunu doğrulamak için yol haritasında ayrı bir madde yok. |
 | Kanal başına ayrı HTTP biçimi | Fabrikadaki hoparlörler aynı marka olur; kullanıcıya öğrenmesi gereken ikinci bir kavram çıkarmamak için biçim tek yerde (Ayarlar → Anons, `ANONS_HTTP_BICIMI`) durur. |
 | Gece vardiyasında ses seviyesini düşürme | Sistem ses seviyesini yönetmez; amfinin işidir. Çalışmayan bir düğme, olmayan bir özellikten kötüdür. |
 | Kopan Bluetooth hoparlörü programın yeniden bağlaması | Yeniden bağlanma bekçisi yazılmadı (docs/17 §7.5-3, S9): önce hoparlörün kendiliğinden bağlanıp bağlanmadığı sahada görülmeli. Program kopmayı algılar, "koptu" gösterir ve uyarıyı yedek kanala düşürür (§4.3). `07-YOL-HARITASI.md` #22. |
 | Bluetooth hoparlörü programın içinden tarama ve eşleştirme | İşletim sisteminin işi; programdan eşleştirmede her sistemde ayrı izin ve diyalog çıkar (docs/17 §7.5, S8). |
 | Webhook ile dış sisteme bildirim | Alıcı sistem yok (docs/17 S4); `07-YOL-HARITASI.md` #4. |
 | Kanal başına dakika sınırı ve aynı uyarıların birleştirilmesi | Değer verilmedi (docs/17 §7.3-5/6, S23); bugün tekrar bastırma var (§4.2). `07-YOL-HARITASI.md` #23. |
-| Sunucuda metinden konuşma, ses dosyası üretme | Ticari kullanılabilir çevrimdışı Türkçe ses yok (docs/16 §3); kayıt insan sesiyle (§2.3). |
+| Sunucuda metinden konuşma, sözlü anons dosyası üretme | Ticari kullanılabilir çevrimdışı Türkçe ses yok (docs/16 §3); kayıt insan sesiyle (§2.3). Sistemin kendi ürettiği sesler yalnız konuşmasız bip'lerdir (deneme sesi ve uyarı tonu). |
