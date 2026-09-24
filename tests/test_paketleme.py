@@ -674,6 +674,27 @@ def test_belge_kullanicinin_soracagi_her_seyi_kapsiyor():
         assert konu in metin, f"belgede eksik konu: {konu}"
 
 
+def test_pakete_giren_her_dosya_degisince_paket_yeniden_uretilir():
+    """Pakete giren bir dosya değişen gönderim paketi yeniden üretip sınamalı
+    (docs/13 §3.2). Kök dizindeki .env.example da pakete girer: paketlenmiş
+    programın .env'i ondan üretilir, MODEL_DOSYASI dahil."""
+    is_ = (KOK / ".github" / "workflows" / "uygulama-uret.yml").read_text(encoding="utf-8")
+    suzgec = is_.split("paths:", 1)[1].split("workflow_dispatch", 1)[0]
+    desenler = [
+        satir.strip().removeprefix("- ").strip('"')
+        for satir in suzgec.splitlines()
+        if satir.strip().startswith("- ")
+    ]
+    tanim = importlib.util.spec_from_file_location("paketleme_ortak_suzgec", ORTAK)
+    ortak = importlib.util.module_from_spec(tanim)
+    tanim.loader.exec_module(ortak)
+    for kaynak, _ in ortak.veri_dosyalari(KOK):
+        goreli = Path(kaynak).relative_to(KOK).as_posix()
+        assert any(
+            goreli == desen or goreli.startswith(desen.removesuffix("**")) for desen in desenler
+        ), f"{goreli} değişince paket yeniden üretilmez"
+
+
 def test_uretim_isi_paketi_acip_sinar():
     """GitHub Actions işi paketi yalnız üretmez, açıp sınar; sınamayı geçemeyen
     paket yayımlanmaz. Adımlardan biri silinirse bozuk bir paket, "yeşil"

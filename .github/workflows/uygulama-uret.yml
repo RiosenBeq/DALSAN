@@ -23,6 +23,8 @@ on:
       - "backend/**"
       - "masaustu/**"
       - "paketleme/**"
+      # Pakete giren kök dosya: paketlenmiş programın .env'i bundan üretilir
+      - ".env.example"
       - ".github/workflows/uygulama-uret.yml"
   workflow_dispatch:
 
