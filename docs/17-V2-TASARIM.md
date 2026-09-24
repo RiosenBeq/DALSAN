@@ -1610,8 +1610,9 @@ gölge mod. Hedef veri miktarı docs/04 §4.5'tedir; bu belge yeni sayı koymaz.
 **Durum (24.09.2026): eğitim hattı kuruldu ve GitHub'da uçtan uca sınandı; ilk tam
 eğitimin (çalıştırma 5, v1 ve v2) dört adayı da kapılardan kaldı** (LOCO testinde tek doğru
 forklift tespiti yok; neden docs/ILERLEME). Kutu ve nesne dalını da öğrenen `v3` kipi
-eklendi, yeniden eğitilecek (operatör: "forklifti tanıması lazım ... en iyi şekilde eğit";
-karar kaydı §16). Sonuçlar ve seçilen model docs/ILERLEME'ye yazılır. Aşağıdaki 1-3, ilk planın (GPU'lu
+eklendi, dumanda uçtan uca geçti; tiny-v3 ve s-v3 tam eğitimi sürüyor (operatör:
+"forklifti tanıması lazım ... en iyi şekilde eğit"; karar kaydı §16). Sonuçlar ve seçilen
+model docs/ILERLEME'ye yazılır. Aşağıdaki 1-3, ilk planın (GPU'lu
 makinede bütün ağın ince ayarı, COCO alt kümesiyle) yerini alır.
 
 1. **Yöntem: donuk resmi model + ek baş.** Resmi YOLOX COCO modeli (tiny 416, s 640)

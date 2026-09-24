@@ -1,5 +1,5 @@
 {
-  "varyantlar": ["tiny-v1", "tiny-v2", "s-v1", "s-v2"],
-  "devir": {"tiny": 30, "s": 20},
-  "not": "İlk tam eğitim (23.09.2026): duman çalıştırması 3 uçtan uca yeşil, LOCO arşivi sabitlendi; çalıştırma 4'teki istek kip hatası yüzünden dumana düştü, yeniden istendi. Dört aday: tiny ve s boyu, v1 ve v2 kipi. Yeni bir tam eğitim istemek için bu dosyayı değiştirip main'e gönderin (ör. bu notu güncelleyin); dosyanın ilk eklenmesi yalnız duman sınamasını başlatır."
+  "varyantlar": ["tiny-v3", "s-v3"],
+  "devir": {"tiny": 50, "s": 30},
+  "not": "İkinci tam eğitim (24.09.2026): çalıştırma 5'in v1 ve v2 adaylarının hiçbiri geçmedi (LOCO testinde doğru forklift tespiti yok; darboğaz donuk kutu ve nesne dalı, docs/ILERLEME). Kutu ve nesne dalını da öğrenen v3 kipi, tiny ve s boyu; öğrenen dal büyüdüğü için devir artırıldı (tiny 50, s 30). Yeni bir tam eğitim istemek için bu dosyayı değiştirip main'e gönderin (ör. bu notu güncelleyin); dosyanın ilk eklenmesi yalnız duman sınamasını başlatır."
 }

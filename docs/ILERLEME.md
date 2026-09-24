@@ -58,7 +58,21 @@ eğit"*. Karar kaydı ve lisans çerçevesi docs/17 §16, yöntem §12.3.
   denetimi yalnız v1 ve v2'yi kabul ediyordu, v3'ü GitHub'da ilk adımda düşürecekti:
   gönderimden önce bulundu, plandan geçen her varyantı bacağın denetiminde çalıştıran test
   eklendi.
-- **Sıradaki:** kısa duman sınaması (v1, v2, v3), ardından tiny-v3 ve s-v3 tam eğitimi.
+- **Yerel sığdırma sınaması:** v1 ve v3 aynı 75 Open Images forklift fotoğrafında (101
+  kutu) 30 devir eğitilip AYNI fotoğraflarda ölçüldü (genelleme değil, öğrenme kapasitesi
+  sınaması): forklift puanının eşiği (0,35) ve eşlenen bütün resmi puanları geçtiği kutu oranı
+  v1'de %41, v3'te %78; nesne kaybı v1'de 3,1'de kaldı, v3'te 2,0'a indi.
+- **Duman (çalıştırma 6):** v3 GitHub'da eğitildi, dışa aktarıldı ve sözleşme denetiminden
+  geçti (20 test görüntüsünde 3149 çapada kutu ek baştan geldi, öteki her çapada kutu ve
+  insan/araç puanları resmi modelle aynı); model testleri makinede de geçti.
+- **Bağımsız inceleme:** v3'te araç korumasının ölçümü iyi bir adayı haksız yere
+  düşürebilirdi: doğru yeniden etiketlenen aracın kutusu oynayınca "kayıp araç" sayılıyordu
+  (kapı 0) ve kutusu oynayan tır-forklift dönüşümü araç setinin kapısından kaçabiliyordu.
+  Araç koruması artık adayın etiket görünümüyle (adayın sınıfları, resmi modelin kutuları)
+  ölçülür; gerçek modellerle eski ve yeni ölçüm kodu v1'de gecikme dışında birebir aynı sonucu
+  verdi. Ölçüm artık görüntü başına model başına bir ham çıkarımla AP'yi, bu görünümü ve tanıyı
+  birlikte çıkarır.
+- **İkinci tam eğitim istendi:** tiny-v3 (50 devir) ve s-v3 (30 devir).
 
 ## Hata avı ve uygulama üretim hattı (23.09.2026)
 
