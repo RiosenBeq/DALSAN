@@ -40,9 +40,13 @@ EYLEMLER = frozenset(
         "rule_change",
         "hold_change",
         "ppe_collection_gate",
+        # Forklift eğitimi için saha karesi (şema 012, 24.09.2026)
+        "view_forklift_frame",
+        "forklift_collection_gate",
+        "forklift_frames_deleted",
     }
 )
-GORUNTULEME_EYLEMLERI = frozenset({"view_snapshot", "view_ppe_crop"})
+GORUNTULEME_EYLEMLERI = frozenset({"view_snapshot", "view_ppe_crop", "view_forklift_frame"})
 TEKRAR_ARALIGI_SN = 60.0
 
 # Ayarlar → KVKK ekranındaki Türkçe karşılıklar
@@ -50,11 +54,14 @@ EYLEM_ADLARI = {
     "view_snapshot": "kanıt fotoğrafı görüntülendi",
     "view_ppe_crop": "KKD kırpığı görüntülendi",
     "export_csv": "CSV dışa aktarıldı",
-    "export_dataset": "KKD veri seti dışa aktarıldı",
+    "export_dataset": "eğitim veri seti dışa aktarıldı",
     "settings_change": "ayar değiştirildi",
     "rule_change": "kural değiştirildi",
     "hold_change": "olay dondurma değişti",
     "ppe_collection_gate": "KKD veri toplama kapısı değişti",
+    "view_forklift_frame": "forklift eğitim karesi görüntülendi",
+    "forklift_collection_gate": "forklift veri toplama kapısı değişti",
+    "forklift_frames_deleted": "forklift eğitim kareleri silindi",
 }
 
 _son_yazilan: dict[tuple, float] = {}
@@ -114,6 +121,8 @@ def hedef_metni(hedef: str | None) -> tuple[str, str | None]:
         return f"olay #{kimlik} {ek}".strip(), f"/olaylar/{kimlik}"
     if tur == "sample" and kimlik.isdigit():
         return f"KKD örneği #{kimlik}", None
+    if tur == "frame" and kimlik.isdigit():
+        return f"forklift karesi #{kimlik}", None
     if tur == "rule" and kimlik:
         return f"kural #{kimlik.replace(',', ', #')} {ek}".strip(), None
     if tur == "camera" and kimlik.isdigit():

@@ -1,0 +1,212 @@
+{% extends "temel.html" %}
+{% from "simge.html" import simge %}
+{% block baslik %}Forklift Etiketleme - DALSAN İSG{% endblock %}
+{% block icerik %}
+  {# Sayfaya özgü birkaç kural burada durur: ortak stil dosyası değişmez, sürüm
+     damgası (?v=N) bu yüzden bütün şablonlarda artırılmak zorunda kalmaz. #}
+  <style>
+    .etiket-sahnesi { position: relative; display: inline-block; max-width: 100%; user-select: none; }
+    .etiket-sahnesi img { display: block; max-width: 100%; height: auto; border-radius: 6px; }
+    .etiket-sahnesi canvas { position: absolute; inset: 0; width: 100%; height: 100%;
+      cursor: crosshair; touch-action: none; }
+    .etiket-araclari { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0 4px; }
+    .etiket-anahtari b { margin-right: 4px; }
+    .etiket-anahtari span { margin-right: 16px; white-space: nowrap; }
+  </style>
+  <h2>Forklift Etiketleme</h2>
+  <p class="satir-form">
+    <a href="/forklift">{{ simge("geri") }} Forklift sayfası</a>
+    <span class="not">Etiket bekleyen {{ ozet.bekleyen }} · etiketlenen {{ ozet.etiketli }}</span>
+  </p>
+
+  {% if kare %}
+  <section class="kart" id="etiket-karti">
+    <p class="not">{{ kare.kamera }} · {{ kare.zaman }} · kare #{{ kare.id }}{% if kare.etiketler is not none %} · daha önce etiketlendi{% endif %}</p>
+    <p class="not"><b>Nasıl:</b> Kutuya tıklayın: <b>Forklift</b> → <b>Transpalet</b> → <b>Değil</b>.
+      Önerilmeyen forkliftin etrafına fareyle sürükleyerek kutu çizin; çizdiğiniz kutu
+      “Değil”e gelince silinir. Karede forklift yoksa “Forklift yok”a basın. Kutu, aracın
+      tamamını (çatalı dahil) sıkıca sarmalı. Emin değilseniz “Atla”.</p>
+    <div class="etiket-sahnesi" id="sahne" data-id="{{ kare.id }}"
+         data-genislik="{{ kare.genislik }}" data-yukseklik="{{ kare.yukseklik }}">
+      <img id="kare" src="/forklift/kare/{{ kare.id }}.jpg" alt="Etiketlenecek kamera karesi"
+           width="{{ kare.genislik }}" height="{{ kare.yukseklik }}">
+      <canvas id="tuval" aria-label="Kutu çizim alanı"></canvas>
+    </div>
+    <div class="etiket-araclari">
+      <button class="dugme" id="kaydet" type="button">{{ simge("tamam") }} Kaydet ve sonraki (Enter)</button>
+      <button class="dugme ikincil" id="yok" type="button">Forklift yok (N)</button>
+      <button class="dugme ikincil" id="atla" type="button">Atla (S)</button>
+      <button class="dugme ikincil" id="sil" type="button">{{ simge("sil") }} Kareyi sil</button>
+    </div>
+    <p class="not etiket-anahtari">
+      <span><b style="color:#15803d">■</b>Forklift</span>
+      <span><b style="color:#1d4ed8">■</b>Transpalet</span>
+      <span><b style="color:#78716c">▢</b>Değil / onaylanmamış öneri (kaydedilmez)</span>
+    </p>
+    <script type="application/json" id="kutu-verisi">{{ {"oneriler": kare.oneriler, "etiketler": kare.etiketler} | tojson }}</script>
+  </section>
+  {% else %}
+  <section class="kart">
+    <p class="bos">Etiketlenecek kare kalmadı.</p>
+    <p class="satir-form"><a class="dugme" href="/forklift">Forklift sayfasına dön</a></p>
+  </section>
+  {% endif %}
+{% endblock %}
+{% block betikler %}
+{% if kare %}
+<script>
+(function () {
+  var sahne = document.getElementById("sahne");
+  var resim = document.getElementById("kare");
+  var tuval = document.getElementById("tuval");
+  var cizer = tuval.getContext("2d");
+  var G = Number(sahne.dataset.genislik), Y = Number(sahne.dataset.yukseklik);
+  var KIMLIK = sahne.dataset.id;
+  var veri = JSON.parse(document.getElementById("kutu-verisi").textContent);
+  var DONGU = ["forklift", "pallet_jack", "degil"];
+  var AD = { forklift: "Forklift", pallet_jack: "Transpalet", degil: "Değil" };
+  var RENK = { forklift: "#15803d", pallet_jack: "#1d4ed8", degil: "#78716c" };
+  tuval.width = G;
+  tuval.height = Y;
+
+  // Kutu: {kutu: [x1, y1, x2, y2], sinif, cizilen}. Öneri "Değil" başlar: yalnız
+  // onaylanan kutu etiket olur, yanlış etiket veri setini baştan bozar.
+  var kutular = [];
+  if (veri.etiketler) {
+    veri.etiketler.forEach(function (e) {
+      kutular.push({ kutu: e.kutu, sinif: e.sinif, cizilen: true });
+    });
+  } else {
+    veri.oneriler.forEach(function (o) {
+      kutular.push({ kutu: o.kutu, sinif: o.sinif === "forklift" ? "forklift" : "degil", cizilen: false });
+    });
+  }
+  var surukleme = null;
+
+  function ciz() {
+    cizer.clearRect(0, 0, G, Y);
+    var kalinlik = Math.max(2, G / 400);
+    var yazi = Math.max(14, Math.round(G / 60));
+    cizer.font = "600 " + yazi + "px sans-serif";
+    kutular.forEach(function (k) {
+      var x1 = k.kutu[0], y1 = k.kutu[1], x2 = k.kutu[2], y2 = k.kutu[3];
+      cizer.lineWidth = kalinlik;
+      cizer.setLineDash(k.sinif === "degil" ? [kalinlik * 4, kalinlik * 3] : []);
+      cizer.strokeStyle = RENK[k.sinif];
+      cizer.strokeRect(x1, y1, x2 - x1, y2 - y1);
+      var metin = AD[k.sinif] + (k.cizilen || k.sinif !== "degil" ? "" : " (öneri)");
+      var en = cizer.measureText(metin).width + 10;
+      cizer.setLineDash([]);
+      cizer.fillStyle = RENK[k.sinif];
+      cizer.fillRect(x1, Math.max(0, y1 - yazi - 8), en, yazi + 8);
+      cizer.fillStyle = "#ffffff";
+      cizer.fillText(metin, x1 + 5, Math.max(yazi, y1 - 6));
+    });
+    if (surukleme) {
+      cizer.setLineDash([6, 4]);
+      cizer.lineWidth = kalinlik;
+      cizer.strokeStyle = RENK.forklift;
+      cizer.strokeRect(surukleme.bas[0], surukleme.bas[1],
+        surukleme.son[0] - surukleme.bas[0], surukleme.son[1] - surukleme.bas[1]);
+    }
+  }
+
+  function nokta(olay) {
+    var kutu = tuval.getBoundingClientRect();
+    return [(olay.clientX - kutu.left) * G / kutu.width, (olay.clientY - kutu.top) * Y / kutu.height];
+  }
+
+  function kutuBul(x, y) {
+    // İç içe kutularda en küçüğü: tıklanan büyük olanın içindeki küçük araçtır.
+    var bulunan = -1, enKucuk = Infinity;
+    kutular.forEach(function (k, i) {
+      if (x >= k.kutu[0] && x <= k.kutu[2] && y >= k.kutu[1] && y <= k.kutu[3]) {
+        var alan = (k.kutu[2] - k.kutu[0]) * (k.kutu[3] - k.kutu[1]);
+        if (alan < enKucuk) { enKucuk = alan; bulunan = i; }
+      }
+    });
+    return bulunan;
+  }
+
+  tuval.addEventListener("pointerdown", function (olay) {
+    tuval.setPointerCapture(olay.pointerId);
+    var p = nokta(olay);
+    surukleme = { bas: p, son: p };
+  });
+  tuval.addEventListener("pointermove", function (olay) {
+    if (!surukleme) { return; }
+    surukleme.son = nokta(olay);
+    ciz();
+  });
+  tuval.addEventListener("pointerup", function (olay) {
+    if (!surukleme) { return; }
+    var a = surukleme.bas, b = nokta(olay);
+    surukleme = null;
+    var esik = Math.max(6, G / 200);
+    if (Math.abs(b[0] - a[0]) < esik && Math.abs(b[1] - a[1]) < esik) {
+      var i = kutuBul(a[0], a[1]);
+      if (i >= 0) {
+        var k = kutular[i];
+        var yeni = DONGU[(DONGU.indexOf(k.sinif) + 1) % DONGU.length];
+        if (k.cizilen && yeni === "degil") { kutular.splice(i, 1); } else { k.sinif = yeni; }
+      }
+    } else {
+      kutular.push({
+        kutu: [Math.min(a[0], b[0]), Math.min(a[1], b[1]), Math.max(a[0], b[0]), Math.max(a[1], b[1])],
+        sinif: "forklift",
+        cizilen: true
+      });
+    }
+    ciz();
+  });
+
+  var mesgul = false;
+  function sonrakine(cevap) {
+    window.location.href = cevap.sonraki ? "/forklift/etiket?id=" + cevap.sonraki : "/forklift";
+  }
+  function gonder(liste) {
+    if (mesgul) { return; }
+    mesgul = true;
+    fetch("/forklift/" + KIMLIK + "/etiket", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ kutular: liste })
+    }).then(function (yanit) {
+      if (!yanit.ok) {
+        return yanit.json().then(function (h) { throw new Error(h.hata || "kaydedilemedi"); });
+      }
+      return yanit.json();
+    }).then(sonrakine).catch(function (hata) {
+      mesgul = false;
+      alert("Etiket kaydedilemedi: " + hata.message);
+    });
+  }
+  function kaydet() {
+    gonder(kutular.filter(function (k) { return k.sinif !== "degil"; })
+      .map(function (k) { return { kutu: k.kutu, sinif: k.sinif }; }));
+  }
+  function forkliftYok() { gonder([]); }
+  function atla() { window.location.href = "/forklift/etiket?sonra=" + KIMLIK; }
+  function sil() {
+    if (!window.confirm("Bu kare silinsin mi? Geri alınamaz.")) { return; }
+    fetch("/forklift/" + KIMLIK + "/sil", { method: "POST" })
+      .then(function (yanit) { return yanit.json(); })
+      .then(sonrakine)
+      .catch(function () { alert("Kare silinemedi. Sayfayı yenileyin."); });
+  }
+
+  document.getElementById("kaydet").addEventListener("click", kaydet);
+  document.getElementById("yok").addEventListener("click", forkliftYok);
+  document.getElementById("atla").addEventListener("click", atla);
+  document.getElementById("sil").addEventListener("click", sil);
+  document.addEventListener("keydown", function (olay) {
+    if (olay.target.closest && olay.target.closest("input, textarea, select")) { return; }
+    if (olay.key === "Enter") { olay.preventDefault(); kaydet(); }
+    else if (olay.key === "n" || olay.key === "N") { forkliftYok(); }
+    else if (olay.key === "s" || olay.key === "S") { atla(); }
+  });
+  if (resim.complete) { ciz(); } else { resim.addEventListener("load", ciz); }
+}());
+</script>
+{% endif %}
+{% endblock %}

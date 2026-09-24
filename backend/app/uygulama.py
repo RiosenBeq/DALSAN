@@ -23,6 +23,7 @@ from app.web import (
     anons_web,
     ayar_rotalari,
     belge_rotalari,
+    forklift_web,
     giris,
     hoparlorler,
     kameralar,
@@ -160,6 +161,9 @@ def uygulama_olustur(ayarlar: Ayarlar, analiz: bool = True) -> FastAPI:
     uygulama.include_router(kurallar.router, dependencies=korumali)
     uygulama.include_router(olaylar_web.router, dependencies=korumali)
     uygulama.include_router(kkd_web.router, dependencies=korumali)
+    # Forklift eğitimi için saha karesi (şema 012): toplama kapısı, etiketleme
+    # ve eğitim verisi. KKD sayfasıyla aynı KVKK düzeni.
+    uygulama.include_router(forklift_web.router, dependencies=korumali)
     uygulama.include_router(anons_web.router, dependencies=korumali)
     # Hoparlör bölgeleri (şema 002): anonsun hangi adrese gideceğini
     # belirler; ekranı Anons sistemi sayfasındadır.

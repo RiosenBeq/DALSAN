@@ -1,0 +1,95 @@
+{% extends "temel.html" %}
+{% from "simge.html" import simge %}
+{% block baslik %}Forklift Eğitimi - DALSAN İSG{% endblock %}
+{% block icerik %}
+  <h2>Forklift Eğitimi (fabrikanın kendi görüntüsüyle)</h2>
+  <p class="not">Hazır model forklifti çoğu zaman “tır” olarak görür; açık veriyle yapılan iki
+    eğitim, başka depolardaki forkliftlere genelleyemediği için kapılardan geçemedi. En iyi
+    sonuç bu fabrikanın kendi kameralarından gelir. Yapılacaklar üç adımdır: toplamayı açın,
+    kareleri etiketleyin, eğitim verisini indirip kapalı bir bilgisayarda eğitin.</p>
+
+  {# Toplama kapısı (KVKK): sayfanın EN ÜSTÜNDE - kare toplanıp toplanmadığı
+     bu sayfaya bakan herkesin ilk gördüğü şey. #}
+  <section class="kart kkd-toplama {{ 'acik' if toplama.acik else 'kapali' }}" id="veri-toplama">
+    {% if toplama.acik %}
+    <h3>1. Kare toplama: AÇIK</h3>
+    <p class="not">Araç ya da forklift görünen kare kamera başına saatte en çok
+      <b>{{ saat_limiti }}</b> kez, araçsız kare bunun altıda biri kadar saklanır; toplam
+      en çok <b>{{ en_cok }}</b> kare. Kareler yalnız bu bilgisayarda durur; etiketlenmeyenler
+      <b>{{ saklama_gun }}</b> gün sonra silinir.{% if toplama.degisti %} Açılış: {{ toplama.degisti }}.{% endif %}</p>
+    {% if sinir_doldu %}
+    <p class="not"><span class="rozet sari">Sınır doldu</span> Yeni kare saklanmıyor. Kareleri
+      etiketleyip eğitim verisini indirin ya da aşağıdan silin.</p>
+    {% endif %}
+    <form method="post" action="/forklift/toplama" class="satir-form">
+      <input type="hidden" name="ac" value="0">
+      <button class="dugme ikincil">Kare toplamayı kapat</button>
+    </form>
+    {% else %}
+    <h3>1. Kare toplama: KAPALI</h3>
+    <p class="not">Kamera karesinde çalışanlar da görünür: kareleri saklamak kişisel veri
+      işlemektir (KVKK). Toplamayı açmadan önce çalışanlara aydınlatma yapılmalı ve bu amacın
+      hukuki dayanağı (Rev.02 ya da ek protokol) olmalıdır. Kapalıyken hiçbir kare saklanmaz;
+      kurallar ve uyarılar bundan etkilenmez.{% if toplama.degisti %} Son değişiklik: {{ toplama.degisti }}.{% endif %}</p>
+    <form method="post" action="/forklift/toplama" class="dikey-form dar">
+      <input type="hidden" name="ac" value="1">
+      <label class="yatay"><input type="checkbox" name="onay" value="1" required>
+        {{ toplama_onay_metni }}</label>
+      <button class="dugme">Kare toplamayı aç</button>
+    </form>
+    {% endif %}
+  </section>
+
+  <section class="kart" id="etiketleme">
+    <h3>2. Etiketleme</h3>
+    <table class="kkd-model-karti">
+      <tr><th>Toplanan kare</th><td>{{ ozet.toplam }}</td></tr>
+      <tr><th>Etiketlenen</th><td>{{ ozet.etiketli }} (etiket bekleyen {{ ozet.bekleyen }})</td></tr>
+      <tr><th>Forklift kutusu</th><td>{{ ozet.forklift_kutusu }}</td></tr>
+      <tr><th>Transpalet kutusu</th><td>{{ ozet.transpalet_kutusu }}</td></tr>
+      <tr><th>Forkliftsiz kare</th><td>{{ ozet.forkliftsiz_kare }}</td></tr>
+      <tr><th>Etiketli kare günleri</th><td>{{ ozet.gun }}</td></tr>
+    </table>
+    <p class="not">Her karede program araç kutularını önerir. Forklift olan kutuya tıklayın;
+      önerilmeyen forkliftin etrafına fareyle kutu çizin. Hedef: farklı günlerden, farklı
+      kameralardan ve farklı saatlerden (gece, gündüz) en az birkaç yüz etiketli kare.</p>
+    <p class="satir-form">
+      {% if ozet.bekleyen %}
+      <a class="dugme" href="/forklift/etiket">{{ simge("duzenle") }} Etiketlemeye başla ({{ ozet.bekleyen }} kare)</a>
+      {% else %}
+      <span class="bos">Etiketlenecek kare yok.{% if not toplama.acik %} Önce toplamayı açın.{% endif %}</span>
+      {% endif %}
+    </p>
+  </section>
+
+  <section class="kart" id="egitim-verisi">
+    <h3>3. Eğitim verisi</h3>
+    <p class="not">Etiketli kareler güne göre bölünür: son günler (yaklaşık dörtte biri) test
+      içindir ve eğitime girmez; model, görmediği günlerde sınanır. Zip, programın
+      <code>egitim/forklift</code> adımlarıyla aynı düzendedir. Bu dosyayı internete,
+      herkese açık bir depoya ya da paylaşılan bir klasöre koymayın: eğitim kapalı bir
+      bilgisayarda yapılır.</p>
+    {% for uyari in uyarilar %}<p class="not"><span class="rozet sari">Uyarı</span> {{ uyari }}</p>{% endfor %}
+    {% if ozet.etiketli %}
+    <p class="satir-form">
+      <a class="dugme" href="/forklift/veri-seti.zip" download>Eğitim verisini indir (.zip)</a>
+      <span class="not">{{ ozet.etiketli }} etiketli kare, {{ test_gunu }} test günü</span>
+    </p>
+    {% else %}
+    <p class="bos">Henüz etiketli kare yok.</p>
+    {% endif %}
+  </section>
+
+  {% if ozet.toplam %}
+  <section class="kart" id="sil">
+    <h3>Toplanan kareleri sil</h3>
+    <p class="not">Bütün kareler ve etiketleri diskten ve veritabanından silinir; geri
+      alınamaz. Eğitim verisini indirdiyseniz o dosya etkilenmez.</p>
+    <form method="post" action="/forklift/hepsini-sil" class="dikey-form dar">
+      <label class="yatay"><input type="checkbox" name="onay" value="1" required>
+        {{ silme_onay_metni }}</label>
+      <button class="dugme ikincil">Hepsini sil</button>
+    </form>
+  </section>
+  {% endif %}
+{% endblock %}
