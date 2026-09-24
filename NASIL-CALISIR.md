@@ -76,7 +76,7 @@ tek şey, bakılacak tek günlük vardır.
 1. [python.org](https://www.python.org/downloads/) → **Python 3.12** kur.
 2. Proje klasöründeki **Baslat-Mac.command** dosyasına **çift tıkla**.
    İlk açılışta gerekli paketleri kendisi kurar (birkaç dakika sürer).
-3. Tarayıcı kendiliğinden açılır.
+3. İzleme ekranı kendiliğinden, adres çubuğu olmayan bir pencerede açılır.
 
 İlk açılışta macOS "geliştirici doğrulanamadı" derse: **sağ tık → Aç → Aç**.
 
@@ -95,7 +95,7 @@ Docker içindir (aşağıya bakın).
    Kurulum ekranında **"Add Python to PATH"** kutusunu işaretle - en kritik adım.
 2. **Baslat-Windows.bat** dosyasına **çift tıkla**.
    SmartScreen uyarısı çıkarsa: Daha fazla bilgi → Yine de çalıştır.
-3. Tarayıcı kendiliğinden açılır.
+3. İzleme ekranı kendiliğinden, adres çubuğu olmayan bir pencerede açılır.
 
 Windows'a özel olarak halledilmiş şeyler:
 - **Başlatıcı:** `py -3` ile başlatılır. `where python` Windows 10/11'de Python

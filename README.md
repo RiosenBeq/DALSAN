@@ -15,7 +15,7 @@ her olayı kanıt fotoğrafıyla kaydeden, **tek sunucuda çalışan** erken uya
    (Windows'ta **"Add Python to PATH"** işaretli olmalı).
 2. Proje klasöründe **Baslat-Mac.command** / **Baslat-Windows.bat** dosyasına çift tıklayın.
 3. Kontrol Paneli'nde **İlk Kurulumu Yap** → **Sistemi Başlat**.
-4. Tarayıcı `http://127.0.0.1:8080` adresinde açılır. Varsayılanda giriş
+4. İzleme ekranı adres çubuğu olmayan bir pencerede açılır (`http://127.0.0.1:8080`). Varsayılanda giriş
    sorulmaz: sistem yalnızca bu bilgisayardan açılır. **Fabrika sunucusuna
    taşırken ya da sistemi ağa açarken** `.env` dosyasındaki `YONETICI_SIFRESI`
    satırını doldurun (ya da Komuta → Ayarlar → Güvenlik); o andan sonra her

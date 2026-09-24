@@ -16,8 +16,9 @@ Docker gerekmez. Kontrol Paneli yeter:
 |---|---|
 | `Baslat-Mac.command` → çift tık | `Baslat-Windows.bat` → çift tık |
 
-**İlk Kurulumu Yap** → **Sistemi Başlat**. Tarayıcı `http://127.0.0.1:8080`
-adresinde açılır. Tespit modeli yoksa sistem ilk açılışta **kendisi indirir**
+**İlk Kurulumu Yap** → **Sistemi Başlat**. İzleme ekranı adres çubuğu olmayan bir
+pencerede açılır (bu kurulumda Edge, Chrome ya da Brave'in uygulama kipi; paketlenmiş
+uygulamada programın kendi penceresi, docs/11), adresi `http://127.0.0.1:8080`. Tespit modeli yoksa sistem ilk açılışta **kendisi indirir**
 (internet gerekir); ana sayfadaki "Tespit modeli" satırı "Hazır" olana kadar bekleyin.
 Şirket ağında güvenlik duvarı varsa bu ilk indirme için `github.com` ve GitHub'ın dosya
 sunucusu `release-assets.githubusercontent.com` açık olmalı: hazır modeller YOLOX'un resmi
@@ -438,7 +439,7 @@ görünmelidir.
 | Kamera "çevrimdışı" | Aynı durum satırı + `veri/loglar/sistem.log` içinde `"bilesen": "kamera"`; NVR eşzamanlı bağlantı limiti sık sebeptir |
 | "Tespit modeli: Yüklenemedi" | İnternet yoksa `bash models/indir.sh` ile elle indirin; dosya bozuksa silip tekrar indirin |
 | Kutular çıkmıyor / nesne kaçıyor | `.env` içinde `TESPIT_GUVEN_ESIGI` ve `TESPIT_INSAN_GUVEN_ESIGI` değerlerini kademeli düşürün (0,05'lik adımlarla). Uzak nesnede `TESPIT_EN_KUCUK_KENAR_PX` düşürülür |
-| Çok fazla yanlış tespit | Aynı eşikleri yükseltin; **NextGen AI İsabetli** (`MODEL_DOSYASI=models/yolox_s.onnx`) daha isabetlidir (daha yavaş) |
+| Çok fazla yanlış tespit | Aynı eşikleri yükseltin; **NextGen AI İsabetli** daha isabetlidir (daha yavaş): Ayarlar → "Tanıma modeli"nden seçip Kontrol Paneli'nden yeniden başlatın |
 | "Tespit modeli: ... yayın yerinde bulunamadı" | İnternet çalışıyor, model dosyası yayında yok: Ayarlar → "Tanıma modeli"nden başka model seçip yeniden başlatın, destek ekibine haber verin |
 | Forklift modeline geçince bazı kurallar forklifte tepki vermiyor | Kurulum listesindeki "Araç kuralları tanıma modeline uyuyor mu?" adımı kuralları kamera, bölge ve türüyle söyler: yalnız "Tır/Araç" seçili kurallarda "Forklift"i de işaretleyin (tır park alanının bölge kuralı bilerek yalnız tırdır). Forkliftsiz modele dönünce yalnız "Forklift" seçili kurallar aynı adımda görünür. Kapalı kameranın kuralı sayılmaz |
 | Olay üretilmiyor | Kural açık mı; bölge doğru tipte mi; mesafe kuralında kalibrasyon var mı (Kurallar sayfasındaki rozet söyler) |
@@ -487,6 +488,11 @@ görünmelidir.
 - [ ] Kuralların anons mesajlarına ses dosyası bağlandı: Anons sayfasında "ses dosyası
       yok" rozeti kalmadı (bağlanmayan mesajda hoparlör sözlü anons yerine yalnız uyarı
       tonu çalar, docs/14 §2.3); her mesaj **Anonsu Dene** ile sahada dinlendi
+- [ ] Her kurala anons mesajı seçildi: Uyarı zincirinde "mesaj yok - uyarı tonu çalar"
+      satırı kalmadı (mesajsız kural hoparlörü susturmaz ama kimin ne yapacağını söylemez)
+- [ ] Forklift tanıyan model seçildiyse kurulum listesinde "Araç kuralları tanıma modeline
+      uyuyor mu?" adımı kalmadı; o model varsayılan yapılmadan önce saha ölçümü (forklift
+      AP50 ≥ 0,90, aşağıdaki doğruluk maddesi) tutanakta (docs/17 §12.3-8)
 - [ ] Sesli kanalların hepsi Bluetooth değil (kurulum listesinde "Sesli anons" adımı yeşil; GÖREV §7)
 - [ ] Bluetooth hoparlör kapatıldı: ~30-40 sn içinde rozet "koptu", Olaylar'da "Ses kanalı koptu"; bu sırada üretilen test ihlali "Tüm fabrika" kanalından **duyuldu**; hoparlör açılınca "tekrar bağlandı" (kendiliğinden bağlanmadıysa bu tutanağa yazıldı, docs/14 §2.1.1)
 - [ ] Hoparlör gecikmesi telefon videosuyla ölçüldü ve tutanağa yazıldı (§8.1)
