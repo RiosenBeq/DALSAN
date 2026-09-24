@@ -438,8 +438,9 @@ Arayüz, model ayırana kadar "Tır/Araç" demeye devam eder.
 - **Uygulandı (23.09.2026, operatörün forklift isteği üzerine):** `tespit.sinif_eslemesi`
   JSON liste ya da `{"indeks": "kod"}` sözlüğü okur; okunamayan ya da katalogdan hiç sınıf
   içermeyen liste `ModelHatasi`'dır (yanlış sırayla okunan model forklifti insan sanabilirdi).
-  İnsan eşiği ve NMS bandı üst verideki insan indeksine uygulanır. `Tespitci.siniflar` ve
-  `forklift_taniyor` kurulum listesinin ilk adımında görünür.
+  İnsan eşiği ve NMS bandı üst verideki insan indeksine uygulanır. `forklift_taniyor`
+  kurulum listesinin 1. adımındaki forklift notunu ve 10. adımını (araç kurallarının
+  modele uyumu) belirler; `Tespitci.siniflar` ekranda gösterilmez.
 
 ### 4.3 Bölge tipleri
 
@@ -1660,6 +1661,25 @@ makinede bütün ağın ince ayarı, COCO alt kümesiyle) yerini alır.
    günüdür (§14); kutu etiketlemeyi kimin yapacağı S11.
 7. Sürücü: mesafe kuralında sürücü muafiyeti yoktur; forklifti daha iyi tanıyan model,
    hareket eden forkliftin kendi sürücüsüyle eşleşmesini de daha sık görebilir (S38).
+8. **Kapılar, karar ve kayıt.** Aday ancak `egitim/forklift/esikler.json`'daki kapıların
+   hepsini geçerse kayda girer: insan ve araç kaybı, forkliftlerin araç (forklift ya da tır)
+   olarak bulunma oranındaki artış, forklift bulma oranı (en az 0,60), görüntü başına yanlış
+   forklift, transpaletin forklift sanılması, forklift kesinliği, araç setinde tırın forklift
+   sanılması, videoda insan kaybı ve yanlış forklift, gecikme (resmi modelin en çok 1,25
+   katı). Değerler dosyadadır; operatörün ayrıca onaylayacakları docs/ILERLEME'de yazar.
+   **Karar (24.09.2026):** kapıyı geçen aday Ayarlar'daki "Tanıma modeli" listesinde
+   SEÇİLEBİLİR olur; varsayılan model, sahada ölçülüp (forklift AP50 ≥ 0,90, docs/06 §8)
+   operatör onaylamadan DEĞİŞMEZ.
+   Hangi k'nin kaydedileceği ölçüme bakılarak seçilir. Kayıt tek commit'tir, yalnız kayıt
+   tablolarını doldurur: `model_indir.DALSAN_MODELLERI` (yerel ad → `<etiket>/<yayın dosyası>`),
+   `FORKLIFT_TABANI` (forklift modeli → insanı ve aracı aynı tanıyan hazır model; aynı
+   tabanın yeni sürümü SONA eklenir, kurulum listesi en yenisini önerir), `BILINEN_MODELLER`
+   (yayının SHA256SUMS'u, indirilen dosyada yeniden hesaplanır), `models/SHA256SUMS`,
+   `models/indir.sh`'te `indir` satırı ve `model_adi.GORUNEN_ADLAR` ("NextGen AI Hızlı +
+   Forklift" gibi). Yerel ad sürümü taşır (`nextgen_forklift_tiny_r7.onnx`): var olan dosya
+   yeniden indirilmez. Ayarlar açıklaması ve kurulum listesinin notu kayıttan kendiliğinden
+   güncellenir; testler kayıttan bağımsızdır (tiny ve s birlikte kayıtlıyken provası
+   geçti, docs/ILERLEME).
 
 ### 12.4 Export, kuantizasyon, çalışma zamanı
 
@@ -1837,8 +1857,10 @@ docs/07'ye satır olur.
   görüşüne kadar yeni kamu veri seti kullanılmaz" varsayılanını forklift eğitimi için
   kaldırır. Lisans riski yine en az tutuldu: eğitim verisi yalnız LOCO'dur (CC0 1.0,
   doğrulandı); ürünün ZATEN kullandığı resmi YOLOX ağırlıkları donuk kalır ve onların
-  dışında hiçbir hazır ağırlık, COCO/Open Images/Roboflow görüntüsü eğitime GİRMEDİ. Open Images
-  fotoğrafları yalnız ölçümde kullanıldı, ürünle dağıtılmaz. COCO kökenli hazır ağırlıklar
+  dışında hiçbir hazır ağırlık, COCO/Open Images/Roboflow görüntüsü ürün adaylarının
+  eğitimine GİRMEDİ. Open Images fotoğrafları ölçümde ve bir yerel sığdırma sınamasında
+  (kipler arası kapasite karşılaştırması; ağırlıkları hiçbir yerde kullanılmadı) kullanıldı,
+  ürünle dağıtılmaz. COCO kökenli hazır ağırlıklar
   için hukuk görüşü sorusu (S20'nin kalanı) bugünkü ürün için neyse aynen odur, açıktır.
   Yöntem §12.3; lisans atfı `LICENSE-THIRD-PARTY` 5. madde.
 - **23.09.2026, mesajı olmayan kural (hata düzeltmesi, K21):** kurala anons mesajı

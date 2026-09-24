@@ -124,8 +124,9 @@ sistem haline getir"*, *"windowsta exe uygulama olacak macbookta da öyle"*.
   vermiyordu. Tanıtımda 1364 ekran teslimine karşı **sıfır** hoparlör teslimi
   vardı ve `/saglik` yine "uyarı garantisi var" diyordu. docs/17 K21'e ve
   operatörün hoparlör isteğine aykırıydı. Artık olay kendi adıyla duyurulur:
-  ses çıkışı uyarı tonunu çalar, IP hoparlör olayın adını okur, garanti ve
-  "ulaşmadı" denetimi çalışır. Çalışan tanıtımda doğrulandı: Bluetooth
+  ses çıkışı uyarı tonunu çalar, IP hoparlöre `uyari` anahtarı ve olayın adı gider
+  (metni seslendiren cihaz adı okur, dosya çalan cihaza `uyari` sesi yüklenir,
+  docs/14), garanti ve "ulaşmadı" denetimi çalışır. Çalışan tanıtımda doğrulandı: Bluetooth
   hoparlör 30 sn arayla tonu çaldı, aradaki tekrarlar bastırıldı. Uçtan uca
   test iki durumu da sınar; eski satırı geri koymak testi kırıyor.
 - **Üretim hattı:** `.github/workflows/uygulama-uret.yml` Windows, Apple M
@@ -200,15 +201,16 @@ artık oturumu dönme kapalı açar (`session.intra_op/inter_op.allow_spinning=0
 
 | Ölçüm | Önce | Sonra |
 |---|---|---|
-| Saniyede 6 çıkarım, yalnız model (`ort_kiyas`) | CPU %115,5, p50 26,5 ms | CPU %57,6, p50 36,3 ms |
+| Saniyede 6 çıkarım, yalnız model (geçici ölçüm betiği, depoda yok) | CPU %115,5, p50 26,5 ms | CPU %57,6, p50 36,3 ms |
 | Çalışan sistem, 1 kamera (vtest.avi, 6 kare/sn) | CPU %111, işleme p50 34 ms | CPU %52, işleme p50 41 ms |
 | 4 kamera tam yük (`tests.hiz_kiyas --dort`), tiny | bütçe %100,4, p50/p90 68/107 ms | bütçe %100,1, p50/p90 114/162 ms |
 | 4 kamera tam yük, s (İsabetli) | bütçe %50,1 | bütçe %43,4 |
 | Aynı ölçümün süreç CPU'su | %350 | %252 |
 
 CPU yüzdeleri tek çekirdeğe göredir. Hızlı modelde işlenen kare sayısı
-değişmedi; gecikme 500 ms hedefinin çok altında kaldı. İsabetli model CPU'da
-zaten 4 kameraya yetmiyordu (GPU ister, S1).
+değişmedi; gecikme 500 ms hedefinin çok altında kaldı. İsabetli modelde
+işlenen kare payı %50,1'den %43,4'e indi (yaklaşık %13 daha az kare); o
+model CPU'da zaten 4 kameraya yetmiyordu (GPU ister, S1).
 
 ## Operatör istekleri (23.09.2026): hoparlör, forklift, uyarı kayıtları
 
@@ -246,7 +248,8 @@ katalogda olmayan sınıf atlanıp günlüğe yazılır, okunamayan liste modeli
 açmaz. Kurulum listesinin ilk adımı forkliftin ayrı sınıf olarak tanınıp
 tanınmadığını söyler. Model gelince doğruluk `tests/dogruluk_kiyas` ile ölçülür
 (forklift AP50 ≥ 0,90; docs/06 §8) ve car/truck ayrımı ancak ondan sonra açılır
-(docs/17 §12.3-5).
+(docs/17 §12.3-5). *Aynı gün aşıldı:* eğitim GitHub Actions'ta LOCO (CC0) ile,
+saha görüntüsü olmadan yapılıyor; bkz. «Forklift tanıyan model» bölümü.
 
 **Uyarı kayıtları: 15 günde bir önce masaüstüne, sonra temizlik.** "Uyarı
 logu" teslim kaydıdır (`alert_deliveries`: hangi uyarı, hangi kanal, sonuç,
