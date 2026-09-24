@@ -185,9 +185,7 @@ def _kullaniciya_giden_metin(yol: Path) -> str:
         agac = ast.parse(kaynak)
         belge_dizeleri = set()
         for dugum in ast.walk(agac):
-            if isinstance(
-                dugum, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)
-            ):
+            if isinstance(dugum, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
                 ilk = dugum.body[0] if dugum.body else None
                 if isinstance(ilk, ast.Expr) and isinstance(ilk.value, ast.Constant):
                     belge_dizeleri.add(id(ilk.value))
@@ -316,3 +314,46 @@ def test_anons_sayfasi_ses_yolunun_neye_gore_oldugunu_soyler(istemci, monkeypatc
 
     _paketlenmis_gibi(monkeypatch)
     assert f"{MAC_KLASORU} klasörüne göredir" in istemci.get("/anons").text
+
+
+# --------------------------------------------- sunucu kurulumu (Docker, systemd)
+
+
+def test_sunucu_kurulumu_acik_isaretle_taninir(monkeypatch):
+    assert kaynaklar.sunucu_kurulumu_mu() is False
+    monkeypatch.setenv("DALSAN_HIZMET", "1")
+    assert kaynaklar.kurulum_turu() == "hizmet" and kaynaklar.sunucu_kurulumu_mu()
+    monkeypatch.delenv("DALSAN_HIZMET")
+    monkeypatch.setenv("DALSAN_KAPSAYICI", "1")
+    assert kaynaklar.kurulum_turu() == "docker" and kaynaklar.sunucu_kurulumu_mu()
+
+
+def test_yeniden_baslatma_tarifi_kuruluma_gore(monkeypatch):
+    assert kaynaklar.baslatma_tarifi() == (
+        "Kontrol Paneli'nde Durdur'a, sonra Sistemi Başlat'a basın"
+    )
+    assert kaynaklar.baslatma_tarifi(yeniden=False) == "Kontrol Paneli'nde Sistemi Başlat'a basın"
+    monkeypatch.setenv("DALSAN_HIZMET", "1")
+    assert kaynaklar.baslatma_tarifi() == "Sistemi sunucuda yeniden başlatın"
+    assert kaynaklar.baslatma_tarifi(cumle_basi=False) == "sistemi sunucuda yeniden başlatın"
+    assert kaynaklar.baslatma_tarifi(yeniden=False) == "Sistemi sunucuda başlatın"
+
+
+def test_sunucuda_hata_mesajlari_kontrol_panelini_anmaz(monkeypatch, tmp_path):
+    """Docker ve systemd kurulumunda Kontrol Paneli yoktur; "Durdur'a basın"
+    diyen mesaj kullanıcıyı olmayan bir düğmeyi aramaya yollardı."""
+    monkeypatch.setenv("DALSAN_HIZMET", "1")
+    bozuk = tmp_path / "bozuk.db"
+    bozuk.write_bytes(b"bu bir veritabani degil" * 64)
+    with pytest.raises(VeritabaniHatasi) as hata:
+        veritabani.baglanti_ac(bozuk)
+    mesaj = hata.value.kullanici_mesaji
+    assert "Kontrol Paneli" not in mesaj
+    assert "Sistemi sunucuda durdurup" in mesaj and "docs/06 §1.2.2" in mesaj
+
+    indirme, _ = model_indir._indirme_hata_metinleri(
+        "https://ornek", Path("yolox_tiny.onnx"), urllib.error.URLError("yok")
+    )
+    assert "Kontrol Panel" not in indirme and "sistemi sunucuda yeniden başlatın" in indirme
+    hazir = tespit._uyumsuz_model(Path("yolox_tiny.onnx"), "teknik").kullanici_mesaji
+    assert "Kontrol Paneli" not in hazir

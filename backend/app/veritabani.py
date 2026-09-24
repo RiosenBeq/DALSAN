@@ -35,6 +35,23 @@ SEMA_DIZINI = kaynaklar.kaynak_yolu("backend", "sema")
 YABANCI_ANAHTAR_KAPALI = "-- DALSAN-SEMA: YABANCI-ANAHTAR-KAPALI"
 
 
+def _yedege_donus() -> str:
+    """Son yedeğe dönüş tarifi. "Yedeği geri yükleyin" tek başına bir talimat
+    değil: kullanıcı HANGİ dosyayı NEREYE koyacağını bilmiyor. Masaüstünde
+    Kontrol Paneli'nin düğmesi bunu yapar; sunucu kurulumunda (Docker, systemd)
+    Kontrol Paneli yoktur, adımlar docs/06 §1.2.2'dedir."""
+    yedekler = kaynaklar.ekran_yolu("veri", "yedekler")
+    if kaynaklar.sunucu_kurulumu_mu():
+        return (
+            f"Sistemi sunucuda durdurup {yedekler} klasöründeki en yeni yedeği "
+            "docs/06 §1.2.2'deki gibi geri yükleyin, sonra sistemi başlatın."
+        )
+    return (
+        "Kontrol Paneli'nde Durdur'a basın, 'Yedekten Geri Yükle' ile en yeni yedeği "
+        f"seçin (yedekler {yedekler} klasöründedir), sonra Sistemi Başlat'a basın."
+    )
+
+
 def baglanti_ac(veritabani_yolu: Path | str) -> sqlite3.Connection:
     """Doğru PRAGMA'larla yeni bir SQLite bağlantısı açar.
 
@@ -70,12 +87,10 @@ def baglanti_ac(veritabani_yolu: Path | str) -> sqlite3.Connection:
         raise VeritabaniHatasi(
             # "Yedeği geri yükleyin" tek başına bir talimat değil: kullanıcı
             # yazılımcı değil, HANGİ dosyayı NEREYE koyacağını bilmiyor.
-            "Kayıt dosyası açılamadı; bozulmuş olabilir. Kontrol Paneli'nde Durdur'a "
-            "basın, 'Yedekten Geri Yükle' ile en yeni yedeği seçin (yedekler "
-            f"{kaynaklar.ekran_yolu('veri', 'yedekler')} klasöründedir), sonra Sistemi "
-            f"Başlat'a basın. Yedek yoksa bozuk {kaynaklar.ekran_yolu('veri', 'dalsan.db')} "
-            "dosyasının adını dalsan-bozuk.db yapın - sistem boş bir kayıt dosyasıyla "
-            "açılır, eski olay kayıtları geri gelmez.",
+            f"Kayıt dosyası açılamadı; bozulmuş olabilir. {_yedege_donus()} Yedek yoksa "
+            f"bozuk {kaynaklar.ekran_yolu('veri', 'dalsan.db')} dosyasının adını "
+            "dalsan-bozuk.db yapın - sistem boş bir kayıt dosyasıyla açılır, eski olay "
+            "kayıtları geri gelmez.",
             f"Veritabanı açılamadı: {veritabani_yolu} - {hata!r}",
         ) from hata
 
@@ -156,8 +171,7 @@ def semayi_uygula(baglanti: sqlite3.Connection, sema_dizini: Path = SEMA_DIZINI)
                 if bozuklar:
                     raise VeritabaniHatasi(
                         "Veritabanı güncellemesi yarım kaldı; kayıtlar arasındaki "
-                        "bağlantılar bozulmuş görünüyor. Kontrol Paneli'nde Durdur'a "
-                        "basıp 'Yedekten Geri Yükle' ile son yedeğe dönün.",
+                        f"bağlantılar bozulmuş görünüyor. {_yedege_donus()}",
                         f"{betik.name} sonrası foreign_key_check {len(bozuklar)} "
                         f"bozuk satır buldu: {bozuklar[:5]}",
                     )
@@ -165,7 +179,7 @@ def semayi_uygula(baglanti: sqlite3.Connection, sema_dizini: Path = SEMA_DIZINI)
             baglanti.rollback()
             raise VeritabaniHatasi(
                 "Veritabanı güncellemesi tamamlanamadı; hiçbir değişiklik yazılmadı. "
-                "Kontrol Paneli'nde Durdur'a, sonra Sistemi Başlat'a basın. Sorun sürerse "
+                f"{kaynaklar.baslatma_tarifi()}. Sorun sürerse "
                 f"{kaynaklar.gunluk_dosyasi()} dosyasını destek ekibine iletin.",
                 f"Şema betiği uygulanamadı: {betik.name} - {hata!r}",
             ) from hata

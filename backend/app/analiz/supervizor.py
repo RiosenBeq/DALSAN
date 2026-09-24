@@ -346,9 +346,8 @@ class AnalizSupervizoru:
             self.model_durumu = "hata"
             # Ekranda sade Türkçe; özgün hata metni yalnızca günlüğe yazılır.
             self.tespit_hatasi = (
-                "Analiz başlatılamadı. Kontrol Paneli'nde Durdur'a, sonra Sistemi Başlat'a "
-                f"basın. Sorun sürerse {kaynaklar.gunluk_dosyasi()} dosyasını "
-                "destek ekibine iletin."
+                f"Analiz başlatılamadı. {kaynaklar.baslatma_tarifi()}. Sorun sürerse "
+                f"{kaynaklar.gunluk_dosyasi()} dosyasını destek ekibine iletin."
             )
             self._log.error(f"Analiz başlatılamadı: {hata}", exc_info=hata)
             return
@@ -370,7 +369,7 @@ class AnalizSupervizoru:
             # Ekranda ürün adı + yapılabilir adım; ham hata metni günlüğe gider.
             self.tespit_hatasi = (
                 f"{gorunen_model_adi(self.ayarlar.model_dosyasi.name)} başlatılamadı. "
-                "Kontrol Paneli'nde Durdur'a, sonra Sistemi Başlat'a basın. Sorun sürerse "
+                f"{kaynaklar.baslatma_tarifi()}. Sorun sürerse "
                 f"{kaynaklar.gunluk_dosyasi()} dosyasını destek ekibine iletin."
             )
             self._log.error(f"Tespit modeli kurulamadı: {hata}", exc_info=hata)

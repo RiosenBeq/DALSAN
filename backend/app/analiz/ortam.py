@@ -21,6 +21,8 @@ uğruna kapatmak olurdu.
 
 from __future__ import annotations
 
+from app import kaynaklar
+
 # backend/requirements.txt'te SABİTLENEN ana sürüm. İkisi birlikte
 # değişmelidir; tests/test_ortam.py bunu zorunlu tutar.
 #
@@ -60,5 +62,8 @@ def opencv_uyarisi(surum: str | None = None) -> str:
         f"Görüntü kütüphanesinin sürümü beklenenden farklı (kurulu {ham}, "
         f"beklenen {BEKLENEN_ANA_SURUM}.x). Kameralar ve kurallar çalışır, ama "
         "Nesneler sayfasındaki tanıma HATALI SONUÇ VEREBİLİR. Düzeltmek için "
-        "Kontrol Paneli'nde Durdur → İlk Kurulumu Yap → Sistemi Başlat."
+        + {
+            "kaynak": "Kontrol Paneli'nde Durdur → İlk Kurulumu Yap → Sistemi Başlat.",
+            "paket": "uygulamayı yeniden kurun.",
+        }.get(kaynaklar.kurulum_turu(), "sistemi sunucuda yeniden kurun (docs/06).")
     )

@@ -257,8 +257,13 @@ def ayarlari_yukle(kok_dizin: Path | None = None) -> Ayarlar:
     if not env_yolu.exists():
         raise AyarHatasi(
             f"Ayar dosyası bulunamadı: {env_yolu}\n"
-            "Çözüm: .env.example dosyasını .env adıyla kopyalayın. "
-            "(Kontrol Paneli'ndeki 'İlk Kurulumu Yap' düğmesi bunu otomatik yapar.)"
+            "Çözüm: .env.example dosyasını .env adıyla kopyalayın."
+            # systemd kurulumunda Kontrol Paneli yoktur (app/kaynaklar.py)
+            + (
+                " (Kontrol Paneli'ndeki 'İlk Kurulumu Yap' düğmesi bunu otomatik yapar.)"
+                if kaynaklar.kurulum_turu() == "kaynak"
+                else ""
+            )
         )
     return ayarlari_coz(kok, env_degerlerini_oku(env_yolu), konum)
 
