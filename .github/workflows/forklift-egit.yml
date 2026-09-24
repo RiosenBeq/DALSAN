@@ -471,7 +471,12 @@ jobs:
           fi
           python -c "import cv2, onnxruntime; print('opencv', cv2.__version__, 'onnxruntime', onnxruntime.__version__)"
 
+      # Ürünün model indirmesini sınayan tek iş: kayıtlı forklift modeli de
+      # inmeli (INDIR_SIKI). Yoksa yanlış yazılmış bir kayıt, betik onu isteğe
+      # bağlı sayıp uyarıyla geçtiği için yeşil kalırdı.
       - name: Resmi modeller (models/indir.sh, SHA-256 denetimli)
+        env:
+          INDIR_SIKI: "1"
         run: |
           for deneme in 1 2 3; do
             if bash models/indir.sh; then

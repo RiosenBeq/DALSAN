@@ -31,10 +31,12 @@ ozet_tutuyor_mu() {
 # İnmeyen ya da doğrulanamayan dosya: hazır YOLOX modeli ZORUNLUDUR (sistem
 # onsuz tespit yapmaz), betik durur. Forklift modeli (DALSAN yayını) yalnız
 # Ayarlar'da seçilirse gerekir: uyarı yazılır, betik öteki modellerle biter.
+# INDIR_SIKI=1 (GitHub'daki forklift ölçüm işi) forklift modelini de zorunlu
+# sayar: yanlış yazılmış bir kayıt (etiket, dosya adı, özet) orada yeşil geçmesin.
 basarisiz() {
   ad="$1"; zorunlu="$2"
   rm -f "$ad.part"
-  if [ -n "$zorunlu" ]; then
+  if [ -n "$zorunlu" ] || [ -n "${INDIR_SIKI:-}" ]; then
     exit 1
   fi
   echo "  $ad isteğe bağlıdır (Ayarlar'da seçilmedikçe gerekmez); öteki modellerle devam ediliyor." >&2
@@ -59,9 +61,23 @@ indir() {
     echo "✗ $ad doğrulanamadı (bozuk ya da farklı bir sürüm): $ad.eski olarak kenara alındı."
   fi
   echo "▶ $ad indiriliyor..."
-  if ! curl -L --fail --progress-bar -o "$ad.part" "$adres"; then
-    echo "✗ $ad indirilemedi. İnternet bağlantısını ve güvenlik duvarında github.com ile" >&2
-    echo "  release-assets.githubusercontent.com'un açık olduğunu kontrol edip yeniden deneyin." >&2
+  kod=0
+  curl -L --fail --progress-bar -o "$ad.part" "$adres" || kod=$?
+  if [ "$kod" -ne 0 ]; then
+    case "$kod" in
+      22)  # --fail: sunucu cevap verdi ama dosyayı vermedi (404, 403...)
+        echo "✗ $ad indirilemedi: sunucu dosyayı vermedi (internet çalışıyor; dosya" >&2
+        echo "  yayında yok ya da erişim engellendi). Destek ekibine haber verin." >&2
+        ;;
+      127)
+        echo "✗ $ad indirilemedi: curl kurulu değil. Kurup (Debian/Ubuntu:" >&2
+        echo "  sudo apt install curl) yeniden çalıştırın." >&2
+        ;;
+      *)
+        echo "✗ $ad indirilemedi. İnternet bağlantısını ve güvenlik duvarında github.com ile" >&2
+        echo "  release-assets.githubusercontent.com'un açık olduğunu kontrol edip yeniden deneyin." >&2
+        ;;
+    esac
     basarisiz "$ad" "$zorunlu"
     return 0
   fi

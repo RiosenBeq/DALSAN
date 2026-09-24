@@ -142,11 +142,14 @@ bash_gerekli = pytest.mark.skipif(
 )
 
 
-def _betik_kur(tmp_path: Path, sunulan: bytes, dusen: str = "") -> tuple[Path, dict]:
+def _betik_kur(
+    tmp_path: Path, sunulan: bytes, dusen: str = "", dusen_kod: int = 22
+) -> tuple[Path, dict]:
     """indir.sh'i geçici klasöre kopyalar; `curl` sahtedir, `sunulan`ı yazar.
 
     `dusen` verilirse adresi onu içeren indirmede sahte curl, gerçek `curl
-    --fail` gibi yarım bir dosya bırakıp 22 koduyla düşer.
+    --fail` gibi yarım bir dosya bırakıp `dusen_kod` ile düşer (22: sunucu
+    dosyayı vermedi, 6: adres çözülemedi, 127: curl yok).
 
     SHA256SUMS'taki tiny satırı `sunulan`ın özetine çevrilir; böylece
     'doğru dosya' ve 'değiştirilmiş dosya' iki durumu da gerçek model
@@ -174,7 +177,11 @@ def _betik_kur(tmp_path: Path, sunulan: bytes, dusen: str = "") -> tuple[Path, d
         "#!/bin/bash\nfor son; do :; done\n"
         f'echo "$son" >> "{tmp_path / "adresler"}"\n'
         'while [ $# -gt 0 ]; do [ "$1" = "-o" ] && cikti="$2"; shift; done\n'
-        + (f'case "$son" in *"{dusen}"*) echo yarim > "$cikti"; exit 22;; esac\n' if dusen else "")
+        + (
+            f'case "$son" in *"{dusen}"*) echo yarim > "$cikti"; exit {dusen_kod};; esac\n'
+            if dusen
+            else ""
+        )
         + f'cat "{tmp_path / "sunulan"}" > "$cikti"\n',
         encoding="utf-8",
     )
@@ -242,6 +249,35 @@ def test_betik_istege_bagli_forklift_modeli_inmezse_otekilerle_biter(tmp_path):
     assert not (klasor / ad).exists() and not (klasor / f"{ad}.part").exists()
     assert (klasor / "yolox_tiny.onnx").read_bytes() == b"dogru-tiny"
     assert "Tamam." in sonuc.stdout
+
+
+@bash_gerekli
+def test_betik_siki_kipte_forklift_modeli_de_zorunludur(tmp_path):
+    """GitHub'daki ölçüm işi INDIR_SIKI=1 ile çalışır: yanlış bir kayıt orada
+    yeşil geçmez."""
+    ad, yer = "nextgen_forklift_tiny_r0.onnx", "forklift-r0/tiny-v3-k1.onnx"
+    klasor, ortam = _betik_kur(tmp_path, b"dogru-tiny", dusen=yer)
+    _forklift_satiri_ekle(klasor, ad, yer, b"forklift")
+    sonuc = _calistir(klasor, {**ortam, "INDIR_SIKI": "1"})
+    assert sonuc.returncode != 0
+    assert not (klasor / f"{ad}.part").exists()
+
+
+@bash_gerekli
+@pytest.mark.parametrize(
+    ("kod", "metin"),
+    [
+        (22, "sunucu dosyayı vermedi"),
+        (127, "curl kurulu değil"),
+        (6, "İnternet bağlantısını"),
+    ],
+)
+def test_betik_indirme_hatasinin_sebebini_ayirir(tmp_path, kod, metin):
+    """Sunucunun dosyayı vermemesi (yayında yok) ya da curl'ün olmaması
+    "internetinizi kontrol edin" diye bildirilmez."""
+    klasor, ortam = _betik_kur(tmp_path, b"dogru-tiny", dusen="yolox_tiny.onnx", dusen_kod=kod)
+    sonuc = _calistir(klasor, ortam)
+    assert sonuc.returncode != 0 and metin in sonuc.stderr, sonuc.stderr
 
 
 @bash_gerekli

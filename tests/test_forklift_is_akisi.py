@@ -482,6 +482,16 @@ def test_resmi_onnx_yeniden_denenir(bacak, tmp_path, dusen, beklenen_kod):
         assert "::error title=Resmi modeller inmedi::" in sonuc.stdout
 
 
+def test_yalniz_olcum_isi_forklift_modelini_zorunlu_indirir(ana, bacak):
+    """Ölçüm işi ürünün model indirmesini sınar: kayıtlı forklift modeli de inmeli
+    (INDIR_SIKI). Eğitim bacağı ise yalnız resmi modellere muhtaçtır; kayıtlı bir
+    modelin yayını bozulsa bile eğitim durmamalı."""
+    olcum = _adim(ana, "olc", "Resmi modeller (models/indir.sh, SHA-256 denetimli)")
+    assert olcum.get("env", {}).get("INDIR_SIKI") == "1"
+    egitim = _adim(bacak, "egit", "Resmi ONNX modelleri (models/indir.sh, SHA-256 denetimli)")
+    assert "INDIR_SIKI" not in (egitim.get("env") or {})
+
+
 def test_olc_her_varyanti_ayri_olcer(ana):
     olc = ana["jobs"]["olc"]
     assert "bacak3" in olc["needs"]
