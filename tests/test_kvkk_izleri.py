@@ -115,7 +115,9 @@ def test_her_bakim_kosusu_imha_kaydi_yazar(baglanti, test_ayarlari):
         "goruntu_gun",
         "kkd_ham_veri_gun",
         "uyari_kaydi_gun",  # 011: uyarı kaydı arşivi (23.09.2026)
+        "forklift_ham_veri_gun",  # 012: forklift eğitimi için saha karesi (24.09.2026)
     }
+    assert ilk["forklift_samples_deleted"] == 0
     # Arşivlenecek uyarı kaydı yoktu: sayı 0, dosya yok
     assert (ilk["alerts_archived"], ilk["alert_archive_file"]) == (0, None)
 

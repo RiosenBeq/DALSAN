@@ -45,6 +45,7 @@ from app.analiz.model_indir import (
 )
 from app.analiz.tespit import ModelHatasi, Tespitci
 from app.ayarlar import Ayarlar
+from app.egitim import forklift_verisi
 from app.loglama import log_al
 from app.olaylar import uyari_arsivi
 from app.olaylar.anons import AnonsYoneticisi, OlayBilgisi
@@ -141,6 +142,11 @@ class AnalizSupervizoru:
         self._son_islenen_kare: dict[int, float] = {}
         self._siradaki_ornek: dict[int, float] = {}
         self._son_kkd_ornek: dict[int, float] = {}
+        # Forklift eğitimi için saha karesi (egitim/forklift_verisi.py): son
+        # araçlı ve son araçsız kare denemesi, kamera başına (monotonic).
+        self._son_forklift_ornek: dict[int, float] = {}
+        self._son_bos_forklift_ornek: dict[int, float] = {}
+        self._forklift_siniri_bildirildi = False
         self._olcumler: dict[int, _KameraOlcumu] = {}
         # Kamera id → açık "Kamera çevrimdışı" olayının id'si. Kamera dönünce,
         # kapatılınca ya da silinince bu olay kapatılır (docs/17 §6.1). Id ile
@@ -971,6 +977,7 @@ class AnalizSupervizoru:
             del ihlaller
             self._gecisleri_isle(baglanti, hat, simdi, kare_zamani)
             self._kkd_ornekle(baglanti, kid, kare, tespitler, hat, simdi)
+            self._forklift_ornekle(baglanti, kid, kare, tespitler, simdi)
 
     # ---- analiz sağlığı (docs/17 §3.6) ----
 
@@ -1379,6 +1386,51 @@ class AnalizSupervizoru:
             self._kkd_ornek_kaydet(baglanti, kamera_id, kirpik, boy_px, netlik_olc(kirpik))
             break  # bu turda tek örnek yeter
 
+    def _forklift_ornekle(self, baglanti, kamera_id: int, kare, tespitler, simdi: float) -> None:
+        """Forklift eğitimi için saha karesi saklar (egitim/forklift_verisi.py).
+
+        Araç (tır) ya da forklift görünen kare kamera başına saatte en çok
+        FORKLIFT_ORNEK_SAAT_LIMIT kez; araçsız kare bunun ARACSIZ_SEYREKLIK'te
+        biri kadar. Kapı, KKD'deki gibi kaydetmeden hemen önce okunur: kapatma
+        gecikmesizdir. Toplam sınır dolunca toplama durur ve bir kez günlüğe
+        yazılır. Kaydedilemeyen kare analizi durdurmaz.
+        """
+        aralik = 3600.0 / self.ayarlar.forklift_ornek_saat_limit
+        kutu_onerileri = forklift_verisi.oneriler(tespitler)
+        if kutu_onerileri:
+            son = self._son_forklift_ornek
+        else:
+            son = self._son_bos_forklift_ornek
+            aralik *= forklift_verisi.ARACSIZ_SEYREKLIK
+        onceki = son.get(kamera_id)
+        if onceki is not None and simdi - onceki < aralik:
+            return
+        # Deneme sayılır: kapı kapalıyken de bir sonraki deneme aralıkla gelir,
+        # kapı satırı her karede okunmaz.
+        son[kamera_id] = simdi
+        if not forklift_verisi.toplama_acik_mi(baglanti):
+            return
+        try:
+            if forklift_verisi.ornek_sayisi(baglanti) >= self.ayarlar.forklift_ornek_en_cok:
+                if not self._forklift_siniri_bildirildi:
+                    self._forklift_siniri_bildirildi = True
+                    self._log.warning(
+                        f"Forklift eğitim karesi sınırı doldu "
+                        f"({self.ayarlar.forklift_ornek_en_cok}); yeni kare saklanmıyor. "
+                        "Forklift sayfasında kareleri etiketleyip dışa aktarın ya da silin."
+                    )
+                return
+            self._forklift_siniri_bildirildi = False
+            if (
+                forklift_verisi.kareyi_kaydet(
+                    baglanti, self.ayarlar.goruntu_klasoru, kamera_id, kare, kutu_onerileri
+                )
+                is None
+            ):
+                self._log.error("Forklift eğitim karesi kaydedilemedi (görüntü kodlanamadı).")
+        except (OSError, sqlite3.Error) as hata:
+            self._log.error(f"Forklift eğitim karesi kaydedilemedi: {hata}")
+
     def _kkd_toplama_acik_mi(self, baglanti) -> bool:
         """KKD veri toplama kapısı (ppe_collection_gate, şema 007). Okunamazsa
         KAPALI sayılır: şüphede kişisel veri toplanmaz."""
@@ -1613,6 +1665,9 @@ class AnalizSupervizoru:
         )
         baglanti.commit()
         silinen_kkd = self._kkd_hamlarini_sil(baglanti)
+        silinen_forklift = forklift_verisi.hamlari_sil(
+            baglanti, a.goruntu_klasoru, a.forklift_ham_veri_saklama_gun
+        )
         self._imha_kaydi_yaz(
             baglanti,
             silinen_olay + silinen_sistem,
@@ -1620,6 +1675,7 @@ class AnalizSupervizoru:
             silinen_kkd,
             atlanan_donmus,
             arsiv,
+            silinen_forklift,
         )
 
         import shutil as _shutil
@@ -1627,7 +1683,8 @@ class AnalizSupervizoru:
         bos_gb = _shutil.disk_usage(a.veri_dizini).free / (1024**3)
         self._log.info(
             f"Bakım: {silinen_olay} olay, {silinen_sistem} sistem olayı, "
-            f"{silinen_foto} fotoğraf, {silinen_kkd} KKD örneği silindi; "
+            f"{silinen_foto} fotoğraf, {silinen_kkd} KKD örneği, {silinen_forklift} "
+            "forklift eğitim karesi silindi; "
             f"boş disk {bos_gb:.1f} GB"
         )
         if bos_gb < a.disk_uyari_gb:
@@ -1669,22 +1726,25 @@ class AnalizSupervizoru:
         ornek: int,
         atlanan_donmus: int,
         arsiv: uyari_arsivi.ArsivSonucu | None = None,
+        forklift: int = 0,
     ) -> None:
-        """`purge_log` satırı: sayılar, o anki saklama gün sayıları (docs/17 §10.1)
-        ve arşivlenip silinen uyarı kaydı ile dosyası (011)."""
+        """`purge_log` satırı: sayılar, o anki saklama gün sayıları (docs/17 §10.1),
+        arşivlenip silinen uyarı kaydı ile dosyası (011) ve silinen etiketsiz
+        forklift eğitim karesi (012)."""
         a = self.ayarlar
         politika = {
             "olay_gun": a.olay_saklama_gun,
             "sistem_olay_gun": a.sistem_olay_saklama_gun,
             "goruntu_gun": a.goruntu_saklama_gun,
             "kkd_ham_veri_gun": a.kkd_ham_veri_saklama_gun,
+            "forklift_ham_veri_gun": a.forklift_ham_veri_saklama_gun,
             "uyari_kaydi_gun": a.uyari_kaydi_arsiv_gun,
         }
         try:
             baglanti.execute(
                 "INSERT INTO purge_log (ran_at, events_deleted, photos_deleted, "
-                "samples_deleted, held_skipped, policy, alerts_archived, alert_archive_file) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                "samples_deleted, held_skipped, policy, alerts_archived, alert_archive_file, "
+                "forklift_samples_deleted) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     zaman.simdi_utc(),
                     olay,
@@ -1694,6 +1754,7 @@ class AnalizSupervizoru:
                     json.dumps(politika),
                     arsiv.satir if arsiv else 0,
                     str(arsiv.dosya) if arsiv else None,
+                    forklift,
                 ),
             )
             baglanti.commit()
@@ -1710,9 +1771,10 @@ class AnalizSupervizoru:
     ) -> int:
         """Eski OLAY fotoğraflarını siler.
 
-        kkd-ornekler/ alt ağacına DOKUNMAZ: etiketli örnekler eğitim veri
-        setidir ve asla silinmez; etiketsizlerin süresi _kkd_hamlarini_sil
-        tarafından ayrı (daha kısa) politika ile yönetilir (docs/06 §5).
+        kkd-ornekler/ ve forklift-ornekler/ alt ağaçlarına DOKUNMAZ: etiketli
+        örnekler eğitim veri setidir ve asla silinmez; etiketsizlerin süresi
+        _kkd_hamlarini_sil ve forklift_verisi.hamlari_sil tarafından ayrı (daha
+        kısa) politika ile yönetilir (docs/06 §5).
 
         `nesne_klasoru` ağacına da DOKUNMAZ (.env → NESNE_KLASORU): oradaki
         fotoğrafları kullanıcı kendi eliyle yükledi, onlar kanıt değil TANIM.
@@ -1725,10 +1787,15 @@ class AnalizSupervizoru:
         """
         sinir = time.time() - gun * 86400
         kkd_klasoru = klasor / "kkd-ornekler"
+        forklift_klasoru = klasor / forklift_verisi.KLASOR
         nesne_kok = nesne_klasoru.resolve()
         sayi = 0
         for dosya in klasor.rglob("*.jpg"):
-            if dosya.is_relative_to(kkd_klasoru) or dosya.resolve().is_relative_to(nesne_kok):
+            if (
+                dosya.is_relative_to(kkd_klasoru)
+                or dosya.is_relative_to(forklift_klasoru)
+                or dosya.resolve().is_relative_to(nesne_kok)
+            ):
                 continue
             if korunanlar and dosya.resolve() in korunanlar:
                 continue
