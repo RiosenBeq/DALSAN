@@ -80,6 +80,21 @@ APP_TITLE = (
     "NextGen Detector - Kontrol Paneli" if PAKETLENMIS else "DALSAN İSG - Kontrol Paneli"
 )
 
+# Paketlenmis Windows programinda panel, gozetmenin alt surecidir
+# (masaustu/surekli_calisma.py): cokerse ya da bekci kapatirsa gozetmen onu
+# yeniden acar, Windows acilisinda da kendiliginden baslar. Gozetmen bunu
+# ortam degiskeniyle bildirir; sinir dolunca "0" verir.
+GOZETIMLI_PANEL = PAKETLENMIS and os.environ.get(GOZETMEN_DEGISKENI) == "1"
+
+
+def _surekli_calisma():
+    """masaustu/surekli_calisma.py; yuklenemezse None (sistem yine calisir)."""
+    try:
+        import surekli_calisma
+    except ImportError:
+        return None
+    return surekli_calisma
+
 
 def _yazilabilir_kok() -> Path:
     """Veritabani, gunluk ve ayar dosyasinin duracagi klasor.
@@ -850,7 +865,11 @@ def arayuzu_baslat():
     durum = {
         "surec": None, "sunucu": None, "sunucu_is_parcacigi": None,
         "calisiyor": False, "mesgul": False, "oto_baslatmalar": [],
+        # Uyku engeli acik mi (Windows); ayni surecteki sunucu bir kez ayaga
+        # kalkti mi; "Durdur" su an calisiyor mu (beklenmedik durmayi ayirmak icin).
+        "uyku_engeli": False, "sunucu_ayaktaydi": False, "durduruluyor": False,
     }
+    surekli = _surekli_calisma()
     log_kuyrugu: "queue.Queue[str]" = queue.Queue()
 
     # paketler_hazir() bir alt surec calistirir (yavas). Ana pencere donmasin
@@ -889,8 +908,10 @@ def arayuzu_baslat():
     ust.pack(fill="x", padx=24, pady=(20, 8))
     tk.Label(ust, text="DALSAN İSG Görüntü Analiz Sistemi",
              font=baslik_font, bg=BG, fg=FG).pack(anchor="w")
-    tk.Label(ust, text="Bu pencereyi kapatırsanız sistem durur.",
-             font=kucuk_font, bg=BG, fg=MUTED).pack(anchor="w", pady=(2, 0))
+    tk.Label(ust, text=(
+        "Siz kapatana kadar açık kalır: bilgisayar yeniden başlasa da kendiliğinden açılır."
+        if GOZETIMLI_PANEL else "Bu pencereyi kapatırsanız sistem durur."
+    ), font=kucuk_font, bg=BG, fg=MUTED).pack(anchor="w", pady=(2, 0))
 
     # ---- durum satirlari ----
     durum_cerceve = tk.Frame(kok, bg="white", relief="flat", bd=0,
@@ -903,8 +924,11 @@ def arayuzu_baslat():
     # "Analiz" satiri calisan sistemin uyari uretip uretemedigini soyler
     # (/saglik hazir; docs/17 §9.1): "CALISIYOR" yazan bir sistem de analiz
     # yapmiyor olabilir.
+    # "Surekli calisma" satiri paketlenmis Windows programinda gorunur: bilgisayar
+    # uyuyor mu, yeniden baslarsa program kendiliginden acilacak mi.
     satirlar = (
         [("sunucu", "Sistem durumu"), ("analiz", "Analiz")]
+        + ([("surekli", "Sürekli çalışma")] if IS_WINDOWS else [])
         if PAKETLENMIS
         else [
             ("python", "Python"),
@@ -1047,7 +1071,58 @@ def arayuzu_baslat():
         if kurulum_btn is not None:
             kurulum_btn.configure(state="disabled" if durum["mesgul"] else "normal")
 
+        # Sistem calisirken Windows uyumasin. Engel cagiran is parcacigina
+        # baglidir: burasi pencerenin ana is parcacigidir ve panel kapanana
+        # kadar yasar.
+        if IS_WINDOWS and surekli is not None and ayakta != durum["uyku_engeli"]:
+            if surekli.uyku_engeli(ayakta):
+                durum["uyku_engeli"] = ayakta
+        surekli_satirini_yaz(ayarla)
+
+        # Paketlenmis programda sunucu bu surecteki bir is parcacigidir. Bir
+        # kez ayaga kalkmis sunucu kimse durdurmadan biterse (beklenmeyen
+        # hata) gozetmen programi yeniden acsin diye surecten cikilir.
+        sunucu_is = durum.get("sunucu_is_parcacigi")
+        if (
+            GOZETIMLI_PANEL and surekli is not None and durum["sunucu_ayaktaydi"]
+            and not durum["durduruluyor"] and sunucu_is is not None
+            and not sunucu_is.is_alive()
+        ):
+            durum["sunucu_ayaktaydi"] = False
+            log("[HATA] Sistem beklenmedik şekilde durdu; program kendini yeniden açıyor.")
+            kok.after(1500, lambda: os._exit(surekli.SUNUCU_DURDU_KODU))
+
         kok.after(1500, durumu_yenile)
+
+    # "Surekli calisma" satiri: kayit defteri her turda okunmaz, 30 sn'de bir.
+    surekli_bilgisi = {"metin": None, "renk": MUTED, "son": 0.0}
+
+    def surekli_satirini_yaz(ayarla):
+        if not (PAKETLENMIS and IS_WINDOWS):
+            return
+        simdi = time.monotonic()
+        if surekli_bilgisi["metin"] is None or simdi - surekli_bilgisi["son"] > 30:
+            surekli_bilgisi["son"] = simdi
+            surekli_bilgisi["metin"], surekli_bilgisi["renk"] = surekli_durumu()
+        uyku = " Bilgisayar uyumuyor." if durum["uyku_engeli"] else ""
+        ayarla("surekli", surekli_bilgisi["metin"] + uyku, surekli_bilgisi["renk"])
+
+    def surekli_durumu():
+        if surekli is None:
+            return "Kapalı - program kendini yeniden açamaz", WARN
+        if not GOZETIMLI_PANEL:
+            if os.environ.get(GOZETMEN_DEGISKENI) == "0":
+                return ("Kapalı - takılırsa yalnız uyarır (son bir saatte "
+                        f"{surekli.YENIDEN_ACMA_SINIRI} kez yeniden açıldı).", WARN)
+            return "Kapalı - program gözetmensiz açıldı; takılırsa yalnız uyarır.", WARN
+        hal = surekli.acilis_durumu(sys.executable)
+        if hal == "kayitli":
+            return "Açık - takılır ya da bilgisayar yeniden başlarsa kendiliğinden açılır.", OK
+        if hal == "kapatilmis":
+            return ("Windows açılışında kapatılmış (Görev Yöneticisi > Başlangıç "
+                    "uygulamaları): açın.", WARN)
+        return ("Windows açılışına eklenemedi - bilgisayar yeniden başlarsa "
+                "programı elle açın.", WARN)
 
     # ---- uzun islemleri ayri is parcaciginda calistir ----
     def is_baslat(fonksiyon):
@@ -1211,6 +1286,8 @@ def arayuzu_baslat():
         # sorunsuz acilirken ekranda "acilmadi" yaziyor, kullanici korkuyordu.
         for adim in range(360):      # en fazla 3 dakika
             if sunucu_ayakta():
+                # Yalniz gozetmen altindaki pakette okunur (durumu_yenile).
+                durum["sunucu_ayaktaydi"] = True
                 log(f"\n✓ SİSTEM ÇALIŞIYOR → {URL}")
                 log("=" * 60)
                 kok.after(400, lambda: izleme_ekranini_ac(log))
@@ -1227,6 +1304,9 @@ def arayuzu_baslat():
         if sunucu is None:
             return False
         log("\nSistem durduruluyor…")
+        # Durdurulan sunucu "beklenmedik durma" sayilmasin (durumu_yenile).
+        durum["durduruluyor"] = True
+        durum["sunucu_ayaktaydi"] = False
         sunucu.should_exit = True
         # Port hemen kapanir ama kapanis (kameralarin durmasi, "Sistem durdu"
         # olayi) acik ekran baglantilari yuzunden KAPANIS_BEKLEME_SN kadar
@@ -1241,6 +1321,7 @@ def arayuzu_baslat():
             time.sleep(0.25)
         durum["sunucu"] = None
         durum["sunucu_is_parcacigi"] = None
+        durum["durduruluyor"] = False
         log("✓ Durduruldu")
         return True
 
@@ -1394,6 +1475,28 @@ def arayuzu_baslat():
 
     # ---- pencere kapatilirken ----
     def kapanirken():
+        # Paketlenmis programda kapatmak bir karardir: kameralar izlenmez ve
+        # Windows programi bir daha kendiliginden acmaz. Yanlislikla tiklanan
+        # carpi (ya da pencereye kapatma istegi gonderen baska bir program)
+        # sistemi durdurmasin diye sorulur; varsayilan cevap "Hayir"dir.
+        if PAKETLENMIS and not messagebox.askyesno(
+            "Sistem kapatılsın mı?",
+            "Kapatırsanız kameralar izlenmez ve uyarı verilmez.\n\n"
+            + (
+                "Program siz yeniden açana kadar kapalı kalır: bilgisayar yeniden "
+                "başlasa da kendiliğinden açılmaz.\n\n"
+                if GOZETIMLI_PANEL else ""
+            )
+            + "Kapatılsın mı?",
+            icon="warning", default="no",
+        ):
+            return
+        if PAKETLENMIS and surekli is not None:
+            # Kullanici kapatti: oturum acilinca artik baslamaz. Panel 0 ile
+            # biter, gozetmen de yeniden acmadan kapanir.
+            hata = surekli.acilistan_cikar()
+            if hata:
+                log(f"[!] Windows açılış kaydı silinemedi: {hata}")
         # Once izleme penceresi: sistem durdurulurken "baglanti koptu" diyen
         # bos bir ekran ortada kalmasin.
         izleme_penceresini_kapat()
@@ -1409,8 +1512,18 @@ def arayuzu_baslat():
         # Kullaniciya mutlak dosya yolu gosterilmez (CLAUDE.md §8): paketlenmis
         # programda "proje klasoru" diye bir kavram da yoktur.
         log("NextGen Detector Kontrol Paneli hazır.")
+        if surekli is not None:
+            # Gozetmen, paneli neden (yeniden) actigini bildirir.
+            for satir in surekli.acilis_notu(
+                os.environ.get(surekli.ONCEKI_KAPANIS_DEGISKENI, "")
+            ):
+                log(satir)
         log("\nSistem kendiliğinden başlatılıyor; ilk açılış birkaç saniye sürer.")
-        log("Bu pencereyi kapatırsanız sistem durur.\n")
+        if GOZETIMLI_PANEL:
+            log("Siz kapatana kadar açık kalır: bilgisayar yeniden başlarsa ya da program")
+            log("takılırsa kendiliğinden açılır. Kapatmak için bu pencereyi kapatın.\n")
+        else:
+            log("Bu pencereyi kapatırsanız sistem durur.\n")
     else:
         log("DALSAN İSG Kontrol Paneli hazır.")
         log(f"Proje klasörü: {ROOT}")
@@ -1475,14 +1588,38 @@ def pencere_surecini_calistir(argumanlar) -> int:
     return uygulama_penceresi.pencere_sureci_ana(argumanlar)
 
 
+def gozetmen_sureci_mi(argumanlar) -> bool:
+    """Paketlenmis Windows programinin kullanicinin actigi kopyasi mi?"""
+    surekli = _surekli_calisma()
+    return surekli is not None and surekli.gozetmen_gerekli_mi(argumanlar, PAKETLENMIS)
+
+
+def gozetmeni_calistir(argumanlar) -> int:
+    """Gozetmen: Kontrol Paneli'ni alt surec olarak acar ve ayakta tutar."""
+    surekli = _surekli_calisma()
+    if not surekli.tek_kopya_mi():
+        # Program zaten acik: ikinci panel acilmaz, acik olan one gelir.
+        surekli.acik_paneli_one_getir()
+        return 0
+    return surekli.gozetmeni_calistir(sys.executable, argumanlar)
+
+
 if __name__ == "__main__":
     # Program kendini izleme penceresi olarak da acar (--izleme-penceresi).
     # Buna Tk kurulmadan ONCE bakilir: yoksa her pencere icin ikinci bir
     # Kontrol Paneli acilir, o da sistemi bir daha baslatmaya kalkardi.
     if pencere_sureci_mi(sys.argv[1:]):
         raise SystemExit(pencere_surecini_calistir(sys.argv[1:]))
+    # Paketlenmis Windows programinda kullanicinin actigi kopya gozetmendir:
+    # paneli (--panel) alt surec olarak acar (masaustu/surekli_calisma.py).
+    if gozetmen_sureci_mi(sys.argv[1:]):
+        raise SystemExit(gozetmeni_calistir(sys.argv[1:]))
     try:
         import tkinter  # noqa: F401
         arayuzu_baslat()
     except Exception as e:
+        if PAKETLENMIS:
+            # Konsol yok, metin modu Enter bekleyemez: hata acilis kancasina
+            # gider (gunluge yazilir; gozetimsizse pencerede gosterilir).
+            raise
         metin_modu(e)

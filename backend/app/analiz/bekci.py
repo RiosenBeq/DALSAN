@@ -16,10 +16,11 @@ analizin bağlantısı kilitli olabilir), CRITICAL günlük ve /saglik'te
 (varsayılan) ise süreç `os._exit(70)` ile kapanır: takılan bir iş parçacığı
 Python'da öldürülemez, tek çare süreci yeniden başlatmaktır. Bunu Docker
 (`restart:`) ya da systemd (`Restart=`) yapar; masaüstünde Başlat betiğinin
-Kontrol Paneli yapar (sunucu onun alt sürecidir; dalsan_launcher.py
-`surec_kapaninca`). Süreci yeniden açan kimse yoksa (elle çalıştırılan
-sunucu, testler, masaüstü paketi) çıkmak sistemi kalıcı olarak durdururdu:
-orada yalnız uyarılır (kaynaklar.yeniden_acan_var_mi).
+Kontrol Paneli (sunucu onun alt sürecidir; dalsan_launcher.py
+`surec_kapaninca`) ve paketlenmiş Windows uygulamasının gözetmeni
+(masaustu/surekli_calisma.py) yapar. Süreci yeniden açan kimse yoksa (elle
+çalıştırılan sunucu, testler, Mac uygulaması) çıkmak sistemi kalıcı olarak
+durdururdu: orada yalnız uyarılır (kaynaklar.yeniden_acan_var_mi).
 
 Aynı sorun bir kez bildirilir (olay seli yok); sorun geçince işaret kalkar.
 """

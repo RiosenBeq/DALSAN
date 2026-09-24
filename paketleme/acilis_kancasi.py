@@ -195,9 +195,23 @@ def pencerede_goster(dosya_yolu: Path | None) -> None:
         print(mesaj, file=sys.stderr)
 
 
+# Gözetmenin (masaustu/surekli_calisma.py) alt süreçlere verdiği işaret. Ad
+# burada tekrarlanır: kanca, uygulamanın kendi modülleri yüklenemediğinde de
+# çalışmalı (testler adların aynı olduğunu denetler).
+GOZETMEN_DEGISKENI = "DALSAN_GOZETMEN"
+
+
 def hata_yakalayici(tur, deger, iz) -> None:
-    """Yakalanmamış hatalarda çağrılır (`sys.excepthook`)."""
+    """Yakalanmamış hatalarda çağrılır (`sys.excepthook`).
+
+    Gözetmen altında çalışan panelde pencere GÖSTERİLMEZ: gözetmen paneli
+    birkaç saniye içinde yeniden açar; başında kimse olmayan bilgisayarda
+    kapatılmayı bekleyen bir hata penceresi ise süreci açık tutup yeniden
+    açılmayı engellerdi. Ayrıntı yine dosyaya yazılır.
+    """
     yol = hatayi_yaz("".join(traceback.format_exception(tur, deger, iz)))
+    if os.environ.get(GOZETMEN_DEGISKENI) == "1":
+        return
     pencerede_goster(yol)
 
 

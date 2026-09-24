@@ -105,6 +105,9 @@ def gizli_moduller(depo: Path) -> list[str]:
         # AÇIKÇA yazılması, dışarıda kalması halinde izleme ekranının hiç
         # açılmamasını (yani istenen davranışın sessizce kaybolmasını) önler.
         "uygulama_penceresi",
+        # Programın siz kapatana kadar açık kalması: gözetmen, Windows
+        # açılışı, uyku engeli, tek kopya. Aynı sebeple açıkça yazılır.
+        "surekli_calisma",
         # Pencere bileşeni (pywebview). Platform parçasını ADIYLA, çalışma
         # anında yükler; PyInstaller'ın taraması bunu kaçırırsa pencere
         # açılmaz ve ekran yedek pencereye düşer. İki platformun parçası da
