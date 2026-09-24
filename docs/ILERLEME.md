@@ -52,6 +52,14 @@ eğit"*. Karar kaydı ve lisans çerçevesi docs/17 §16, yöntem §12.3.
   artık kuralları kamera, bölge ve türüyle sayar; `indir.sh` sunucunun dosyayı vermemesini
   ve curl'ün olmamasını "internet" diye bildirmez; GitHub'daki ölçüm işi kayıtlı forklift
   modelini zorunlu indirir (yanlış bir kayıt yeşil geçmesin), eğitim bacağı ise etkilenmez.
+
+  Kayıt provası güncel main'de, Hızlı ve İsabetli forklift modelleri birlikte kayıtlıyken
+  tekrarlandı: üç test kaydı hesaba katmıyordu, kayıt günü takım kırmızıya dönerdi (biri
+  kayıttaki hazır model dosya adını ekrana çıkan metin sanıyordu, ikisi hiç forklift modeli
+  kayıtlı olmadığını varsayıyordu). Testler kayıttan bağımsız yapıldı; provada 2062 test
+  geçti, uygulama "İsabetli + Forklift"i yayından indirip SHA-256 ile doğrulayıp yükledi,
+  İsabetli çalışırken kurulum listesi onun forklift karşılığını önerdi, Ayarlar'ın görünen
+  metninde dosya adı ya da yol yok.
 - **GitHub'da sınandı:** duman çalıştırması (3) 12 işin hepsinde yeşil: LOCO arşivi 2 dakikada
   indi ve SHA-256'sı sabitlendi, üç bacaklı zincir ara kayıttan sürdü, eski sınıflar resmi
   modelle aynı çıktı, model testleri makinede de geçti; ölçümde insan ve araç kaybı 0.
