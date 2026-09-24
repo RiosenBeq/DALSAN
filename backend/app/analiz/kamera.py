@@ -47,7 +47,7 @@ os.environ.setdefault("OPENCV_FFMPEG_CAPTURE_OPTIONS", "rtsp_transport;tcp")
 import cv2  # noqa: E402  (yukarıdaki ortam değişkeni importtan önce gerekli)
 import numpy as np  # noqa: E402
 
-from app import zaman
+from app import kaynaklar, zaman
 from app.loglama import log_al
 
 # Bağlantı denemeleri arasındaki üstel bekleme sınırları (sn)
@@ -195,7 +195,7 @@ class KameraKaynagi:
             except Exception as hata:  # noqa: BLE001 - iş parçacığı ölmemeli
                 self.son_hata = (
                     f"Kamera okunurken beklenmeyen hata: {hata}. Kaynak adresini kontrol edin; "
-                    "ayrıntı veri/loglar/sistem.log dosyasında."
+                    f"ayrıntı {kaynaklar.gunluk_dosyasi()} dosyasında."
                 )
                 self.son_deneme_utc = zaman.simdi_utc()
                 self._log.error(

@@ -166,3 +166,96 @@ def kullanici_veri_koku() -> Path:
     else:
         temel = os.environ.get("XDG_DATA_HOME") or str(Path.home() / ".local" / "share")
     return Path(temel).expanduser() / UYGULAMA_ADI
+
+
+# ------------------------------------------------ ekranda gösterilecek yerler
+#
+# Hata mesajları, giriş sayfası ve kılavuz kullanıcıya bir dosyanın yerini
+# söyler (günlük, ayar dosyası, anons sesleri). "Program klasörü" yalnız veri
+# programın yanındaysa doğrudur: paketlenmiş programda veri kullanıcı
+# profilindedir (veri_konumu) ve programın klasöründe aranan dosya bulunamaz.
+# Yer bu yüzden tek yerde, burada söylenir.
+
+
+def kurulum_turu() -> str:
+    """Sistemin nasıl kurulduğu: "paket" (Windows ve Mac uygulaması, docs/13),
+    "docker" ya da "kaynak" (Başlat betikleri)."""
+    if paketlenmis_mi():
+        return "paket"
+    if kapsayicida_mi():
+        return "docker"
+    return "kaynak"
+
+
+def veri_klasoru_metni() -> str | None:
+    """Paketlenmiş programın kullanıcı klasörü, ekranda gösterilecek biçimde.
+
+    Dosya Gezgini'nin adres çubuğuna ya da Finder'ın "Klasöre Git" kutusuna
+    olduğu gibi yapıştırılabilir ve kullanıcı adını içermez: mutlak yol
+    ekranda gösterilmez (tests/test_ayarlar_sayfasi.py). Veri programın
+    yanındaysa (geliştirme, Docker ya da eski düzende kalmış paket) None:
+    o zaman doğru ad "program klasörü"dür.
+    """
+    if not paketlenmis_mi():
+        return None
+    try:
+        # Hata mesajı yazılırken çağrılır (ör. kamera iş parçacığının son
+        # çaresi, 500 sayfası): disk okunamıyorsa burası da patlamamalı.
+        profilde = veri_konumu().kok == kullanici_veri_koku().resolve()
+    except (OSError, RuntimeError, ValueError):
+        return None
+    if not profilde:
+        return None
+    if sys.platform.startswith("win"):
+        return "%LOCALAPPDATA%\\" + UYGULAMA_ADI
+    if sys.platform == "darwin":
+        return "~/Library/Application Support/" + UYGULAMA_ADI
+    temel = "$XDG_DATA_HOME" if os.environ.get("XDG_DATA_HOME") else "~/.local/share"
+    return f"{temel}/{UYGULAMA_ADI}"
+
+
+def kok_klasoru_adi() -> str:
+    """Yazılabilir kökün adı, "klasörü" sözüyle çekimlenmek üzere:
+    f"{kok_klasoru_adi()} klasörünün içinde" → "program klasörünün içinde"."""
+    return veri_klasoru_metni() or "program"
+
+
+@dataclass(frozen=True)
+class EkranYolu:
+    """Yazılabilir kökteki bir dosyanın ekrandaki yeri.
+
+    `onek` kullanıcının bildiği klasörü anlatan sözdür ("program
+    klasöründeki "), `yol` açılıp kopyalanacak kısımdır. Ayrı durur, çünkü
+    şablonlar yalnız yolu kalın yazar. Metin olarak ikisi birleşir.
+    """
+
+    onek: str
+    yol: str
+
+    def __str__(self) -> str:
+        return self.onek + self.yol
+
+
+def ekran_yolu(*parcalar: str) -> EkranYolu:
+    """`veri/loglar/sistem.log` gibi köke göre bir yolun ekrandaki yeri."""
+    klasor = veri_klasoru_metni()
+    if klasor is None:
+        return EkranYolu("program klasöründeki ", "/".join(parcalar))
+    ayrac = "\\" if sys.platform.startswith("win") else "/"
+    return EkranYolu("", ayrac.join((klasor, *parcalar)))
+
+
+def gunluk_dosyasi() -> EkranYolu:
+    """Destek ekibine iletilecek günlük dosyasının yeri (loglama.py)."""
+    return ekran_yolu("veri", "loglar", "sistem.log")
+
+
+def ayar_dosyasi() -> EkranYolu:
+    """Ayar dosyasının (.env) yeri.
+
+    Docker'da ayarlar sunucudaki ayar/.env dosyasındadır (docker-compose.yml);
+    kapsayıcının içindeki .env ona bağlanan bir yoldur.
+    """
+    if kapsayicida_mi():
+        return EkranYolu("program klasöründeki ", "ayar/.env")
+    return ekran_yolu(".env")

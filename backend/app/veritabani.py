@@ -71,11 +71,11 @@ def baglanti_ac(veritabani_yolu: Path | str) -> sqlite3.Connection:
             # "Yedeği geri yükleyin" tek başına bir talimat değil: kullanıcı
             # yazılımcı değil, HANGİ dosyayı NEREYE koyacağını bilmiyor.
             "Kayıt dosyası açılamadı; bozulmuş olabilir. Kontrol Paneli'nde Durdur'a "
-            "basın. Program klasöründeki veri/yedekler/ klasöründe duran en yeni "
-            "dalsan-... dosyasını veri klasörüne kopyalayıp adını dalsan.db yapın, "
-            "sonra Sistemi Başlat'a basın. Yedek yoksa bozuk dalsan.db dosyasının "
-            "adını dalsan-bozuk.db yapın - sistem boş bir kayıt dosyasıyla açılır, "
-            "eski olay kayıtları geri gelmez.",
+            "basın, 'Yedekten Geri Yükle' ile en yeni yedeği seçin (yedekler "
+            f"{kaynaklar.ekran_yolu('veri', 'yedekler')} klasöründedir), sonra Sistemi "
+            f"Başlat'a basın. Yedek yoksa bozuk {kaynaklar.ekran_yolu('veri', 'dalsan.db')} "
+            "dosyasının adını dalsan-bozuk.db yapın - sistem boş bir kayıt dosyasıyla "
+            "açılır, eski olay kayıtları geri gelmez.",
             f"Veritabanı açılamadı: {veritabani_yolu} - {hata!r}",
         ) from hata
 
@@ -100,10 +100,16 @@ def semayi_uygula(baglanti: sqlite3.Connection, sema_dizini: Path = SEMA_DIZINI)
 
     betikler = sorted(sema_dizini.glob("*.sql"))
     if not betikler:
+        # Uygulamada bu dosyalar paketin içindedir: kopyalanacak klasör yok.
+        cozum = (
+            "Uygulamayı yeniden kurun"
+            if kaynaklar.paketlenmis_mi()
+            else "Program klasörünü eksiksiz kopyalayıp yeniden deneyin"
+        )
         raise VeritabaniHatasi(
             "Sistem dosyaları eksik görünüyor: veritabanı kurulum dosyaları bulunamadı. "
-            "Program klasörünü eksiksiz kopyalayıp yeniden deneyin; sorun sürerse "
-            "program klasöründeki veri/loglar/sistem.log dosyasını destek ekibine iletin.",
+            f"{cozum}; sorun sürerse {kaynaklar.gunluk_dosyasi()} dosyasını destek ekibine "
+            "iletin.",
             f"Şema betiği bulunamadı: {sema_dizini} klasörü boş.",
         )
 
@@ -160,7 +166,7 @@ def semayi_uygula(baglanti: sqlite3.Connection, sema_dizini: Path = SEMA_DIZINI)
             raise VeritabaniHatasi(
                 "Veritabanı güncellemesi tamamlanamadı; hiçbir değişiklik yazılmadı. "
                 "Kontrol Paneli'nde Durdur'a, sonra Sistemi Başlat'a basın. Sorun sürerse "
-                "program klasöründeki veri/loglar/sistem.log dosyasını destek ekibine iletin.",
+                f"{kaynaklar.gunluk_dosyasi()} dosyasını destek ekibine iletin.",
                 f"Şema betiği uygulanamadı: {betik.name} - {hata!r}",
             ) from hata
         finally:

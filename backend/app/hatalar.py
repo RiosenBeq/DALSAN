@@ -10,6 +10,8 @@ böylece saf katmanlar (ör. rules/) da bu hata sınıflarını kullanabilir.
 
 from __future__ import annotations
 
+from app import kaynaklar
+
 
 class DalsanHata(Exception):
     """Tüm bilinçli hataların atası. Mesajı kullanıcıya gösterilir.
@@ -74,10 +76,14 @@ _ALAN_ADLARI = {
     "deger": "Etiket değeri",
 }
 
-_BEKLENMEYEN_MESAJ = (
-    "Beklenmeyen bir hata oluştu. Ayrıntılar veri/loglar/sistem.log "
-    "dosyasında - kırmızı satırları kopyalayıp Claude Code'a yapıştırın."
-)
+
+def _beklenmeyen_mesaj() -> str:
+    # Günlüğün yeri kuruluma göre değişir (paketlenmiş programda kullanıcı
+    # klasöründedir); app/kaynaklar.py söyler.
+    return (
+        f"Beklenmeyen bir hata oluştu. Ayrıntılar {kaynaklar.gunluk_dosyasi()} "
+        "dosyasında - kırmızı satırları kopyalayıp Claude Code'a yapıştırın."
+    )
 
 
 def hata_yakalayicilari_kur(app) -> None:
@@ -155,4 +161,4 @@ def hata_yakalayicilari_kur(app) -> None:
     @app.exception_handler(Exception)
     async def beklenmeyen_hata(istek: Request, hata: Exception):
         log.error(f"Beklenmeyen hata: {hata}", exc_info=hata)
-        return _yanit(istek, 500, _BEKLENMEYEN_MESAJ, "Beklenmeyen hata")
+        return _yanit(istek, 500, _beklenmeyen_mesaj(), "Beklenmeyen hata")

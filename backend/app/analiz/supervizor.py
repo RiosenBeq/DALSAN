@@ -23,7 +23,7 @@ import time
 from collections import deque
 from pathlib import Path
 
-from app import veritabani, zaman
+from app import kaynaklar, veritabani, zaman
 from app.analiz import ortam
 from app.analiz.bekci import Bekci
 from app.analiz.boru_hatti import KameraHatti
@@ -341,7 +341,7 @@ class AnalizSupervizoru:
             # Ekranda sade Türkçe; özgün hata metni yalnızca günlüğe yazılır.
             self.tespit_hatasi = (
                 "Analiz başlatılamadı. Kontrol Paneli'nde Durdur'a, sonra Sistemi Başlat'a "
-                "basın. Sorun sürerse program klasöründeki veri/loglar/sistem.log dosyasını "
+                f"basın. Sorun sürerse {kaynaklar.gunluk_dosyasi()} dosyasını "
                 "destek ekibine iletin."
             )
             self._log.error(f"Analiz başlatılamadı: {hata}", exc_info=hata)
@@ -365,7 +365,7 @@ class AnalizSupervizoru:
             self.tespit_hatasi = (
                 f"{gorunen_model_adi(self.ayarlar.model_dosyasi.name)} başlatılamadı. "
                 "Kontrol Paneli'nde Durdur'a, sonra Sistemi Başlat'a basın. Sorun sürerse "
-                "program klasöründeki veri/loglar/sistem.log dosyasını destek ekibine iletin."
+                f"{kaynaklar.gunluk_dosyasi()} dosyasını destek ekibine iletin."
             )
             self._log.error(f"Tespit modeli kurulamadı: {hata}", exc_info=hata)
             # Beklenmeyen hata yolu da olay yazar (docs/17 §6.1): eskiden yalnız

@@ -20,6 +20,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 
+from app import kaynaklar
 from app.analiz.model_adi import HAZIR_MODELE_DONUS, MARKA, gorunen_model_adi
 from app.hatalar import DalsanHata
 from app.loglama import log_al
@@ -67,7 +68,7 @@ def sinif_eslemesi(ust_veri: dict[str, str]) -> tuple[dict[int, str], list[str]]
     except (ValueError, TypeError) as hata:
         raise ModelHatasi(
             "Tespit modelinin sınıf listesi okunamadı. Kendi eğittiğiniz modeli "
-            "kullanıyorsanız program klasöründeki veri/loglar/sistem.log dosyasını "
+            f"kullanıyorsanız {kaynaklar.gunluk_dosyasi()} dosyasını "
             f"destek ekibine iletin. {HAZIR_MODELE_DONUS}",
             f"ONNX üst verisi {UST_VERI_SINIF_ANAHTARI} çözülemedi: {ham!r} ({hata})",
         ) from hata
@@ -136,7 +137,7 @@ def _acilamadi(model_dosyasi: Path, hata: Exception) -> ModelHatasi:
             f"{ad} açılamadı ama model dosyası sağlam (doğrulandı): sorun programın "
             "kurulumunda. Kontrol Paneli'nde 'İlk Kurulumu Yap' düğmesi varsa ona basın, "
             "yoksa programı yeniden kurun; sonra Sistemi Başlat'a basın. Düzelmezse "
-            "program klasöründeki veri/loglar/sistem.log dosyasını destek ekibine iletin.",
+            f"{kaynaklar.gunluk_dosyasi()} dosyasını destek ekibine iletin.",
             f"{teknik} | dosyanın SHA-256 özeti resmi yayınla aynı: dosya sağlam",
         )
     # Bozuk dosya yerinde DURDUĞU için yeniden başlatmak tek başına yetmeyebilir
@@ -145,8 +146,8 @@ def _acilamadi(model_dosyasi: Path, hata: Exception) -> ModelHatasi:
     return ModelHatasi(
         f"{ad} açılamadı: dosyası bozuk. "
         "Kontrol Paneli'nde Durdur'a, sonra Sistemi Başlat'a basın. Düzelmezse "
-        "bozuk dosyanın değiştirilmesi gerekir: program klasöründeki "
-        "veri/loglar/sistem.log dosyasını destek ekibine iletin.",
+        "bozuk dosyanın değiştirilmesi gerekir: "
+        f"{kaynaklar.gunluk_dosyasi()} dosyasını destek ekibine iletin.",
         teknik,
     )
 
@@ -156,7 +157,7 @@ def _uyumsuz_model(model_dosyasi: Path, teknik: str) -> ModelHatasi:
     return ModelHatasi(
         f"{gorunen_model_adi(model_dosyasi.name)} bu sistemle uyumlu değil. "
         f"{HAZIR_MODELE_DONUS} Kendi eğittiğiniz modeli kullanmak istiyorsanız "
-        "program klasöründeki veri/loglar/sistem.log dosyasını destek ekibine iletin.",
+        f"{kaynaklar.gunluk_dosyasi()} dosyasını destek ekibine iletin.",
         teknik,
     )
 
@@ -203,7 +204,7 @@ class Tespitci:
             raise ModelHatasi(
                 f"{gorunen_model_adi(model_dosyasi.name)} kurulu değil. Kontrol Paneli'nde "
                 f"Durdur'a, sonra Sistemi Başlat'a basın - {MARKA} ilk açılışta kendiliğinden "
-                "iner. Sorun sürerse program klasöründeki veri/loglar/sistem.log dosyasını "
+                f"iner. Sorun sürerse {kaynaklar.gunluk_dosyasi()} dosyasını "
                 "destek ekibine iletin.",
                 f"Tespit modeli bulunamadı: {model_dosyasi}",
             )
