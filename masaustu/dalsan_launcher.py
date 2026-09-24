@@ -22,6 +22,7 @@ import threading
 import time
 import urllib.error
 import urllib.request
+from datetime import datetime
 from pathlib import Path
 
 # ----------------------------------------------------------------------------
@@ -652,6 +653,34 @@ def klasorleri_hazirla() -> None:
         shutil.copy(ENV_EXAMPLE, ENV_FILE)
 
 
+def panel_satiri(satir: str) -> str:
+    """Sunucunun gunluk satirini panelde okunur hale getirir: "saat [!] mesaj".
+
+    Sunucunun ekran akisi JSON satiri yazar (backend/app/loglama.py); panelde
+    ham JSON, kullanici icin okunmaz ve Windows yollarindaki ters bolu kacisla
+    cift gorunurdu. Teknik ayrinti (`ayrinti`) ekran akisinda zaten yoktur.
+    JSON olmayan satir (uvicorn'un ilk satirlari, Python hata izi) aynen kalir.
+    """
+    try:
+        kayit = json.loads(satir)
+    except ValueError:
+        return satir
+    if not isinstance(kayit, dict) or "mesaj" not in kayit:
+        return satir
+    try:
+        saat = datetime.fromisoformat(str(kayit.get("ts", ""))).astimezone().strftime("%H:%M:%S ")
+    except ValueError:
+        saat = ""
+    seviye = str(kayit.get("level", ""))
+    if seviye in ("ERROR", "CRITICAL"):
+        isaret = "[HATA] "
+    elif seviye == "WARNING":
+        isaret = "[!] "
+    else:
+        isaret = ""
+    return f"{saat}{isaret}{kayit['mesaj']}"
+
+
 # ----------------------------------------------------------------------------
 # Paketlenmis programda sunucu: AYNI SUREC, ayri is parcacigi
 # ----------------------------------------------------------------------------
@@ -671,7 +700,7 @@ class _PanelGunlukAkisi(logging.Handler):
 
     def emit(self, kayit: logging.LogRecord) -> None:
         try:
-            self._yaz(self.format(kayit))
+            self._yaz(panel_satiri(self.format(kayit)))
         except (TypeError, ValueError, OSError):
             self.handleError(kayit)
 
@@ -1080,7 +1109,7 @@ def arayuzu_baslat():
     def ciktiyi_oku():
         try:
             for satir in durum["surec"].stdout:
-                log(satir.rstrip())
+                log(panel_satiri(satir.rstrip()))
         except Exception as hata:
             # Sessizce yutulursa gunluk penceresi donar ve kimse sebebini
             # bilmez; en azindan satiri ekrana dusur.

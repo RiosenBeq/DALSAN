@@ -13,7 +13,9 @@ from __future__ import annotations
 
 import ast
 import importlib.util
+import json
 import logging
+import re
 import sys
 from pathlib import Path
 
@@ -356,6 +358,8 @@ def test_panel_gunlugu_ekran_biciminden_ayrinti_sizdirmiyor(test_ayarlari):
     satir = toplanan[-1]
     assert "Model yüklendi" in satir
     assert "/gizli/yol/model.onnx" not in satir, "teknik ayrıntı ekrana sızdı"
+    # Panel ham JSON değil, "saat mesaj" gösterir (panel_satiri)
+    assert not satir.startswith("{") and satir.endswith("Model yüklendi")
 
     # Aynı ayrıntı DOSYADA durmalı - destek akışı ona dayanıyor.
     assert "/gizli/yol/model.onnx" in test_ayarlari.log_dosyasi.read_text(encoding="utf-8")
@@ -421,3 +425,34 @@ def test_uygulama_fabrikasi_main_icinde_ve_tek_kaynak():
     assert atamalar == ["app = uygulamayi_kur()"], (
         f"uvicorn'un beklediği modül düzeyi `app` nesnesi fabrikadan gelmeli: {atamalar}"
     )
+
+
+def test_panel_satiri_json_gunlugu_okunur_yazar():
+    """Sunucunun JSON satırı panelde "saat [!] mesaj" olur; ters bölüler tek."""
+    sys.modules.pop("normal_baslatici", None)
+    tanim = importlib.util.spec_from_file_location("normal_baslatici", BASLATICI)
+    modul = importlib.util.module_from_spec(tanim)
+    tanim.loader.exec_module(modul)
+
+    uyari = json.dumps(
+        {
+            "ts": "2026-09-24T10:05:41+00:00",
+            "level": "WARNING",
+            "bilesen": "sistem",
+            "mesaj": "Günlük: %LOCALAPPDATA%\\NextGen Detector\\veri\\loglar\\sistem.log",
+        },
+        ensure_ascii=False,
+    )
+    satir = modul.panel_satiri(uyari)
+    assert re.fullmatch(r"\d\d:\d\d:\d\d \[!\] Günlük: .*", satir), satir
+    assert "%LOCALAPPDATA%\\NextGen Detector\\veri" in satir and "\\\\" not in satir
+
+    hata = json.dumps({"ts": "bozuk", "level": "ERROR", "mesaj": "Model yüklenemedi"})
+    assert modul.panel_satiri(hata) == "[HATA] Model yüklenemedi"
+    bilgi = json.dumps({"ts": "2026-09-24T10:05:41+00:00", "level": "INFO", "mesaj": "Hazır"})
+    assert modul.panel_satiri(bilgi).endswith(" Hazır")
+    # JSON olmayan satır (uvicorn'un ilk satırları, hata izi) aynen kalır
+    assert modul.panel_satiri("INFO:     Started server process [42]") == (
+        "INFO:     Started server process [42]"
+    )
+    assert modul.panel_satiri('["liste"]') == '["liste"]'
