@@ -1,5 +1,88 @@
 # İlerleme
 
+## Sorunların çözümü ve belgelerin kodla denetimi (24.09.2026 öğleden sonra)
+
+Operatör: *"Olan problemleri de çöz ve md dosyalarını da baştan aşağı gerçek olacak
+şekilde düzenle"*. Aşağıdaki bölümün "Kalan" listesi, belge denetiminin koddan bulduğu
+hatalar ve 29 belgenin kodla karşılaştırılması.
+
+**Çözülen sorunlar:**
+
+- **Forklift modeli kullanılamazsa sistem durmuyor** (`d8f158f`, `48ac99c`). Eskiden
+  internetsiz sahada seçili forklift modeli inmezse insan ve araç tespiti de dururdu.
+  Artık süpervizör kayıttaki tabanına (hazır modele) kendiliğinden geçer; seçim değişmez,
+  her açılışta önce forklift modeli denenir. Ana sayfadaki "Forklift modeli" satırı ve
+  kılavuz hangi modelin çalıştığını ve sebebini söyler, Olaylar'a `MODEL_FALLBACK` düşer,
+  `/saglik` `model_yedekte` der (hazırlığı bozmaz). Taban da açılamazsa ilk hatanın
+  sebebi söylenir.
+- **Kontrol Paneli günlüğü okunur** (`543fbd9`): sunucunun JSON satırları "saat [HATA]
+  mesaj" ve "saat [!] mesaj" olarak basılır; Windows yolları tek ters bölüyle görünür.
+- **Docker ve systemd kurulumunda doğru başlatma tarifi** (`e0f0031`, `095551f`,
+  `9bc25f6`). Kurulum türü (paket, docker, hizmet, kaynak) tanınır; systemd birimi
+  `Environment=DALSAN_HIZMET=1` ile işaretlenir (docs/06 §1.2.1). Hata mesajları,
+  kılavuz, Ayarlar ve Anons sayfaları sunucu kurulumunda "Kontrol Paneli'nde Durdur'a
+  basın" yerine "sistemi sunucuda yeniden başlatın" der; kılavuzun başlatma bölümü orada
+  hizmeti anlatır.
+- **Belgeler uygulamayla geliyor** (`d7c05d9`, `3144710`, `a06bc07`): `docs/*.md` pakete ve
+  Docker imajına giriyor, izleme ekranında **Kılavuz → Bütün belgeler** ile düz metin
+  olarak açılıyor; sayfalardaki belge göndermeleri bağlantı oldu.
+- **Eğitim bacaklarının ara kaydı ayrı adla** (`a75d445`): her bacak
+  `calisma-<varyant>-b<N>` yapıtına yazar, sonraki bacak ve ölçüm en sonuncuyu seçer;
+  kayıt yoksa iş durur, başka bir iş denemesinden geliyorsa uyarı yazar.
+- **IP hoparlör adresinde kullanıcı adı ve şifre** (`6512db7`). Hiç çalışmıyordu (urllib
+  adresteki kimliği göndermez) ve portsuz adreste şifre hata metnine maskesiz girip son
+  anons satırına, teslim kaydına, arşive ve günlüğe düşüyordu; analiz kapalıyken aynı
+  kanalın "Dene"si 500 dönüyordu. Kimlik artık adresten ayrılıp cihaz isterse Basic ya da
+  Digest ile gönderiliyor; yanlış şifre "kullanıcı adı ya da şifre yanlış" der. Testler
+  gerçek bir yerel sunucuyla konuşuyor; yeni 9 testin 8'i eski kodda düşüyor.
+- **Bölge sayımında "En çok"** (`8624611`, `22b8281`): kamera sayfası ve kılavuz üç sayıyı
+  anlatıyordu, ekranda ikisi vardı.
+- **Bekçinin yeniden başlatması masaüstünde de** (`0b4c09e`). `BEKCI_TEPKISI=yeniden_baslat`
+  iken takılan analiz süreci 70 koduyla kapatıyor; Başlat betiğiyle kurulan sistemde
+  sunucu Kontrol Paneli'nin alt süreci olduğu için onu kimse yeniden açmıyor, sistem
+  tamamen duruyordu. Panel artık yeniden başlatır (saatte en çok 3 kez, sonra durur ve
+  günlükte söyler).
+- **R28** (`ba35b27`): ana sayfadaki toplam, analiz iş parçacığı kamera eklerken
+  "dictionary changed size during iteration" ile düşebiliyordu; kopya dolaşılıyor.
+- **Yanlış metinler** (`9e8473f`, `1db2e16`): panelin geri yükleme penceresi olmayan
+  "Yedek Al" düğmesini söylüyordu (doğrusu Teşhis sayfasındaki "Veritabanını Yedekle");
+  "Video Yükle" → "Video ile Test"; Anons ayar grubu "iki ayar" diyordu (beş); tarama
+  kaplaması "%8" (ölçülen %7-22); docker-compose GPU notu (imaj yalnız CPU paketini
+  kurar); yazı tipi notları (ı `latin`'de, ş/ğ/İ `latin-ext`'te); KKD sayfası kapalı
+  toplamada "hiçbir kişi görüntüsü saklanmaz" diyordu (kanıt fotoğrafları sürer);
+  paketleme notları tek dosyalık uygulama anlatıyordu; ZIP'ten açılmış klasörde
+  "Güncelle" artık ne yapılacağını söylüyor.
+
+3.11'de 2150'yi aşkın test ve ruff temiz; her ara commit ayrıca doğrulandı.
+
+**Belgeler.** Sekiz ayrı denetim 29 belgeyi koda karşı okudu; her düzeltme bir
+`dosya:satır`a dayanıyor. Başlıcaları: docs/02 var olmayan bir mimari anlatıyordu (iki
+süreç, PostgreSQL, React) ve bugünkü tek program, SQLite, Jinja2 düzeniyle yeniden yazıldı;
+docs/17 "TASLAK, onay bekliyor" diyordu, onaylandığı, Faz 2-5'in uygulandığı ve plandan
+sapmalar işlendi; docs/06'daki yedek komutları geri yükleme komutunun okuyamadığı bir
+klasör üretiyordu (`mkdir -p` eklendi, denendi); docs/11 panel şeması ve Python/Homebrew
+komutu; docs/13 güncelleme adımlarının sırası; docs/14 Bluetooth süreleri, hata metinleri
+ve IP hoparlör kimliği; docs/12 renkler, düğme adları, sayım; docs/AUDIT §7.4 R1-R41'in
+bugünkü durumu; ekrandan alıntılanan metinler koddaki metinle eşitlendi. Docker ve systemd
+kurulumuna "Kontrol Paneli'ni kullanın" diyen yerler sunucu komutlarına döndü (docs/06 §3'e
+systemd güncellemesi eklendi). Karar metinleri (ADR "Karar" satırları, operatör
+alıntıları) değiştirilmedi; kodun ayrıldığı yerlere tarihli not düşüldü.
+
+**Açık kalanlar:**
+
+- **Forklift modeli:** 7. eğitim koşusunun ölçümü bu kayıt yazılırken sürüyordu; sonuç
+  aşağıdaki forklift bölümünde.
+- **Operatör kararı bekleyenler:** S1 (sunucu donanımı: GPU imajı R3, Docker'da root
+  kullanıcı R32), S5 (saklama günleri), S27 (yüz bulanıklaştırma, R23), docs/18'deki
+  hukuki metinlerin avukat onayı, `docs/kkd-politika.md`'nin boş cevapları ve KKD veri
+  toplama açılmadan önce Rev.02 imzası.
+- **Açık riskler** (docs/AUDIT.md §7.4): R3, R11, R22, R23, R32, R33, R35.
+- **Kaydı olmayan çelişki:** docs/17 §5.2 KKD modeli için MobileNetV3-Small der, docs/04
+  §6.1 MobileNetV3-Large, EfficientNet-B0 ya da ResNet-18 sayar; hangisinin geçerli olduğu
+  operatöre sorulacak.
+- **Denenmedi:** Docker imajı CI'da hiç kurulmadı (`pulseaudio-utils` paket adı dahil);
+  sahadaki hoparlörler; etiketli saha ölçümü.
+
 ## Uygulamanın söylediği dosya yerleri (24.09.2026)
 
 Sabahki denetimin açık bıraktığı madde. Hata mesajları ve sayfalar günlüğün, ayar
@@ -20,15 +103,16 @@ düğmesini ve python.org'un sertifika dosyasını anlatmıyor (üçü de uygula
 kendiliğinden başladığını ve ekranın kendi penceresinde açıldığını söylüyor; pakete
 girmeyen belgeleri destek ekibinden istetiyor. Sertifika hata mesajı da uygulamada
 python.org tarifini vermiyor. Ayar hatasıyla açılmayan uygulamada Kontrol Paneli ayar
-dosyasının yerini yazıyor. Bir test, kullanıcıya gidebilecek bütün metinleri (belge
-dizeleri ve şablon yorumları dışında) elle yazılmış yer kalıplarına karşı tarar; bu
-değişiklikten önceki 30 yeri buluyor.
+dosyasının yerini yazıyor. Bir test, `backend/app`'teki kullanıcıya gidebilecek bütün
+metinleri (belge dizeleri ve şablon yorumları dışında) elle yazılmış yer kalıplarına karşı
+tarar; bu değişiklikten önceki 30 yeri buluyor.
 
 Kalan: Docker ve systemd kurulumunda kılavuzun başlatma bölümü hâlâ Kontrol Paneli'ni ve
 Başlat betiğini anlatır (orada sistem hizmet olarak çalışır, docs/06). KKD, Ayarlar ve
 uyarı sayfalarındaki docs/04, docs/07 ve docs/15 göndermeleri uygulamayla gelmeyen
 belgelere gider. Kontrol Paneli günlüğü JSON satırı gösterdiği için Windows yolları orada
 çift ters bölüyle görünür.
+*Üçü de aynı gün öğleden sonra çözüldü (yukarıdaki bölüm).*
 
 ## Denetim (24.09.2026 sabah)
 
@@ -42,7 +126,8 @@ Operatör: *"Eksik kalan hatalı olan var mı kontrol yap"*. main (96a19a2) yeş
   kayıtlı değerleri gösterir, yeniden başlatma bekleyen değişiklik varsa söyler.
 - **Forklift modeli inmezse** (internetsiz saha) insan ve araç tespiti de durur ve mesaj
   yalnız "interneti kontrol edin" diyordu. Mesaj modelin adını verir ve Ayarlar'dan hazır
-  modele dönmeyi söyler. Model hatalarında `.env`'i elle düzenletme cümleleri Ayarlar'daki
+  modele dönmeyi söyler. *(Öğleden sonra bunun yerine sistem hazır modele
+  kendiliğinden geçer oldu; yukarıdaki bölüm.)* Model hatalarında `.env`'i elle düzenletme cümleleri Ayarlar'daki
   "Tanıma modeli"ne yönlendi (paketlenmiş uygulamada `.env` program klasöründe değildir).
 - **Windows paket sınaması pencere açılmasa da geçiyordu**: arayan PowerShell kendi komut
   satırını eşliyordu. Tam sınama artık ekranın canlı akışa bağlanmasını ve pencerenin açık
@@ -103,8 +188,9 @@ eğit"*. Karar kaydı ve lisans çerçevesi docs/17 §16, yöntem §12.3.
   Ürün dışıdır (CLAUDE.md §4 istisnası); saha görüntüsü bu hatta girmez.
 - **Uygulama tarafı:** tespit modeli açılışta sözleşmeye göre sınanır (yanlış dışa aktarılmış
   model reddedilir); forklift sınıflı modelde yalnız "Tır/Araç" seçili kurallar kurulum
-  listesinde söylenir; paket sınaması modelin gerçekten yüklendiğini bekler; modeller bu
-  deponun yayınından SHA-256 ile iner; Ayarlar'da "Tanıma modeli" seçimi.
+  listesinde söylenir; paket sınaması modelin gerçekten yüklendiğini bekler; forklift
+  modelleri bu deponun yayınından SHA-256 ile iner (hazır modeller YOLOX'un resmi
+  yayınından); Ayarlar'da "Tanıma modeli" seçimi.
 - **Entegrasyon provası (24.09.2026):** kapıyı geçen bir aday gelmeden, koşu 5'in gerçek bir
   dosyasıyla ayrı bir dalda (main'e gitmedi) kayıt uçtan uca denendi: uygulama modeli ilk
   açılışta yayından indirip SHA-256 ile doğruladı ve yükledi, `models/indir.sh` de indirdi,
@@ -144,7 +230,8 @@ eğit"*. Karar kaydı ve lisans çerçevesi docs/17 §16, yöntem §12.3.
   İlk tam eğitim isteği (çalıştırma 4) bir kip hatasıyla dumana düştü: kuyruk ifadesi push
   olayının commit listesinden değişen dosyaları okuyordu, Actions'ta o liste boş gelir. Kip
   artık yalnız git farkından verilir, kuyruk kaldırıldı; tam eğitim çalıştırma 5'te sürüyor
-  (tiny 30, s 20 devir; tiny'de adım 1,3 sn, aday başına tahminen 2,5-4 saat).
+  (tiny 30, s 20 devir; tiny'de adım 1,3 sn, aday başına tahminen 2,5-4 saat; 24.09.2026:
+  bitti, sonuç alttaki maddede).
 - **İlk tam eğitim (çalıştırma 5, 23-24.09.2026): dört adayın hiçbiri geçmedi.** tiny ve s,
   v1 ve v2; 6 saat 4 dakika sürdü, adaylar `forklift-r5` ön sürümünde. LOCO testinde (2277
   görüntü, 124 forklift kutusu) **tek bir doğru forklift tespiti yok** (forklift bulma oranı 0,
@@ -234,7 +321,8 @@ en iyi uygulama şeklinde yap fabrikada olacağı için"*.
   açılışı arka planda beklenir; panel donmaz.
 - **Yedek:** web görünümü kurulamazsa Edge/Chrome/Brave uygulama kipi (adres
   çubuğu yok). Olağan tarayıcı sekmesine düşüş **kaldırıldı**; ikisi de
-  olmazsa günlük ne yapılacağını yazar (WebView2 Runtime kur).
+  olmazsa günlük ne yapılacağını yazar (WebView2 Runtime kur; 24.09.2026'dan
+  beri işletim sistemine göre: Windows dışında Chrome, Edge ya da Brave).
 - **pywebview 6.2.1'in kaynağında bulunan dört tuzak:** (1) WebView2 yoksa
   Windows'ta sessizce Internet Explorer motoruna düşer; izleme ekranı orada
   çalışmaz, `initialized` olayında reddedilir. (2) Varsayılan ayarda yeni
@@ -257,7 +345,8 @@ en iyi uygulama şeklinde yap fabrikada olacağı için"*.
   6.22.2 kurulu Python 3.12'de paketleme testleri 92/92 geçti.
 - **DOĞRULANMADI:** gerçek Windows/Mac penceresi bu ortamda açılamaz (Linux,
   ekran yok). Paketin pencere bileşenini gerçekten içerdiği, uygulamanın
-  Windows/Mac'te üretilip `--pencere-denetimi` ile sınanmasıyla görülecek.
+  Windows/Mac'te üretilip `--pencere-denetimi` ile sınanmasıyla görülecek
+  (23.09.2026: görüldü, bkz. «Hata avı ve uygulama üretim hattı»).
 
 ## Yazım kuralı: çizgi işareti (23.09.2026)
 
@@ -345,7 +434,8 @@ masaüstüsüz sunucuda `veri/arsiv/uyari-kayitlari`. Şema 011 imha kaydına sa
 ve dosya ekler; Ayarlar'da süre, klasör ve imha günlüğünde arşiv dosyası
 görünür. CSV yazıcısı web katmanından `app/csv_yazici.py`'ye taşındı (bakım da
 aynı kaçışla yazsın). DOĞRULANMADI: Windows'taki masaüstü API çağrısı (bu
-ortamda Windows yok; yedek yolu sınandı).
+ortamda Windows yok; yedek yolu sınandı). (23.09.2026: artık uygulama üretim
+hattında gerçek Windows ve Mac'te sınanıyor, `paketleme/masaustu_sinamasi.py`.)
 
 ## Eksik denetimi (23.09.2026)
 
@@ -382,7 +472,7 @@ tamamlananlar:
 | ByteTrack yeni iz eşiğinin insan eşiğiyle hizalanması | S15 (kayıtlı saha videosu) |
 | Kamera yerleşimi, gece ışığı, RTSP ses kanalı, VLAN | S6 |
 | Aylık çalışma süresi yüzdesi | S37 |
-| Yeni ön eğitimli ağırlık ya da kamu veri seti | S20 (operatöre hiç gösterilmedi) |
+| Yeni ön eğitimli ağırlık ya da kamu veri seti | S20 (operatöre hiç gösterilmedi; aynı gün forklift eğitimi için operatörün isteği cevap sayıldı, docs/17 §16) |
 
 **Varsayılanla kapanan koşullu maddeler (kodlanmaz, docs/07):** webhook (S4),
 dakika sınırı ve birleştirme (S23), Bluetooth yeniden bağlanma bekçisi (S9),
@@ -391,8 +481,8 @@ uygulama içi eşleştirme (S8), dışlama kipi (S3), KKD uyum istatistiği (S34
 **Saha ve ölçüm bekleyen:** tespit doğruluğu (`tests/dogruluk_kiyas`, etiketli
 saha kareleri), hedef donanımda hız ve uyarı gecikmesi, KKD precision (model ve
 en az 3 günlük gölge), yanlış alarm / saat, hoparlör gecikmesi, uzun süreli
-prova. Kayıt kuyruğu (5b) yalnız ölçüm gerektirirse yazılır: sahada
-`/saglik?ayrinti=1` içindeki her kameranın `ihlal_yaz_p90_ms` değerine bakılır.
+prova. Kayıt kuyruğu (5b) yalnız ölçüm gerektirirse yazılır: sahada her kameranın
+`/kameralar/<id>/durum.json` yanıtındaki `olcum.ihlal_yaz_p90_ms` değerine bakılır.
 Çalışan temsilcisine danışma maddesi avukat görüşünü bekliyor (docs/18).
 
 ## Faz 5 sertleştirme (23.09.2026)
@@ -486,7 +576,8 @@ Bluetooth hoparlör, `kind='ses_karti'`, `device`) ya da bir IP hoparlör
   okunamazsa ya da çıkışı işletim sistemi seçiyorsa hiçbir şey iddia edilmez).
   390 px'te kanal formunun 30 px taşması giderildi. Statik damga `?v=38`.
 - *4a-2d:* üç `.env` anahtarı emekli: Ayarlar sayfasında Anons grubu yalnız
-  `ANONS_HTTP_BICIMI` ve `ANONS_BEKLEME_SN`'yi tutar; eski /anons sayfasında
+  `ANONS_HTTP_BICIMI` ve `ANONS_BEKLEME_SN`'yi tutar (4b'den beri kanal
+  sağlığı ve uyarı garantisinin üç ayarını da); eski /anons sayfasında
   kanal özeti; `/anons/ses-cikisi` ve `/anons/test-sesi` kalktı (çıkış adı bir
   daha `.env`'e yazılmaz, R14 yapı gereği kapanır); kurulum listesinin anons
   adımı açık kanal sayar. docs/14 kanal ekranına göre yeniden yazıldı.
@@ -509,7 +600,8 @@ p50/p90, bastırılan/bayat/kesilen, izleme ekranı) ve kanal başına sayılar;
 `/saglik?ayrinti=1` gecikme, ekran ve kuyruk sayısı verir. Kanal "Dene"si analiz
 açıkken çıkışın kuyruğundan geçer ve sonucu yazılım gecikmesiyle gösterir.
 Kapanışta kuyruklar en çok 3 sn boşaltılır. Eski kayıtlar bakımda ihlal
-saklama süresiyle silinir.
+saklama süresiyle silinir (aynı gün: uyarı kaydı arşivi açıkken önce masaüstüne
+yazılır, ancak sonra silinir; bkz. «Operatör istekleri»).
 
 **4b - kanal sağlığı ve uyarı garantisi (§7.4, K21, R37).** "anons-saglik" iş
 parçacığı (`olaylar/kanal_sagligi.py`) her açık kanalı 10 sn'de bir yoklar:
@@ -693,14 +785,16 @@ Faz 3 operatörün cevaplarını beklediği için soru bağlamayan bu adım öne
 
 **R31 - CSV formül enjeksiyonu.** Olay listesi ve rapor CSV'leri artık tek bir
 yazıcıdan geçiyor (`web/ortak.CsvYazici`). `=`, `+`, `-`, `@`, sekme ya da satır
-başıyla başlayan metin hücresinin başına tek tırnak ekleniyor: adı
+başıyla başlayan metin hücresinin başına tek tırnak ekleniyor (çizgi kuralından
+beri yalnız "-" olan boş değer hücresi hariç): adı
 `=HYPERLINK(...)` olan bir kamera Excel'de formüle dönüşmüyor. Sayı hücreleri
 değişmiyor. Web katmanında kaçışsız `csv.writer` kalmadığını bir test denetliyor.
 
 **R18 - adresteki şifre.** Üç form adresi artık •••• ile basıyor:
 - kamera düzenleme;
 - hoparlör bölgesi;
-- Ayarlar'daki IP hoparlör adresi.
+- Ayarlar'daki IP hoparlör adresi (4a-2d'de bu alan kalktı; adres artık kanal
+  satırında, o form da maskeli).
 
 •••• olduğu gibi kalırsa kayıtlı kullanıcı adı ve şifre korunuyor, ip ya da yol
 değişse de. Yeni kimlik yazılırsa o geçerli. docs/17 yalnız kamera formunu
@@ -841,7 +935,7 @@ yine kırmızı gösteriyor. Komuta → Sağlık'ta okunan ve işlenen hız ayr�
 sütunlarda (R12: ekran "işlenen" deyip okunanı gösteriyordu). İşlenen hız
 hedefin altındaysa ▼ ve açıklama çıkıyor; hücrenin ipucunda hedef ve işleme
 süresi (p90) var. `uyari_garantisi` alanı ses kanalı sağlığıyla birlikte 4b'de
-gelecek; bugün hesaplanamıyor. Statik damga `?v=30`.
+gelecek; bugün hesaplanamıyor (aynı gün 4b'de geldi). Statik damga `?v=30`.
 
 **2d-3b - Kontrol Paneli satırı ve uvicorn günlüğü.** Kontrol Paneli'nde yeni
 bir **Analiz** satırı var. Kırmızı olduğu durumlar: sistem hazır değil (model
@@ -1009,7 +1103,8 @@ değerini göstermiyor; örneğin KKD alanındaki kalış süresi, düzenlenen b
 kuralınınkini gösteriyordu. Olmayan bir kuralı "düzenleyip kaydetmek" artık
 sessizce geçmiyor. Kurulum listesindeki kalibrasyon maddesi çoğulu düzgün
 yazıyor ("… kameralarındaki … kuralları"). Sınıf kutularının katalogdan ve
-etkin modelden gelmesi, `SINIF_KATALOGU` ile F3'e kaldı. Statik damga `?v=29`.
+etkin modelden gelmesi, `SINIF_KATALOGU` ile F3'e kaldı (24.09.2026: F3'te de
+yapılmadı; kutular hâlâ `web/ortak.py` `SINIFLAR`'dan gelir). Statik damga `?v=29`.
 
 Tasarımda açık kalan iki nokta kodda şöyle kapandı: `ZONE_INTRUSION`'ın
 varsayılan önemi **Orta** (tasarım "kural satırından" diyordu ama bütün
@@ -1032,13 +1127,15 @@ kopan bir kamera bir dakika boyunca "çevrimiçi" görünüyordu. "Tekrar çevri
 olayı görüntü `KAMERA_UP_KARARLILIK_SN` (5 sn) kesintisiz akınca yazılıyor; gidip
 gelen bağlantı olay seli üretmiyor (ekrandaki durum anlık kalıyor). RTSP açılış
 ve okumasına OpenCV zaman aşımı geçiyor (5/10 sn); yanıt vermeyen bir sunucuya
-karşı ölçüldü: açılış tam 2,0 ve 4,0 sn'de bırakıldı. Yeni ayarlar Ayarlar →
-Takip ve kamera bağlantısı'nda.
+karşı ölçüldü: açılış tam 2,0 ve 4,0 sn'de bırakıldı. Yeni ayarlardan
+`TAKIP_HAFIZA_SN` ve `KAMERA_KOPUK_ESIGI_SN` Ayarlar → Takip ve kamera
+bağlantısı'nda; `KAMERA_UP_KARARLILIK_SN` ve iki RTSP zaman aşımı yalnız `.env`'de.
 
 **Zaman ve ölçüm.** Kurala işlendiği an değil karenin zamanı gidiyor (R29).
 Kamera başına işlenen fps ile işleme ve olay yazma süreleri (p90) tutuluyor;
-/saglik ayrıntısında 2d'de gösterilecek. Yeni kameranın varsayılan örnekleme
-hızı `.env KARE_ORNEKLEME_FPS`'ten geliyor (formda sabit 6 yazıyordu).
+/saglik ayrıntısında 2d'de gösterilecek (2d-3a'da işlenen hız ve işleme süresi geldi;
+olay yazma süresi `/saglik`'te yok, kameranın `durum.json` yanıtında). Yeni kameranın
+varsayılan örnekleme hızı `.env KARE_ORNEKLEME_FPS`'ten geliyor (formda sabit 6 yazıyordu).
 
 ## Faz 2a güvenlik tabanı ve öğe dili (23.09.2026)
 
@@ -1150,8 +1247,10 @@ saatine göre dolduruluyor: SQL'de gruplansaydı sütunlar 3 saat kayar ve gece
 vardiyası yanlış güne düşerdi.
 
 **Paketleme doğrulaması.** `.app`/`.exe` bu depoda üretilemez, ama üretimin
-sınanabilir her parçası artık testte. En büyük boşluk şuydu: Windows tarifi
-sahte bir PyInstaller ile koşturuluyordu, **Mac tarifi koşturulamıyordu** -
+sınanabilir her parçası artık testte (23.09.2026: artık GitHub Actions'ta üretilip
+açılarak sınanıyor, bkz. «Hata avı ve uygulama üretim hattı»). En büyük boşluk
+şuydu: Windows tarifi sahte bir PyInstaller ile koşturuluyordu, **Mac tarifi
+koşturulamıyordu** -
 OpenSSL düzeltmesi `otool` çağırıyor ve o araç yalnız macOS'ta var. Düzeltme
 artık macOS dışında kendini atlıyor, tarif her yerde çalıştırılabiliyor;
 tarifteki bir yazım hatası artık kullanıcının Mac'inde değil burada görünüyor.
@@ -1165,7 +1264,8 @@ Yeni uçtan uca test, tarifin dosya listesini geçici bir klasöre kopyalayıp
 `sys._MEIPASS`'i oraya kuruyor ve sistemi **ayrı bir süreçte** açıyor: şablon,
 stil ve şema betikleri pakette gerçekten bulunuyor mu, kayıtlar pakete değil
 kullanıcı klasörüne mi yazılıyor. Tariften `backend/sema` çıkarılınca kırmızı
-oluyor, denendi. `.env.example` eksiksizliği de kilitlendi (29 ayar, iki yönlü).
+oluyor, denendi. `.env.example` eksiksizliği de kilitlendi (29 ayar, iki yönlü; o
+gün 29, 24.09.2026'da 49).
 
 940 test yeşil (öncesi 865), ruff temiz. Kural formu ve rapor ekranı gerçek
 Chromium'da denendi: konsol hatası 0, yatay taşma 0 (1440 px ve 390 px),
@@ -1204,7 +1304,8 @@ ağdaki herkes kamera silebilirdi, uyarıyla geçiştirilecek bir durum değil.
 Aynı adresten 5 yanlış denemeden sonra adres 5 dakika kilitleniyor ve
 kilitliyken **doğru şifre de** kabul edilmiyor. Ters vekil arkasında çalışırsa
 oturum çerezi `secure` işaretleniyor ve gerçek istemci adresi
-`X-Forwarded-For`un ilk değerinden okunuyor.
+`X-Forwarded-For`un ilk değerinden okunuyor (23.09.2026: artık okunmuyor, adresi
+uvicorn güvendiği vekilden yazar; bkz. «Faz 2a»).
 
 Yeni belge `15-UZAKTAN-ERISIM.md`: üç seviye (yalnız sunucu / fabrika ağı /
 fabrika dışı), fabrika dışı için sıralı öneri (VPN veya Tailscale → tünel →
@@ -1231,7 +1332,8 @@ görüyor" sorusunun cevabını ekranda vermeye yönelik.
 tuvalinde hem **videonun üstünde**. Yalnız çerçeve çizmek yetmiyordu: alanın içi
 neresi belli olmuyor, yan yana iki bölgede hangi çizginin hangisine ait olduğu
 anlaşılmıyordu. İki taraf aynı deseni kullanıyor, böylece ekran ile video aynı
-şeyi söylüyor. Tarama bir vurgu, örtü değil: çizgiler alanın ~%8'ini kaplıyor,
+şeyi söylüyor. Tarama bir vurgu, örtü değil: çizgiler alanın ~%8'ini kaplıyor (24.09.2026
+ölçümü: bugünkü oranlarla çözünürlüğe göre %7-22),
 altındaki tespit kutuları okunur kalıyor (test bunu koruyor).
 
 **Sunucu tarafında hız ölçüldü** (1080p, bölge sınır kutusu karenin ~%65'i):
@@ -1321,7 +1423,7 @@ gerçek forklift modeli) `KeyError` verip o kamerayı **her karede** çökertece
 Artık `rules/tipler.py` içindeki tek kanonik listeden türetiliyor ve tanınmayan
 sınıf çökme yerine atlanıp bir kez günlüğe yazılıyor.
 
-786 test yeşil (öncesi 718), ruff temiz.
+795 test yeşil (öncesi 718), ruff temiz.
 
 
 ## Mac / Windows uyumu - baştan aşağı denetim (02.09.2026)
@@ -1345,7 +1447,9 @@ Bağımsız bir denetimle bulunan ve giderilenler (en kritikten):
 - **Panel çökerse sistem kilitleniyordu:** sunucu sahipsiz çalışmaya devam
   ediyor, "Durdur" onu bulamıyor, "Başlat" da kapalı kalıyordu. Artık PID
   dosyasıyla sahipsiz süreç sahiplenilip durdurulabiliyor. Windows'ta önce
-  nazik kapatma (CTRL_BREAK) deneniyor: kapanış kodu artık gerçekten çalışıyor.
+  nazik kapatma (CTRL_BREAK) deneniyor: kapanış kodu artık gerçekten çalışıyor
+  (23.09.2026: açık canlı akış varken yine çalışmıyordu; bkz. «Faz 2c», "Kapanış
+  gerçekten çalışıyor").
 - **Türkçe klasör adında KKD fotoğrafları kayboluyordu.** `cv2.imwrite` yolu
   işletim sisteminin kod sayfasıyla kodlar ve `C:\Users\Gökhan\...` gibi bir
   yolda hata FIRLATMADAN başarısız olur; veritabanında var görünen, diskte
@@ -1364,7 +1468,9 @@ Bağımsız bir denetimle bulunan ve giderilenler (en kritikten):
 - **`.gitattributes` eklendi:** Windows'ta klonlanan depoda `Baslat-Mac.command`
   CRLF'e çevrilip Mac'te çalışmaz hale geliyordu.
 - **Mac'te model indirme sertifika hatası** artık doğru teşhis ediliyor:
-  "Install Certificates.command dosyasına çift tıklayın".
+  "Install Certificates.command dosyasına çift tıklayın" (24.09.2026: Windows ve Mac
+  uygulamasında bu tarif verilmez, uygulamanın Python'unda o dosya yok; bkz. en
+  üstteki bölüm).
 - **Görüntü üzerindeki etiketler:** OpenCV yalnız ASCII çizer, "tır" ekranda
   "t?r" görünüyordu. Overlay'de ASCII karşılıklar kullanılıyor; arayüz ve renk
   anahtarı tam Türkçe kaldı.
@@ -1469,7 +1575,8 @@ kameralar 5 saniye kör kalıyordu.
 
 - **Giriş/şifre kaldırıldı** (kullanıcı kararı, geliştirme aşaması): giriş sayfası,
   oturum çerezi, `YONETICI_SIFRESI` ayarı ve Çıkış düğmesi gitti; her sayfa doğrudan
-  açılır. Fabrika sunucusuna çıkmadan önce geri eklenecek → `docs/07` #0.
+  açılır. Fabrika sunucusuna çıkmadan önce geri eklenecek → `docs/07` #0
+  (09.09.2026: geri eklendi, bkz. «Fabrikaya çıkış şartları»).
 - **Kamera eklenince düşen sahte "Kamera çevrimdışı" olayı giderildi:** yeni ya da
   yeniden başlatılan kamera ilk 60 sn **"bağlanıyor"** sayılır (sarı rozet); olay
   yalnızca gerçek geçişlerde üretilir. Sistem her açılışta tüm kameralar için
@@ -1493,8 +1600,8 @@ kameralar 5 saniye kör kalıyordu.
 
 ## Platform uyumu + Docker (26.08.2026)
 
-- **Windows uyumu düzeltildi:** anons sesi (PowerShell SoundPlayer - `afplay`/`aplay` Windows'ta yok), kamera arka ucu (DirectShow), saat dilimi veritabanı (`tzdata` bağımlılığı).
-- **Docker desteği:** üç proje için de Dockerfile + docker-compose. Veri ve ayarlar container dışında (silinse de kaybolmaz), sağlık kontrolü ve otomatik yeniden başlatma var; GPU ve ses kartı blokları Linux için hazır ve yorumlu.
+- **Windows uyumu düzeltildi:** anons sesi (PowerShell SoundPlayer - `afplay`/`aplay` Windows'ta yok), saat dilimi veritabanı (`tzdata` bağımlılığı).
+- **Docker desteği:** Dockerfile + docker-compose. Veri ve ayarlar container dışında (silinse de kaybolmaz), sağlık kontrolü ve otomatik yeniden başlatma var; GPU ve ses kartı blokları Linux için hazır ve yorumlu.
 - Model dosyası yoksa imaj derlemesi **anlaşılır bir mesajla durur** - modelsiz, hiçbir şey tespit etmeyen sessiz container tuzağı kapatıldı.
 - **NASIL-CALISIR.md** yazıldı: sistemin işleyişi, Mac/Windows/Docker kurulumu, hangi ortamda neyin çalıştığını gösteren dürüst tablo, sorun giderme ve yedekleme.
 - Docker bu makinede kurulu olmadığı için imaj derlemesi **denenemedi**; Dockerfile'lar statik olarak doğrulandı.
@@ -1507,7 +1614,7 @@ kameralar 5 saniye kör kalıyordu.
 - **Olaylar:** kanıt fotoğrafı önce/DB sonra, rule_snapshot, SSE canlı uyarı paneli, filtreli liste, olay durumu (Yeni/İncelendi/Yanlış alarm + not), CSV dışa aktarma, korumalı fotoğraf servisi.
 - **Kalibrasyon:** görüntüde 4 nokta tıkla + metre gir → homografi (saf numpy); arayüzde "kalibrasyon bekleniyor" rozetleri.
 - **Anons:** Null / ses kartı (afplay-aplay) / HTTP adaptörleri + ekrandan bağımsız, daha uzun anons cooldown'u. Somut sistem bilgisi bekleniyor (R3).
-- **KKD altyapısı:** KKD bölgelerinden saatlik limitle otomatik crop toplama + uygulama içi etiketleme sayfası (Var/Yok/Belirsiz). Model 9. adımda eğitilecek; o zamana dek KKD kuralı olay üretmez (belirsiz), veri biriktirir.
+- **KKD altyapısı:** KKD bölgelerinden saatlik limitle otomatik crop toplama + uygulama içi etiketleme sayfası (Var/Yok/Belirsiz). Model 9. adımda eğitilecek; o zamana dek KKD kuralı olay üretmez (belirsiz), veri biriktirir. (23.09.2026: eğitim ürün dışına alındı, ürün `models/kkd.onnx` konunca onu kullanır; veri toplama Rev.02 onayına kadar kapalıdır. Bkz. «Faz 2e», «Faz 3 KKD».)
 - **Güvenlik/işletim:** tek şifreli oturum (imzalı çerez), RTSP maskeleme, günlük retention + disk uyarısı, tek tıkla veritabanı yedeği.
 - 92 test yeşil (kural motoru + web + entegrasyon), ruff temiz; gerçek görüntüyle uçtan uca doğrulandı (tespit → olay + kanıt fotoğrafı).
 - Ayrıca: Kontrol Paneli'nin Mac'te açılmama sorunu çözüldü (çalıştırma izni + karantina + Python 3.12/tkinter).
@@ -1519,4 +1626,4 @@ kameralar 5 saniye kör kalıyordu.
 - Zaman yönetimi tek yerde (zaman.py: UTC sakla, İstanbul göster), JSON satır log (loglama.py → ekran + veri/loglar/sistem.log), tiplenmiş hatalar ve merkezi hata yakalayıcı (hatalar.py) eklendi.
 - Teşhis ana sayfası hazır: şema sürümü, tablo listesi, maskeli aktif ayarlar, disk durumu ve "Henüz kamera eklenmedi".
 - rules/ klasörü boş açıldı; saflık kuralı tests/rules/test_saflik.py ile korunuyor (doğrudan, dinamik ve dolaylı yasaklı import'lar testi kırmızı yapar).
-- 30 test yeşil, ruff temiz; sıradaki iş: Adım 2 - kamera ekleme + görüntü alma.
+- 30 test yeşil, ruff temiz; sıradaki iş: Adım 2 - kamera ekleme + görüntü alma (aynı gün yapıldı, bkz. «Adım 2-7»).
