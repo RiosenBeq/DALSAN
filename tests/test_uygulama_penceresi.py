@@ -293,11 +293,56 @@ def test_pencere_ayarlari(pencere, sahte_webview, monkeypatch, tmp_path, capsys)
     _, baslatma, ayarlar = next(k for k in kayitlar if k[0] == "start")
     assert baslatma["private_mode"] is False
     assert baslatma["storage_path"] == str(tmp_path / "profil")
+    assert baslatma["localization"] == pencere.PYWEBVIEW_METINLERI, "menü ve düğmeler Türkçe"
     assert ayarlar["OPEN_EXTERNAL_LINKS_IN_BROWSER"] is False, "tarayıcı açılmamalı"
     assert ayarlar["ALLOW_DOWNLOADS"] is True, "CSV ve veri seti indirilebilmeli"
 
     assert [k[0] for k in kayitlar][-2:] == ["show", "destroy"]
     assert "HAZIR" in capsys.readouterr().out
+
+
+# pywebview 6.2.1 webview/localization.py: kendi metinlerinin tamamı
+PYWEBVIEW_ANAHTARLARI = {
+    "global.quitConfirmation",
+    "global.ok",
+    "global.quit",
+    "global.cancel",
+    "global.saveFile",
+    "cocoa.menu.about",
+    "cocoa.menu.services",
+    "cocoa.menu.view",
+    "cocoa.menu.edit",
+    "cocoa.menu.hide",
+    "cocoa.menu.hideOthers",
+    "cocoa.menu.showAll",
+    "cocoa.menu.quit",
+    "cocoa.menu.fullscreen",
+    "cocoa.menu.cut",
+    "cocoa.menu.copy",
+    "cocoa.menu.paste",
+    "cocoa.menu.selectAll",
+    "windows.fileFilter.allFiles",
+    "windows.fileFilter.otherFiles",
+    "linux.openFile",
+    "linux.openFiles",
+    "linux.openFolder",
+}
+
+
+def test_pywebview_metinleri_turkce(pencere):
+    """Mac menüsü, onay kutusu düğmeleri ve kaydetme penceresi pywebview'ün
+    kendi metinleridir; verilmeyen anahtar İngilizce kalır (arayüz Türkçe)."""
+    assert set(pencere.PYWEBVIEW_METINLERI) == PYWEBVIEW_ANAHTARLARI
+    ingilizce = {"OK", "Cancel", "Quit", "About", "Hide", "Edit", "View", "Copy"}
+    assert not ingilizce & set(pencere.PYWEBVIEW_METINLERI.values())
+    assert pencere.PYWEBVIEW_METINLERI["global.ok"] == "Tamam"
+
+
+def test_pywebview_metinleri_kurulu_surumle_ayni(pencere):
+    """Paketleme ortamında pywebview kuruluysa anahtarlar onunkiyle aynı olmalı:
+    yeni sürüm yeni bir metin eklerse o metin İngilizce kalmasın."""
+    yerel = pytest.importorskip("webview.localization")
+    assert set(pencere.PYWEBVIEW_METINLERI) == set(yerel.original_localization)
 
 
 def test_sayfa_hic_yuklenmezse_pencere_kapanir_ve_hata_doner(

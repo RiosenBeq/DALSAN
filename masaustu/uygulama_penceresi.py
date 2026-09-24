@@ -51,6 +51,38 @@ PENCERE_BASLIGI = "NextGen Detector - İzleme Ekranı"
 # --zemin). Beyaz olsaydı her açılışta ekran bir an parlardı.
 PENCERE_ZEMINI = "#EEF1F6"
 
+# pywebview'ün kendi metinleri: Mac'in uygulama menüsü, sayfadaki onay
+# kutusunun düğmeleri (onay.js window.confirm), indirmedeki kaydetme
+# penceresi, Windows'un dosya süzgeci. Verilmezse İngilizce çıkarlar
+# ("OK/Cancel", "Quit"); arayüz Türkçedir. Anahtarlar pywebview 6.2.1'in
+# webview/localization.py dosyasındakilerdir. Mac menüsünde uygulamanın adı
+# metnin SONUNA eklenir ("Hakkında: NextGen Detector").
+PYWEBVIEW_METINLERI = {
+    "global.quitConfirmation": "Çıkmak istediğinize emin misiniz?",
+    "global.ok": "Tamam",
+    "global.quit": "Çık",
+    "global.cancel": "Vazgeç",
+    "global.saveFile": "Dosyayı kaydet",
+    "cocoa.menu.about": "Hakkında:",
+    "cocoa.menu.services": "Servisler",
+    "cocoa.menu.view": "Görüntü",
+    "cocoa.menu.edit": "Düzen",
+    "cocoa.menu.hide": "Gizle:",
+    "cocoa.menu.hideOthers": "Diğerlerini Gizle",
+    "cocoa.menu.showAll": "Tümünü Göster",
+    "cocoa.menu.quit": "Çık:",
+    "cocoa.menu.fullscreen": "Tam Ekrana Geç",
+    "cocoa.menu.cut": "Kes",
+    "cocoa.menu.copy": "Kopyala",
+    "cocoa.menu.paste": "Yapıştır",
+    "cocoa.menu.selectAll": "Tümünü Seç",
+    "windows.fileFilter.allFiles": "Tüm dosyalar",
+    "windows.fileFilter.otherFiles": "Diğer dosya türleri",
+    "linux.openFile": "Dosya aç",
+    "linux.openFiles": "Dosyaları aç",
+    "linux.openFolder": "Klasör aç",
+}
+
 # Program bu bağımsız değişkenle açılınca Kontrol Paneli yerine yalnız izleme
 # penceresi açılır (dalsan_launcher.py buna Tk kurulmadan önce bakar).
 YEREL_PENCERE_ARGUMANI = "--izleme-penceresi"
@@ -477,7 +509,7 @@ def yerel_pencereyi_calistir(adres: str, profil_klasoru: Path | None = None) -> 
             target=_pencere_gorevi, args=(pencere, hal), daemon=True, name="panel-kanali"
         ).start()
         # private_mode=False: giriş çerezi ve ses tercihi kalıcı olsun.
-        webview.start(private_mode=False, storage_path=depo)
+        webview.start(private_mode=False, storage_path=depo, localization=dict(PYWEBVIEW_METINLERI))
     except Exception as hata:  # noqa: BLE001 - sebep panele yazılır, yedek pencereye geçilir
         _cikti(f"{HATA_ONEKI}{hata!r}")
         return KOD_WEB_GORUNUMU_KURULAMADI
