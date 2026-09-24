@@ -28,7 +28,7 @@ Bir kişi için **anlamadığı 5 parça, anladığı 2 parçadan daha risklidir
 | 1 | 2 ayrı süreç (api + analyzer) | **Tek program** | Tek şey başlar, tek şey durur, tek yerde hata aranır. 3-4 kamerada ayırmanın hiçbir faydası yok. |
 | 2 | PostgreSQL (Docker container) | **SQLite (tek dosya)** | Yedekleme "şu dosyayı kopyala"ya iner. Kurulacak veritabanı sunucusu yok. 3-4 kamerada Postgres'in tek avantajı devreye girmiyor. |
 | 3 | React + Vite + TypeScript + Tailwind (Node.js gerekir) | **HTML şablonu + sade JavaScript** | Node.js, npm, derleme adımı tamamen ortadan kalkıyor. Bilgisayarda kurulacak tek şey Python. |
-| 4 | Docker Compose, 3 container | **Geliştirmede Docker yok; fabrikada tek container** | Docker'ı öğrenmek/onarmak ayrı bir uzmanlık. Mac ve Windows'ta sadece Python yeter. |
+| 4 | Docker Compose, 3 container | **Geliştirmede Docker yok; fabrikada tek container** *(24.09.2026: ilk aşamada fabrikada container da yok; sistem fabrikanın Windows bilgisayarında paketlenmiş uygulamayla çalışır, aşağıdaki "Fabrika sunucusu" bölümü)* | Docker'ı öğrenmek/onarmak ayrı bir uzmanlık. Mac ve Windows'ta sadece Python yeter. |
 | 5 | Etiketleme için CVAT / Label Studio kurulumu | **Uygulamanın içinde etiketleme sayfası** | Ayrı bir araç kurmak, öğrenmek, veri aktarmak yok. Üç düğme: Var / Yok / Belirsiz. |
 | 6 | Alembic migrasyonları | **Basit sürümlü şema betikleri** | Alembic güçlü ama kendi öğrenme eğrisi var. SQLite'ta sade bir `sema/001_*.sql` düzeni aynı işi görür. |
 | 7 | Eğitim için ayrı script + manuel değerlendirme | **Tek komut → HTML rapor** | Rapor: doğruluk oranı + en kötü 50 hatanın görüntü ızgarası. Sayı okumak yerine **bakarak** karar verilir. |
@@ -71,6 +71,19 @@ Python 3.12                           Python 3.12
 
 ## Fabrika sunucusu neden yine de Linux + ekran kartı
 
+> **İlk aşama (operatör kararı 24.09.2026):** *"bu uygulamayı fabrikanın windows
+> bilgisayarında çalıştırcm ona göre lütfen bil sunucu olmayacak ilk etapta"*. İlk
+> aşamada fabrikada sunucu yoktur: sistem fabrikanın olağan Windows bilgisayarında,
+> paketlenmiş Windows uygulamasıyla çalışır; Docker ve systemd yoktur, ekran kartı
+> kullanılmaz (paket yalnız CPU ONNX Runtime içerir).
+> Aşağıdaki gerekçe sonraki sunucu aşaması için geçerli kalır (docs/17 §16 S1).
+> Windows'un 7x24 riskleri ilk aşamada şöyle karşılanır: program takılır ya da
+> çökerse kendini yeniden açar, Windows oturumu açılınca kendiliğinden başlar,
+> sistem çalışırken bilgisayar uyumaz, ikinci kopya açılmaz (docs/11 §7.1);
+> elektrik gelince açılma (BIOS) ve otomatik oturum açma bilgisayarda bir kez
+> ayarlanır (docs/06 §1.5). Ekran kartı olmadan hız Windows'ta henüz ölçülmedi;
+> devreye almada fabrikanın bilgisayarında ölçülür.
+
 Bu değişmiyor ve değişemez:
 
 - Yapay zeka görüntü analizi **ekran kartı (GPU)** ister. İşlemciyle 3-4 kamera bile
@@ -100,11 +113,13 @@ Dürüst olmak gerekirse üç şey:
    sistem kendini otomatik yeniden başlatır ve hata günlüğü tek dosyada olur.
    Aslında **teşhis kolaylaşıyor.**
    *Uygulanan (24.09.2026): program kapanırsa Docker (`restart: unless-stopped`)
-   ve systemd (`Restart=always`) yeniden açar. Analiz iş parçacığı takılır ya
-   da ölürse program açık kalır ve bekçi uyarır; `BEKCI_TEPKISI=yeniden_baslat`
-   ise program kendini kapatır ve Docker, systemd ya da (Başlat betiğiyle
-   kurulan sistemde) Kontrol Paneli yeniden açar. Paketlenmiş Windows/Mac
-   uygulamasında yalnız uyarılır (docs/06 §1.2.1).*
+   ve systemd (`Restart=always`) yeniden açar; paketlenmiş Windows uygulamasında
+   gözetmen yeniden açar. Analiz iş parçacığı takılır ya da ölürse bekçi olay
+   yazar ve varsayılan `BEKCI_TEPKISI=yeniden_baslat` ile program kendini
+   kapatır; onu Docker, systemd, (Başlat betiğiyle kurulan sistemde) Kontrol
+   Paneli ya da Windows uygulamasının gözetmeni yeniden açar. Yeniden açan
+   yoksa (Mac uygulaması, elle çalıştırılan sunucu) ya da `uyar` seçiliyse
+   program açık kalır ve yalnız uyarılır (docs/06 §1.2.1, §1.5).*
 
 3. **Arayüz React kadar zengin olmayacak.** MVP'nin ihtiyacı (tablo, form, çizim
    alanı, canlı liste) sade JavaScript ile fazlasıyla karşılanır.

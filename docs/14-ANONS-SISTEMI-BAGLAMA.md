@@ -231,6 +231,11 @@ sayfasında her mesajın yanına yolunu yazın: `veri/sesler/baret.wav`.
 
 ### 2.4 Docker'da ses (fabrika sunucusu)
 
+> **İlk aşamada (24.09.2026) fabrikada sunucu yok:** sistem fabrikanın Windows
+> bilgisayarında paketlenmiş uygulamayla çalışır ve ses çıkışı kanalı o
+> bilgisayarın varsayılan çıkışına çalar (§2.2.1; docs/06 §1.5). Bu bölüm
+> sunucuya geçilirse geçerlidir.
+
 Fabrika sunucusunda sistem Docker container'ında çalışır; container'ın kendi
 ses kartı yoktur. Ses çıkışı kanalı, **host'ta çalışan ses sunucusuna**
 (PulseAudio ya da PipeWire'ın `pipewire-pulse`'u) çalar: imajda yalnız

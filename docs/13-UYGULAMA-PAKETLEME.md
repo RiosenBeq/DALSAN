@@ -130,6 +130,34 @@ klasör seçtirmez, o yüzden `tarayici-profili`'ni silmek Mac'te girişi
 sıfırlamaz). Bu veri **yedeklenmez**: içinde kullanıcı verisi değil,
 önbellek vardır.
 
+**Windows'ta arkada bir kopya daha: gözetmen (24.09.2026).** Çift tıklanan
+(ya da Windows açılışında başlayan) `NextGen Detector.exe` penceresiz küçük bir
+gözetmendir (`masaustu/surekli_calisma.py`). Aynı program üç kopya olarak
+çalışır:
+
+```
+NextGen Detector.exe                        ← gözetmen, penceresiz
+└── NextGen Detector.exe --panel            ← Kontrol Paneli ve sistemin kendisi
+    └── NextGen Detector.exe --izleme-penceresi …   ← izleme penceresi
+```
+
+Gözetmen paneli çökünce, bekçi takılan analizi 70 koduyla kapatınca ya da
+sistem beklenmedik şekilde durunca (71) yeniden açar; bir saatte en çok 3 kez,
+sonra son bir kez `DALSAN_GOZETMEN=0` ile (bekçi yalnız uyarır). Panele
+`DALSAN_GOZETMEN=1` verir: bekçi ancak bunu görünce süreçten çıkar
+(`backend/app/kaynaklar.py` `yeniden_acan_var_mi`). Panel 0 koduyla biterse
+(kullanıcı onaylayıp kapattı) gözetmen de kapanır; Windows kapanırken paneli
+yeniden açmaz. Alt süreç `PYINSTALLER_RESET_ENVIRONMENT=1` ile başlatılır:
+PyInstaller 6.9'dan beri programın kendi kopyasını açması "aynı uygulamanın
+yardımcı alt süreci" sayılır, panel ise bağımsız bir program olarak kalkmalıdır
+(PyInstaller belgesi, "Common Issues and Pitfalls"). Gözetmen ayrıca programı
+Windows açılışına yazar (`HKCU\Software\Microsoft\Windows\CurrentVersion\Run`,
+değer adı "NextGen Detector", `--kendiliginden` argümanıyla; her açılışta
+yeniden yazılır, klasör taşınırsa yeni yeri gösterir) ve ikinci açılışta açık
+paneli öne getirir. Kullanıcıya görünen davranış docs/11 §7.1'de, fabrika
+bilgisayarında yapılacaklar docs/06 §1.5'te. Mac uygulamasında gözetmen
+yoktur.
+
 ## 3.2 Hazır paketi indirmek (Windows ya da Mac bilgisayar gerekmeden)
 
 Uygulamayı üretmek için Windows ya da Mac bilgisayar bulmak şart değildir:
@@ -261,11 +289,18 @@ Yol şudur:
 
 1. Kod tarafında değişiklik yapılır (Claude Code ile).
 2. Üretim komutu **yeniden çalıştırılır** (§2 ya da §3).
-3. Yeni uygulama, eskisinin **üstüne** kopyalanır.
+3. **Önce çalışan uygulama kapatılır:** Kontrol Paneli penceresini kapatın ve
+   "Sistem kapatılsın mı?" sorusuna **Evet** deyin. Windows'ta gözetmen de
+   kapanır ve program Windows açılışından çıkar (§3.1).
+4. Yeni uygulama, eskisinin **üstüne** kopyalanır.
    * Mac: yeni `.app`'i Uygulamalar klasörüne sürükleyip "Değiştir" deyin.
    * Windows: `dist\NextGen Detector` klasörünün tamamını, eskisinin üstüne
      kopyalayın.
-4. Uygulamayı açın.
+5. Uygulamayı açın. Windows'ta yeni program kendini Windows açılışına yeniden
+   yazar.
+
+**Kaldırmak (Windows):** önce aynı şekilde kapatın (**Evet**), sonra program
+klasörünü silin. Kayıtlar §4'teki klasörde kalır.
 
 **Kayıtlar silinmez.** Veri kullanıcı klasöründedir (§4), uygulamanın içinde
 değil; uygulamayı değiştirmek kayıtlara dokunmaz. Ayarlar (`.env`) da orada
@@ -317,6 +352,11 @@ Windows Güvenliği → Virüs ve tehdit koruması → **Koruma geçmişi** →
 Üretim sırasında kilitlenme yaşarsanız proje klasörünü aynı ekrandan
 "hariç tutulan klasör" olarak ekleyin.
 
+Program her açılışta kendini Windows açılışına yazar (§3.1); virüs koruması
+imzasız bir programın bunu yapmasını da sorabilir. İzin verin: yoksa program
+bilgisayar yeniden başlayınca kendiliğinden açılmaz (Kontrol Paneli'nin
+"Sürekli çalışma" satırı bunu söyler).
+
 ### 6.5 Satır sonları (CRLF)
 Bir `.bat` dosyası Unix satır sonlarıyla (LF) gelirse Windows onu yanlış okur:
 komutların sonuna görünmez bir karakter takılır ve hepsi "bulunamadı" der.
@@ -342,13 +382,19 @@ bedeli, çökerse ekranda hiçbir şey görünmemesidir. Bu yüzden uygulamanın
 içine bir **açılış kancası** kondu:
 
 * Program açılırken çökerse ekrana **Türkçe bir uyarı penceresi** gelir ve
-  kayıt dosyasının yerini söyler.
+  kayıt dosyasının yerini söyler. Gözetmenin açtığı Kontrol Paneli'nde (§3.1)
+  bu pencere çıkmaz: başında kimse olmayan bilgisayarda kapatılmayı bekleyen
+  bir pencere yeniden açılmayı engellerdi. Hata yalnız dosyaya yazılır ve
+  gözetmen paneli birkaç saniye içinde yeniden açar.
 * Ayrıntı şu dosyaya yazılır:
   `%LOCALAPPDATA%\NextGen Detector\veri\loglar\acilis-hatasi.log`
 * Son çalıştırmanın ekran çıktısı da yanındaki
   `son-calistirma.log` dosyasındadır (boyutu sınırlıdır, diski doldurmaz).
+* Gözetmenin kaydı (ne zaman, hangi kodla kapandı, yeniden açıldı mı) aynı
+  klasördeki `gozetmen.log` dosyasındadır; 256 KB'ı geçince `gozetmen.log.1`
+  olur.
 
-Destek isterken gönderilecek dosya budur.
+Destek isterken gönderilecek dosyalar bunlardır.
 
 ### Mac
 Aynı açılış kancası Mac uygulamasında da vardır: açılırken çökerse macOS'un

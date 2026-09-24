@@ -34,7 +34,7 @@ Claude Code uyumu · Mac + Windows · Docker · bakım · büyütülebilirlik.
 
 | Ortam | Durum |
 |---|---|
-| **Prod - fabrika** | Ubuntu 22.04/24.04 LTS + NVIDIA GPU. Docker'da GPU erişimi güvenilir biçimde yalnızca Linux'ta. Windows Server + Docker Desktop teknik olarak mümkün ama 7x24 fabrika işletimi için önerilmez. *(Bugünkü Docker imajı yalnız CPU ONNX Runtime kurar; GPU için `onnxruntime-gpu`'lu ayrı imaj gerekir ve henüz yok. Sunucu donanımı docs/17 §16 S1'de açık.)* |
+| **Prod - fabrika** | Ubuntu 22.04/24.04 LTS + NVIDIA GPU. Docker'da GPU erişimi güvenilir biçimde yalnızca Linux'ta. Windows Server + Docker Desktop teknik olarak mümkün ama 7x24 fabrika işletimi için önerilmez. *(Bugünkü Docker imajı yalnız CPU ONNX Runtime kurar; GPU için `onnxruntime-gpu`'lu ayrı imaj gerekir ve henüz yok. Sunucu donanımı docs/17 §16 S1'de açık.)* *(24.09.2026, operatör kararı: ilk aşamada sunucu yok. Sistem fabrikanın olağan Windows bilgisayarında, paketlenmiş Windows uygulamasıyla (`NextGen Detector.exe`) çalışır: Docker yok, systemd yok, tespit CPU'da (docs/17 §16 karar kaydı, docs/06 §1.5). Bu satır sonraki sunucu aşamasının tarifidir.)* |
 | **Dev - Mac (Apple Silicon)** | Docker'da GPU yok. Analizör CPU modunda (düşük fps) veya video dosyası kaynağıyla. İsteğe bağlı: analizör Docker dışında MPS ile. API + DB Docker'da. *(→ 09 #4: geliştirmede Docker yok; tek program Kontrol Paneli'nden doğrudan Python ile çalışır, tespit CPU'da - `CIKARIM_CIHAZI` yalnız `cpu` / `cuda` alır, MPS yolu yok.)* |
 | **Dev - Windows** | Docker Desktop + WSL2 ile CUDA çalışır; yerel GPU varsa prod'a yakın test. *(→ 09 #4: geliştirmede Docker yok; kurulum yalnız CPU paketini kurar, CUDA için `onnxruntime-gpu` gerekir.)* |
 
@@ -59,7 +59,10 @@ için zayıf, **KKD için yetersiz** (zamansal oylama yeterli gözlem bulamaz). 
 `yolox_tiny` kamera başına 6,0 fps (bütçenin %100'ü, makine doygun), `yolox_s` 2,4 fps
 (%40). 23.09.2026'daki yeniden ölçümde bütçe `yolox_tiny` ile %100,1, `yolox_s` ile
 %43,4 (`ILERLEME.md` «Hız ve CPU»). "~1-2 fps" `yolox_s` için yaklaşık doğru,
-`yolox_tiny` için değil.)*
+`yolox_tiny` için değil.)* *(İlk aşamada (24.09.2026) sistem fabrikanın Windows
+bilgisayarında GPU'suz çalışır; bu tablo sunucu aşaması içindir. Windows'ta hız henüz
+ölçülmedi: yukarıdaki 4 çekirdekli ölçümden daha çok çekirdekli bir bilgisayar seçilir ve
+hız devreye almada o bilgisayarda ölçülür, docs/06 §1.5.)*
 
 ---
 

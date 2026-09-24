@@ -111,16 +111,26 @@ Pencereyi kapatmak da sistemi durdurur; ayrıca "Durdur"a basman şart değil.
 | Analiz: **Hazır - uyarılar üretiliyor** | Tamam | - |
 | Analiz: sarı, kırmızı ya da gri yazı | Sistem çalışıyor ama bir eksik ya da sorun var (uyarı üretilmiyor, duyulmayabilir ya da doğrulanamıyor); yazı sebebi söyler (docs/06 §2) | docs/06 §7 |
 
-## 6. Fabrika sunucusunda durum farklı
+## 6. Fabrikada durum farklı
 
-Fabrikadaki sunucuda bu pencere **kullanılmaz.** Orada sistem:
+**İlk aşamada fabrikada sunucu yok** (operatör kararı 24.09.2026): sistem
+fabrikanın Windows bilgisayarında **teslim edilen uygulamayla** (§7) çalışır ve
+orada kullanılan pencere o uygulamanın Kontrol Paneli'dir. Program orada siz
+kapatana kadar açık kalır: takılır ya da çökerse kendini yeniden açar,
+bilgisayar yeniden başlayınca Windows oturumu açılınca kendiliğinden başlar
+(§7.1). Bilgisayarda bir kez yapılacaklar (BIOS, otomatik oturum açma):
+docs/06 §1.5.
+
+Sonraki aşamada bir fabrika sunucusu kurulursa (donanımı ve kurulum biçimi
+docs/17 §16 S1'de açık) orada bu pencere **kullanılmaz.** Orada sistem:
 
 - Bilgisayar açılır açılmaz **kendiliğinden** başlar
 - Kimse başında olmadan 7 gün 24 saat çalışır
 - Çökerse kendini yeniden başlatır
 
-Kontrol Paneli, **senin geliştirme ve test bilgisayarın** içindir. Fabrika kurulumu
-8. haftada bir kez yapılır ve Claude Code adım adım yönlendirir.
+Başlat betikleriyle açılan Kontrol Paneli (§2-§5), **senin geliştirme ve test
+bilgisayarın** içindir. Fabrika kurulumu 8. haftada bir kez yapılır ve Claude
+Code adım adım yönlendirir.
 
 ## 7. Teslim edilen uygulamanın farkı
 
@@ -139,18 +149,64 @@ noktalarda** ayrılır:
 | | Bu bilgisayarda (geliştirme) | Teslim edilen uygulama |
 |---|---|---|
 | "İlk Kurulumu Yap" | Var - Python ortamı kurulur | **Yok** - her şey içinde gelir |
-| Başlama | "Sistemi Başlat"a basılır | **Kendiliğinden başlar** (pencere açıkken sistem çalışır) |
+| Başlama | "Sistemi Başlat"a basılır | **Kendiliğinden başlar.** Windows'ta siz kapatana kadar açık kalır, bilgisayar yeniden başlayınca da kendiliğinden açılır (§7.1); Mac'te pencere açıkken sistem çalışır |
 | "Güncelle" | Var - GitHub'dan çeker | **Yok** - yeni uygulama eskisinin üstüne kopyalanır (docs/13 §5.2) |
-| Durum satırları | Python, Gerekli paketler, Sistem kodu, Sistem durumu, Analiz | Yalnız **Sistem durumu** ve **Analiz** |
+| Durum satırları | Python, Gerekli paketler, Sistem kodu, Sistem durumu, Analiz | **Sistem durumu** ve **Analiz**; Windows'ta ayrıca **Sürekli çalışma** |
 | Pencere başlığı | DALSAN İSG - Kontrol Paneli | NextGen Detector - Kontrol Paneli |
+| Pencereyi kapatmak | Sistemi durdurur | Önce "Sistem kapatılsın mı?" diye sorar (varsayılan cevap Hayır); Evet'te sistem durur |
 
-Geri kalan her şey aynıdır: Durdur, İzleme Ekranını Aç, Yedekten Geri Yükle,
-sistem günlüğü ve "pencereyi kapatırsanız sistem durur" kuralı değişmez.
+Geri kalan her şey aynıdır: Durdur, İzleme Ekranını Aç, Yedekten Geri Yükle ve
+sistem günlüğü.
 
 Kayıtlar da farklı yerde durur - teslim edilen uygulama kendi içine yazmaz,
 kullanıcının kendi klasörüne yazar. Bu bilgisayardaki geliştirme kurulumunun
 veri yolu **değişmedi**: o hâlâ proje klasöründeki `veri/` klasörünü kullanır.
 Yerlerin tam listesi `docs/13` §4'te.
+
+### 7.1 Windows'ta: siz kapatana kadar açık
+
+Operatör isteği (24.09.2026): *"uygulamayı bir kere açınca ben kapatana kadar
+otomatik açılmayı ve bu tarz senaryoları düşünüp buna göre kodla lütfen"*.
+Teslim edilen Windows uygulamasında çift tıklanan `NextGen Detector.exe`
+penceresiz küçük bir **gözetmendir**: Kontrol Paneli'ni kendisi açar ve açık
+tutar (docs/13 §3.1).
+
+- **Takılırsa ya da çökerse kendini yeniden açar.** Analiz takılır (bekçi),
+  sistem beklenmedik şekilde durur ya da panel çökerse panel birkaç saniye
+  içinde yeniden açılır ve sistemi başlatır; bir saatte en çok 3 kez. Sınır
+  dolunca son bir kez açılır: bu sefer takılırsa kapanmaz, yalnız uyarır ve
+  pencere sorunu gösterir. Gözetimli panel çökerse hata penceresi çıkmaz, hata
+  `acilis-hatasi.log`'a yazılır (docs/13 §7).
+- **Windows açılışında başlar.** Program kendini Windows'un "oturum açılınca
+  başlat" listesine yazar: elektrik kesintisinden ya da Windows güncellemesinin
+  yeniden başlatmasından sonra oturum açılınca kendiliğinden başlar.
+- **Bilgisayar uyumaz.** Sistem çalışırken Windows uykuya geçmez; ekran
+  kapanabilir, uyarı sesi yine çalar. Bilgisayarı elle uyutmak engellenmez.
+- **Tek kopya.** Program açıkken yeniden açılırsa ikinci kopya açılmaz, açık
+  Kontrol Paneli öne gelir; bulunamazsa "NextGen Detector zaten çalışıyor"
+  der.
+- **Kapatmak bir karardır.** Pencereyi kapatınca "Sistem kapatılsın mı?" diye
+  sorulur, varsayılan cevap **Hayır**. **Evet** derseniz sistem durur, program
+  Windows açılışından çıkar ve siz yeniden açana kadar kapalı kalır. **Durdur**
+  düğmesi yalnız sistemi durdurur, programı açık bırakır.
+
+Pencerenin üst satırı bunu söyler: "Siz kapatana kadar açık kalır: bilgisayar
+yeniden başlasa da kendiliğinden açılır." **Sürekli çalışma** satırı
+durumu yazar:
+
+| Yazı | Anlamı | Ne yapmalısın |
+|---|---|---|
+| **Açık - takılır ya da bilgisayar yeniden başlarsa kendiliğinden açılır.** (sonunda "Bilgisayar uyumuyor.") | Her şey yolunda | - |
+| **Windows açılışında kapatılmış (Görev Yöneticisi > Başlangıç uygulamaları): açın.** | Program Windows açılışında kapatılmış; program buna dokunmaz | Görev Yöneticisi'nde "NextGen Detector"ı etkinleştir |
+| **Windows açılışına eklenemedi - bilgisayar yeniden başlarsa programı elle açın.** | Windows açılışındaki kayıt bu programı göstermiyor | Sebep `veri\loglar\gozetmen.log`'da; virüs koruması uyardıysa izin ver (docs/06 §1.5) |
+| **Kapalı - takılırsa yalnız uyarır (son bir saatte 3 kez yeniden açıldı).** | Yeniden açma sınırı doldu | Günlükteki `[HATA]` satırlarını destek ekibine ilet; bilgisayarı yeniden başlatmak sayacı sıfırlar |
+
+Panel her açılışta neden (yeniden) açıldığını günlüğüne yazar: Windows
+açılışında kendiliğinden başladı, analiz takıldığı için bekçi kapatıp açtı,
+program beklenmedik şekilde kapandı (çıkış koduyla) ya da sınır doldu.
+Fabrikanın bilgisayarında bir kez yapılacaklar (BIOS, otomatik oturum açma,
+ayrı Windows hesabı) docs/06 §1.5'tedir. Mac uygulamasında gözetmen, Windows
+açılışında başlama ve uyku engeli yoktur; kapatma sorusu orada da sorulur.
 
 ## 8. Bu uygulama nasıl geliştirilebilir (ileride)
 
