@@ -691,8 +691,10 @@ def test_pakete_giren_her_dosya_degisince_paket_yeniden_uretilir():
     tanim.loader.exec_module(ortak)
     for kaynak, _ in ortak.veri_dosyalari(KOK):
         goreli = Path(kaynak).relative_to(KOK).as_posix()
+        # Klasör girdisi ("docs") kendi altındaki "docs/**" deseniyle eşleşir
+        yol = f"{goreli}/" if Path(kaynak).is_dir() else goreli
         assert any(
-            goreli == desen or goreli.startswith(desen.removesuffix("**")) for desen in desenler
+            goreli == desen or yol.startswith(desen.removesuffix("**")) for desen in desenler
         ), f"{goreli} değişince paket yeniden üretilmez"
 
 

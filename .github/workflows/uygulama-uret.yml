@@ -27,6 +27,8 @@ on:
       # üretilir; lisans atfı pakete konur
       - ".env.example"
       - "LICENSE-THIRD-PARTY"
+      # Belgeler de pakete girer (uygulamanın içinde gösterilir)
+      - "docs/**"
       - ".github/workflows/uygulama-uret.yml"
   workflow_dispatch:
 

@@ -2,9 +2,11 @@
 .venv/
 veri/
 tests/
-docs/
 masaustu/
 *.md
+# Proje belgeleri imaja girer: uygulama onları kendi içinde gösterir
+# (backend/app/web/belge_rotalari.py)
+!docs/*.md
 .env
 __pycache__/
 *.pyc

@@ -51,6 +51,9 @@ def veri_dosyalari(depo: Path) -> list[tuple[str, str]]:
         # Lisans atfı pakete de girer: pywebview ve WebView2 SDK'nın BSD
         # lisansları ikili dağıtımda notun programla birlikte verilmesini ister.
         (str(depo / "LICENSE-THIRD-PARTY"), "."),
+        # Proje belgeleri: sayfalar "docs/15-..." diye gönderir ve uygulama
+        # onları kendi içinde gösterir (backend/app/web/belge_rotalari.py).
+        (str(depo / "docs"), "docs"),
         # Kontrol Paneli penceresinin Windows görev çubuğu simgesi. Bu dosya
         # PAKETİN SİMGESİ olarak zaten kullanılıyor (EXE(icon=...)), ama o
         # simge yalnızca .exe dosyasına gömülür; Tk penceresi çalışma anında

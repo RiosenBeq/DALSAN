@@ -24,6 +24,8 @@ COPY backend/requirements.txt backend/requirements.txt
 RUN pip install --no-cache-dir -r backend/requirements.txt
 
 COPY backend/ backend/
+# Proje belgeleri uygulamanın içinde gösterilir (backend/app/web/belge_rotalari.py)
+COPY docs/ docs/
 COPY models/ models/
 # Model dosyası olmadan container sessizce "tespit yapmayan" bir sisteme
 # dönüşürdü. Derleme burada, ANLAŞILIR bir mesajla durur.

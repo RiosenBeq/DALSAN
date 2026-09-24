@@ -51,3 +51,17 @@ def test_sablonlardaki_belge_baglantilari_var_olan_belgelere_gider():
     assert baglantilar, "hiçbir sayfa belgeye bağlanmıyor"
     for ad in baglantilar:
         assert (KOK / "docs" / ad).is_file(), f"kırık belge bağlantısı: {ad}"
+
+
+def test_belgeler_uygulamayla_ve_docker_imajiyla_gelir():
+    import importlib.util
+
+    ortak_yolu = KOK / "paketleme" / "paketleme_ortak.py"
+    tanim = importlib.util.spec_from_file_location("paketleme_ortak_belgeler", ortak_yolu)
+    ortak = importlib.util.module_from_spec(tanim)
+    tanim.loader.exec_module(ortak)
+    assert (str(KOK / "docs"), "docs") in ortak.veri_dosyalari(KOK)
+
+    assert "COPY docs/ docs/" in (KOK / "Dockerfile").read_text(encoding="utf-8")
+    haric = (KOK / ".dockerignore").read_text(encoding="utf-8").splitlines()
+    assert "docs/" not in haric and "!docs/*.md" in haric
