@@ -374,6 +374,15 @@ def uyarilar(kareler: list[Kare], bolme: dict[str, str]) -> list[str]:
         )
     if not any(any(e["sinif"] == "forklift" for e in k.etiketler) for k in kareler):
         notlar.append("Hiçbir karede forklift kutusu yok; bu veriyle forklift öğrenilemez.")
+    test_kareleri = [k for k in kareler if bolme.get(k.gun) == "test"]
+    if test_kareleri and all(k.etiketler for k in test_kareleri):
+        # degerlendir.py fk_fp_goruntu_basi: paydası kutusuz karedir; sıfırsa
+        # ölçülmez ve ölçülmeyen metrik kapıyı kaldırır.
+        notlar.append(
+            "Test günlerinde forkliftsiz (boş) kare yok: yanlış forklift alarmı ölçülemez ve "
+            "o kapı kalır. Test günlerinin forklift görünmeyen karelerini de “Forklift yok” "
+            "diye etiketleyin."
+        )
     return notlar
 
 
@@ -415,8 +424,9 @@ BENIOKU = """NextGen Detector - forklift eğitim verisi (fabrikanın kendi kamer
 
 Bu klasördeki görüntüler çalışanları da gösterebilir: kişisel veridir (KVKK).
 İnternete, herkese açık bir depoya ya da paylaşılan bir klasöre KOYMAYIN.
-Eğitim, programın egitim/forklift klasöründeki yerel eğitim adımlarıyla kapalı
-bir bilgisayarda yapılır (docs/17 §12.5).
+Eğitim kapalı bir bilgisayarda yapılır: programın kaynak klasöründeki
+egitim\\forklift\\Egit-Windows.bat dosyasının üstüne bu zip'i sürükleyip bırakın
+(ayrıntı: egitim/forklift/YEREL-EGITIM.md). Çıkan model Forklift sayfasından kurulur.
 
 Düzen (egitim/forklift/veri.py'nin LOCO çıktısıyla aynı):
   egitim/*.jpg, test/*.jpg        görüntüler

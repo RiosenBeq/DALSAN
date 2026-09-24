@@ -307,7 +307,10 @@ def test_disa_aktarim_loco_duzeninde(baglanti, test_ayarlari, tmp_path):
     assert [g["gun"] for g in test["images"]] == ["2026-10-03"]
     assert ozet_tutuyor
     assert manifest["kumeler"]["egitim"]["forklift_kutusu"] == 1
-    assert manifest["kumeler"]["test"]["kare"] == 1 and manifest["uyarilar"] == []
+    assert manifest["kumeler"]["test"]["kare"] == 1
+    # tek test karesi kutulu: yanlış alarm ölçülemez, yalnız bu söylenir
+    assert len(manifest["uyarilar"]) == 1
+    assert "forkliftsiz (boş) kare yok" in manifest["uyarilar"][0]
 
 
 def test_tek_gun_ve_forkliftsiz_veri_uyarilir(baglanti, test_ayarlari, tmp_path):
@@ -318,6 +321,18 @@ def test_tek_gun_ve_forkliftsiz_veri_uyarilir(baglanti, test_ayarlari, tmp_path)
     )
     assert any("Test kümesi boş" in u for u in manifest["uyarilar"])
     assert any("forklift kutusu yok" in u for u in manifest["uyarilar"])
+
+
+def test_test_gunlerinde_bos_kare_yoksa_uyarilir(baglanti, test_ayarlari, tmp_path):
+    """Yanlış forklift alarmının paydası kutusuz karedir: yoksa o kapı ölçülemez."""
+    _etiketli_kareler(baglanti, test_ayarlari.goruntu_klasoru)  # 3. gün test, kutulu
+    kareler = fv.etiketli_kareler(baglanti)
+    uyarilar = fv.uyarilar(kareler, fv.gun_bolmesi(k.gun for k in kareler))
+    assert any("forkliftsiz (boş) kare yok" in u for u in uyarilar)
+    fv.etiketle(baglanti, kareler[-1].id, [])  # test gününün karesi: "Forklift yok"
+    kareler = fv.etiketli_kareler(baglanti)
+    uyarilar = fv.uyarilar(kareler, fv.gun_bolmesi(k.gun for k in kareler))
+    assert not any("forkliftsiz (boş) kare yok" in u for u in uyarilar)
 
 
 def test_diskte_olmayan_kare_eksik_sayilir(baglanti, test_ayarlari, tmp_path):
