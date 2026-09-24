@@ -235,9 +235,14 @@ class AnalizSupervizoru:
         return dict(self._canli_sayim.get(kamera_id, {}))
 
     def toplam_canli_sayim(self) -> dict[str, int]:
-        """Tüm kameraların toplamı - ana sayfadaki özet."""
+        """Tüm kameraların toplamı - ana sayfadaki özet.
+
+        Web iş parçacığı okur, analiz iş parçacığı yazar: sözlük önce
+        kopyalanır. Kopyasız döngü, kamera eklenip çıkarken "dictionary
+        changed size during iteration" ile düşerdi (R28).
+        """
         toplam: dict[str, int] = {}
-        for sayim in self._canli_sayim.values():
+        for sayim in list(self._canli_sayim.values()):
             for sinif, adet in sayim.items():
                 toplam[sinif] = toplam.get(sinif, 0) + adet
         return toplam

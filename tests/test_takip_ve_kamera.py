@@ -306,3 +306,21 @@ def test_yeni_kameranin_varsayilan_hizi_ayardan_gelir(test_ayarlari):
         assert baglanti.execute("SELECT sample_fps FROM cameras").fetchone()[0] == 4
     finally:
         baglanti.close()
+
+
+def test_toplam_canli_sayim_yazilirken_okunabilir(test_ayarlari):
+    """R28: web iş parçacığı toplamı okurken analiz iş parçacığı sözlüğe
+    kamera ekleyebilir. Kopyasız döngü "dictionary changed size during
+    iteration" ile düşerdi; araya giren yazım burada taklit edilir."""
+    from app.analiz.supervizor import AnalizSupervizoru
+
+    sup = AnalizSupervizoru(test_ayarlari)
+
+    class _AraYazan(dict):
+        def items(self):
+            sup._canli_sayim[99] = {"person": 5}  # analiz iş parçacığı araya girdi
+            return super().items()
+
+    sup._canli_sayim[1] = _AraYazan(person=2)
+    sup._canli_sayim[2] = {"truck": 1}
+    assert sup.toplam_canli_sayim() == {"person": 2, "truck": 1}

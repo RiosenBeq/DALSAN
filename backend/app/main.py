@@ -1,7 +1,13 @@
-"""TEK giriş noktası. Kontrol Paneli sistemi şu komutla başlatır (değiştirilemez):
+"""TEK giriş noktası. Kaynak kurulumunda Kontrol Paneli sistemi şu komutla
+başlatır (değiştirilemez):
 
     uvicorn app.main:app --host 127.0.0.1 --port 8080 --timeout-graceful-shutdown 3
     (çalışma dizini: backend/)
+
+Docker (Dockerfile CMD) ve systemd (docs/06 §1.2.1) aynı komutu kullanır.
+Paketlenmiş Windows/Mac uygulamasında ise sunucu panelle aynı süreçte
+çalışır: panel `uygulamayi_kur()`'u çağırıp uvicorn.Server'a verir
+(masaustu/dalsan_launcher.py `_ic_surecte_baslat`).
 
 Kapanış süresi şarttır: açık bir canlı akış (Olaylar, komuta ekranları)
 kendiliğinden bitmez ve süre verilmezse uvicorn kapanırken onu sonsuza kadar
