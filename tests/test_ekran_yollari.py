@@ -269,7 +269,7 @@ def test_kilavuz_gelistirme_kurulumunda_baslat_betigini_anlatir(istemci):
     assert "İlk Kurulumu Yap" in sayfa
     assert "Install Certificates.command" in sayfa
     assert "program klasöründeki <b>veri/loglar/sistem.log</b>" in sayfa
-    assert "program klasöründeki <b>docs/15-UZAKTAN-ERISIM.md</b> belgesindedir." in sayfa
+    assert '<a href="/komuta/belgeler/15-UZAKTAN-ERISIM.md">' in sayfa
     # Ekran tarayıcı sekmesinde değil, kendi penceresinde açılır (docs/11)
     assert "izleme ekranı kendi penceresinde açılır" in sayfa
     assert "Tarayıcı sekmesini" not in sayfa
@@ -278,7 +278,8 @@ def test_kilavuz_gelistirme_kurulumunda_baslat_betigini_anlatir(istemci):
 def test_kilavuz_uygulamada_betik_ve_ilk_kurulum_anlatmaz(istemci, monkeypatch):
     """Windows ve Mac uygulamasında Başlat betiği ve "İlk Kurulumu Yap"
     düğmesi yoktur, sistem kendiliğinden başlar (masaustu/dalsan_launcher.py);
-    belgeler ve python.org'un sertifika dosyası pakete girmez."""
+    python.org'un sertifika dosyası pakete girmez. Belgeler uygulamanın
+    içinde açılır (web/belge_rotalari.py)."""
     _paketlenmis_gibi(monkeypatch)
     sayfa = istemci.get("/komuta/kilavuz").text
 
@@ -289,10 +290,7 @@ def test_kilavuz_uygulamada_betik_ve_ilk_kurulum_anlatmaz(istemci, monkeypatch):
     assert "Install Certificates" not in sayfa
     assert f"<b>{MAC_KLASORU}/veri/loglar/sistem.log</b>" in sayfa
     assert f"<b>{MAC_KLASORU}/veri/sesler</b>" in sayfa
-    assert (
-        "<b>docs/15-UZAKTAN-ERISIM.md</b> belgesindedir (uygulamayla gelmez, destek "
-        "ekibinden isteyin)." in sayfa
-    )
+    assert '<a href="/komuta/belgeler/15-UZAKTAN-ERISIM.md">' in sayfa
     assert "program klasörü" not in sayfa
 
 

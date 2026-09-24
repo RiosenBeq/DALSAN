@@ -97,7 +97,7 @@
     <span class="raf-dip">
       {# Kılavuz rafın DİBİNDE ama Teşhis'in ÜSTÜNDE: sistemi ilk açan kişinin
          gideceği yer burasıdır, teşhis ekranı ise arıza anında bakılan yerdir. #}
-      <a class="raf-dugme {% if ekran == 'kilavuz' %}aktif{% endif %}" href="/komuta/kilavuz">
+      <a class="raf-dugme {% if ekran in ('kilavuz', 'belgeler') %}aktif{% endif %}" href="/komuta/kilavuz">
         <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5.5A1.5 1.5 0 015.5 4H10a2 2 0 012 2v13a1.6 1.6 0 00-1.6-1.4H5.5A1.5 1.5 0 014 16.1z"/><path d="M20 5.5A1.5 1.5 0 0018.5 4H14a2 2 0 00-2 2v13a1.6 1.6 0 011.6-1.4h4.9A1.5 1.5 0 0020 16.1z"/></svg>
         <span>Kılavuz</span>
       </a>

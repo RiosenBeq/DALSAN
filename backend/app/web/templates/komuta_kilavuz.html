@@ -9,15 +9,12 @@
 {% extends "komuta_temel.html" %}
 {% from "bilesen.html" import oge_rozeti, durum_hapi, onem_hapi %}
 {% block icerik %}
-{# Belgeler (docs/) Başlat betikleriyle kurulan sistemde program klasöründedir;
-   Windows ve Mac uygulamasının içinde gelmezler (paketleme/paketleme_ortak.py):
-   orada belgenin nereden isteneceği söylenir. #}
+{# Belgeler (docs/) programla gelir ve uygulamanın içinde açılır
+   (web/belge_rotalari.py): göndermeler her kurulumda bağlantıdır. #}
 {% set paket = kurulum_turu() == "paket" %}
 {# Docker ve systemd kurulumunda Kontrol Paneli yoktur: sistem sunucuda hizmet
    olarak çalışır, başlatıp durdurmak sistem yöneticisinin işidir (docs/06). #}
 {% set sunucu = sunucu_kurulumu_mu() %}
-{% set belge_yeri = "" if paket else "program klasöründeki " %}
-{% set belge_notu = " (uygulamayla gelmez, destek ekibinden isteyin)" if paket else "" %}
 
 <div class="kilavuz-duzen">
 
@@ -85,7 +82,7 @@
         ({{ "Docker" if kurulum_turu() == "docker" else "systemd" }}): sunucu açılınca
         kendiliğinden başlar, bir hata yüzünden kapanırsa kendiliğinden yeniden başlar.
         Kontrol Paneli penceresi yoktur; başlatmak, durdurmak ve güncellemek sistem
-        yöneticisinin işidir ({{ belge_yeri }}<b>docs/06-OPERASYON.md</b>{{ belge_notu }}).</p>
+        yöneticisinin işidir (<a href="/komuta/belgeler/06-OPERASYON.md"><b>docs/06-OPERASYON.md</b></a>).</p>
       <p>İzleme ekranları tarayıcıda açılır: sunucunun kendisinde
         <code>http://127.0.0.1:8080</code>; başka bir bilgisayardan açmak için aşağıdaki
         “Sisteme uzaktan erişmek” bölümüne bakın.</p>
@@ -501,15 +498,16 @@
         içindeki insanların görüntüsünü dışarı taşımak demektir ve KVKK
         açısından hukuk biriminin onayını ister. Sistemi doğrudan internete
         açmak <b>önerilmez</b>; doğru yol VPN'dir. Adım adım anlatım
-        {{ belge_yeri }}<b>docs/15-UZAKTAN-ERISIM.md</b> belgesindedir{{ belge_notu }}.</p>
+        <a href="/komuta/belgeler/15-UZAKTAN-ERISIM.md"><b>docs/15-UZAKTAN-ERISIM.md</b></a>
+        belgesindedir.</p>
       <p class="kilavuz-alinti">Uzaktan <b>“Durdur / Başlat”</b> düğmesi bilerek
         yoktur: yanlış bir tıklama fabrikayı izlemesiz bırakırdı.
         {% if sunucu %}Başlatmak ve durdurmak sunucuda, sistem yöneticisinin işidir.{% else %}O
         iki düğme sunucunun başındaki Kontrol Paneli'nde kalır.{% endif %}</p>
 
       <p>Kablo, adres, cihaz soruları ve anons firmanıza soracaklarınızın listesi
-        için {{ belge_yeri }}<b>docs/14-ANONS-SISTEMI-BAGLAMA.md</b>
-        belgesine bakın{{ belge_notu }}.</p>
+        için <a href="/komuta/belgeler/14-ANONS-SISTEMI-BAGLAMA.md"><b>docs/14-ANONS-SISTEMI-BAGLAMA.md</b></a>
+        belgesine bakın.</p>
       <p class="kilavuz-bag"><a href="/komuta/anons">Anons sistemine git →</a></p>
     </section>
 

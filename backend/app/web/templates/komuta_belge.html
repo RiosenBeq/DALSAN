@@ -1,0 +1,32 @@
+{# Proje belgeleri (web/belge_rotalari.py). Markdown düz metin olarak
+   gösterilir: satırlar kırılır, tablolar eş aralıklı yazıyla hizalı kalır. #}
+{% extends "komuta_temel.html" %}
+{% block icerik %}
+<section class="komuta-panel">
+  {% if belge %}
+  <div class="panel-basligi">
+    <h2>{{ belge.baslik }}</h2>
+    <span class="panel-notu">docs/{{ belge.ad }}</span>
+  </div>
+  <pre class="belge-metni" style="white-space: pre-wrap; overflow-wrap: anywhere;">{{ belge.metin }}</pre>
+  <p class="kilavuz-bag"><a href="/komuta/belgeler">Bütün belgeler →</a></p>
+  {% else %}
+  <div class="panel-basligi">
+    <h2>Belgeler</h2>
+    <span class="panel-notu">sayfalardaki “docs/...” göndermeleri</span>
+  </div>
+  {% if mesaj %}<p class="hata-mesaji">{{ mesaj }}</p>{% endif %}
+  {% if belgeler %}
+  <ul>
+    {% for b in belgeler %}
+    <li><a href="/komuta/belgeler/{{ b.ad }}">{{ b.baslik }}</a>
+      <span class="soluk-metin">docs/{{ b.ad }}</span></li>
+    {% endfor %}
+  </ul>
+  {% elif not mesaj %}
+  <p>Bu kurulumda belge yok.</p>
+  {% endif %}
+  <p class="kilavuz-bag"><a href="/komuta/kilavuz">Kullanım kılavuzuna dön →</a></p>
+  {% endif %}
+</section>
+{% endblock %}

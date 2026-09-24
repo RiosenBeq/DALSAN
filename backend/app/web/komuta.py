@@ -71,6 +71,9 @@ EKRAN_BASLIKLARI = {
     # Dokuzuncu ekran: .env dosyasının ekrandaki karşılığı (ayar_rotalari.py).
     # Paketlenmiş programda ayar dosyası elle açılamaz; tek yol burasıdır.
     "ayarlar": "Sistem ayarları",
+    # Proje belgeleri (docs/*.md): sayfalardaki "docs/15-..." göndermeleri
+    # her kurulumda açılsın diye uygulamanın içinde gösterilir (belge_rotalari).
+    "belgeler": "Belgeler",
 }
 
 # Alt başlıklar da tasarımdan birebirdir - ANCAK içinde sayı geçenler
@@ -84,6 +87,7 @@ EKRAN_ALT_BASLIKLARI = {
     "rapor": "Dönem özeti · yazdırıp PDF yapabilirsiniz",
     "kilavuz": "Sistemi kurma, çalıştırma ve uyarıları değerlendirme",
     "ayarlar": "Anons, tespit hassasiyeti ve saklama süreleri",
+    "belgeler": "Kurulum, işletme ve tasarım belgeleri",
 }
 
 

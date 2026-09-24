@@ -22,6 +22,7 @@ from app.web import (
     alan_rotalari,
     anons_web,
     ayar_rotalari,
+    belge_rotalari,
     giris,
     hoparlorler,
     kameralar,
@@ -177,6 +178,8 @@ def uygulama_olustur(ayarlar: Ayarlar, analiz: bool = True) -> FastAPI:
     # dosyası kullanıcı profilindedir ve elle açılamaz; eşik/anons ayarı için
     # tek yol budur.
     uygulama.include_router(ayar_rotalari.router, dependencies=korumali)
+    # Proje belgeleri (docs/*.md): sayfalardaki göndermeler her kurulumda açılır
+    uygulama.include_router(belge_rotalari.router, dependencies=korumali)
 
     uygulama.mount("/static", StaticFiles(directory=str(STATIK_DIZINI)), name="static")
     return uygulama
