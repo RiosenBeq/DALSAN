@@ -73,6 +73,16 @@ Metrikler (aksi yazılmadıkça uygulamanın çalışma noktasında):
                         adayda karşılığı forklift olanların oranı;
                         arac_seti_arac_kaybi ve arac_seti_insan_kaybi yukarıdaki
                         kayıplarla aynı tanım
+  fk_kutu_tavani        TANI, kapı değil: değerlendirilen forklift kutularından
+                        adayın ham çıktısında IoU'su en az 0,5 olan bir çapa
+                        kutusu bulunanların oranı (v1 ve v2'de kutu resmi
+                        modelin donuk kutu dalıdır; tavan düşükse forklift puanı
+                        da düşük öğrenilir, model.py "Neden v3")
+  fk_kutu_tavani_resmi  TANI: aynı oran resmi modelin ham çıktısında (donuk kutu
+                        dalının tavanı; v3'ün kutu dalı bunu geçmeli)
+  fk_puan50_medyan      TANI: o çapalardaki en yüksek forklift puanının medyanı
+  fk_kazanir50          TANI: o çapalardan birinde forklift puanı çalışma eşiğini
+                        ve eşlenen bütün öteki puanları geçen kutuların oranı
 Paydası sıfır olan oran ölçülmemiştir: None (JSON null); "ölçülmedi" "%0" değildir.
 
 Kapılar (esikler.json): "<metrik>_en_fazla" (metrik <= eşik) ya da
@@ -157,6 +167,10 @@ METRIKLER = (
     "arac_seti_tr_fk",
     "arac_seti_arac_kaybi",
     "arac_seti_insan_kaybi",
+    "fk_kutu_tavani",
+    "fk_kutu_tavani_resmi",
+    "fk_puan50_medyan",
+    "fk_kazanir50",
 )
 KAPI_YONLERI = {"_en_fazla": "en_fazla", "_en_az": "en_az"}
 
@@ -411,6 +425,73 @@ def goruntuyu_olc(
         ap_vg=tuple(ap_isaretleri(_sinifta(aday_ap, ARAC), gercek.forkliftler, yoksay)),
         ap_vg_resmi=tuple(ap_isaretleri(_sinifta(resmi_ap, ARAC), gercek.forkliftler, yoksay)),
     )
+
+
+def _capa_ioulari(kutu: Kutu, kutular: np.ndarray) -> np.ndarray:
+    """Bir gerçek kutunun bütün çapa kutularıyla IoU'su (kutular: [A, 4] xyxy)."""
+    kesisim = np.clip(
+        np.minimum(kutu[2], kutular[:, 2]) - np.maximum(kutu[0], kutular[:, 0]), 0, None
+    ) * np.clip(np.minimum(kutu[3], kutular[:, 3]) - np.maximum(kutu[1], kutular[:, 1]), 0, None)
+    alan = (kutular[:, 2] - kutular[:, 0]) * (kutular[:, 3] - kutular[:, 1])
+    birlesim = (kutu[2] - kutu[0]) * (kutu[3] - kutu[1]) + alan - kesisim
+    return kesisim / np.maximum(birlesim, 1e-9)
+
+
+def kutu_tavanlari(
+    kutular: np.ndarray, gercekler: Sequence[Kutu], yoksayilan: Sequence[bool]
+) -> list[float]:
+    """Değerlendirilen her gerçek kutu için ham çıktıdaki en iyi çapa IoU'su (tanı)."""
+    tavanlar = []
+    for kutu, yok in zip(gercekler, yoksayilan, strict=True):
+        if not yok:
+            ioular = _capa_ioulari(kutu, kutular)
+            tavanlar.append(float(ioular.max()) if len(ioular) else 0.0)
+    return tavanlar
+
+
+def forklift_tanisi(
+    kutular: np.ndarray,
+    puanlar: np.ndarray,
+    gercekler: Sequence[Kutu],
+    yoksayilan: Sequence[bool],
+    forklift: int,
+    digerleri: Sequence[int],
+    esik: float,
+) -> list[tuple[float, float, bool]]:
+    """Değerlendirilen her forklift kutusu için ham çıktıdan (tanı):
+    (en iyi çapa IoU'su, IoU >= 0,5 çapalarda en yüksek forklift puanı,
+    o çapalardan birinde forklift eşiği ve eşlenen öteki puanları geçiyor mu).
+
+    kutular: [A, 4] xyxy piksel; puanlar: [A, sütun] nesne x sınıf.
+    """
+    fk = puanlar[:, forklift]
+    diger = puanlar[:, list(digerleri)].max(1) if digerleri else np.zeros(len(puanlar))
+    sonuc = []
+    for kutu, yok in zip(gercekler, yoksayilan, strict=True):
+        if yok:
+            continue
+        ioular = _capa_ioulari(kutu, kutular)
+        yakin = ioular >= IOU_ESIGI
+        sonuc.append(
+            (
+                float(ioular.max()) if len(ioular) else 0.0,
+                float(fk[yakin].max()) if yakin.any() else 0.0,
+                bool(np.any(yakin & (fk >= esik) & (fk > diger))),
+            )
+        )
+    return sonuc
+
+
+def tani_ozeti(tani: Sequence[tuple[float, float, bool]], resmi_tavanlari: Sequence[float]) -> dict:
+    """forklift_tanisi ve resmi modelin kutu_tavanlari sonuçlarından tanı metrikleri."""
+    return {
+        "fk_kutu_tavani": _yuvarla(oran(sum(t[0] >= IOU_ESIGI for t in tani), len(tani))),
+        "fk_kutu_tavani_resmi": _yuvarla(
+            oran(sum(t >= IOU_ESIGI for t in resmi_tavanlari), len(resmi_tavanlari))
+        ),
+        "fk_puan50_medyan": _yuvarla(float(np.median([t[1] for t in tani]))) if tani else None,
+        "fk_kazanir50": _yuvarla(oran(sum(t[2] for t in tani), len(tani))),
+    }
 
 
 def _yuvarla(deger: float | None, basamak: int = _BASAMAK) -> float | None:
@@ -935,6 +1016,11 @@ class Olcer:
         self.resmi_ap = tespitci_ac(resmi, ayar, AP_GUVEN_ESIGI)
         self.aday_sureleri: list[float] = []
         self.resmi_sureleri: list[float] = []
+        # Tanı için adayın sütunları (sınıf eşlemesi: model sütunu -> katalog kodu)
+        esleme = dict(self.aday._sinif_esleme)
+        forkliftler = [sutun for sutun, kod in esleme.items() if kod == FORKLIFT]
+        self.forklift_sutunu = forkliftler[0] if forkliftler else None
+        self.diger_sutunlar = sorted(sutun for sutun, kod in esleme.items() if kod != FORKLIFT)
 
     def isit(self, kareler: Iterable[np.ndarray]) -> None:
         for kare in kareler:
@@ -961,6 +1047,28 @@ class Olcer:
             tespitleri_cevir(self.aday_ap.tespit_et(kare)),
             tespitleri_cevir(self.resmi_ap.tespit_et(kare)),
         )
+
+    def ham(self, kare: np.ndarray, resmi: bool = False) -> tuple[np.ndarray, np.ndarray]:
+        """Adayın (ya da resmi modelin) ham çıktısı (tanı): (kutular xyxy özgün piksel,
+        puanlar nesne x sınıf). Ön işleme ve ızgara çözümü uygulamanın Tespitci'siyle
+        aynıdır; iki modelin girdi boyu aynıdır (kurucu denetler).
+        """
+        tespitci = self.resmi if resmi else self.aday
+        girdi, oran_ = tespitci._on_isle(kare)
+        with tespitci._kilit:
+            cikti = tespitci._oturum.run(None, {tespitci._girdi_adi: girdi})[0]
+        cikti = np.asarray(cikti[0], dtype=np.float64)
+        izgaralar, adimlar = [], []
+        for adim in (8, 16, 32):
+            kenar = self.girdi // adim
+            xv, yv = np.meshgrid(np.arange(kenar), np.arange(kenar))
+            izgaralar.append(np.stack((xv, yv), 2).reshape(-1, 2))
+            adimlar.append(np.full((kenar * kenar, 1), adim))
+        izgara, adim_dizisi = np.concatenate(izgaralar), np.concatenate(adimlar)
+        merkez = (cikti[:, :2] + izgara) * adim_dizisi
+        boyut = np.exp(np.minimum(cikti[:, 2:4], 20.0)) * adim_dizisi
+        kutular = np.concatenate([merkez - boyut / 2, merkez + boyut / 2], 1) / oran_
+        return kutular, cikti[:, 4:5] * cikti[:, 5:]
 
     def kare(self, kare: np.ndarray) -> KareSonucu:
         """Video karesi (süre ölçülmez)."""
@@ -1058,6 +1166,8 @@ def olc(secenekler: argparse.Namespace) -> dict:
     )
     olcer.isit(_kare_oku(g) for g in goruntuler[:ISINMA_GORUNTUSU])
     sonuclar = []
+    tani: list[tuple[float, float, bool]] = []
+    resmi_tavanlari: list[float] = []
     for sira, goruntu in enumerate(goruntuler):
         kare = _kare_oku(goruntu)
         aday, resmi = olcer.calisma_noktasi(kare, sira)
@@ -1070,9 +1180,29 @@ def olc(secenekler: argparse.Namespace) -> dict:
             goruntu.transpaletler,
         )
         sonuclar.append(goruntuyu_olc(gercek, aday, resmi, aday_ap, resmi_ap, olcer.girdi))
+        if goruntu.forkliftler and olcer.forklift_sutunu is not None:
+            yoksay = [
+                not degerlendirilir_mi(k, gercek.genislik, gercek.yukseklik, olcer.girdi)
+                for k in goruntu.forkliftler
+            ]
+            kutular, puanlar = olcer.ham(kare)
+            tani.extend(
+                forklift_tanisi(
+                    kutular,
+                    puanlar,
+                    goruntu.forkliftler,
+                    yoksay,
+                    olcer.forklift_sutunu,
+                    olcer.diger_sutunlar,
+                    ayar.guven_esigi,
+                )
+            )
+            resmi_kutular, _ = olcer.ham(kare, resmi=True)
+            resmi_tavanlari.extend(kutu_tavanlari(resmi_kutular, goruntu.forkliftler, yoksay))
         _ilerleme("goruntu", sira + 1, len(goruntuler), baslangic)
 
     metrikler, sayilar, alt_kumeler = ozetle(sonuclar)
+    metrikler.update(tani_ozeti(tani, resmi_tavanlari))
     metrikler.update(gecikme_ozeti(olcer.aday_sureleri, olcer.resmi_sureleri))
     video = None
     if secenekler.video is not None:

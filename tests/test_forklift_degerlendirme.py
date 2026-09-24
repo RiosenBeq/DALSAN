@@ -382,6 +382,50 @@ def test_sinif_adlari_uygulamanin_katalog_kodlari():
     )
 
 
+def test_forklift_tanisi_kutu_tavani_puan_ve_kazanma():
+    """Ham çıktı tanısı: tavan en iyi çapa IoU'su, puan IoU >= 0,5 çapalardan,
+    kazanma eşik ve öteki eşlenen puanlar üstünde; yok sayılan kutu atlanır."""
+    kutular = np.array(
+        [
+            [0.0, 0.0, 10.0, 10.0],  # gerçek kutunun kendisi (IoU 1)
+            [0.0, 0.0, 10.0, 20.0],  # IoU 0,5 (sınırda, sayılır)
+            [50.0, 50.0, 60.0, 60.0],  # uzak
+        ]
+    )
+    # sütunlar: 0 insan, 1 forklift, 2 tır
+    puanlar = np.array([[0.0, 0.3, 0.1], [0.5, 0.6, 0.0], [0.0, 0.99, 0.0]])
+    gercekler = [(0.0, 0.0, 10.0, 10.0), (100.0, 100.0, 120.0, 120.0), (0.0, 0.0, 10.0, 10.0)]
+    tani = degerlendir.forklift_tanisi(
+        kutular, puanlar, gercekler, [False, False, True], 1, [0, 2], 0.35
+    )
+    # 1. kutu: tavan 1, en iyi puan 0,6 (IoU 0,5 çapası), orada 0,6 > insan 0,5: kazanır
+    # 2. kutu: hiçbir çapa yakın değil; 3. kutu yok sayılır
+    assert tani == [(1.0, 0.6, True), (0.0, 0.0, False)]
+    # Resmi modelin kutu tavanı: aynı gerçek kutular, yok sayılan atlanır
+    resmi_kutular = np.array([[0.0, 0.0, 10.0, 30.0], [100.0, 100.0, 118.0, 120.0]])
+    tavanlar = degerlendir.kutu_tavanlari(resmi_kutular, gercekler, [False, False, True])
+    assert tavanlar == pytest.approx([1 / 3, 0.9])
+    assert degerlendir.tani_ozeti(tani, tavanlar) == {
+        "fk_kutu_tavani": 0.5,
+        "fk_kutu_tavani_resmi": 0.5,
+        "fk_puan50_medyan": 0.3,
+        "fk_kazanir50": 0.5,
+    }
+    # İnsan puanı forklifti geçerse kazanmaz; eşik altı da kazanmaz
+    puanlar[1] = [0.7, 0.6, 0.0]
+    puanlar[0] = [0.0, 0.3, 0.1]
+    assert (
+        degerlendir.forklift_tanisi(kutular, puanlar, gercekler[:1], [False], 1, [0, 2], 0.35)[0][2]
+        is False
+    )
+    assert degerlendir.tani_ozeti([], []) == {
+        "fk_kutu_tavani": None,
+        "fk_kutu_tavani_resmi": None,
+        "fk_puan50_medyan": None,
+        "fk_kazanir50": None,
+    }
+
+
 # ---------------------------------------------------------------------------
 # Bütün akış: sahte ONNX oturumu, ürünün Tespitci'si
 # ---------------------------------------------------------------------------
@@ -614,6 +658,11 @@ def test_butun_akis_elle_hesaplanan_metrikler(sahte_oturum, sahte_girdiler, caps
     assert m["arac_seti_insan_kaybi"] == 0.5
     assert olcum["arac_seti"]["goruntu"] == 3 and olcum["arac_seti"]["klasor"] == "arac-seti"
     assert len(olcum["arac_seti"]["sha256"]) == 64
+    # Tanı (ham çıktı): değerlendirilen tek forklift T1; sahte kutu onu birebir sarar
+    # (resmi modelde de: tır T1), o çapada forklift 0,9 > tır 0,3 ve eşik 0,35: kazanır
+    assert m["fk_kutu_tavani"] == 1.0 and m["fk_puan50_medyan"] == 0.9
+    assert m["fk_kutu_tavani_resmi"] == 1.0
+    assert m["fk_kazanir50"] == 1.0
 
     assert olcum["alt_kumeler"] == {
         "subset-1": {
