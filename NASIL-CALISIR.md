@@ -31,7 +31,7 @@ Kamera (RTSP / USB / video dosyası)
         ▼
    KAYIT        Olay + kanıt fotoğrafı → tek dosyalık veritabanı
         ▼
-   EKRAN        Tarayıcıdaki sayfa; 1-2 saniyede bir kendini günceller
+   EKRAN        İzleme ekranı (web sayfası); 1-2 saniyede bir kendini günceller
 ```
 
 **Neden "takip bazlı karar":** tek bir karede yanılmak kolaydır (gölge, toz,
@@ -58,8 +58,8 @@ tek şey, bakılacak tek günlük vardır.
 | Video dosyasıyla deneme | ✅ | ✅ | ✅ | ✅ |
 | **IP kamera (RTSP)** | ✅ | ✅ | ✅ | ✅ |
 | **Bilgisayarın kendi kamerası** | ❌ *(DALSAN yalnız RTSP ve video dosyası kabul eder)* | ❌ | ❌ | ❌ |
-| **Ekran kartı (GPU) hızlandırma** | ❌ *(Mac'te Docker GPU yok)* | ⚠️ WSL2 + NVIDIA ile | ❌ | ✅ NVIDIA + Container Toolkit |
-| Anons - ses kartı | ✅ | ✅ | ❌ | ✅ *(`/dev/snd` bağlanırsa)* |
+| **Ekran kartı (GPU) hızlandırma** | ❌ *(Mac'te CUDA yok)* | ❌ *(kurulum yalnız CPU paketini kurar)* | ❌ | ❌ *(imaj yalnız CPU paketini kurar; GPU için `onnxruntime-gpu`'lu ayrı imaj gerekir, henüz yok)* |
+| Anons - ses kartı | ✅ | ✅ | ❌ | ⚠️ *(`docker-compose.ses.yml` ile; sunucuda henüz denenmedi)* |
 | Anons - IP hoparlör (HTTP) | ✅ | ✅ | ✅ | ✅ |
 | 7/24 kendiliğinden çalışma | ⚠️ pencere açık kalmalı | ⚠️ pencere açık kalmalı | ✅ | ✅ |
 
@@ -75,7 +75,8 @@ tek şey, bakılacak tek günlük vardır.
 
 1. [python.org](https://www.python.org/downloads/) → **Python 3.12** kur.
 2. Proje klasöründeki **Baslat-Mac.command** dosyasına **çift tıkla**.
-   İlk açılışta gerekli paketleri kendisi kurar (birkaç dakika sürer).
+   Kontrol Paneli açılır. DALSAN'da ilk seferde **İlk Kurulumu Yap** gerekli
+   paketleri kurar (birkaç dakika sürer); sonra **Sistemi Başlat**'a basılır.
 3. İzleme ekranı kendiliğinden, adres çubuğu olmayan bir pencerede açılır.
 
 İlk açılışta macOS "geliştirici doğrulanamadı" derse: **sağ tık → Aç → Aç**.
@@ -95,19 +96,21 @@ Docker içindir (aşağıya bakın).
    Kurulum ekranında **"Add Python to PATH"** kutusunu işaretle - en kritik adım.
 2. **Baslat-Windows.bat** dosyasına **çift tıkla**.
    SmartScreen uyarısı çıkarsa: Daha fazla bilgi → Yine de çalıştır.
+   Kontrol Paneli açılır. DALSAN'da ilk seferde **İlk Kurulumu Yap** gerekli
+   paketleri kurar (birkaç dakika sürer); sonra **Sistemi Başlat**'a basılır.
 3. İzleme ekranı kendiliğinden, adres çubuğu olmayan bir pencerede açılır.
 
 Windows'a özel olarak halledilmiş şeyler:
-- **Başlatıcı:** `py -3` ile başlatılır. `where python` Windows 10/11'de Python
-  kurulu olmasa bile başarılı olur (Microsoft Store takma adı yüzünden) ve
-  Mağaza'yı açıp pencereyi kapatırdı.
+- **Başlatıcı:** `py -3.12` ile (yoksa `py -3` ile) başlatılır. `where python`
+  Windows 10/11'de Python kurulu olmasa bile başarılı olur (Microsoft Store
+  takma adı yüzünden) ve Mağaza'yı açıp pencereyi kapatırdı.
 - **Türkçe günlük:** Kontrol Paneli alt sürecin çıktısını UTF-8 okur. Aksi halde
   büyük Ş/Ğ harfleri Windows'un cp1254 kod sayfasında çözülemiyor ve günlük
   penceresi sessizce donuyordu.
 - **Saat dilimi:** Windows saat dilimi veritabanıyla gelmez; `tzdata` paketi
   bağımlılıklara eklendi, saatler Türkiye saatinde doğru gösterilir.
-- **Anons sesi:** `afplay`/`aplay` Windows'ta yoktur; PowerShell'in hazır ses
-  çalıcısı kullanılır. **Yalnızca .wav çalar** - sistem başka biçimi kabul etmez.
+- **Anons sesi:** `afplay`/`aplay` Windows'ta yoktur; Python'un kendi `winsound`
+  modülü kullanılır. **Yalnızca .wav çalar** - sistem başka biçimi kabul etmez.
 - **Türkçe klasör adı:** Kanıt ve KKD fotoğrafları `C:\Users\Gökhan\...` gibi
   yollara da yazılabilir (OpenCV'nin yol kodlaması atlanır).
 - **Kamera:** Kaynak olarak yalnızca RTSP adresi veya video dosyası kullanılır;
@@ -127,7 +130,7 @@ cd DALSAN-ISG                          # ya da OTOPARK-DEMO / LAFFOGATO
 mkdir -p ayar && cp .env.example ayar/.env
                                        # ayar/.env: YONETICI_SIFRESI'ni doldurun
                                        # (Docker'da ZORUNLU), saklama süreleri vb.
-bash models/indir.sh                   # yapay zeka modelini indirir ve doğrular
+bash models/indir.sh                   # yapay zeka modellerini indirir ve doğrular
 ```
 
 > Docker'da ayarlar `ayar/.env` dosyasındadır (proje kökündeki `.env` değil):
@@ -158,15 +161,21 @@ Adres: `http://localhost:8080` (demolarda 8090 / 8100).
   ayarlar kaybolmaz.
 - **Bilgisayarın kendi kamerası Docker'da görünmez** (Mac/Windows). Container
   içinde `KAYNAK=0` çalışmaz; RTSP adresi veya video dosyası kullanın.
-- **GPU yalnızca Linux'ta.** `docker-compose.yml` içindeki `deploy:` bloğunu
-  açın ve `.env` dosyasında `CIKARIM_CIHAZI=cuda` yapın. Mac/Windows'ta bu
-  blok kapalı kalmalı.
-- **Anons sesi Linux'ta:** compose dosyasındaki `devices: /dev/snd` satırını açın.
+- **GPU yalnızca Linux'ta ve bugünkü imajla çalışmaz.** İmaj yalnız CPU
+  paketini (`onnxruntime`) kurar: `docker-compose.yml` içindeki `deploy:`
+  bloğunu açıp `ayar/.env` dosyasında `CIKARIM_CIHAZI=cuda` yapmak tek başına
+  yetmez; sistem CPU ile çalışır ve ana sayfada bunu yazar. GPU için
+  `onnxruntime-gpu`'lu ayrı bir imaj gerekir (`docs/17-V2-TASARIM.md` §12.4).
+  Mac/Windows'ta bu blok kapalı kalmalı.
+- **Anons sesi Linux'ta:** sunucunun ses çıkışı (kablolu amfi ya da Bluetooth
+  hoparlör) bir uyarı kanalıysa `docker-compose.ses.yml` de birlikte kullanılır;
+  tarif o dosyanın başında ve `docs/14-ANONS-SISTEMI-BAGLAMA.md` §2.4'te (bu yol
+  sunucuda henüz denenmedi). `/dev/snd` bağlamak artık kullanılmaz.
 
 ### Fabrika sunucusu kurulumu (özet)
 
 ```bash
-git clone <depo-adresi> && cd DALSAN-ISG
+git clone <depo-adresi> DALSAN-ISG && cd DALSAN-ISG
 mkdir -p ayar && cp .env.example ayar/.env   # YONETICI_SIFRESI'ni doldurun
 bash models/indir.sh
 docker compose up -d
@@ -190,10 +199,10 @@ Sık kullanılan satırlar:
 | Ayar | Anlamı |
 |---|---|
 | `KAYNAK` | **Yalnızca demolarda** (otopark/bardak sayacı) kamera seçimi. DALSAN'da kameralar ekrandan eklenir, .env'de kaynak ayarı yoktur |
-| `CIKARIM_CIHAZI` | `cpu` veya `cuda` (yalnız NVIDIA'lı Linux sunucuda `cuda`) |
-| `KARE_ORNEKLEME_FPS` / `KARE_FPS` | Saniyede kaç kare analiz edilsin (3-6 yeterli) |
+| `CIKARIM_CIHAZI` | `cpu` veya `cuda` (yalnız NVIDIA'lı Linux sunucuda `cuda`; o da `onnxruntime-gpu` ister, bugünkü kurulum ve imaj yalnız CPU paketini kurar) |
+| `KARE_ORNEKLEME_FPS` / `KARE_FPS` | Saniyede kaç kare analiz edilsin (3-6 yeterli). DALSAN'da `KARE_ORNEKLEME_FPS` yalnız yeni eklenen kameranın varsayılanıdır; her kamerada ayrıca ayarlanır |
 | `YONETICI_SIFRESI` | Boş = giriş sorulmaz (tek makine). Ağa açarken **doldurun** - en az 6 karakter |
-| `ANONS` | `null` (kapalı), `ses_karti`, `http` |
+| `ANONS` | DALSAN'da artık okunmaz: sesin hangi kanaldan çıkacağı (bu bilgisayarın ses çıkışı, Bluetooth hoparlör, IP hoparlör) **Anons sistemi** ekranındaki kanal listesinde tanımlanır. Eski `ANONS` satırı ilk açılışta bir kez "Tüm fabrika" kanalına aktarılır |
 | `ANONS_HTTP_BICIMI` | IP hoparlörün beklediği biçim: `json`, `form`, `get` - hangi cihaz için hangisi: `docs/14-ANONS-SISTEMI-BAGLAMA.md` |
 | `OLAY_SAKLAMA_GUN` vb. | Verinin ne kadar saklanacağı (KVKK politikasıyla uyumlu olmalı) |
 
@@ -219,8 +228,9 @@ değiştirince sistem yeniden başlatılmaz, birkaç saniyede devreye girer.
 | Saatler 3 saat kaymış (Windows) | `pip install tzdata` (yeni kurulumlarda otomatik gelir) |
 
 Günlükler: `veri/loglar/sistem.log` (fabrika sistemi) veya Docker'da
-`docker compose logs -f`. Kırmızı/`ERROR` satırlarını **olduğu gibi kopyalayıp**
-sorarsanız çözmek kolay olur.
+`docker compose logs -f`. Hata satırlarını (dosyada ve Docker'da
+`"level": "ERROR"` geçenler, Kontrol Paneli'nde `[HATA]` ile başlayanlar)
+**olduğu gibi kopyalayıp** sorarsanız çözmek kolay olur.
 
 ---
 
@@ -251,7 +261,8 @@ yükleme provası yapın.
 - Hazır tespit modeli genel amaçlıdır; forklift ve kafe bardağı gibi özel
   nesnelerde isabet, saha görüntüleriyle ince ayar yapılınca belirgin artar.
 - Ham video **kaydedilmez**; yalnızca olay anı fotoğrafı saklanır (KVKK'da veri
-  minimizasyonu).
+  minimizasyonu). DALSAN'da KKD veri toplama açılırsa etiketlenecek kişi
+  kırpıkları da saklanır; bu toplama varsayılanda kapalıdır.
 
 Bunlar "sonra düzeltilecek eksikler" değil, yanlış alarmı azaltmak için
 bilinçli olarak seçilmiş takaslardır.

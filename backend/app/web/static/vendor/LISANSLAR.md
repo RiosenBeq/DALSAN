@@ -24,17 +24,18 @@ bu dosyalar için ayrı bir adım yoktur.
 | `inter-latin-ext.woff2` | Inter (latin-ext altkümesi) | SIL OFL 1.1 |
 
 **İki yazı tipi dosyası da gereklidir.** `latin` altkümesinde Türkçenin
-ş, ğ, ı ve İ harfleri YOKTUR; onlar `latin-ext` içindedir. Yalnız biri
-konsaydı arayüzdeki her Türkçe kelime yedek yazı tipine düşer ve satırlar
-iki farklı yazı tipiyle karışık görünürdü. Hangi harfin hangi dosyadan
-geleceğini `stil.css` içindeki `unicode-range` belirler; tarayıcı yalnız
-gerekeni indirir.
+ş, Ş, ğ, Ğ ve İ harfleri YOKTUR; onlar `latin-ext` içindedir (ı ise
+`latin`'dedir). Yalnız biri konsaydı öbüründeki harfler yedek yazı tipine
+düşer ve satırlar iki farklı yazı tipiyle karışık görünürdü. Hangi harfin
+hangi dosyadan geleceğini `stil.css` içindeki `unicode-range` belirler;
+tarayıcı yalnız gerekeni indirir.
 
 `simgeler.svg`'deki Lucide simgeleri ELLE DEĞİŞTİRİLMEZ; yeni bir simge
 gerekince Lucide deposundan alınır. Yöntem ve "bizim ad, Lucide adı"
-listesi dosyanın başındaki yorumdadır. Lucide'de karşılığı olmayan öğeler
-(yelek gibi) aynı çizgi kuralıyla çizilir ve dosyanın sonunda ayrı bir
-bölümde durur; onlar üçüncü parti kod değildir.
+listesi dosyanın başındaki yorumdadır (ilk 32 simge için yalnız örnekler
+yazılı; sonra eklenen 16 simgenin tamamı listede). Lucide'de karşılığı
+olmayan öğeler (yelek gibi) aynı çizgi kuralıyla çizilir ve dosyanın sonunda
+ayrı bir bölümde durur; onlar üçüncü parti kod değildir.
 
 ## Lisans metinleri
 

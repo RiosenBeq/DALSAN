@@ -114,22 +114,26 @@ dalsan-isg/
 ├── .env / .env.example
 ├── backend/
 │   ├── requirements.txt
-│   ├── sema/                   # 001_ilk.sql, 002_...  (sıralı, geri alınabilir)
+│   ├── sema/                   # 001_ilk.sql, 002_...  tablolar (sıralı, ileri yönlü; geri dönüş yedekten)
 │   └── app/
 │       ├── main.py             # TEK giriş noktası
+│       ├── uygulama.py         # FastAPI uygulamasını kurar (main.py çağırır)
 │       ├── ayarlar.py          # .env okur - tek kaynak
 │       ├── veritabani.py       # SQLite bağlantısı, şema uygulama
-│       ├── modeller.py         # tablo tanımları
 │       ├── web/                # rotalar + templates/ + static/
 │       ├── analiz/             # kamera, tespit, takip, kkd_siniflandirici, boru_hatti,
 │       │                       #   alan_bulucu (zemindeki boyadan bölge önerisi)
 │       ├── rules/              # SAF karar mantığı - aşağıya bak (sayim.py dahil)
 │       ├── olaylar/            # olay yazımı, fotoğraf, anons
+│       ├── nesneler/           # nesne kütüphanesi (yüklenen fotoğrafta arar, canlı analize girmez)
 │       └── egitim/             # veri seti dışa aktarımı, değerlendirme, HTML rapor
 │                               #   (eğitimin kendisi ürün dışı - docs/04 §6)
 ├── egitim/forklift/            # forklift modelinin eğitimi - ÜRÜN DIŞI (§4 istisnası)
+├── models/                     # indir.sh + SHA256SUMS (model dosyaları git'e girmez)
+├── paketleme/                  # Mac .app / Windows .exe üretimi (docs/13)
 ├── tests/
-├── veri/                       # dalsan.db, goruntuler/, loglar/, yedekler/  (git'e girmez)
+├── veri/                       # dalsan.db, goruntuler/, loglar/, nesneler/, sesler/,
+│                               #   videolar/, yedekler/  (git'e girmez)
 └── docs/
 ```
 
@@ -173,8 +177,8 @@ sonucu kullanıcıya **göster**.
 ## 8. Kullanıcıyla iletişim biçimi
 
 - **Küçük adımlar.** Bir istekte 10+ dosya değişiyorsa işi böl ve önce ilkini yap.
-- **Her adımın sonunda deneme talimatı ver:** "Kontrol Paneli'nde Başlat'a bas,
-  tarayıcıda Kameralar sekmesini aç, listede şunu görmelisin."
+- **Her adımın sonunda deneme talimatı ver:** "Kontrol Paneli'nde Sistemi Başlat'a
+  bas, izleme ekranında Kameralar sayfasını aç, listede şunu görmelisin."
 - **Hata mesajlarını sadeleştirme** - kullanıcı günlükten kopyalayıp yapıştıracak.
 - **Terminal komutu vermek yerine** mümkünse Kontrol Paneli'ne düğme ekle.
 - **Türkçe konuş.** Kod içi isimler İngilizce, kullanıcıya görünen her şey Türkçe.

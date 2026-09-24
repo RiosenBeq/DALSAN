@@ -18,8 +18,8 @@ her olayı kanıt fotoğrafıyla kaydeden, **tek sunucuda çalışan** erken uya
 4. İzleme ekranı adres çubuğu olmayan bir pencerede açılır (`http://127.0.0.1:8080`). Varsayılanda giriş
    sorulmaz: sistem yalnızca bu bilgisayardan açılır. **Fabrika sunucusuna
    taşırken ya da sistemi ağa açarken** `.env` dosyasındaki `YONETICI_SIFRESI`
-   satırını doldurun (ya da Komuta → Ayarlar → Güvenlik); o andan sonra her
-   sayfa şifre ister.
+   satırını doldurun (ya da Komuta → Ayarlar → Güvenlik); sistemi yeniden
+   başlattıktan sonra her sayfa şifre ister.
 
 Tespit modeli repoda değildir; sistem ilk açılışta **kendisi indirir** (internet
 gerekir, ~20 MB). Ana sayfada "Tespit modeli: Hazır" görünene kadar bekleyin.
@@ -39,21 +39,21 @@ onu kamera gibi izler. Kamera sayfasındaki durum satırı bağlanamama sebebini
 | Yaya yolu kuralı (tek tıkla) - insanların yürüyüş yolunu kullanması | ✅ |
 | İhlalde ekran bandı + sesli uyarı + Türkçe seslendirme, anons deneme düğmesi | ✅ |
 | İnsan / araç tespiti (**NextGen AI** tespit motoru) + ByteTrack takip | ✅ |
-| Bölge çizimi (tarayıcıda poligon) ve bölge ihlali kuralı | ✅ |
+| Bölge çizimi (izleme ekranında poligon) ve bölge ihlali kuralı | ✅ |
 | **Zemindeki boyadan otomatik alan tanıma** - sarı/beyaz işaretli alanı bulup çizim önerir | ✅ |
 | **Ekran görüntüsü üzerine bölge çizme** - kamera takılmadan önce hazırlık | ✅ |
 | **Kareyi dondurup çizme** - canlı akış yenilenirken köşe tıklama zahmeti biter | ✅ |
 | **Bölgeye tıklayıp seçme** - seçili alan taralı görünür, Düzenle/Kapat/Sil yanında çıkar | ✅ |
 | **Bölgeler videonun üstünde de taralı** - sistemin gördüğü alan ekrandakiyle aynı | ✅ |
 | **Dikdörtgen çizim + köşe sürükleme** ile kolay alan düzeltme | ✅ |
-| **Bölge sayımı** - içeride kaç var, vardiyada kaç girdi (video üstünde de yazar) | ✅ |
+| **Bölge sayımı** - içeride kaç var, vardiyada kaç girdi, aynı anda en çok kaç görüldü (video üstünde de yazar) | ✅ |
 | Güvenli mesafe kuralı (4 nokta zemin kalibrasyonu, metre cinsinden) | ✅ |
 | Olay kaydı + kanıt fotoğrafı + canlı uyarı ekranı (SSE) + CSV | ✅ |
-| Anons altyapısı (ses kartı / HTTP IP hoparlör / kapalı) | ✅ arayüz hazır, saha entegrasyonu bekliyor |
-| Giriş şifresi | ⏳ bilerek kapalı; fabrika kurulumundan önce (docs/07 #0) |
+| Anons kanalları: bu bilgisayarın ses çıkışı (kablolu amfi, Bluetooth hoparlör) ve IP hoparlör (kullanıcı adı/şifreli adres dahil), bölüm bölüm | ✅ yazılım hazır; sahadaki hoparlörlerle denenmedi |
+| Giriş şifresi (`YONETICI_SIFRESI`) | ✅ varsayılanda boş (giriş sorulmaz); ağa açarken ve fabrika kurulumundan önce doldurulur (docs/07 #0) |
 | KKD (baret/yelek) veri toplama + uygulama içi etiketleme | ✅ |
-| KKD modeli eğitimi ve gölge mod | ⏳ saha verisi toplandıktan sonra |
-| Forklift'e özel sınıf | ⏳ saha görüntüsüyle ince ayar gerekiyor (şimdilik araç olarak görünür) |
+| KKD modeli | ⏳ saha verisiyle eğitilecek (eğitim ürün dışı, docs/04 §6); gölge mod, onaylı sürüm ve anons kapısı hazır |
+| Forklift'e özel sınıf | ⏳ forklift tanıyan model eğitim hattında (açık LOCO veri seti, GitHub Actions); geçitleri geçen aday Ayarlar'da seçilebilir olur. Bugün kayıtlı forklift modeli yok: forklift araç (tır) olarak görünür (docs/12 §5) |
 
 ## Mimari (kısaca)
 
@@ -94,6 +94,9 @@ Altta çalışan açık kaynak bileşenlerin telif ve lisans atfı depo kökünd
 
 Kamera yerleşimi, görüntü kalitesi ve hassasiyet ayarı için:
 `docs/12-KAMERA-VE-GORUNTU-KALITESI.md`.
+
+Belgeler programla (Windows/Mac uygulaması ve Docker imajı dahil) gelir ve
+izleme ekranında **Kılavuz → Bütün belgeler** ile açılır (`/komuta/belgeler`).
 
 Tüm tasarım kararları `docs/` altındadır; çelişki durumunda
 `docs/09-BASITLESTIRME-KARARLARI.md` geçerlidir. Çalışma yöntemi için
