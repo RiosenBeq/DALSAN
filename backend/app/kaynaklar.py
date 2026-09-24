@@ -179,12 +179,37 @@ def kullanici_veri_koku() -> Path:
 
 def kurulum_turu() -> str:
     """Sistemin nasıl kurulduğu: "paket" (Windows ve Mac uygulaması, docs/13),
-    "docker" ya da "kaynak" (Başlat betikleri)."""
+    "docker", "hizmet" (systemd birimi, docs/06 §1.2.1) ya da "kaynak" (Başlat
+    betikleri). Docker gibi systemd de sezgiyle değil, birimin koyduğu açık
+    işaretle (DALSAN_HIZMET=1) tanınır."""
     if paketlenmis_mi():
         return "paket"
     if kapsayicida_mi():
         return "docker"
+    if os.environ.get("DALSAN_HIZMET") == "1":
+        return "hizmet"
     return "kaynak"
+
+
+def sunucu_kurulumu_mu() -> bool:
+    """Docker ya da systemd: Kontrol Paneli yoktur, sistem sunucuda hizmet olarak
+    çalışır ve onu sistem yöneticisi başlatıp durdurur (docs/06)."""
+    return kurulum_turu() in ("docker", "hizmet")
+
+
+def baslatma_tarifi(*, yeniden: bool = True, cumle_basi: bool = True) -> str:
+    """Sistemi (yeniden) başlatmanın bu kurulumdaki yolu: noktasız emir cümlesi.
+
+    Masaüstünde (Başlat betikleri, Windows ve Mac uygulaması) Kontrol
+    Paneli'nin düğmeleri; sunucu kurulumunda (Docker, systemd) Kontrol Paneli
+    yoktur ve hata mesajı "Durdur'a basın" derse kullanıcı düğmeyi arar.
+    """
+    if sunucu_kurulumu_mu():
+        metin = "sistemi sunucuda yeniden başlatın" if yeniden else "sistemi sunucuda başlatın"
+        return metin[0].upper() + metin[1:] if cumle_basi else metin
+    if yeniden:
+        return "Kontrol Paneli'nde Durdur'a, sonra Sistemi Başlat'a basın"
+    return "Kontrol Paneli'nde Sistemi Başlat'a basın"
 
 
 def veri_klasoru_metni() -> str | None:

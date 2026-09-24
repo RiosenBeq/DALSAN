@@ -86,7 +86,8 @@ def test_indirme_hatasi_ekraninda_adres_yok():
         dusuk = kullanici.lower()
         assert "http" not in dusuk, f"Ekrana adres sızmış: {kullanici}"
         assert "github" not in dusuk, f"Ekrana adres sızmış: {kullanici}"
-        assert "Kontrol Panelinden yeniden başlatın" in kullanici, (
+        # Yeniden başlatma yolu kuruluma göre (app/kaynaklar.py); geliştirmede Kontrol Paneli
+        assert "Kontrol Paneli'nde Durdur'a, sonra Sistemi Başlat'a basın" in kullanici, (
             "Kullanıcıya ne yapacağı söylenmeli"
         )
 
@@ -110,7 +111,8 @@ def test_yayinda_olmayan_dosya_internet_sorunu_sayilmaz(kod):
     kullanici, teknik, adres = _metinler(hata)
     assert "yayın yerinde bulunamadı" in kullanici
     assert "İnternet bağlantısını kontrol" not in kullanici
-    assert "“Tanıma modeli”" in kullanici and "yeniden başlatın" in kullanici
+    assert "“Tanıma modeli”" in kullanici
+    assert "Durdur'a, sonra Sistemi Başlat'a basın" in kullanici  # geliştirme kurulumu
     assert "http" not in kullanici.lower() and adres in teknik
 
 
@@ -135,7 +137,7 @@ def test_saat_hatasi_sertifika_kurulumu_onermiyor():
         kullanici, _, _ = _metinler(urllib.error.URLError(ssl.SSLCertVerificationError(metin)))
         assert "Install Certificates" not in kullanici, f"yanlış teşhis: {kullanici}"
         assert "saat" in kullanici.lower(), f"saat çözümü söylenmeli: {kullanici}"
-        assert "Kontrol Panelinden yeniden başlatın" in kullanici
+        assert "Kontrol Paneli'nde Durdur'a, sonra Sistemi Başlat'a basın" in kullanici
 
 
 def test_saat_hatasi_ekraninda_da_adres_yok():

@@ -17,7 +17,7 @@ from collections.abc import Callable
 from pathlib import Path
 
 from app import kaynaklar
-from app.analiz.model_adi import HAZIR_MODELE_DONUS, gorunen_model_adi
+from app.analiz.model_adi import gorunen_model_adi, hazir_modele_donus
 from app.hatalar import DalsanHata
 
 # ADR-002: Apache-2.0 lisanslı YOLOX resmi yayınları (models/indir.sh ile aynı)
@@ -98,7 +98,7 @@ def ozel_model_hatasi(model_dosyasi: Path) -> ModelIndirmeHatasi:
         f"{gorunen_model_adi(model_dosyasi.name)} kendiliğinden inemez: seçili model, "
         f"hazır modellerden ({hazir_adlar}) biri değil. Kendi eğittiğiniz bir modeli "
         "kullanıyorsanız, model dosyanızı ayar dosyasındaki MODEL_DOSYASI satırında "
-        f"yazan yere koyun. {HAZIR_MODELE_DONUS}",
+        f"yazan yere koyun. {hazir_modele_donus()}",
         f"Otomatik indirme atlandı: {model_dosyasi} bilinen yayın dosyalarından "
         f"({', '.join(BILINEN_MODELLER)}) biri değil.",
     )
@@ -132,8 +132,9 @@ def modeli_indir(model_dosyasi: Path, ilerleme: Callable[[int, int], None] | Non
             raise ModelIndirmeHatasi(
                 f"{gorunen_model_adi(model_dosyasi.name)} indirildi ama doğrulanamadı: "
                 "dosya eksik, bozuk ya da yolda değiştirilmiş. Kullanılmadı ve silindi. "
-                "İnternet bağlantısını kontrol edip Kontrol Paneli'nde Durdur'a, sonra "
-                "Sistemi Başlat'a basın. Sorun sürerse bilgi işlem birimine haber verin: "
+                "İnternet bağlantısını kontrol edip "
+                f"{kaynaklar.baslatma_tarifi(cumle_basi=False)}. Sorun sürerse bilgi "
+                "işlem birimine haber verin: "
                 "şirket ağındaki bir güvenlik cihazı indirilen dosyayı değiştiriyor "
                 "olabilir.",
                 f"SHA-256 tutmadı: {adres} → {gecici} | beklenen "
@@ -210,17 +211,19 @@ def _indirme_hata_metinleri(adres: str, model_dosyasi: Path, hata: Exception) ->
             "güvenlik sertifikası geçersiz görünüyor. Çözüm: bilgisayarın tarih, saat ve "
             "saat dilimi ayarını açıp 'otomatik ayarla' seçeneğini işaretleyin (Windows: "
             "Ayarlar → Saat ve dil → Tarih ve saat; Mac: Sistem Ayarları → Genel → Tarih "
-            "ve Saat), sonra Kontrol Panelinden yeniden başlatın."
+            f"ve Saat). Ardından {kaynaklar.baslatma_tarifi(cumle_basi=False)}."
         )
     elif sertifika_hatasi:
-        # Windows ve Mac uygulamasının Python'u paketin içindedir: orada
-        # python.org kurulumunun "Install Certificates.command" dosyası yoktur.
+        # "Install Certificates.command" yalnız python.org kurulumunda vardır:
+        # Windows ve Mac uygulamasının Python'u paketin, Docker'ınki kapsayıcının
+        # içindedir; tarif yalnız Başlat betikleriyle kurulan sistemde verilir.
         python_org = (
-            ""
-            if kaynaklar.paketlenmis_mi()
-            else "Mac'te python.org'dan kurulan Python'da bu sık görülür. Çözüm: "
+            "Mac'te python.org'dan kurulan Python'da bu sık görülür. Çözüm: "
             "Uygulamalar → Python 3.x klasöründeki 'Install Certificates.command' "
-            "dosyasına çift tıklayın, sonra Kontrol Panelinden yeniden başlatın. "
+            "dosyasına çift tıklayın, ardından Kontrol Paneli'nde Durdur'a, sonra "
+            "Sistemi Başlat'a basın. "
+            if kaynaklar.kurulum_turu() == "kaynak"
+            else ""
         )
         kullanici_mesaji = (
             f"{ad} indirilemedi: güvenlik sertifikaları doğrulanamadı. {python_org}"
@@ -234,12 +237,13 @@ def _indirme_hata_metinleri(adres: str, model_dosyasi: Path, hata: Exception) ->
         kullanici_mesaji = (
             f"{ad} indirilemedi: model dosyası yayın yerinde bulunamadı (internet "
             "bağlantısı çalışıyor). Ayarlar'daki “Tanıma modeli” listesinden başka bir "
-            "model seçip Kontrol Panelinden yeniden başlatın ve destek ekibine haber verin."
+            f"model seçip kaydedin, {kaynaklar.baslatma_tarifi(cumle_basi=False)} ve "
+            "destek ekibine haber verin."
         )
     else:
         kullanici_mesaji = (
             f"{ad} indirilemedi. İnternet bağlantısını kontrol edip "
-            "Kontrol Panelinden yeniden başlatın."
+            f"{kaynaklar.baslatma_tarifi(cumle_basi=False)}."
         )
     teknik_ayrinti = (
         f"{kullanici_mesaji} | indirme adresi: {adres} | hedef dosya: {model_dosyasi} "

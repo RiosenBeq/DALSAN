@@ -21,7 +21,7 @@ import cv2
 import numpy as np
 
 from app import kaynaklar
-from app.analiz.model_adi import HAZIR_MODELE_DONUS, MARKA, gorunen_model_adi
+from app.analiz.model_adi import MARKA, gorunen_model_adi, hazir_modele_donus
 from app.hatalar import DalsanHata
 from app.loglama import log_al
 from app.rules.tipler import SINIF_FORKLIFT, SINIF_INSAN, SINIF_TIR, TANINAN_SINIFLAR
@@ -69,7 +69,7 @@ def sinif_eslemesi(ust_veri: dict[str, str]) -> tuple[dict[int, str], list[str]]
         raise ModelHatasi(
             "Tespit modelinin sınıf listesi okunamadı. Kendi eğittiğiniz modeli "
             f"kullanıyorsanız {kaynaklar.gunluk_dosyasi()} dosyasını "
-            f"destek ekibine iletin. {HAZIR_MODELE_DONUS}",
+            f"destek ekibine iletin. {hazir_modele_donus()}",
             f"ONNX üst verisi {UST_VERI_SINIF_ANAHTARI} çözülemedi: {ham!r} ({hata})",
         ) from hata
     esleme: dict[int, str] = {}
@@ -82,7 +82,7 @@ def sinif_eslemesi(ust_veri: dict[str, str]) -> tuple[dict[int, str], list[str]]
     if not esleme:
         raise ModelHatasi(
             "Tespit modeli insan, forklift ya da tır sınıflarından hiçbirini tanımıyor; "
-            f"bu modelle güvenlik kuralları çalışamaz. {HAZIR_MODELE_DONUS}",
+            f"bu modelle güvenlik kuralları çalışamaz. {hazir_modele_donus()}",
             f"ONNX üst verisi {UST_VERI_SINIF_ANAHTARI}: {ham!r}",
         )
     return esleme, bilinmeyen
@@ -133,10 +133,14 @@ def _acilamadi(model_dosyasi: Path, hata: Exception) -> ModelHatasi:
     ad = gorunen_model_adi(model_dosyasi.name)
     teknik = f"Tespit modeli yüklenemedi: {model_dosyasi} - {hata!r}"
     if resmi_yayinla_ayni_mi(model_dosyasi):
+        onarim = {
+            "kaynak": "Kontrol Paneli'nde 'İlk Kurulumu Yap' düğmesine, sonra Sistemi "
+            "Başlat'a basın",
+            "paket": "Uygulamayı yeniden kurup açın",
+        }.get(kaynaklar.kurulum_turu(), "Sistemi sunucuda yeniden kurun (docs/06)")
         return ModelHatasi(
             f"{ad} açılamadı ama model dosyası sağlam (doğrulandı): sorun programın "
-            "kurulumunda. Kontrol Paneli'nde 'İlk Kurulumu Yap' düğmesi varsa ona basın, "
-            "yoksa programı yeniden kurun; sonra Sistemi Başlat'a basın. Düzelmezse "
+            f"kurulumunda. {onarim}. Düzelmezse "
             f"{kaynaklar.gunluk_dosyasi()} dosyasını destek ekibine iletin.",
             f"{teknik} | dosyanın SHA-256 özeti resmi yayınla aynı: dosya sağlam",
         )
@@ -145,7 +149,7 @@ def _acilamadi(model_dosyasi: Path, hata: Exception) -> ModelHatasi:
     # söyler, sonra kesin çözüm yolunu gösterir.
     return ModelHatasi(
         f"{ad} açılamadı: dosyası bozuk. "
-        "Kontrol Paneli'nde Durdur'a, sonra Sistemi Başlat'a basın. Düzelmezse "
+        f"{kaynaklar.baslatma_tarifi()}. Düzelmezse "
         "bozuk dosyanın değiştirilmesi gerekir: "
         f"{kaynaklar.gunluk_dosyasi()} dosyasını destek ekibine iletin.",
         teknik,
@@ -156,7 +160,7 @@ def _uyumsuz_model(model_dosyasi: Path, teknik: str) -> ModelHatasi:
     """Model açıldı ama uygulamanın beklediği biçimde değil: hazır modele dönüş yolu."""
     return ModelHatasi(
         f"{gorunen_model_adi(model_dosyasi.name)} bu sistemle uyumlu değil. "
-        f"{HAZIR_MODELE_DONUS} Kendi eğittiğiniz modeli kullanmak istiyorsanız "
+        f"{hazir_modele_donus()} Kendi eğittiğiniz modeli kullanmak istiyorsanız "
         f"{kaynaklar.gunluk_dosyasi()} dosyasını destek ekibine iletin.",
         teknik,
     )
@@ -202,8 +206,8 @@ class Tespitci:
             # Ekranda ürün adı ve YAPILABİLİR bir adım; tam dosya yolu günlüğe
             # gider (CLAUDE.md §8 - kullanıcıya terminal komutu verilmez).
             raise ModelHatasi(
-                f"{gorunen_model_adi(model_dosyasi.name)} kurulu değil. Kontrol Paneli'nde "
-                f"Durdur'a, sonra Sistemi Başlat'a basın - {MARKA} ilk açılışta kendiliğinden "
+                f"{gorunen_model_adi(model_dosyasi.name)} kurulu değil. "
+                f"{kaynaklar.baslatma_tarifi()} - {MARKA} ilk açılışta kendiliğinden "
                 f"iner. Sorun sürerse {kaynaklar.gunluk_dosyasi()} dosyasını "
                 "destek ekibine iletin.",
                 f"Tespit modeli bulunamadı: {model_dosyasi}",
