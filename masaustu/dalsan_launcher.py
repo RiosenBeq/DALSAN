@@ -47,6 +47,15 @@ DINLEME_ADRESI_VARSAYILAN = "127.0.0.1"
 # (tests/test_platform_uyumu.py denetler).
 KAPANIS_BEKLEME_SN = 3
 
+# Bekcinin "yeniden baslat" cikis kodu (backend/app/analiz/bekci.py
+# YENIDEN_BASLATMA_KODU ile ayni; test denetler). Docker ve systemd bu kodla
+# kapanan sunucuyu kendileri acar; Baslat betigiyle kurulan sistemde bu isi
+# panel yapar (BEKCI_TEPKISI=yeniden_baslat).
+BEKCI_YENIDEN_BASLATMA_KODU = 70
+# Analiz her aciliste yine takiliyorsa panel sonsuz donguye girmez.
+OTOMATIK_BASLATMA_SINIRI = 3
+OTOMATIK_BASLATMA_PENCERESI_SN = 3600
+
 IS_WINDOWS = os.name == "nt"
 
 # Program, cift tiklanan bir uygulama (.app / .exe) olarak mi calisiyor?
@@ -514,6 +523,23 @@ def git_deposu_mu() -> bool:
     return basarili and cikti.strip() == "true"
 
 
+def surec_kapaninca(kod, gecmis, simdi):
+    """Alt surec kendiliginden kapaninca ne yapilir: "baslat", "sinir" ya da "".
+
+    Yalniz bekcinin istegi (kod 70) yeniden baslatilir: "Durdur" dugmesi ve
+    cokme baska kodla biter, onlarda yeniden baslatmak yanlis olur. `gecmis`
+    son otomatik baslatmalarin monotonic zamanlaridir, yerinde guncellenir;
+    bir saatte ucuncuden sonrasi "sinir" doner.
+    """
+    if kod != BEKCI_YENIDEN_BASLATMA_KODU:
+        return ""
+    gecmis[:] = [t for t in gecmis if simdi - t < OTOMATIK_BASLATMA_PENCERESI_SN]
+    if len(gecmis) >= OTOMATIK_BASLATMA_SINIRI:
+        return "sinir"
+    gecmis.append(simdi)
+    return "baslat"
+
+
 def guncelleme_durumu():
     """GitHub'da yeni surum var mi? Doner: (durum, mesaj).
 
@@ -819,7 +845,7 @@ def arayuzu_baslat():
 
     durum = {
         "surec": None, "sunucu": None, "sunucu_is_parcacigi": None,
-        "calisiyor": False, "mesgul": False,
+        "calisiyor": False, "mesgul": False, "oto_baslatmalar": [],
     }
     log_kuyrugu: "queue.Queue[str]" = queue.Queue()
 
@@ -1109,14 +1135,26 @@ def arayuzu_baslat():
         log("=" * 60)
 
     # ---- sistemi baslat ----
-    def ciktiyi_oku():
+    def ciktiyi_oku(surec):
         try:
-            for satir in durum["surec"].stdout:
+            for satir in surec.stdout:
                 log(panel_satiri(satir.rstrip()))
         except Exception as hata:
             # Sessizce yutulursa gunluk penceresi donar ve kimse sebebini
             # bilmez; en azindan satiri ekrana dusur.
             log(f"[HATA] Gunluk okunamadi: {hata}")
+        kod = surec.wait()
+        if durum.get("surec") is not surec:
+            return
+        karar = surec_kapaninca(kod, durum["oto_baslatmalar"], time.monotonic())
+        if karar == "baslat":
+            log("[!] Analiz takıldı ve bekçi sistemi kapattı (BEKCI_TEPKISI=yeniden_baslat).")
+            log("    Sistem yeniden başlatılıyor…")
+            alt_surecte_baslat()
+        elif karar == "sinir":
+            log(f"[HATA] Analiz son bir saatte {OTOMATIK_BASLATMA_SINIRI} kez takıldı; sistem bir")
+            log("    daha kendiliğinden başlatılmadı. Yukarıdaki hata satırlarına bakıp")
+            log("    'Sistemi Başlat'a basın.")
 
     def alt_surecte_baslat():
         """Gelistirme kurulumu: sunucu, .venv'deki python ile ayri surecte."""
@@ -1132,7 +1170,7 @@ def arayuzu_baslat():
             start_new_session=not IS_WINDOWS,
         )
         _pid_yaz(durum["surec"].pid)
-        threading.Thread(target=ciktiyi_oku, daemon=True).start()
+        threading.Thread(target=ciktiyi_oku, args=(durum["surec"],), daemon=True).start()
         return True
 
     def sistemi_baslat():

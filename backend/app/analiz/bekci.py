@@ -15,9 +15,11 @@ analizin bağlantısı kilitli olabilir), CRITICAL günlük ve /saglik'te
 `analiz_takildi` / `analiz_olu` (hazır değil). `BEKCI_TEPKISI=yeniden_baslat`
 ise süreç `os._exit(70)` ile kapanır: takılan bir iş parçacığı Python'da
 öldürülemez, tek çare süreci yeniden başlatmaktır ve bunu Docker (`restart:`)
-ya da systemd (`Restart=`) yapar. Masaüstü paketinde sunucu Kontrol Paneli ile
-aynı süreçte çalışır; orada çıkmak paneli de kapatır ve kimse yeniden açmaz -
-bu yüzden orada her durumda yalnız uyarır.
+ya da systemd (`Restart=`), Başlat betiğiyle kurulan sistemde de Kontrol
+Paneli yapar (sunucu onun alt sürecidir; dalsan_launcher.py
+`surec_kapaninca`). Masaüstü paketinde sunucu Kontrol Paneli ile aynı süreçte
+çalışır; orada çıkmak paneli de kapatır ve kimse yeniden açmaz - bu yüzden
+orada her durumda yalnız uyarır.
 
 Aynı sorun bir kez bildirilir (olay seli yok); sorun geçince işaret kalkar.
 """

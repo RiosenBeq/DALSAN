@@ -394,12 +394,13 @@ AYAR_GRUPLARI: tuple[AyarGrubu, ...] = (
                 tur="secim",
                 secenekler=(
                     ("uyar", "Yalnız uyar"),
-                    ("yeniden_baslat", "Programı yeniden başlat (Docker / systemd)"),
+                    ("yeniden_baslat", "Programı yeniden başlat"),
                 ),
                 aciklama=(
-                    "Yeniden başlatma yalnız sunucu kurulumunda anlamlıdır: program kendini "
-                    "kapatır, Docker ya da systemd yeniden açar. Masaüstü programı Kontrol "
-                    "Paneli'yle birlikte kapanmasın diye her zaman yalnız uyarır."
+                    "Yeniden başlatmada program kendini kapatır; Docker, systemd ya da "
+                    "(Başlat betiğiyle kurulan sistemde) Kontrol Paneli yeniden açar. "
+                    "Paketlenmiş Windows/Mac uygulaması, panel de kapanmasın diye her "
+                    "zaman yalnız uyarır."
                 ),
             ),
             AyarAlani(
