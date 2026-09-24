@@ -127,6 +127,13 @@ class Ayarlar:
     # Takılmada ne yapılsın: yeniden_baslat | uyar. Yeniden başlatma yalnız
     # süreci yeniden açan biri varken yapılır (kaynaklar.yeniden_acan_var_mi).
     bekci_tepkisi: str = "yeniden_baslat"
+    # --- Forklift eğitimi için saha karesi (egitim/forklift_verisi.py) ---
+    # Kamera başına saatte en çok kaç araçlı kare saklanır (araçsız kare altıda biri).
+    forklift_ornek_saat_limit: int = 12
+    # Toplam üst sınır: dolunca toplama durur (disk; etiketleme emeği).
+    forklift_ornek_en_cok: int = 3000
+    # Etiketlenmemiş kare bu kadar gün sonra silinir (etiketliler veri setidir).
+    forklift_ham_veri_saklama_gun: int = 30
     # İşleme hızı hedefin altında bu kadar saniye kalırsa "analiz yavaşladı".
     analiz_yavas_sure_sn: float = 60.0
     # Bir kamerada üst üste bu kadar kare işlenemezse hattı yeniden kurulur.
@@ -480,6 +487,12 @@ def ayarlari_coz(
         # En az 20 sn: RTSP okuma zaman aşımı (10 sn) takılma sanılmasın.
         bekci_esigi_sn=_ondalik(degerler, "BEKCI_ESIGI_SN", 90.0, 20.0, 3600.0),
         bekci_tepkisi=_secenek(degerler, "BEKCI_TEPKISI", "yeniden_baslat", _BEKCI_TEPKILERI),
+        # --- Forklift eğitimi için saha karesi (egitim/forklift_verisi.py) ---
+        forklift_ornek_saat_limit=_tam_sayi(degerler, "FORKLIFT_ORNEK_SAAT_LIMIT", 12, 1, 120),
+        forklift_ornek_en_cok=_tam_sayi(degerler, "FORKLIFT_ORNEK_EN_COK", 3000, 50, 50000),
+        forklift_ham_veri_saklama_gun=_tam_sayi(
+            degerler, "FORKLIFT_HAM_VERI_SAKLAMA_GUN", 30, 1, 3650
+        ),
         analiz_yavas_sure_sn=_ondalik(degerler, "ANALIZ_YAVAS_SURE_SN", 60.0, 10.0, 3600.0),
         analiz_hata_esigi=_tam_sayi(degerler, "ANALIZ_HATA_ESIGI", 30, 3, 10000),
         # --- KKD anons kapısı (docs/17 §5.7; docs/04 §8.1 hedef 0,90; S33) ---

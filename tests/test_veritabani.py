@@ -34,6 +34,9 @@ BEKLENEN_TABLOLAR = {
     # 010 - KVKK izleri: imha kaydı ve erişim izi (docs/17 §10)
     "purge_log",
     "access_log",
+    # 012 - forklift eğitimi için saha karesi: toplama kapısı ve kareler
+    "forklift_collection_gate",
+    "forklift_samples",
 }
 
 

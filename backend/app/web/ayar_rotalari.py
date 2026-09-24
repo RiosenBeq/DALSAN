@@ -542,6 +542,18 @@ AYAR_GRUPLARI: tuple[AyarGrubu, ...] = (
                 aciklama="Baret/yelek modelini eğitmek için toplanan kişi görüntüleri.",
             ),
             AyarAlani(
+                anahtar="FORKLIFT_HAM_VERI_SAKLAMA_GUN",
+                alan="forklift_ham_veri_saklama_gun",
+                etiket="Forklift eğitim kareleri (gün)",
+                en_az="1",
+                en_cok="3650",
+                aciklama=(
+                    "Forklift modelini eğitmek için kameralardan toplanan, henüz "
+                    "etiketlenmemiş kareler. Etiketlenenler eğitim verisidir; Forklift "
+                    "sayfasından silinir."
+                ),
+            ),
+            AyarAlani(
                 anahtar="SISTEM_OLAY_SAKLAMA_GUN",
                 alan="sistem_olay_saklama_gun",
                 etiket="Sistem olayları (gün)",

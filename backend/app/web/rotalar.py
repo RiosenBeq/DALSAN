@@ -350,6 +350,7 @@ def _ayar_satirlari(ayarlar) -> list[tuple[str, str]]:
         ("Olay saklama", f"{ayarlar.olay_saklama_gun} gün"),
         ("Görüntü saklama", f"{ayarlar.goruntu_saklama_gun} gün"),
         ("KKD ham veri saklama", f"{ayarlar.kkd_ham_veri_saklama_gun} gün"),
+        ("Forklift ham veri saklama", f"{ayarlar.forklift_ham_veri_saklama_gun} gün"),
         ("Çıkarım cihazı", ayarlar.cikarim_cihazi),
         ("Kare örnekleme", f"{ayarlar.kare_ornekleme_fps} fps"),
         ("Tespit modeli", gorunen_model_adi(ayarlar.model_dosyasi.name)),
