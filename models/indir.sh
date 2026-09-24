@@ -28,11 +28,27 @@ ozet_tutuyor_mu() {
   fi
 }
 
+# İnmeyen ya da doğrulanamayan dosya: hazır YOLOX modeli ZORUNLUDUR (sistem
+# onsuz tespit yapmaz), betik durur. Forklift modeli (DALSAN yayını) yalnız
+# Ayarlar'da seçilirse gerekir: uyarı yazılır, betik öteki modellerle biter.
+basarisiz() {
+  ad="$1"; zorunlu="$2"
+  rm -f "$ad.part"
+  if [ -n "$zorunlu" ]; then
+    exit 1
+  fi
+  echo "  $ad isteğe bağlıdır (Ayarlar'da seçilmedikçe gerekmez); öteki modellerle devam ediliyor." >&2
+}
+
 # indir <dosya> [<DALSAN yayın etiketi>/<yayın dosyası>]: ikinci argüman yoksa
 # dosya YOLOX'un resmi yayınından, aynı adla iner.
 indir() {
   ad="$1"
-  if [ -n "${2:-}" ]; then adres="$DALSAN_YAYINI/$2"; else adres="$YAYIN/$ad"; fi
+  if [ -n "${2:-}" ]; then
+    adres="$DALSAN_YAYINI/$2"; zorunlu=""
+  else
+    adres="$YAYIN/$ad"; zorunlu=1
+  fi
   if [ -s "$ad" ]; then
     if ozet_tutuyor_mu "$ad" "$ad"; then
       echo "✓ $ad zaten var ve doğrulandı, atlandı"
@@ -43,13 +59,18 @@ indir() {
     echo "✗ $ad doğrulanamadı (bozuk ya da farklı bir sürüm): $ad.eski olarak kenara alındı."
   fi
   echo "▶ $ad indiriliyor..."
-  curl -L --fail --progress-bar -o "$ad.part" "$adres"
+  if ! curl -L --fail --progress-bar -o "$ad.part" "$adres"; then
+    echo "✗ $ad indirilemedi. İnternet bağlantısını ve güvenlik duvarında github.com ile" >&2
+    echo "  release-assets.githubusercontent.com'un açık olduğunu kontrol edip yeniden deneyin." >&2
+    basarisiz "$ad" "$zorunlu"
+    return 0
+  fi
   if ! ozet_tutuyor_mu "$ad" "$ad.part"; then
-    rm -f "$ad.part"
     echo "✗ $ad indirildi ama doğrulanamadı: dosya eksik, bozuk ya da yolda değiştirilmiş." >&2
     echo "  İnternet bağlantısını kontrol edip yeniden deneyin. Sürerse bilgi işlem birimine" >&2
     echo "  haber verin: ağdaki bir güvenlik cihazı indirilen dosyayı değiştiriyor olabilir." >&2
-    exit 1
+    basarisiz "$ad" "$zorunlu"
+    return 0
   fi
   mv "$ad.part" "$ad"
   echo "✓ $ad indirildi ve doğrulandı"
@@ -60,4 +81,4 @@ indir yolox_s.onnx
 
 echo ""
 echo "Tamam. Geliştirmede NextGen AI Hızlı, fabrikada NextGen AI İsabetli kullanılır."
-echo "Seçim .env dosyasındaki MODEL_DOSYASI ayarıyla yapılır."
+echo "Seçim Ayarlar sayfasındaki “Tanıma modeli” listesinden yapılır."

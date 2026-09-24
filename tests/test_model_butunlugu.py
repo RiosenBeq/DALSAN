@@ -142,8 +142,11 @@ bash_gerekli = pytest.mark.skipif(
 )
 
 
-def _betik_kur(tmp_path: Path, sunulan: bytes) -> tuple[Path, dict]:
+def _betik_kur(tmp_path: Path, sunulan: bytes, dusen: str = "") -> tuple[Path, dict]:
     """indir.sh'i geçici klasöre kopyalar; `curl` sahtedir, `sunulan`ı yazar.
+
+    `dusen` verilirse adresi onu içeren indirmede sahte curl, gerçek `curl
+    --fail` gibi yarım bir dosya bırakıp 22 koduyla düşer.
 
     SHA256SUMS'taki tiny satırı `sunulan`ın özetine çevrilir; böylece
     'doğru dosya' ve 'değiştirilmiş dosya' iki durumu da gerçek model
@@ -171,7 +174,8 @@ def _betik_kur(tmp_path: Path, sunulan: bytes) -> tuple[Path, dict]:
         "#!/bin/bash\nfor son; do :; done\n"
         f'echo "$son" >> "{tmp_path / "adresler"}"\n'
         'while [ $# -gt 0 ]; do [ "$1" = "-o" ] && cikti="$2"; shift; done\n'
-        f'cat "{tmp_path / "sunulan"}" > "$cikti"\n',
+        + (f'case "$son" in *"{dusen}"*) echo yarim > "$cikti"; exit 22;; esac\n' if dusen else "")
+        + f'cat "{tmp_path / "sunulan"}" > "$cikti"\n',
         encoding="utf-8",
     )
     sahte_curl.chmod(0o755)
@@ -203,6 +207,53 @@ def test_betik_dogru_dosyayi_kabul_eder_ve_var_olani_dogrular(tmp_path):
     assert (klasor / "yolox_tiny.onnx").read_bytes() == b"dogru-tiny"
     assert "yolox_tiny.onnx indirildi ve doğrulandı" in sonuc.stdout
     assert "yolox_s.onnx zaten var ve doğrulandı" in sonuc.stdout
+
+
+@bash_gerekli
+def test_betik_zorunlu_model_inmezse_durur_ve_yarim_dosya_birakmaz(tmp_path):
+    klasor, ortam = _betik_kur(tmp_path, b"dogru-tiny", dusen="yolox_tiny.onnx")
+    sonuc = _calistir(klasor, ortam)
+    assert sonuc.returncode != 0
+    assert "yolox_tiny.onnx indirilemedi" in sonuc.stderr
+    assert not (klasor / "yolox_tiny.onnx").exists()
+    assert not (klasor / "yolox_tiny.onnx.part").exists()
+
+
+def _forklift_satiri_ekle(klasor: Path, ad: str, yer: str, veri: bytes) -> None:
+    """Kopyalanan betiğe bir DALSAN yayını modeli ve özet satırı ekler."""
+    betik = klasor / "indir.sh"
+    metin = betik.read_text(encoding="utf-8")
+    metin = metin.replace("indir yolox_s.onnx\n", f"indir yolox_s.onnx\nindir {ad} {yer}\n", 1)
+    betik.write_text(metin, encoding="utf-8")
+    with (klasor / "SHA256SUMS").open("a", encoding="utf-8") as dosya:
+        dosya.write(f"{hashlib.sha256(veri).hexdigest()}  {ad}\n")
+
+
+@bash_gerekli
+def test_betik_istege_bagli_forklift_modeli_inmezse_otekilerle_biter(tmp_path):
+    """Forklift modeli yalnız Ayarlar'da seçilirse gerekir: yayına ulaşılamaması
+    kurulumu ya da Docker hazırlığını durdurmaz, yarım dosya da bırakmaz."""
+    ad, yer = "nextgen_forklift_tiny_r0.onnx", "forklift-r0/tiny-v3-k1.onnx"
+    klasor, ortam = _betik_kur(tmp_path, b"dogru-tiny", dusen=yer)
+    _forklift_satiri_ekle(klasor, ad, yer, b"forklift")
+    sonuc = _calistir(klasor, ortam)
+    assert sonuc.returncode == 0, sonuc.stderr
+    assert f"{ad} indirilemedi" in sonuc.stderr and "isteğe bağlıdır" in sonuc.stderr
+    assert not (klasor / ad).exists() and not (klasor / f"{ad}.part").exists()
+    assert (klasor / "yolox_tiny.onnx").read_bytes() == b"dogru-tiny"
+    assert "Tamam." in sonuc.stdout
+
+
+@bash_gerekli
+def test_betik_istege_bagli_forklift_modeli_dogrulanmazsa_kullanilmaz(tmp_path):
+    ad, yer = "nextgen_forklift_tiny_r0.onnx", "forklift-r0/tiny-v3-k1.onnx"
+    klasor, ortam = _betik_kur(tmp_path, b"dogru-tiny")
+    (klasor / "yolox_tiny.onnx").write_bytes(b"dogru-tiny")  # yalnız forklift insin
+    _forklift_satiri_ekle(klasor, ad, yer, b"beklenen-forklift")  # sunulan başka
+    sonuc = _calistir(klasor, ortam)
+    assert sonuc.returncode == 0, sonuc.stderr
+    assert f"{ad} indirildi ama doğrulanamadı" in sonuc.stderr
+    assert not (klasor / ad).exists() and not (klasor / f"{ad}.part").exists()
 
 
 @bash_gerekli
