@@ -45,6 +45,13 @@ eğit"*. Karar kaydı ve lisans çerçevesi docs/17 §16, yöntem §12.3.
     dosya bırakmaz. Docker güncelleme adımları `bash models/indir.sh`'i içerir;
   - yayında olmayan dosya (HTTP 404/410) "internetinizi kontrol edin" diye bildiriliyordu;
   - hız ölçümü (`tests.hiz_kiyas`) diskteki forklift modelini de ölçer.
+
+  Düzeltmelerin ikinci incelemesi de şunları buldu, düzeltildi: "İnsan + Forklift" kuralı
+  için "HİÇ uyarı vermez" deniyordu (insan uyarısı sürüyor); kapalı kameranın kuralı adımı
+  kırmızıya çeviriyordu; tır parkındaki hız ve mesafe kuralları da istisna sayılıyordu; adım
+  artık kuralları kamera, bölge ve türüyle sayar; `indir.sh` sunucunun dosyayı vermemesini
+  ve curl'ün olmamasını "internet" diye bildirmez; GitHub'daki ölçüm işi kayıtlı forklift
+  modelini zorunlu indirir (yanlış bir kayıt yeşil geçmesin), eğitim bacağı ise etkilenmez.
 - **GitHub'da sınandı:** duman çalıştırması (3) 12 işin hepsinde yeşil: LOCO arşivi 2 dakikada
   indi ve SHA-256'sı sabitlendi, üç bacaklı zincir ara kayıttan sürdü, eski sınıflar resmi
   modelle aynı çıktı, model testleri makinede de geçti; ölçümde insan ve araç kaybı 0.
