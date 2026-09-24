@@ -57,6 +57,13 @@ def test_indirilebilen_her_modelin_markali_adi_vardir():
         )
 
 
+def test_gorunen_adlar_birbirinden_ayrilir():
+    """Ayarlar'daki listede iki model aynı adla görünmesin (ör. forklift
+    modelinin yeni sürümü eskisinin adını taşırsa kullanıcı ayıramaz)."""
+    adlar = [gorunen_model_adi(dosya) for dosya in BILINEN_MODELLER]
+    assert len(set(adlar)) == len(adlar), adlar
+
+
 def test_ana_sayfa_sablonu_dosya_adi_basmaz():
     """Şablon, model adını her zaman gorunen_model_adi'nden gelen değişkenden alır."""
     sablon = (KOK / "backend" / "app" / "web" / "templates" / "ana_sayfa.html").read_text(

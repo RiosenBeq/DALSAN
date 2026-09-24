@@ -125,6 +125,15 @@ def test_ozeti_tutan_indirme_yerine_konur(tmp_path, monkeypatch):
     assert hedef.read_bytes() == veri
 
 
+def test_forklift_modellerinin_tabani_bilinen_hazir_modeldir():
+    """Kurulum listesi ve Ayarlar, forklift modelini insanı ve aracı onunla aynı
+    tanıyan hazır modelin karşılığı olarak sunar: kayıt tutarlı olmalı."""
+    for ad, taban in model_indir.FORKLIFT_TABANI.items():
+        assert ad in model_indir.DALSAN_MODELLERI, ad  # bu deponun yayınından iner
+        assert taban in BILINEN_MODELLER and taban not in model_indir.DALSAN_MODELLERI, ad
+        assert taban not in model_indir.FORKLIFT_TABANI, ad
+
+
 # ------------------------------------------------- elle indirme (models/indir.sh)
 
 bash_gerekli = pytest.mark.skipif(

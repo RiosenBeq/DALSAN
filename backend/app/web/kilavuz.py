@@ -21,6 +21,7 @@ from __future__ import annotations
 import json
 
 from app.analiz.model_adi import gorunen_model_adi
+from app.analiz.model_indir import FORKLIFT_TABANI
 from app.olaylar.kanallar import kanal_sagligi_ozeti
 from app.rules.motor import KALIBRASYON_GEREKTIREN
 from app.rules.tipler import SINIF_FORKLIFT, SINIF_TIR
@@ -144,16 +145,12 @@ DURUM_ROZETLERI = {
 }
 
 
-def forklifti_gormeyen_kurallar(baglanti) -> list[dict]:
-    """Araç için kurulmuş ama "Forklift"i seçmemiş etkin kurallar.
+def _kural_arac_siniflari(baglanti):
+    """Etkin her kural ve araç sınıfları: (satır, sınıflar).
 
-    Hazır modelde forklift çoğu zaman "tır" görünür; yalnız "Tır/Araç" seçili
-    bir kural bu yüzden forklifte de tepki veriyordu. Forklift ayrı sınıf olunca
-    (egitim/forklift, docs/17 §12.3) aynı kural forklifti GÖRMEZ. Güvenli
-    mesafede araç listesi `object_classes`, bölge ve hız kuralında kuralın
-    hedef sınıflarıdır. Tır park alanı kuralı bilerek yalnız tır içindir.
+    Güvenli mesafede araç listesi `object_classes`, bölge ve hız kuralında
+    kuralın hedef sınıflarıdır.
     """
-    bulunan = []
     for satir in baglanti.execute(
         "SELECT r.id, r.rule_type, r.target_classes, r.params, c.name AS kamera_adi, "
         "z.zone_type FROM rules r JOIN cameras c ON c.id = r.camera_id "
@@ -166,39 +163,82 @@ def forklifti_gormeyen_kurallar(baglanti) -> list[dict]:
                 siniflar = json.loads(satir["target_classes"] or "[]")
         except (ValueError, TypeError, AttributeError):
             continue  # bozuk satırı kural motoru zaten yüklemez ve günlüğe yazar
-        if (
-            SINIF_TIR in siniflar
-            and SINIF_FORKLIFT not in siniflar
-            and satir["zone_type"] != "truck_parking"
-        ):
-            bulunan.append(dict(satir))
-    return bulunan
+        yield satir, siniflar
 
 
-def _forklift_notu(supervizor, baglanti=None) -> str:
+def forklifti_gormeyen_kurallar(baglanti) -> list[dict]:
+    """Araç için kurulmuş ama "Forklift"i seçmemiş etkin kurallar.
+
+    Hazır modelde forklift çoğu zaman "tır" görünür; yalnız "Tır/Araç" seçili
+    bir kural bu yüzden forklifte de tepki veriyordu. Forklift ayrı sınıf olunca
+    (egitim/forklift, docs/17 §12.3) aynı kural forklifti GÖRMEZ. Tır park alanı
+    kuralı bilerek yalnız tır içindir.
+    """
+    return [
+        dict(satir)
+        for satir, siniflar in _kural_arac_siniflari(baglanti)
+        if SINIF_TIR in siniflar
+        and SINIF_FORKLIFT not in siniflar
+        and satir["zone_type"] != "truck_parking"
+    ]
+
+
+def forklifte_bagli_kurallar(baglanti) -> list[dict]:
+    """Araç olarak yalnız "Forklift"i seçmiş etkin kurallar.
+
+    Forkliftsiz modelde (hazır model ya da forklift modelinden geri dönülmüş
+    kurulum) forklift sınıfı hiç üretilmez: bu kurallar HİÇ uyarı vermez.
+    """
+    return [
+        dict(satir)
+        for satir, siniflar in _kural_arac_siniflari(baglanti)
+        if SINIF_FORKLIFT in siniflar and SINIF_TIR not in siniflar
+    ]
+
+
+def forklift_karsiliklari(model_dosyasi: str) -> list[str]:
+    """Çalışan modelin forklift karşılıkları: insanı ve aracı onunla aynı tanıyan,
+    forklifti ayrıca tanıyan kayıtlı modeller (dosya adları)."""
+    return sorted(ad for ad, taban in FORKLIFT_TABANI.items() if taban == model_dosyasi)
+
+
+def _forklift_notu(supervizor, model_dosyasi: str) -> str:
     """Forklift ayrı sınıf mı (docs/17 §4.2, §12.3; docs/08 R1)?
 
     Hazır model (COCO) forklifti tanımaz; çoğu zaman "tır" (araç) görür ve
-    kurallar onu araç olarak işler, hiç göremediği de olur. Forklift sınıflı
-    bir model yüklenince (sınıf listesi dosyanın içinde) bu not değişir ve
-    forklifti artık görmeyecek kurallar varsa onları söyler.
+    "Tır/Araç" seçili kurallar onu araç olarak işler, hiç göremediği de olur.
+    Forklift sınıflı bir model yüklenince (sınıf listesi dosyanın içinde) not
+    değişir. Uyumsuz kurallar ayrı, kırmızı bir adımdır (`_forklift_kural_adimi`):
+    kurulum bitince bu not gizlenir, o adım gizlenmez.
+
+    Önerilen model, çalışan modelin forklift karşılığıdır (insanı ve aracı
+    onunla AYNI tanır). Karşılığı yoksa başka tabanlı forklift modeli
+    önerilirken insanı ve aracı hangi modelle tanıyacağı söylenir: İsabetli
+    kullanan bir tesis, bilmeden daha zayıf bir insan tanımasına geçmesin.
     """
     if getattr(getattr(supervizor, "tespitci", None), "forklift_taniyor", False):
-        not_ = "Forklift ayrı sınıf olarak tanınıyor."
-        kurallar = forklifti_gormeyen_kurallar(baglanti) if baglanti is not None else []
-        if kurallar:
-            kameralar = _ve_ile(sorted({k["kamera_adi"] for k in kurallar}))
-            not_ += (
-                f" Dikkat: {kameralar} kamerasındaki {len(kurallar)} kural yalnız "
-                "“Tır/Araç” için kurulu ve forklifti görmez. Kuralı açıp “Forklift”i "
-                "de işaretleyin (tır park alanı kuralı bilerek yalnız tır içindir)."
-            )
-        return not_
-    return (
-        "Forklift ayrı bir sınıf değil: hazır model forklifti çoğu zaman araç (tır) "
-        "olarak görür ve kurallar onu araç olarak işler, ama hiç görmediği de olur. "
-        "Forkliftin kendisini tanıması için sahadan etiketli karelerle eğitilmiş "
-        "model gerekir; destek ekibinden isteyin."
+        return "Forklift ayrı sınıf olarak tanınıyor."
+    not_ = (
+        "Forklift ayrı bir sınıf değil: bu model forklifti çoğu zaman araç (tır) "
+        "olarak görür ve “Tır/Araç” seçili kurallar onu araç olarak işler, ama hiç "
+        "görmediği de olur."
+    )
+    karsiliklar = forklift_karsiliklari(model_dosyasi)
+    if karsiliklar:
+        return not_ + (
+            f" Forklifti ayrıca tanıyan “{gorunen_model_adi(karsiliklar[0])}” modeline "
+            "Ayarlar'daki “Tanıma modeli” listesinden geçebilirsiniz; insanı ve aracı "
+            "bu modelle aynı tanır."
+        )
+    if FORKLIFT_TABANI:
+        ad, taban = sorted(FORKLIFT_TABANI.items())[0]
+        return not_ + (
+            f" Forklifti ayrıca tanıyan model yalnız “{gorunen_model_adi(ad)}” olarak "
+            "var (Ayarlar, “Tanıma modeli”); ona geçen sistem insanı ve aracı "
+            f"“{gorunen_model_adi(taban)}” modeliyle tanır."
+        )
+    return not_ + (
+        " Forkliftin kendisini tanıması için eğitilmiş model gerekir; destek ekibinden isteyin."
     )
 
 
@@ -221,7 +261,8 @@ def _model_adimi(supervizor, ayarlar, baglanti=None) -> dict:
     durum = getattr(supervizor, "model_durumu", None) if supervizor is not None else None
 
     if durum == "hazir":
-        aciklama = f"{ad} çalışıyor. {_forklift_notu(supervizor, baglanti)}"
+        notu = _forklift_notu(supervizor, ayarlar.model_dosyasi.name)
+        aciklama = f"{ad} çalışıyor. {notu}"
         return {**ortak, "tamam": True, "hal": "", "aciklama": aciklama}
     if durum in ("indiriliyor", "yukleniyor"):
         return {
@@ -301,6 +342,50 @@ def _kalibrasyon_adimi(bekleyenler: list[dict]) -> dict:
         ),
         "bag": f"/kameralar/{bekleyenler[0]['kamera_id']}",
         "bag_yazi": "Kamerayı aç",
+        "istege_bagli": False,
+        "engeller": False,
+    }
+
+
+def _forklift_kural_adimi(kurallar: list[dict], forklift_taniyor: bool) -> dict:
+    """Çalışan modelle uyuşmayan araç kuralı varsa kırmızı madde (docs/17 §12.3-5).
+
+    Forklift sınıflı modelde yalnız "Tır/Araç" seçili kural forklifti GÖRMEZ;
+    forkliftsiz modelde yalnız "Forklift" seçili kural HİÇ uyarı vermez. İkisi
+    de sessizce susan bir güvenlik kuralıdır: kalibrasyon adımı gibi zorunlu
+    sayılır, kurulum bitmiş olsa da listeyi yeniden açar ("Sistem hazır."
+    rozeti gizleyemez).
+    """
+    kameralar = sorted({k["kamera_adi"] for k in kurallar})
+    yer = (
+        f"{_ve_ile(kameralar)} {'kamerasındaki' if len(kameralar) == 1 else 'kameralarındaki'} "
+        f"{len(kurallar)} kural"
+    )
+    if forklift_taniyor:
+        aciklama = (
+            f"Forklift ayrı sınıf olarak tanınıyor, ama {yer} yalnız “Tır/Araç” için "
+            "kurulu ve forklifti GÖRMEZ. Kuralı açıp “Forklift”i de işaretleyin (tır "
+            "park alanı kuralı bilerek yalnız tır içindir)."
+        )
+    else:
+        aciklama = (
+            f"{yer[0].upper()}{yer[1:]} yalnız “Forklift” için kurulu, ama çalışan tanıma "
+            "modeli forklifti ayrı sınıf olarak tanımıyor: bu kurallar HİÇ uyarı "
+            "vermez. Kuralı açıp “Tır/Araç”ı da işaretleyin"
+            + (
+                " ya da Ayarlar'daki “Tanıma modeli” listesinden forklifti tanıyan modeli seçin."
+                if FORKLIFT_TABANI
+                else "."
+            )
+        )
+    return {
+        "no": 10,
+        "baslik": "Araç kuralları tanıma modeline uyuyor mu?",
+        "tamam": False,
+        "hal": "sorun",
+        "aciklama": aciklama,
+        "bag": "/kurallar",
+        "bag_yazi": "Kuralları aç",
         "istege_bagli": False,
         "engeller": False,
     }
@@ -534,6 +619,19 @@ def _ham_adimlar(baglanti, supervizor, ayarlar) -> list[dict]:
     bekleyenler = kalibrasyon_bekleyen_kurallar(baglanti)
     if bekleyenler:
         adimlar.append(_kalibrasyon_adimi(bekleyenler))
+    # Sınıf listesi ancak model yüklenince bilinir: model hazır değilken
+    # (iniyor, hata) kuralların modele uyup uymadığı söylenemez.
+    if getattr(supervizor, "model_durumu", None) == "hazir":
+        forklift_taniyor = bool(
+            getattr(getattr(supervizor, "tespitci", None), "forklift_taniyor", False)
+        )
+        uyumsuz = (
+            forklifti_gormeyen_kurallar(baglanti)
+            if forklift_taniyor
+            else forklifte_bagli_kurallar(baglanti)
+        )
+        if uyumsuz:
+            adimlar.append(_forklift_kural_adimi(uyumsuz, forklift_taniyor))
     # Numaraya göre sırala: şifre adımı yukarıda anonsun ÖNÜNE yazıldı ama
     # ekranda kurulum sırasına göre (…6, 7) görünmeli.
     return sorted(adimlar, key=lambda a: a["no"])

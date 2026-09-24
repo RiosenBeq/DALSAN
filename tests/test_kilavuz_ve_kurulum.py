@@ -13,12 +13,15 @@ gerekir. Buradaki testler üç şeyi kollar:
 
 from __future__ import annotations
 
+import dataclasses
+import html
 import re
 from types import SimpleNamespace
 
 import pytest
 
 from app import veritabani, zaman
+from app.analiz import model_adi, model_indir
 from app.web.kilavuz import EKRAN_ACIKLAMALARI
 
 KOMUTA_EKRANLARI = (
@@ -398,6 +401,120 @@ def test_forklift_modelinde_yalniz_tir_secili_kurallar_soylenir(istemci, test_ay
     # Hazır modelde (forklift "tır" görünür) uyarı anlamsızdır: gösterilmez.
     istemci.app.state.supervizor = SahteSupervizor("hazir", forklift=False)
     assert "forklifti görmez" not in istemci.get("/komuta").text
+
+
+def _arac_kurali_ekle(test_ayarlari, kamera_id: int, siniflar: str) -> None:
+    """Yaya yolu bölgesinde verilen araç sınıflarını izleyen bölge kuralı."""
+    _yaz(
+        test_ayarlari,
+        "INSERT INTO rules (camera_id, rule_type, zone_id, target_classes, params, updated_at) "
+        "VALUES (?, 'zone_intrusion', (SELECT id FROM zones WHERE camera_id = ? LIMIT 1), "
+        "?, '{}', ?)",
+        (kamera_id, kamera_id, siniflar, zaman.simdi_utc()),
+    )
+
+
+UYUMSUZ_ADIM = "Araç kuralları tanıma modeline uyuyor mu?"
+
+
+def test_kurulu_tesiste_forklift_modeline_gecince_tir_kurali_uyarisi_gizlenmez(
+    istemci, test_ayarlari
+):
+    """Kurulum bitince liste "Sistem hazır." rozetine iner ve adım açıklamaları
+    gizlenir. Forklift modeline geçen kurulu bir tesiste yalnız "Tır/Araç" seçili
+    kural forklifti artık görmez: bu, kırmızı ve zorunlu bir adımdır, rozet onu
+    gizleyemez (kalibrasyon adımı gibi)."""
+    kamera = _kurulumu_tamamla(istemci, test_ayarlari)
+    _arac_kurali_ekle(test_ayarlari, kamera, '["truck"]')
+    assert "Sistem hazır." in istemci.get("/komuta").text  # forkliftsiz modelde uyumlu
+
+    istemci.app.state.supervizor = SahteSupervizor("hazir", forklift=True)
+    metin = istemci.get("/komuta").text
+    assert "Sistem hazır." not in metin
+    assert _adim_durumu(metin, UYUMSUZ_ADIM) == "sorun"
+    assert "1 kural yalnız “Tır/Araç” için kurulu ve forklifti GÖRMEZ" in metin
+    # Kılavuz sayfası da kurulumu "tamam" demez, listeye yönlendirir
+    assert "Kurulumunuz tamam." not in istemci.get("/komuta/kilavuz").text
+
+    # Kural forklifti de seçince uyumsuzluk kalkar
+    _yaz(
+        test_ayarlari,
+        'UPDATE rules SET target_classes = \'["truck", "forklift"]\' '
+        "WHERE target_classes = '[\"truck\"]'",
+    )
+    metin = istemci.get("/komuta").text
+    assert UYUMSUZ_ADIM not in metin and "Sistem hazır." in metin
+
+
+@pytest.mark.parametrize("forklift_modeli_kayitli", [False, True])
+def test_forkliftsiz_modelde_yalniz_forklift_secili_kural_uyarisi(
+    istemci, test_ayarlari, monkeypatch, forklift_modeli_kayitli
+):
+    """Forklift modelinden geri dönülünce (ya da hiç yokken) yalnız "Forklift"
+    seçili kural HİÇ uyarı vermez: kırmızı adım. Forklift modeli kayıtlıysa
+    ona dönmek de önerilir, değilse önerilmez (seçilecek model yok)."""
+    if forklift_modeli_kayitli:
+        monkeypatch.setitem(
+            model_indir.FORKLIFT_TABANI, "nextgen_forklift_tiny_r0.onnx", "yolox_tiny.onnx"
+        )
+    kamera = _kurulumu_tamamla(istemci, test_ayarlari)
+    _arac_kurali_ekle(test_ayarlari, kamera, '["forklift"]')
+    metin = istemci.get("/komuta").text
+    assert "Sistem hazır." not in metin
+    assert _adim_durumu(metin, UYUMSUZ_ADIM) == "sorun"
+    assert "1 kural yalnız “Forklift” için kurulu" in metin
+    assert "HİÇ uyarı vermez" in metin
+    assert ("forklifti tanıyan modeli seçin" in metin) is forklift_modeli_kayitli
+
+    # Forklift modeli çalışırken aynı kural uyumludur
+    istemci.app.state.supervizor = SahteSupervizor("hazir", forklift=True)
+    assert UYUMSUZ_ADIM not in istemci.get("/komuta").text
+
+
+def test_model_hazir_degilken_kural_uyumu_soylenmez(istemci, test_ayarlari):
+    """Sınıf listesi model yüklenince bilinir: iniyorken ya da hatadayken bir
+    kuralın modele uymadığı söylenemez (yanlış alarm olurdu)."""
+    kamera = _kurulumu_tamamla(istemci, test_ayarlari)
+    _arac_kurali_ekle(test_ayarlari, kamera, '["forklift"]')
+    for durum in ("indiriliyor", "yukleniyor", "hata"):
+        istemci.app.state.supervizor = SahteSupervizor(durum, "Model başlatılamadı.")
+        assert UYUMSUZ_ADIM not in istemci.get("/komuta").text, durum
+
+
+def test_forklift_notu_calisan_modelin_karsiligini_onerir(istemci, monkeypatch):
+    """Hızlı çalışan sisteme "Hızlı + Forklift" önerilir (insanı aynı tanır).
+    İsabetli çalışan sisteme yalnız Hızlı tabanlı forklift modeli varsa, ona
+    geçmenin insanı ve aracı "Hızlı" ile tanımak demek olduğu söylenir."""
+    monkeypatch.setitem(
+        model_indir.FORKLIFT_TABANI, "nextgen_forklift_tiny_r0.onnx", "yolox_tiny.onnx"
+    )
+    monkeypatch.setitem(
+        model_adi.GORUNEN_ADLAR, "nextgen_forklift_tiny_r0.onnx", "NextGen AI Hızlı + Forklift"
+    )
+    _motoru_hazirla(istemci, "hazir")
+    ayarlar = istemci.app.state.ayarlar
+    hizli = dataclasses.replace(
+        ayarlar, model_dosyasi=ayarlar.model_dosyasi.with_name("yolox_tiny.onnx")
+    )
+    istemci.app.state.ayarlar = hizli
+    metin = html.unescape(istemci.get("/komuta").text)
+    assert "“NextGen AI Hızlı + Forklift” modeline Ayarlar'daki “Tanıma modeli”" in metin
+    assert "insanı ve aracı bu modelle aynı tanır" in metin
+
+    istemci.app.state.ayarlar = dataclasses.replace(
+        ayarlar, model_dosyasi=ayarlar.model_dosyasi.with_name("yolox_s.onnx")
+    )
+    metin = html.unescape(istemci.get("/komuta").text)
+    assert "yalnız “NextGen AI Hızlı + Forklift” olarak var" in metin
+    assert "insanı ve aracı “NextGen AI Hızlı” modeliyle tanır" in metin
+    istemci.app.state.ayarlar = ayarlar
+
+
+def test_forklift_modeli_kayitli_degilken_destek_istenir(istemci):
+    _motoru_hazirla(istemci, "hazir")
+    metin = istemci.get("/komuta").text
+    assert "destek ekibinden isteyin" in metin
+    assert "Forklifti ayrıca tanıyan" not in metin  # seçilecek model yok, önerilmez
 
 
 def test_model_hatasi_adimda_gorunuyor(istemci):

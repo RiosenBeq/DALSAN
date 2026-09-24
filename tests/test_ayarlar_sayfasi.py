@@ -221,6 +221,19 @@ def test_tanima_modeli_ekrandan_secilir(ayarli_istemci):
     assert "MODEL_DOSYASI=models/yolox_s.onnx" in ayarlar.env_yolu.read_text(encoding="utf-8")
 
 
+def test_tanima_modeli_aciklamasi_forklift_modeli_varsa_tir_kurallarini_soyler():
+    """Forklift modeline geçen, yalnız "Tır/Araç" seçili kuralların forklifti
+    artık görmeyeceğini seçim kutusunun yanında okur; model yokken bu cümle yok."""
+    from app.analiz.model_indir import FORKLIFT_TABANI
+    from app.web.ayar_rotalari import AYAR_GRUPLARI, model_aciklamasi
+
+    var, yok = model_aciklamasi(True), model_aciklamasi(False)
+    assert "“Forklift” geçen model" in var and "“Forklift”i de işaretleyin" in var
+    assert "Forklift" not in yok and "İsabetli" in yok and "internet gerekir" in yok
+    alan = next(a for g in AYAR_GRUPLARI for a in g.alanlar if a.anahtar == "MODEL_DOSYASI")
+    assert alan.aciklama == model_aciklamasi(bool(FORKLIFT_TABANI))
+
+
 def test_tanima_modeli_kutusunda_urun_adi_yazar_dosya_adi_yazmaz(ayarli_istemci):
     istemci, ayarlar = ayarli_istemci
     kutu = istemci.get("/ayarlar").text.split('name="MODEL_DOSYASI"')[1].split("</select>")[0]

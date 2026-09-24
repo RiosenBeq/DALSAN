@@ -31,6 +31,10 @@ DALSAN_YAYINI = "https://github.com/RiosenBeq/DALSAN/releases/download/"
 # Yerel dosya adı -> yayındaki yeri "<etiket>/<yayın dosyası>"
 # (models/indir.sh'teki `indir <ad> <etiket>/<yayın dosyası>` satırı)
 DALSAN_MODELLERI: dict[str, str] = {}
+# Forklifti ayrı sınıf olarak da tanıyan model -> insanı ve aracı onunla AYNI
+# tanıyan hazır model (donuk resmi model + ek baş). Kurulum listesi ve Ayarlar,
+# çalışan modelin forklift karşılığını buradan bulur.
+FORKLIFT_TABANI: dict[str, str] = {}
 
 # Dosya adı → SHA-256. İndirilen dosya bu özetle karşılaştırılır; tutmazsa
 # kullanılmaz (docs/17 §10.5 R17). Değerler 23.09.2026'da resmi yayından iki

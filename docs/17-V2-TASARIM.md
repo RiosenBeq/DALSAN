@@ -1647,8 +1647,12 @@ makinede bütün ağın ince ayarı, COCO alt kümesiyle) yerini alır.
 5. **Güvenlik gerilemesi uyarısı:** car/truck ayrılınca forklift, model onu "car" sanarsa mesafe
    kuralından kaçabilir. Ayrım ancak saha ölçümünde forklift recall'u görüldükten sonra
    devreye alınır; o zamana kadar mesafe kuralının `object_classes`'ı araç grubunun tamamını
-   alır. Forklift sınıflı modelde yalnız "Tır/Araç" seçili kurallar forklifti GÖRMEZ: kurulum
-   listesi bu kuralları adıyla söyler (`web/kilavuz.py`).
+   alır. Forklift sınıflı modelde yalnız "Tır/Araç" seçili kurallar forklifti GÖRMEZ;
+   forkliftsiz modelde yalnız "Forklift" seçili kurallar HİÇ uyarı vermez. Kurulum listesi
+   ikisini de kırmızı, zorunlu bir adımda kuralları adıyla söyler; kurulum bitmiş olsa da
+   liste yeniden açılır, "Sistem hazır" rozeti gizleyemez (`web/kilavuz.py`). Forklift
+   modeli, çalışan hazır modelin karşılığıysa önerilir; değilse insanı hangi modelle
+   tanıyacağı söylenir (İsabetli kullanan tesis bilmeden Hızlı düzeyine inmesin).
 6. Doğruluk: LOCO testi, Open Images forklift ve sanayi fotoğrafları ve bir yaya videosu
    vekil ölçümdür (sonuçlar docs/ILERLEME). Kabul için asıl ölçüm hâlâ etiketli saha test
    günüdür (§14); kutu etiketlemeyi kimin yapacağı S11.

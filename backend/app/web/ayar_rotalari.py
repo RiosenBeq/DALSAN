@@ -29,7 +29,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 
 from app import ayarlar as ayarlar_modulu
 from app.analiz.model_adi import OZEL_MODEL_ADI, gorunen_model_adi
-from app.analiz.model_indir import BILINEN_MODELLER
+from app.analiz.model_indir import BILINEN_MODELLER, FORKLIFT_TABANI
 from app.hatalar import AyarHatasi, DogrulamaHatasi
 from app.olaylar import uyari_arsivi
 from app.web import erisim_izi
@@ -50,6 +50,24 @@ MODEL_SECENEKLERI: tuple[tuple[str, str], ...] = tuple(
 # diye gösterir ve bu değer gelirse MODEL_DOSYASI'na DOKUNULMAZ. Yoksa başka
 # bir ayarı kaydeden kullanıcının özel modeli sessizce hazır modelle değişirdi.
 OZEL_MODEL_SECIMI = "ozel"
+
+
+def model_aciklamasi(forklift_modeli_var: bool) -> str:
+    """ "Tanıma modeli" kutusunun açıklaması. Forklift modeli kayıtlıysa, ona
+    geçenin "Tır/Araç" kurallarında ne yapması gerektiğini de söyler: bu modelde
+    forklift artık tır sayılmaz ve yalnız "Tır/Araç" seçili kural onu görmez."""
+    forklift = (
+        "Adında “Forklift” geçen model forklifti ayrı sınıf olarak da tanır; insanı ve "
+        "aracı adındaki hazır modelle aynı tanır, işlemciyi biraz daha yorar. O modelde "
+        "forklift artık “Tır/Araç” sayılmaz: yalnız “Tır/Araç” seçili kurallarda "
+        "“Forklift”i de işaretleyin. "
+        if forklift_modeli_var
+        else ""
+    )
+    return (
+        "“İsabetli” daha isabetlidir ama daha yavaştır, işlemciyi daha çok yorar. "
+        f"{forklift}Seçilen model ilk açılışta bir kez iner (internet gerekir)."
+    )
 
 
 @dataclass(frozen=True)
@@ -229,10 +247,7 @@ AYAR_GRUPLARI: tuple[AyarGrubu, ...] = (
                 etiket="Tanıma modeli",
                 tur="secim",
                 secenekler=MODEL_SECENEKLERI,
-                aciklama=(
-                    "“İsabetli” daha isabetlidir ama daha yavaştır, işlemciyi daha çok "
-                    "yorar. Seçilen model ilk açılışta bir kez iner (internet gerekir)."
-                ),
+                aciklama=model_aciklamasi(bool(FORKLIFT_TABANI)),
             ),
             AyarAlani(
                 anahtar="TESPIT_INSAN_GUVEN_ESIGI",
