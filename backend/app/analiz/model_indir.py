@@ -135,7 +135,7 @@ def modeli_indir(model_dosyasi: Path, ilerleme: Callable[[int, int], None] | Non
                 "İnternet bağlantısını kontrol edip Kontrol Paneli'nde Durdur'a, sonra "
                 "Sistemi Başlat'a basın. Sorun sürerse bilgi işlem birimine haber verin: "
                 "şirket ağındaki bir güvenlik cihazı indirilen dosyayı değiştiriyor "
-                f"olabilir.{_hazir_modele_donus_onerisi(model_dosyasi)}",
+                "olabilir.",
                 f"SHA-256 tutmadı: {adres} → {gecici} | beklenen "
                 f"{BILINEN_MODELLER[model_dosyasi.name]} | inen {ozet.hexdigest()} "
                 f"({inen} bayt)",
@@ -148,22 +148,20 @@ def modeli_indir(model_dosyasi: Path, ilerleme: Callable[[int, int], None] | Non
         raise ModelIndirmeHatasi(kullanici_mesaji, teknik_ayrinti) from hata
 
 
-def _hazir_modele_donus_onerisi(model_dosyasi: Path) -> str:
-    """Bu deponun yayınından inen (forklift) model inmediyse: hazır modele dönüş.
+def forklift_yedegi(model_dosyasi: Path) -> Path | None:
+    """Bu deponun yayınından inen forklift modeli kullanılamazsa geçilecek model.
 
-    Hazır model zaten diskte olabilir ve internetsiz de çalışır; kullanıcı
-    seçtiği forklift modeli inene kadar insan ve araç tespitinden olmamalı.
-    Kendiliğinden geçilmez: seçim kullanıcınındır, Ayarlar'dan döner.
+    Forklift modeli, insanı ve aracı tabanındaki hazır modelle AYNI tanır
+    (FORKLIFT_TABANI). İnmez ya da açılmazsa (internetsiz saha, bozuk dosya)
+    süpervizör o hazır modelle çalışır: insan ve araç tespiti durmaz, yalnız
+    forklift ayrı sınıf olarak tanınmaz (operatör, 24.09.2026: "Olan
+    problemleri de çöz"). Hazır model aynı klasörde durur; forklift modeli
+    değilse None.
     """
     if model_dosyasi.name not in DALSAN_MODELLERI:
-        return ""
+        return None
     taban = FORKLIFT_TABANI.get(model_dosyasi.name)
-    hedef = f"“{gorunen_model_adi(taban)}” modeline" if taban else "bir hazır modele"
-    return (
-        f" Beklemeden çalıştırmak için Ayarlar'daki “Tanıma modeli” listesinden {hedef} "
-        "dönüp Kontrol Paneli'nde Durdur'a, sonra Sistemi Başlat'a basın (forklift o "
-        "zaman ayrı sınıf olarak tanınmaz)."
-    )
+    return model_dosyasi.with_name(taban) if taban else None
 
 
 def _saat_hatasi_mi(hata: Exception) -> bool:
@@ -243,9 +241,6 @@ def _indirme_hata_metinleri(adres: str, model_dosyasi: Path, hata: Exception) ->
             f"{ad} indirilemedi. İnternet bağlantısını kontrol edip "
             "Kontrol Panelinden yeniden başlatın."
         )
-    if not (isinstance(hata, urllib.error.HTTPError) and hata.code in (404, 410)):
-        # 404/410 metni zaten başka modele geçmeyi söyler
-        kullanici_mesaji += _hazir_modele_donus_onerisi(model_dosyasi)
     teknik_ayrinti = (
         f"{kullanici_mesaji} | indirme adresi: {adres} | hedef dosya: {model_dosyasi} "
         f"| özgün hata: {hata!r}"

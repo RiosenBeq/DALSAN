@@ -89,6 +89,9 @@ OLAY_KODLARI: dict[str, OlayKodu] = _tablo(
     # Tespit modeli de KKD modeli de (docs/17 §6.1); hangisi olduğunu mesaj söyler
     OlayKodu("MODEL_LOAD_FAILED", ONEM_SISTEM, "Model yüklenemedi"),
     OlayKodu("INFERENCE_DEVICE_FALLBACK", ONEM_SISTEM, "GPU istendi, CPU kullanılıyor"),
+    # Seçili forklift modeli inmedi ya da açılmadı, tabanındaki hazır modelle
+    # çalışılıyor (analiz/supervizor.py _secili_modeli_ac, 24.09.2026)
+    OlayKodu("MODEL_FALLBACK", ONEM_SISTEM, "Seçili model yerine hazır model çalışıyor"),
     OlayKodu("ANALYSIS_STALLED", ONEM_SISTEM, "Analiz takıldı"),  # 2d (bekçi)
     OlayKodu("ANALYSIS_DEGRADED", ONEM_SISTEM, "Analiz yavaşladı"),  # 2d
     OlayKodu("SYSTEM_STARTED", ONEM_SISTEM, "Sistem başladı"),

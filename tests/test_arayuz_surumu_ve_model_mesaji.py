@@ -182,14 +182,15 @@ def forklift_modeli_kayitli(monkeypatch):
         urllib.error.URLError(ssl.SSLCertVerificationError("CERTIFICATE_VERIFY_FAILED")),
     ],
 )
-def test_forklift_modeli_inmezse_hazir_modele_donus_soylenir(forklift_modeli_kayitli, hata):
-    """İnternetsiz sahada forklift modeli seçilirse sistem insanı da görmez: mesaj
-    hangi modelin inmediğini ve Ayarlar'dan hazır modele dönmeyi söyler."""
+def test_forklift_modeli_inmezse_hangi_modelin_inmedigi_soylenir(forklift_modeli_kayitli, hata):
+    """Mesaj inmeyen modelin adını verir. Hazır modele elle dönmeyi söylemez:
+    süpervizör o sırada tabanındaki hazır modelle çalışır ve bunu kendisi
+    söyler (tests/test_forklift_yedegi.py)."""
     from app.analiz.model_indir import _indirme_hata_metinleri
 
     kullanici, _ = _indirme_hata_metinleri("https://ornek/x", forklift_modeli_kayitli, hata)
     assert kullanici.startswith("NextGen AI Hızlı + Forklift indirilemedi")
-    assert "“Tanıma modeli” listesinden “NextGen AI Hızlı” modeline dönüp" in kullanici
+    assert "“Tanıma modeli”" not in kullanici
     assert ".onnx" not in kullanici and ".env" not in kullanici
 
 
@@ -209,10 +210,10 @@ def test_hazir_model_inmezse_donus_onerilmez():
     assert "Beklemeden çalıştırmak" not in kullanici
 
 
-def test_forklift_modeli_dogrulanamazsa_da_donus_soylenir(
+def test_forklift_modeli_dogrulanamazsa_dosya_kullanilmaz(
     forklift_modeli_kayitli, tmp_path, monkeypatch
 ):
-    """İnen dosyanın özeti tutmadı: aynı dönüş yolu söylenir."""
+    """İnen dosyanın özeti tutmadı: dosya silinir, yedeğe geçişi süpervizör yapar."""
     import io
 
     from app.analiz import model_indir
@@ -225,7 +226,7 @@ def test_forklift_modeli_dogrulanamazsa_da_donus_soylenir(
     with pytest.raises(model_indir.ModelIndirmeHatasi) as hata:
         model_indir.modeli_indir(hedef)
     assert "indirildi ama doğrulanamadı" in hata.value.kullanici_mesaji
-    assert "“NextGen AI Hızlı” modeline dönüp" in hata.value.kullanici_mesaji
+    assert "modeline dönüp" not in hata.value.kullanici_mesaji
     assert not hedef.with_suffix(".onnx.part").exists()
 
 

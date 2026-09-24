@@ -43,6 +43,7 @@ TASARIMDAKI_KODLAR = {
     "DISK_LOW": "system",
     "MODEL_LOAD_FAILED": "system",
     "INFERENCE_DEVICE_FALLBACK": "system",
+    "MODEL_FALLBACK": "system",
     "ANALYSIS_STALLED": "system",
     "ANALYSIS_DEGRADED": "system",
     "SYSTEM_STARTED": "system",

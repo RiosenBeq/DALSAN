@@ -38,6 +38,7 @@ from app.analiz.kkd_siniflandirici import KkdSiniflandirici, kisi_kirp, netlik_o
 from app.analiz.model_adi import gorunen_model_adi
 from app.analiz.model_indir import (
     ModelIndirmeHatasi,
+    forklift_yedegi,
     indirilebilir_mi,
     modeli_indir,
     ozel_model_hatasi,
@@ -186,6 +187,11 @@ class AnalizSupervizoru:
         self.tespit_hatasi: str | None = None
         # CIKARIM_CIHAZI=cuda istenip CPU'ya düşüldüyse Türkçe uyarı (ana sayfa)
         self.cihaz_uyarisi: str = ""
+        # Seçili forklift modeli kullanılamadığı için hazır modelle çalışılıyorsa
+        # sebebi (ana sayfa, kurulum listesi, /saglik "model_yedekte")
+        self.model_uyarisi: str = ""
+        # Gerçekten yüklenen model dosyası: yedeğe geçildiyse ayardakinden farklıdır
+        self.calisan_model: Path | None = None
         # yukleniyor | indiriliyor | hazir | hata - ana sayfa bunu gösterir
         self.model_durumu: str = "yukleniyor"
         # KKD modeli analiz iş parçacığında yüklenir (_kkd_modelini_kur); o
@@ -509,18 +515,60 @@ class AnalizSupervizoru:
                 f"Kamera çevrimdışı olayı kapatılamadı (olay {olay_id}): {hata}", exc_info=hata
             )
 
-    def _tespitciyi_kur(self, baglanti) -> None:
+    def _tespitci_ac(self, dosya: Path) -> Tespitci:
+        return Tespitci(
+            dosya,
+            self.ayarlar.cikarim_cihazi,
+            guven_esigi=self.ayarlar.tespit_guven_esigi,
+            insan_guven_esigi=self.ayarlar.tespit_insan_guven_esigi,
+            nms_esigi=self.ayarlar.tespit_nms_esigi,
+            en_kucuk_kenar_px=self.ayarlar.tespit_en_kucuk_kenar_px,
+            is_parcacigi=self.ayarlar.cikarim_is_parcacigi,
+        )
+
+    def _secili_modeli_ac(self, baglanti) -> Tespitci:
+        """Seçili modeli hazırlayıp açar; forklift modeli inmez ya da açılmazsa
+        tabanındaki hazır modelle çalışır (model_indir.forklift_yedegi).
+
+        İnsan ve araç tespiti bir forklift dosyası yüzünden durmamalı. Seçim
+        değişmez: sonraki başlatmada forklift modeli yeniden denenir. Hazır
+        model de kullanılamazsa ilk hata yükselir (sebebi odur).
+        """
+        secili = self.ayarlar.model_dosyasi
         try:
             self._modeli_hazirla()
-            self.tespitci = Tespitci(
-                self.ayarlar.model_dosyasi,
-                self.ayarlar.cikarim_cihazi,
-                guven_esigi=self.ayarlar.tespit_guven_esigi,
-                insan_guven_esigi=self.ayarlar.tespit_insan_guven_esigi,
-                nms_esigi=self.ayarlar.tespit_nms_esigi,
-                en_kucuk_kenar_px=self.ayarlar.tespit_en_kucuk_kenar_px,
-                is_parcacigi=self.ayarlar.cikarim_is_parcacigi,
+            tespitci = self._tespitci_ac(secili)
+            self.calisan_model = secili
+            return tespitci
+        except (ModelHatasi, ModelIndirmeHatasi) as hata:
+            yedek = forklift_yedegi(secili)
+            if yedek is None:
+                raise
+            ilk_hata = hata
+        try:
+            self._modeli_hazirla(yedek)
+            tespitci = self._tespitci_ac(yedek)
+        except (ModelHatasi, ModelIndirmeHatasi) as yedek_hatasi:
+            self._log.error(
+                f"Yedek model de kullanılamadı: {yedek_hatasi.kullanici_mesaji}",
+                extra={"ayrinti": yedek_hatasi.teknik_ayrinti},
             )
+            raise ilk_hata from yedek_hatasi
+        self.calisan_model = yedek
+        secili_adi = gorunen_model_adi(secili.name)
+        yedek_adi = gorunen_model_adi(yedek.name)
+        self.model_uyarisi = (
+            f"{secili_adi} kullanılamadığı için sistem {yedek_adi} ile çalışıyor: insan ve "
+            "araç tespiti sürüyor, forklift ayrı sınıf olarak tanınmıyor (yalnız “Forklift” "
+            f"seçili kurallar uyarı vermez). Sebep: {ilk_hata.kullanici_mesaji}"
+        )
+        self._log.warning(self.model_uyarisi, extra={"ayrinti": ilk_hata.teknik_ayrinti})
+        self._sistem_olayi(baglanti, self.model_uyarisi, kod="MODEL_FALLBACK")
+        return tespitci
+
+    def _tespitciyi_kur(self, baglanti) -> None:
+        try:
+            self.tespitci = self._secili_modeli_ac(baglanti)
             self.tespit_hatasi = None
             self.model_durumu = "hazir"
             if self.tespitci.cihaz_uyarisi:
@@ -616,10 +664,11 @@ class AnalizSupervizoru:
         if self.kkd.model_var:
             self._log.info(f"KKD modeli yüklendi: {self.kkd.model_surumu}")
 
-    def _modeli_hazirla(self) -> None:
+    def _modeli_hazirla(self, dosya: Path | None = None) -> None:
         """Model dosyası yoksa ve bilinen bir YOLOX modeliyse bir kez indirir.
-        Kullanıcı terminalde betik çalıştırmak zorunda kalmaz (CLAUDE.md §8)."""
-        dosya = self.ayarlar.model_dosyasi
+        Kullanıcı terminalde betik çalıştırmak zorunda kalmaz (CLAUDE.md §8).
+        Verilmezse seçili model; yedeğe geçerken hazır model verilir."""
+        dosya = dosya or self.ayarlar.model_dosyasi
         if dosya.exists():
             return
         if not indirilebilir_mi(dosya):
@@ -1191,6 +1240,10 @@ class AnalizSupervizoru:
         sorunlar = [self.bekci.sorun] if self.bekci.sorun else []
         if self.model_durumu == "hata":
             sorunlar.append("model_yuklenemedi")
+        elif self.model_uyarisi:
+            # Seçili forklift modeli yerine hazır model: yalnız "Forklift" seçili
+            # kurallar uyarı üretmez (hazırlığı bozmaz, şerit söyler)
+            sorunlar.append("model_yedekte")
         if self.olay_yazma_hatasi:
             sorunlar.append("olay_yazilamadi")
         if getattr(self.tespitci, "ort_paket_cakismasi", False):
