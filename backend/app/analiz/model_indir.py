@@ -16,6 +16,7 @@ import urllib.request
 from collections.abc import Callable
 from pathlib import Path
 
+from app import kaynaklar
 from app.analiz.model_adi import HAZIR_MODELE_DONUS, gorunen_model_adi
 from app.hatalar import DalsanHata
 
@@ -214,13 +215,19 @@ def _indirme_hata_metinleri(adres: str, model_dosyasi: Path, hata: Exception) ->
             "ve Saat), sonra Kontrol Panelinden yeniden başlatın."
         )
     elif sertifika_hatasi:
+        # Windows ve Mac uygulamasının Python'u paketin içindedir: orada
+        # python.org kurulumunun "Install Certificates.command" dosyası yoktur.
+        python_org = (
+            ""
+            if kaynaklar.paketlenmis_mi()
+            else "Mac'te python.org'dan kurulan Python'da bu sık görülür. Çözüm: "
+            "Uygulamalar → Python 3.x klasöründeki 'Install Certificates.command' "
+            "dosyasına çift tıklayın, sonra Kontrol Panelinden yeniden başlatın. "
+        )
         kullanici_mesaji = (
-            f"{ad} indirilemedi: güvenlik sertifikaları doğrulanamadı. "
-            "Mac'te python.org'dan kurulan Python'da bu sık görülür. Çözüm: Uygulamalar → "
-            "Python 3.x klasöründeki 'Install Certificates.command' dosyasına çift tıklayın, "
-            "sonra Kontrol Panelinden yeniden başlatın. Şirket ağındaysanız internet "
-            "trafiğini denetleyen bir güvenlik duvarı da bu hatayı verir; bu durumda "
-            "bilgi işlem biriminden yardım isteyin."
+            f"{ad} indirilemedi: güvenlik sertifikaları doğrulanamadı. {python_org}"
+            "Şirket ağındaysanız internet trafiğini denetleyen bir güvenlik duvarı "
+            "bu hatayı verir; bu durumda bilgi işlem biriminden yardım isteyin."
         )
     elif isinstance(hata, urllib.error.HTTPError) and hata.code in (404, 410):
         # Sunucu cevap verdi: internet çalışıyor, dosya yayın yerinde yok

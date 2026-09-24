@@ -8,13 +8,15 @@ programın klasöründe aranan dosya yoktur.
 
 from __future__ import annotations
 
+import ssl
 import sys
+import urllib.error
 from pathlib import Path
 
 import pytest
 
 from app import hatalar, kaynaklar, veritabani
-from app.analiz import tespit
+from app.analiz import model_indir, tespit
 from app.hatalar import VeritabaniHatasi
 
 KOK = Path(__file__).resolve().parents[1]
@@ -138,3 +140,23 @@ def test_uygulamada_eksik_sema_yeniden_kurulumla_cozulur(windows_uygulamasi, tmp
         baglanti.close()
     assert "Uygulamayı yeniden kurun" in hata.value.kullanici_mesaji
     assert "Program klasörünü" not in hata.value.kullanici_mesaji
+
+
+def _sertifika_hatasi():
+    return urllib.error.URLError(
+        ssl.SSLCertVerificationError(
+            1, "[SSL: CERTIFICATE_VERIFY_FAILED] unable to get local issuer certificate"
+        )
+    )
+
+
+def test_sertifika_hatasinda_python_org_tarifi_yalniz_kaynak_kurulumda(monkeypatch):
+    model = Path("nextgen_ai_hizli.onnx")
+    kaynak, _ = model_indir._indirme_hata_metinleri("https://ornek", model, _sertifika_hatasi())
+    assert "Install Certificates.command" in kaynak
+
+    monkeypatch.setattr(kaynaklar, "paketlenmis_mi", lambda: True)
+    paket, _ = model_indir._indirme_hata_metinleri("https://ornek", model, _sertifika_hatasi())
+    # Uygulamanın Python'u paketin içindedir: o dosya orada yoktur
+    assert "Install Certificates" not in paket
+    assert "güvenlik duvarı" in paket

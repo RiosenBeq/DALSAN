@@ -35,7 +35,7 @@ import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
 
-from app import veritabani, zaman
+from app import kaynaklar, veritabani, zaman
 from app.ayarlar import Ayarlar
 from app.loglama import adres_maskele, log_al
 from app.olaylar import ekran, ses_cihazlari
@@ -1051,8 +1051,11 @@ class AnonsYoneticisi:
         kok = self._goruntu_koku.resolve()
         tam = (kok / ses).resolve()
         if not tam.is_relative_to(kok):
-            _log.error(f"Anons ses dosyası proje klasörünün dışında, çalınmadı: {ses}")
-            return None, f"Ses dosyası proje klasörünün dışında: {ses}"
+            _log.error(
+                f"Anons ses dosyası {kaynaklar.kok_klasoru_adi()} klasörünün dışında, "
+                f"çalınmadı: {ses}"
+            )
+            return None, f"Ses dosyası {kaynaklar.kok_klasoru_adi()} klasörünün dışında: {ses}"
         return str(tam), ""
 
     def _siraya_koy(self, oge: UyariOgesi) -> None:

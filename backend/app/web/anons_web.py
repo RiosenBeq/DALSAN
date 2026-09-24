@@ -16,7 +16,7 @@ from pathlib import Path, PurePosixPath
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
-from app import zaman
+from app import kaynaklar, zaman
 from app.hatalar import DogrulamaHatasi
 from app.olaylar.kanallar import KANAL_KISA_ADLARI, TUM_FABRIKA
 from app.web.ortak import baglanti_al
@@ -92,10 +92,13 @@ def mesaj_kaydet(
         kok = istek.app.state.ayarlar.kok_dizin.resolve()
         tam = (kok / ses).resolve()
         if not tam.is_relative_to(kok):
-            raise DogrulamaHatasi("Ses dosyası proje klasörünün içinde olmalı.")
+            raise DogrulamaHatasi(
+                f"Ses dosyası {kaynaklar.kok_klasoru_adi()} klasörünün içinde olmalı."
+            )
         if not tam.is_file():
             raise DogrulamaHatasi(
-                f"Ses dosyası bulunamadı: {ses} - Dosyayı proje klasörüne kopyalayıp "
+                f"Ses dosyası bulunamadı: {ses} - Dosyayı "
+                f"{kaynaklar.ekran_yolu('veri', 'sesler')} klasörüne kopyalayıp "
                 "yolunu 'veri/sesler/baret.wav' gibi yazın."
             )
         if tam.suffix.lower() != ".wav":

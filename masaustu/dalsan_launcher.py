@@ -710,6 +710,7 @@ def _ic_surecte_baslat(log, gunluk_yaz=None):
     """
     import uvicorn
 
+    from app import kaynaklar
     from app.ayarlar import ayarlari_yukle
     from app.hatalar import AyarHatasi
 
@@ -720,6 +721,9 @@ def _ic_surecte_baslat(log, gunluk_yaz=None):
         ayarlari_yukle()
     except AyarHatasi as hata:
         log(f"[AYAR HATASI] {hata.kullanici_mesaji}")
+        # Sunucu acilmadigi icin Ayarlar sayfasi da acilmaz: dosya elle
+        # duzeltilir ve uygulamada kullanici klasorundedir (app/kaynaklar.py).
+        log(f"    Ayar dosyası: {kaynaklar.ayar_dosyasi()}")
         return None
 
     # Uygulama HER baslatista yeniden kurulur (modul duzeyindeki hazir nesne

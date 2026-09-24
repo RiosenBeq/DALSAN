@@ -393,7 +393,8 @@ def test_ses_dosyasi_proje_disindaysa_o_dosya_calinmaz_uyari_tonu_calar(yonetici
     sonuclar = {t["speaker_zone_id"]: (t["result"], t["detail"]) for t in _teslimler(db)}
     assert sonuclar[2] == ("ok", None)
     assert sonuclar[1][0] == "ok"
-    assert "proje klasörünün dışında" in sonuclar[1][1] and "uyarı tonu" in sonuclar[1][1]
+    # Yer app/kaynaklar.py'den gelir: geliştirmede "program klasörü"
+    assert "program klasörünün dışında" in sonuclar[1][1] and "uyarı tonu" in sonuclar[1][1]
 
 
 @pytest.mark.parametrize("ses", [None, "veri/sesler/olmayan.wav"])
