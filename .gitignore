@@ -18,6 +18,9 @@ __pycache__/
 models/*.part
 # indir.sh'in doğrulayamayıp kenara aldığı eski model dosyası
 models/*.eski
+# Forklift sayfasından kurulan yerel modelin ölçümü (modelin kendisi *.onnx ile
+# zaten dışarıda; ikisi de yalnız o kurulumundur, depoya girmez)
+models/*.olcum.json
 
 # Claude Design tuvali (yerel tasarim calismasi, depoya girmez)
 DALSAN İleri Fabrika Tasarımı/
