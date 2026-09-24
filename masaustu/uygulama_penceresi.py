@@ -182,12 +182,35 @@ def ac(adres: str, profil_klasoru: Path | None = None, log=None) -> bool:
         return True
     yaz(
         "[!] İzleme ekranı açılamadı: bu bilgisayarda gereken web görünümü yok. "
-        "Windows'ta Microsoft Edge WebView2 çalışma zamanını kurun (Microsoft'un "
-        "sitesinden, ücretsiz), sonra 'İzleme Ekranını Aç' düğmesine basın. "
-        "Sistem ve uyarı kanalları çalışmaya devam ediyor. "
+        f"{web_gorunumu_onerisi()} Sistem ve uyarı kanalları çalışmaya devam ediyor. "
         f"Ekran adresi: {adres}"
     )
     return False
+
+
+def web_gorunumu_onerisi() -> str:
+    """Ekran hiç açılamayınca bu işletim sisteminde ne kurulacağı.
+
+    Programın kendi penceresi (pywebview) paketlenmiş uygulamayla gelir;
+    Başlat betikleriyle kurulan sistemde yalnız tarayıcının uygulama kipi
+    vardır (docs/11). Mac'e WebView2 önermek yanlış yere yollardı.
+    """
+    if sys.platform.startswith("win"):
+        return (
+            "Microsoft Edge WebView2 çalışma zamanını kurun (Microsoft'un sitesinden, "
+            "ücretsiz), sonra 'İzleme Ekranını Aç' düğmesine basın."
+        )
+    return (
+        "Google Chrome, Microsoft Edge ya da Brave'den birini kurun (ekran onun "
+        "uygulama kipinde, adres çubuğu olmadan açılır), sonra 'İzleme Ekranını Aç' "
+        "düğmesine basın."
+        + (
+            " Paketlenmiş uygulama (NextGen Detector.app) ekranı kendi penceresinde "
+            "açar, tarayıcı gerekmez."
+            if sys.platform == "darwin"
+            else ""
+        )
+    )
 
 
 def pencereyi_kapat() -> None:
@@ -508,7 +531,9 @@ def yerel_pencereyi_calistir(adres: str, profil_klasoru: Path | None = None) -> 
         threading.Thread(
             target=_pencere_gorevi, args=(pencere, hal), daemon=True, name="panel-kanali"
         ).start()
-        # private_mode=False: giriş çerezi ve ses tercihi kalıcı olsun.
+        # private_mode=False: giriş çerezi ve ses tercihi kalıcı olsun. Mac'te
+        # pywebview storage_path'i kullanmaz, sistemin uygulamaya ayırdığı
+        # depoyu kullanır (docs/13 §3.1).
         webview.start(private_mode=False, storage_path=depo, localization=dict(PYWEBVIEW_METINLERI))
     except Exception as hata:  # noqa: BLE001 - sebep panele yazılır, yedek pencereye geçilir
         _cikti(f"{HATA_ONEKI}{hata!r}")

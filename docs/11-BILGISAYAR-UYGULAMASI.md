@@ -14,13 +14,17 @@ imleri yoktur; görev çubuğunda (Windows) ve Dock'ta (Mac) ayrı bir uygulama
 olarak durur. İçeride bir web sayfası çalışıyor olması bir ayrıntıdır ve
 kullanıcıya görünmez.
 
-> **Nasıl çalışıyor:** ekranı işletim sisteminin kendi web görünümü çizer
-> (Windows'ta WebView2, Mac'te WKWebView). Uygulamanın içinde gelir, ek bir
-> şey indirmeniz gerekmez ve **tarayıcı açılmaz**. Web görünümü kurulamazsa
-> ekran Edge, Chrome ya da Brave'in adres çubuksuz "uygulama kipi"nde açılır;
-> o da yoksa Kontrol Paneli günlüğü ne yapılacağını yazar (Windows'ta:
-> "WebView2 Runtime" kurulur). Sistem ve uyarılar bu sırada çalışmaya devam
-> eder. Ayrıntı: docs/13 §3.1.
+> **Nasıl çalışıyor:** paketlenmiş uygulamada (docs/13) ekranı işletim
+> sisteminin kendi web görünümü çizer (Windows'ta WebView2, Mac'te WKWebView).
+> Uygulamanın içinde gelir, ek bir şey indirmeniz gerekmez ve **tarayıcı
+> açılmaz**. Bu belgedeki `Baslat-Mac.command` / `Baslat-Windows.bat`
+> kurulumunda o bileşen yoktur: ekran Edge, Chrome ya da Brave'in adres
+> çubuksuz "uygulama kipi"nde açılır. Web görünümü kurulamazsa paketlenmiş
+> uygulama da bu yedek pencereye geçer. İkisi de olmazsa Kontrol Paneli
+> günlüğü ne yapılacağını yazar (Windows'ta "WebView2 Runtime" kurulur,
+> Mac'te bu üç tarayıcıdan biri kurulur ya da paketlenmiş uygulama
+> kullanılır). Sistem ve uyarılar bu sırada çalışmaya devam eder. Ayrıntı:
+> docs/13 §3.1.
 
 Ağ üzerinden erişim açıldıysa (docs/15) başka bir bilgisayardan, örneğin İSG
 müdürünün dizüstünden, ekran o bilgisayarın tarayıcısıyla açılır; bu
@@ -78,7 +82,7 @@ SmartScreen uyarısı çıkarsa: **Daha fazla bilgi → Yine de çalıştır**
 | **İlk Kurulumu Yap** | Sadece bir kez. Python ortamını hazırlar, paketleri kurar. Birkaç dakika sürer. |
 | **Sistemi Başlat** | Sistemi çalıştırır ve izleme ekranını kendi penceresinde açar. |
 | **Durdur** | Düzgün şekilde kapatır. |
-| **İzleme Ekranını Aç** | İzleme penceresini açar; zaten açıksa öne getirir. |
+| **İzleme Ekranını Aç** | İzleme penceresini açar; programın kendi penceresi zaten açıksa öne getirir (tarayıcının uygulama kipindeki yedek pencerede her basış yeni bir pencere açar). |
 | **Sistem günlüğü** | Olan biten. **Bir sorun olduğunda buradaki kırmızı satırları kopyalayıp Claude Code'a yapıştır.** |
 
 ## 4. Günlük kullanım

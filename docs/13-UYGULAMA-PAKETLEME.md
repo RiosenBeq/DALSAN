@@ -118,8 +118,12 @@ olduğunu ve ne yapılacağını yazar (Windows'ta Microsoft'un sitesinden ücre
 devam eder.
 
 Pencerenin verisi (giriş çerezi, ekranın ses tercihi) kullanıcının tarayıcı
-oturumundan ayrı, `tarayici-profili` klasöründe durur. O klasör
-**yedeklenmez**: içinde kullanıcı verisi değil, önbellek vardır.
+oturumundan ayrı durur: Windows'ta ve yedek pencerede `tarayici-profili`
+klasöründe, Mac'te programın kendi penceresinde ise sistemin uygulamaya
+ayırdığı yerde (uygulama kimliği `com.nextgen.detector`; pywebview Mac'te
+klasör seçtirmez, o yüzden `tarayici-profili`'ni silmek Mac'te girişi
+sıfırlamaz). Bu veri **yedeklenmez**: içinde kullanıcı verisi değil,
+önbellek vardır.
 
 ## 3.2 Hazır paketi indirmek (Windows ya da Mac bilgisayar gerekmeden)
 
@@ -178,7 +182,7 @@ veri/videolar/          ← "Video ile Test" sayfasından yüklenen videolar
 veri/loglar/sistem.log  ← günlük
 .env                    ← ayarlar
 models/                 ← tanıma modeli (ilk açılışta bir kez iner)
-tarayici-profili/       ← izleme penceresinin önbelleği (YEDEKLENMEZ, silinebilir)
+tarayici-profili/       ← izleme penceresinin önbelleği (YEDEKLENMEZ, silinebilir; Mac'te yalnız yedek pencere)
 ```
 
 **Yedek alırken kopyalanacak klasör budur.**
@@ -336,7 +340,7 @@ yüklendiğini uygulamanın kendisi sınar; pencere açmaz, sonucu tek satırla
 söyler ve 0 koduyla biter:
 
 ```
-NextGen Detector.exe --pencere-denetimi | Out-String        (Windows, PowerShell)
+& ".\NextGen Detector.exe" --pencere-denetimi | Out-String   (Windows, PowerShell, uygulamanın klasöründe)
 "/Applications/NextGen Detector.app/Contents/MacOS/NextGen Detector" --pencere-denetimi
 ```
 

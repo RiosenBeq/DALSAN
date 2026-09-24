@@ -515,7 +515,7 @@ def test_hicbir_pencere_acilamazsa_tarayici_sekmesi_de_acilmaz(pencere, monkeypa
 
     assert pencere.ac(ADRES, log=gunluk.append) is False
     assert len(gunluk) == 1
-    assert "WebView2" in gunluk[0] and ADRES in gunluk[0]
+    assert pencere.web_gorunumu_onerisi() in gunluk[0] and ADRES in gunluk[0]
 
 
 def test_yedek_pencere_calistirilamazsa_sebep_yazilir(pencere, monkeypatch):
@@ -652,6 +652,23 @@ def test_pencere_simgesi_pakete_konuyor():
     assert "NextGenDetector.ico" in ortak
     assert '"uygulama_penceresi"' in ortak, "modül pakete alınmalı"
     assert (KOK / "paketleme" / "NextGenDetector.ico").is_file()
+
+
+@pytest.mark.parametrize(
+    ("platform", "olmali", "olmamali"),
+    [
+        ("win32", "WebView2", "Chrome"),
+        ("darwin", "Chrome", "WebView2"),
+        ("linux", "Chrome", "WebView2"),
+    ],
+)
+def test_ekran_acilamazsa_bu_isletim_sistemine_uygun_oneri(
+    pencere, monkeypatch, platform, olmali, olmamali
+):
+    """Mac'te "WebView2 kurun" demek kullanıcıyı Windows'a ait bir çözüme yollardı."""
+    monkeypatch.setattr(pencere.sys, "platform", platform)
+    oneri = pencere.web_gorunumu_onerisi()
+    assert olmali in oneri and olmamali not in oneri
 
 
 # ------------------------------------------ üretim hattının pencere sınaması
