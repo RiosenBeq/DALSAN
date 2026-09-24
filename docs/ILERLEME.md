@@ -288,8 +288,10 @@ eğit"*. Karar kaydı ve lisans çerçevesi docs/17 §16, yöntem §12.3.
   aday kutu var (resmi modelde %82-87). Sorun puan: doğru kutudaki forklift puanının
   ortancası s'de 0,09, tiny'de 0,13; algılama eşiği 0,35. Ek baş eğitim depolarındaki
   (LOCO 2, 3, 5) forkliftleri öğreniyor, test depolarındakine (1, 4) genellemiyor: 474
-  kutuluk, tek kaynaklı eğitim verisi az. Hiçbir aday kaydedilmedi, varsayılan model
-  değişmedi.
+  kutuluk, tek kaynaklı eğitim verisi az. Eğitim kaybı da yataylaşmıştı: son üç devirde
+  ortalama kayıp s'de 6,14-6,16 arasında kaldı, tiny'de 6,16'dan 6,11'e indi (devir başına
+  %0,4); sınıf kaybı s'nin son üç devrinde 0,93, tiny'nin son dokuz devrinde 0,95-0,97.
+  Hiçbir aday kaydedilmedi, varsayılan model değişmedi.
 - **Adaylar yayımlanamadı (HTTP 403, "Resource not accessible by integration").** Eğitim
   sürerken main iş akışı dosyası değiştiren commit'ler aldı. GitHub'ın iş akışı jetonu
   (GITHUB_TOKEN) dalın ucundaki commit dışında bir commit'e etiket koyamıyor; bunun için
