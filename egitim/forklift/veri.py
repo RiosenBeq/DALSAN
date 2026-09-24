@@ -264,7 +264,7 @@ def _bekle(uyu: Callable[[float], None], bekleme_sn: float, deneme: int) -> None
 def dosya_indir(
     adres: str,
     hedef: Path,
-    beklenen_sha256: str,
+    beklenen_sha256: str | None,
     *,
     deneme_sayisi: int = DENEME_SAYISI,
     bekleme_sn: float = BEKLEME_SN,
@@ -276,8 +276,11 @@ def dosya_indir(
     Hedef zaten varsa ve özeti tutuyorsa yeniden inmez. Özet tutmazsa
     ButunlukHatasi: dosya kaynağında değişmiş ya da yolda değiştiriliyor,
     yeniden denemek düzeltmez. Ağ hatası artan beklemeyle yeniden denenir.
+    `beklenen_sha256` None ise dosyanın kendi özeti sabit değildir (GitHub'ın
+    commit arşivi gibi: sıkıştırması değişebilir); dosya her seferinde iner ve
+    içeriğini çağıran denetler (yerel.py, YOLOX kaynağı).
     """
-    if hedef.is_file() and dosya_ozeti(hedef) == beklenen_sha256:
+    if beklenen_sha256 is not None and hedef.is_file() and dosya_ozeti(hedef) == beklenen_sha256:
         _yaz(f"{hedef.name}: zaten var, SHA-256 tuttu ({beklenen_sha256})")
         return beklenen_sha256
     hedef.parent.mkdir(parents=True, exist_ok=True)
@@ -301,7 +304,7 @@ def dosya_indir(
                 _bekle(uyu, bekleme_sn, deneme)
             continue
         inen_ozet = ozet.hexdigest()
-        if inen_ozet != beklenen_sha256:
+        if beklenen_sha256 is not None and inen_ozet != beklenen_sha256:
             parca.unlink(missing_ok=True)
             raise ButunlukHatasi(
                 f"{hedef.name} SHA-256'sı sabitlenen değerle tutmuyor: beklenen "
@@ -309,7 +312,8 @@ def dosya_indir(
                 "kaynağında değişmiş ya da yolda değiştiriliyor; kullanılmadı ve silindi."
             )
         parca.replace(hedef)
-        _yaz(f"{hedef.name}: {inen} bayt, SHA-256 tuttu ({inen_ozet})")
+        durum = "SHA-256 tuttu" if beklenen_sha256 is not None else "SHA-256"
+        _yaz(f"{hedef.name}: {inen} bayt, {durum} ({inen_ozet})")
         return inen_ozet
     raise IndirmeHatasi(
         f"{hedef.name} indirilemedi ({deneme_sayisi} deneme): {adres} | son hata: {son_hata}"
@@ -1490,13 +1494,31 @@ def saha_test_belgesi(saha: dict, bilgi: dict | None = None) -> dict:
     return belge
 
 
-def _loco_egitimini_oku(loco: Path) -> tuple[dict, str]:
-    """Hazırlanmış LOCO'nun eğitim belgesi ve özeti; yarım ya da değişmişse ButunlukHatasi."""
+def bagla_ya_da_kopyala(kaynak: Path, hedef: Path) -> bool:
+    """Dosyayı sabit bağlantıyla koyar (disk harcamaz); olmazsa (başka disk, FAT32)
+    kopyalar. Bağlandıysa True."""
+    try:
+        os.link(kaynak, hedef)
+        return True
+    except OSError:
+        shutil.copyfile(kaynak, hedef)
+        return False
+
+
+class LocoBozukHatasi(ButunlukHatasi):
+    """Hazırlanmış LOCO yarım ya da değişmiş: klasör silinip yeniden hazırlanmalı."""
+
+
+def _loco_egitimini_oku(loco: Path) -> tuple[dict, str, str | None]:
+    """Hazırlanmış LOCO'nun eğitim belgesi, onun özeti ve kayıttaki görüntü özeti.
+
+    Yarım ya da değişmişse LocoBozukHatasi.
+    """
     json_yolu = loco / "annotations" / "egitim.json"
     kayit_yolu = loco / HAZIRLIK_KAYDI
     for yol in (json_yolu, kayit_yolu):
         if not yol.is_file():
-            raise ButunlukHatasi(
+            raise LocoBozukHatasi(
                 f"{yol} yok. Önce: python egitim/forklift/veri.py hazirla --kaynak DIR "
                 f"--hedef {loco}"
             )
@@ -1504,20 +1526,42 @@ def _loco_egitimini_oku(loco: Path) -> tuple[dict, str]:
         kayit = json.loads(kayit_yolu.read_text(encoding="utf-8"))
         ham = json_yolu.read_bytes()
     except (OSError, ValueError) as hata:
-        raise ButunlukHatasi(f"{loco} okunamadı: {hata!r}") from hata
+        raise LocoBozukHatasi(f"{loco} okunamadı: {hata!r}") from hata
     ozet = hashlib.sha256(ham).hexdigest()
     beklenen = (
         (kayit.get("json_sha256") or {}).get("egitim.json") if isinstance(kayit, dict) else None
     )
     if ozet != beklenen:
-        raise ButunlukHatasi(
+        raise LocoBozukHatasi(
             f"{json_yolu} hazırlık kaydındaki özetle tutmuyor: LOCO veri seti yarım ya da "
             "değişmiş. Klasörü silip yeniden hazırlayın."
         )
     belge = json.loads(ham)
     if not _kategoriler_tutuyor_mu(belge):
-        raise ButunlukHatasi(f"{json_yolu}: kategoriler beklenmedik")
-    return belge, ozet
+        raise LocoBozukHatasi(f"{json_yolu}: kategoriler beklenmedik")
+    goruntu_ozeti = (kayit.get("goruntu_sha256") or {}).get("egitim")
+    return belge, ozet, goruntu_ozeti if isinstance(goruntu_ozeti, str) else None
+
+
+def _loco_goruntulerini_denetle(loco: Path, adlar: Sequence[str], beklenen: str | None) -> None:
+    """Hazırlıkta yazılan eğitim görüntüleri hâlâ aynı mı: hazirlik.json'daki
+    goruntu_sha256, _bolumu_yaz'ın yazdığı sırayla (ad sırası) yeniden hesaplanır.
+
+    Eksik ya da bozuk bir görüntü (yarım kopya, disk hatası, virüs tarayıcısının
+    karantinası) eğitimde saatler sonra "file not found" diye patlardı.
+    """
+    ozet = hashlib.sha256()
+    for ad in adlar:
+        yol = loco / "egitim" / ad
+        try:
+            ozet.update(f"{ad} {dosya_ozeti(yol)}\n".encode())
+        except OSError as hata:
+            raise LocoBozukHatasi(f"{yol} okunamadı ({hata!r}): LOCO veri seti eksik") from hata
+    if beklenen is None or ozet.hexdigest() != beklenen:
+        raise LocoBozukHatasi(
+            f"{loco}: LOCO eğitim görüntüleri hazırlık kaydıyla tutmuyor (eksik, bozuk ya da "
+            "değişmiş dosya). Klasörü silip yeniden hazırlayın."
+        )
 
 
 def birlestir(loco: Path, saha: Path, hedef: Path, *, saha_tekrar: int = 3) -> dict:
@@ -1535,11 +1579,12 @@ def birlestir(loco: Path, saha: Path, hedef: Path, *, saha_tekrar: int = 3) -> d
             "klasörü silin ya da başka bir hedef verin."
         )
     baslangic = time.monotonic()
-    loco_belge, loco_ozeti = _loco_egitimini_oku(loco)
+    loco_belge, loco_ozeti, loco_goruntu_ozeti = _loco_egitimini_oku(loco)
     loco_adlari = sorted({str(g["file_name"]) for g in loco_belge["images"]})
     tuhaf = [ad for ad in loco_adlari if not _LOCO_DOSYA_ADI.fullmatch(ad)]
     if tuhaf:
-        raise ButunlukHatasi(f"{loco}: LOCO dosya adı beklenmedik: {tuhaf[:3]}")
+        raise LocoBozukHatasi(f"{loco}: LOCO dosya adı beklenmedik: {tuhaf[:3]}")
+    _loco_goruntulerini_denetle(loco, loco_adlari, loco_goruntu_ozeti)
     with SahaPaketi(saha) as paket:
         saha_verisi = saha_paketini_oku(paket)
         ozetler = saha_verisi.manifest["sha256"]
@@ -1551,14 +1596,9 @@ def birlestir(loco: Path, saha: Path, hedef: Path, *, saha_tekrar: int = 3) -> d
                 (gecici / klasor).mkdir()
             baglanti = kopya = 0
             for ad in loco_adlari:
-                kaynak = loco / "egitim" / ad
-                if not kaynak.is_file():
-                    raise ButunlukHatasi(f"{kaynak} yok: LOCO veri seti eksik")
-                try:
-                    os.link(kaynak, gecici / "egitim" / ad)
+                if bagla_ya_da_kopyala(loco / "egitim" / ad, gecici / "egitim" / ad):
                     baglanti += 1
-                except OSError:
-                    shutil.copyfile(kaynak, gecici / "egitim" / ad)
+                else:
                     kopya += 1
             for kume in SAHA_KUMELERI:
                 for giris in saha_verisi.belgeler[kume]["images"]:
@@ -1610,13 +1650,23 @@ def birlestir(loco: Path, saha: Path, hedef: Path, *, saha_tekrar: int = 3) -> d
                 shutil.copyfile(loco / LISANS_DOSYASI, gecici / LISANS_DOSYASI)
 
             test_kutusu = _kutu_sayilari(saha_test)
+            test_kutulu = {e["image_id"] for e in saha_test["annotations"]}
             uyarilar = [str(u) for u in saha_verisi.manifest.get("uyarilar") or []]
             if not saha_test["images"]:
                 uyarilar.append(
                     "Fabrika test günü yok: model fabrikada ölçülemez. En az iki ayrı günün "
                     "karesini etiketleyip paketi yeniden indirin."
                 )
-            elif test_kutusu[FORKLIFT] < AZ_TEST_KUTUSU:
+            elif all(g["id"] in test_kutulu for g in saha_test["images"]) and not any(
+                "forkliftsiz (boş) kare yok" in u for u in uyarilar
+            ):
+                # degerlendir.py fk_fp_goruntu_basi'nin paydası kutusuz karedir
+                uyarilar.append(
+                    "Fabrikanın test günlerinde forkliftsiz (boş) kare yok: yanlış forklift "
+                    "alarmı ölçülemez ve o kapı kalır. Test günlerinin boş karelerini de "
+                    "“Forklift yok” diye etiketleyin."
+                )
+            if saha_test["images"] and test_kutusu[FORKLIFT] < AZ_TEST_KUTUSU:
                 uyarilar.append(
                     f"Fabrikanın test günlerinde yalnız {test_kutusu[FORKLIFT]} forklift kutusu "
                     f"var (en az {AZ_TEST_KUTUSU} önerilir): oranlar birkaç kutuyla ölçülür, "
@@ -1675,6 +1725,63 @@ def birlestir(loco: Path, saha: Path, hedef: Path, *, saha_tekrar: int = 3) -> d
     _yaz(f"birleştirme bitti: {hedef}")
     print("BIRLESTIRME_OZETI " + json.dumps(ozet_satiri, separators=(",", ":")), flush=True)
     return rapor
+
+
+def saha_paketinin_ozeti(saha: Path) -> str:
+    """Paketin kimliği: manifest.json'un SHA-256'sı (her dosyanın özeti onun içinde)."""
+    with SahaPaketi(saha) as paket:
+        return hashlib.sha256(paket.oku(SAHA_MANIFESTI)).hexdigest()
+
+
+def saha_paketini_ac(saha: Path, hedef: Path) -> SahaVerisi:
+    """Fabrika paketini denetleyerek klasöre açar (egit.py ve degerlendir.py düzeni).
+
+    Her dosya manifest'teki özetle denetlenir ve baytı baytına yazılır: açılan
+    klasör de paket olarak yeniden okunabilir (birlestir). Bu JSON'ları
+    pycocotools okumaz; eğitimin okuduğu JSON'u birlestir ve yerel.py salt
+    ASCII yazar. Hedef yoksa ya da boşsa yazılır; yarım klasör bırakılmaz.
+    """
+    if hedef.exists() and (not hedef.is_dir() or any(hedef.iterdir())):
+        raise ButunlukHatasi(f"Hedef klasör boş değil: {hedef}")
+    with SahaPaketi(saha) as paket:
+        saha_verisi = saha_paketini_oku(paket)
+        ozetler = saha_verisi.manifest["sha256"]
+        hedef.parent.mkdir(parents=True, exist_ok=True)
+        gecici = Path(tempfile.mkdtemp(prefix=f".{hedef.name}-acilis-", dir=hedef.parent))
+        tamam = False
+        try:
+            (gecici / "annotations").mkdir()
+            for kume in SAHA_KUMELERI:
+                (gecici / kume).mkdir()
+                for giris in saha_verisi.belgeler[kume]["images"]:
+                    ad = giris["file_name"]
+                    veri_ = paket.oku(f"{kume}/{ad}")
+                    if hashlib.sha256(veri_).hexdigest() != ozetler[f"{kume}/{ad}"]:
+                        raise ButunlukHatasi(
+                            f"{paket.yol}: {kume}/{ad} manifest'teki özetle tutmuyor; paket "
+                            "bozuk. Forklift sayfasından yeniden indirin."
+                        )
+                    (gecici / kume / ad).write_bytes(veri_)
+                ad = f"annotations/{kume}.json"
+                veri_ = paket.oku(ad)
+                if hashlib.sha256(veri_).hexdigest() != ozetler[ad]:
+                    raise ButunlukHatasi(f"{paket.yol}: {ad} okunurken değişti")
+                (gecici / ad).write_bytes(veri_)
+            (gecici / SAHA_MANIFESTI).write_bytes(paket.oku(SAHA_MANIFESTI))
+            (gecici / SAHA_BENIOKU).write_bytes(
+                paket.oku(SAHA_BENIOKU)
+                if paket.var_mi(SAHA_BENIOKU)
+                else _SAHA_BENIOKU_YEDEGI.encode("utf-8")
+            )
+            gecici.chmod(0o755)
+            if hedef.exists():
+                hedef.rmdir()
+            gecici.rename(hedef)
+            tamam = True
+        finally:
+            if not tamam:
+                shutil.rmtree(gecici, ignore_errors=True)
+    return saha_verisi
 
 
 # ---------------------------------------------------------------------------

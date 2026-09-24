@@ -36,6 +36,14 @@ def _jpeg(genislik: int, yukseklik: int, ton: int = 90) -> bytes:
     return kodlu.tobytes()
 
 
+def _goruntu_ozeti(klasor: Path) -> str:
+    """hazirlik.json goruntu_sha256'nın tanımı (veri._bolumu_yaz): ad sırasıyla."""
+    ozet = hashlib.sha256()
+    for yol in sorted(klasor.iterdir()):
+        ozet.update(f"{yol.name} {hashlib.sha256(yol.read_bytes()).hexdigest()}\n".encode())
+    return ozet.hexdigest()
+
+
 def _sahte_loco(klasor: Path) -> Path:
     """`hazirla` çıktısının küçük kopyası: iki görüntü, forkliftli olan iki kez listeli."""
     (klasor / "egitim").mkdir(parents=True)
@@ -63,7 +71,14 @@ def _sahte_loco(klasor: Path) -> Path:
     belge = veri.coco_belgesi(kayitlar, forklift_tekrar=2, bilgi={"bolum": "egitim"})
     ozet = veri._json_yaz(klasor / "annotations" / "egitim.json", belge)
     (klasor / veri.HAZIRLIK_KAYDI).write_text(
-        json.dumps({"surum": 1, "json_sha256": {"egitim.json": ozet}}), encoding="utf-8"
+        json.dumps(
+            {
+                "surum": 1,
+                "json_sha256": {"egitim.json": ozet},
+                "goruntu_sha256": {"egitim": _goruntu_ozeti(klasor / "egitim")},
+            }
+        ),
+        encoding="utf-8",
     )
     (klasor / veri.LISANS_DOSYASI).write_text("CC0", encoding="utf-8")
     return klasor
@@ -348,3 +363,26 @@ def test_birlesik_belge_saf_islev():
     ters = dict(loco, images=list(reversed(loco["images"])))
     with pytest.raises(veri.ButunlukHatasi, match="asılından önce"):
         veri.birlesik_egitim_belgesi(ters, saha)
+
+
+def test_bozuk_ya_da_eksik_loco_goruntusu_reddedilir(ornek, tmp_path):
+    """Eğitimde saatler sonra "file not found" yerine birleştirmede, hemen."""
+    loco, saha = ornek
+    (loco / "egitim" / "000002.jpg").write_bytes(b"bozuk dosya")
+    with pytest.raises(veri.LocoBozukHatasi, match="hazırlık kaydıyla tutmuyor"):
+        veri.birlestir(loco, saha, tmp_path / "b1")
+    (loco / "egitim" / "000002.jpg").unlink()
+    with pytest.raises(veri.LocoBozukHatasi, match="okunamadı"):
+        veri.birlestir(loco, saha, tmp_path / "b2")
+    assert not (tmp_path / "b1").exists() and not (tmp_path / "b2").exists()
+
+
+def test_test_gunlerinde_bos_kare_yoksa_uyarir(tmp_path):
+    loco = _sahte_loco(tmp_path / "loco")
+    saha = _saha_zip(
+        tmp_path,
+        [_kare(1, "2026-10-01", [FORKLIFT]), _kare(2, "2026-10-02", [FORKLIFT, TRANSPALET])],
+    )
+    rapor = veri.birlestir(loco, saha, tmp_path / "birlesik")
+    bos = [u for u in rapor["uyarilar"] if "forkliftsiz (boş) kare yok" in u]
+    assert len(bos) == 1, "paketin uyarısı varken ikinci kez yazılmaz"

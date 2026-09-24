@@ -1,0 +1,15 @@
+# Yerel eğitim ortamı (yerel.py; Windows'ta Egit-Windows.bat kurar). Fabrikanın
+# kendi verisiyle eğitim kapalı bir bilgisayarda yapılır; ürünün ortamı DEĞİLDİR.
+#
+# SIRA: önce torch, sonra bu dosya. torch ve torchvision BURADA DEĞİL:
+#   Windows:  python -m pip install torch==2.14.0 torchvision==0.29.0
+#             (PyPI'deki Windows paketi zaten CPU'ludur, ~125 MB)
+#   Linux:    python -m pip install torch==2.14.0 torchvision==0.29.0
+#             --index-url https://download.pytorch.org/whl/cpu
+#             (PyPI'deki Linux paketi CUDA'lıdır ve birkaç GB tutar)
+# Sürümler GitHub'daki eğitimle aynıdır (forklift-egit-bacak.yml; test denetler).
+-r gereksinimler.txt
+# Ölçüm betiği (degerlendir.py) ürünün tespit motorunu (backend/app) açar; o da
+# ayar okumak için python-dotenv, Windows'ta saat dilimi için tzdata ister.
+python-dotenv==1.2.3
+tzdata==2026.4; sys_platform == "win32"

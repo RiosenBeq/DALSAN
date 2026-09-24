@@ -60,6 +60,9 @@ RESMI_AGIRLIKLAR = {
 # Resmi ONNX dosyaları uygulamanın models/ klasöründekilerle aynıdır
 # (models/SHA256SUMS); karşılaştırma için models/indir.sh ile indirilir.
 RESMI_ONNX = {"tiny": "yolox_tiny.onnx", "s": "yolox_s.onnx"}
+# Yerel eğitim (yerel.py) resmi ONNX'i buradan indirir: aynı yayın, özetleri
+# models/SHA256SUMS'ta (uygulamanın indirdiğiyle bayt bayt aynı dosya).
+RESMI_ONNX_ADRESI = _YOLOX_YAYIN
 
 LOCO_COMMIT = "b460ab8c37f09162f0613c7546948c496e1b1628"
 _LOCO_HAM = f"https://raw.githubusercontent.com/tum-fml/loco/{LOCO_COMMIT}/"
@@ -90,3 +93,23 @@ TEST_ALT_KUMELERI = ("subset-1", "subset-4")
 
 # LOCO sınıfı -> ek baş sınıfı; palet, küçük yük taşıyıcı ve kafes atılır.
 LOCO_ESLEME = {"forklift": "forklift", "pallet_truck": "pallet_jack"}
+
+# ---- Yerel eğitim (yerel.py): fabrikanın kendi verisiyle, kapalı bilgisayarda ----
+
+# YOLOX kaynak kodu git'siz indirilir: GitHub'ın sabit commit arşivi. Arşiv
+# dosyasının kendisi (sıkıştırma, zaman damgaları) değişebilir, yolox/
+# paketinin İÇERİĞİ değişmez. İçerik özeti: paketteki her dosyanın deponun
+# köküne göre yolu ve SHA-256'sı; yola göre sıralı "<yol>\0<sha256>\n"
+# satırlarının SHA-256'sı (yerel.kaynak_ozeti). 24.09.2026'da sabit commit'in
+# git ağacından iki yolla (git archive ve çalışma ağacı) hesaplandı: 55 dosya.
+YOLOX_ARSIVI = f"https://github.com/Megvii-BaseDetection/YOLOX/archive/{YOLOX_COMMIT}.zip"
+YOLOX_KAYNAK_OZETI = "38aaf0c4b37861dda187dcab6708454c12af70c18bdfcfb645d6f6cdbdd0d47f"
+
+# Ölçümün öteki iki girdisi; iş akışındakiyle aynı (forklift-egit.yml, test denetler).
+# vtest.avi: OpenCV 4.10.0 örneği, yaya videosu, forklift yok.
+VIDEO = (
+    "https://raw.githubusercontent.com/opencv/opencv/4.10.0/samples/data/vtest.avi",
+    "45cddc9490be69345cbdab64ca583be65987e864ca408038e648db99e10516cf",
+)
+# Araç seti: Open Images V7 doğrulama görüntüleri; adlar ve özetler arac_seti.sha256.
+ARAC_SETI_ADRESI = "https://open-images-dataset.s3.amazonaws.com/validation"
