@@ -1648,8 +1648,10 @@ makinede bütün ağın ince ayarı, COCO alt kümesiyle) yerini alır.
    kuralından kaçabilir. Ayrım ancak saha ölçümünde forklift recall'u görüldükten sonra
    devreye alınır; o zamana kadar mesafe kuralının `object_classes`'ı araç grubunun tamamını
    alır. Forklift sınıflı modelde yalnız "Tır/Araç" seçili kurallar forklifti GÖRMEZ;
-   forkliftsiz modelde yalnız "Forklift" seçili kurallar HİÇ uyarı vermez. Kurulum listesi
-   ikisini de kırmızı, zorunlu bir adımda kuralları adıyla söyler; kurulum bitmiş olsa da
+   forkliftsiz modelde yalnız "Forklift" seçili kurallar forklift için HİÇ uyarı vermez.
+   Kurulum listesi ikisini de kırmızı, zorunlu bir adımda kuralları kamera, bölge ve türüyle
+   söyler (kapalı kamera sayılmaz, tır park alanının bölge kuralı bilerek yalnız tırdır);
+   kurulum bitmiş olsa da
    liste yeniden açılır, "Sistem hazır" rozeti gizleyemez (`web/kilavuz.py`). Forklift
    modeli, çalışan hazır modelin karşılığıysa önerilir; değilse insanı hangi modelle
    tanıyacağı söylenir (İsabetli kullanan tesis bilmeden Hızlı düzeyine inmesin).

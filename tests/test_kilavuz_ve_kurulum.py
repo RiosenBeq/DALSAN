@@ -384,6 +384,7 @@ def test_forklift_modelinde_yalniz_tir_secili_kurallar_soylenir(istemci, test_ay
         ("safe_distance", None, '["person"]', '{"object_classes": ["truck"]}'),  # SAYILIR
         ("safe_distance", None, '["person"]', '{"object_classes": ["forklift", "truck"]}'),
         ("zone_intrusion", 11, '["truck"]', '{"mode": "outside"}'),  # tır parkı: bilerek
+        ("vehicle_speed", 11, '["truck"]', "{}"),  # tır parkında hız: forklift de SAYILIR
         ("zone_intrusion", 10, '["person"]', "{}"),
     ]
     for tip, bolge, hedef, params in kurallar:
@@ -396,7 +397,13 @@ def test_forklift_modelinde_yalniz_tir_secili_kurallar_soylenir(istemci, test_ay
     istemci.app.state.supervizor = SahteSupervizor("hazir", forklift=True)
     metin = istemci.get("/komuta").text
     assert "Forklift ayrı sınıf olarak tanınıyor." in metin
-    assert "Rampa 1 kamerasındaki 2 kural yalnız “Tır/Araç” için kurulu" in metin
+    assert "araç olarak yalnız “Tır/Araç”ı izliyor ve forklifti GÖRMEZ" in metin
+    # Kurallar kamera, bölge ve türüyle sayılır; tır parkının bölge kuralı sayılmaz
+    assert (
+        "Rampa 1 kamerasındaki “Yaya yolu” bölge kuralı, Rampa 1 kamerasındaki güvenli "
+        "mesafe kuralı ve Rampa 1 kamerasındaki “Tır parkı” hız kuralı" in metin
+    )
+    assert "“Tır parkı” bölge kuralı" not in metin
 
     # Hazır modelde (forklift "tır" görünür) uyarı anlamsızdır: gösterilmez.
     istemci.app.state.supervizor = SahteSupervizor("hazir", forklift=False)
@@ -432,7 +439,10 @@ def test_kurulu_tesiste_forklift_modeline_gecince_tir_kurali_uyarisi_gizlenmez(
     metin = istemci.get("/komuta").text
     assert "Sistem hazır." not in metin
     assert _adim_durumu(metin, UYUMSUZ_ADIM) == "sorun"
-    assert "1 kural yalnız “Tır/Araç” için kurulu ve forklifti GÖRMEZ" in metin
+    assert (
+        "araç olarak yalnız “Tır/Araç”ı izliyor ve forklifti GÖRMEZ: Rampa 1 kamerasındaki "
+        "“Yaya yolu” bölge kuralı" in metin
+    )
     # Kılavuz sayfası da kurulumu "tamam" demez, listeye yönlendirir
     assert "Kurulumunuz tamam." not in istemci.get("/komuta/kilavuz").text
 
@@ -462,13 +472,59 @@ def test_forkliftsiz_modelde_yalniz_forklift_secili_kural_uyarisi(
     metin = istemci.get("/komuta").text
     assert "Sistem hazır." not in metin
     assert _adim_durumu(metin, UYUMSUZ_ADIM) == "sorun"
-    assert "1 kural yalnız “Forklift” için kurulu" in metin
-    assert "HİÇ uyarı vermez" in metin
+    assert "araç olarak yalnız “Forklift”i izliyor ve forklift için HİÇ uyarı vermez" in metin
     assert ("forklifti tanıyan modeli seçin" in metin) is forklift_modeli_kayitli
 
     # Forklift modeli çalışırken aynı kural uyumludur
     istemci.app.state.supervizor = SahteSupervizor("hazir", forklift=True)
     assert UYUMSUZ_ADIM not in istemci.get("/komuta").text
+
+
+def test_kapali_kameranin_kurali_uyumsuz_sayilmaz(istemci, test_ayarlari):
+    """Kapalı kameranın kuralı hiç yüklenmez; sessizliği modelden değildir
+    (kalibrasyon ve mahremiyet adımları da kapalı kamerayı saymaz)."""
+    kamera = _kurulumu_tamamla(istemci, test_ayarlari)
+    ikinci = _kamera_ekle(istemci, "Depo 2", "Depo")
+    _bolge_ekle(test_ayarlari, ikinci)
+    _arac_kurali_ekle(test_ayarlari, ikinci, '["forklift"]')
+    _yaz(test_ayarlari, "UPDATE cameras SET enabled = 0 WHERE id = ?", (ikinci,))
+    _yaz(
+        test_ayarlari,
+        "UPDATE cameras SET privacy_checked_at = ? WHERE id = ?",
+        (zaman.simdi_utc(), kamera),
+    )
+    metin = istemci.get("/komuta").text
+    assert UYUMSUZ_ADIM not in metin and "Sistem hazır." in metin
+
+
+def test_insani_da_izleyen_kuralda_insan_uyarisinin_surdugu_soylenir(istemci, test_ayarlari):
+    """ "İnsan + Forklift" kuralı forkliftsiz modelde insan için uyarmaya devam
+    eder: adım yalnız forklift uyarısının sustuğunu söyler."""
+    kamera = _kurulumu_tamamla(istemci, test_ayarlari)
+    _arac_kurali_ekle(test_ayarlari, kamera, '["person", "forklift"]')
+    metin = istemci.get("/komuta").text
+    assert "forklift için HİÇ uyarı vermez (kural insanı da izliyorsa insan uyarısı sürer)" in (
+        metin
+    )
+
+
+def test_forklift_notu_en_yeni_surumu_onerir(istemci, monkeypatch):
+    """Aynı hazır model için iki sürüm kayıtlıysa sonra eklenen (yeni) önerilir."""
+    for ad, gorunen in (
+        ("nextgen_forklift_tiny_r0.onnx", "NextGen AI Hızlı + Forklift (eski)"),
+        ("nextgen_forklift_tiny_r1.onnx", "NextGen AI Hızlı + Forklift"),
+    ):
+        monkeypatch.setitem(model_indir.FORKLIFT_TABANI, ad, "yolox_tiny.onnx")
+        monkeypatch.setitem(model_adi.GORUNEN_ADLAR, ad, gorunen)
+    _motoru_hazirla(istemci, "hazir")
+    ayarlar = istemci.app.state.ayarlar
+    istemci.app.state.ayarlar = dataclasses.replace(
+        ayarlar, model_dosyasi=ayarlar.model_dosyasi.with_name("yolox_tiny.onnx")
+    )
+    metin = html.unescape(istemci.get("/komuta").text)
+    istemci.app.state.ayarlar = ayarlar
+    assert "“NextGen AI Hızlı + Forklift” modeline" in metin
+    assert "(eski)" not in metin
 
 
 def test_model_hazir_degilken_kural_uyumu_soylenmez(istemci, test_ayarlari):
@@ -505,8 +561,10 @@ def test_forklift_notu_calisan_modelin_karsiligini_onerir(istemci, monkeypatch):
         ayarlar, model_dosyasi=ayarlar.model_dosyasi.with_name("yolox_s.onnx")
     )
     metin = html.unescape(istemci.get("/komuta").text)
-    assert "yalnız “NextGen AI Hızlı + Forklift” olarak var" in metin
-    assert "insanı ve aracı “NextGen AI Hızlı” modeliyle tanır" in metin
+    assert (
+        "“NextGen AI Hızlı + Forklift” (insanı ve aracı “NextGen AI Hızlı” modeliyle tanır)"
+        in metin
+    )
     istemci.app.state.ayarlar = ayarlar
 
 

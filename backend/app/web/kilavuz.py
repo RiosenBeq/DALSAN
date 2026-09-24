@@ -151,10 +151,13 @@ def _kural_arac_siniflari(baglanti):
     Güvenli mesafede araç listesi `object_classes`, bölge ve hız kuralında
     kuralın hedef sınıflarıdır.
     """
+    # Kapalı kameranın kuralı hiç yüklenmez (supervizor yalnız açık kameraları
+    # okur): onun sessizliği modelden değildir, kalibrasyon adımı gibi sayılmaz.
     for satir in baglanti.execute(
         "SELECT r.id, r.rule_type, r.target_classes, r.params, c.name AS kamera_adi, "
-        "z.zone_type FROM rules r JOIN cameras c ON c.id = r.camera_id "
-        "LEFT JOIN zones z ON z.id = r.zone_id WHERE r.enabled = 1 ORDER BY c.name, r.id"
+        "z.zone_type, z.name AS bolge_adi FROM rules r JOIN cameras c ON c.id = r.camera_id "
+        "LEFT JOIN zones z ON z.id = r.zone_id "
+        "WHERE r.enabled = 1 AND c.enabled = 1 ORDER BY c.name, r.id"
     ):
         try:
             if satir["rule_type"] == "safe_distance":
@@ -171,15 +174,16 @@ def forklifti_gormeyen_kurallar(baglanti) -> list[dict]:
 
     Hazır modelde forklift çoğu zaman "tır" görünür; yalnız "Tır/Araç" seçili
     bir kural bu yüzden forklifte de tepki veriyordu. Forklift ayrı sınıf olunca
-    (egitim/forklift, docs/17 §12.3) aynı kural forklifti GÖRMEZ. Tır park alanı
-    kuralı bilerek yalnız tır içindir.
+    (egitim/forklift, docs/17 §12.3) aynı kural forklifti GÖRMEZ. Tır park alanının
+    bölge kuralı ("tır konumlanma") bilerek yalnız tır içindir; aynı alandaki hız
+    ya da güvenli mesafe kuralı ise forklifti de görmelidir, sayılır.
     """
     return [
         dict(satir)
         for satir, siniflar in _kural_arac_siniflari(baglanti)
         if SINIF_TIR in siniflar
         and SINIF_FORKLIFT not in siniflar
-        and satir["zone_type"] != "truck_parking"
+        and not (satir["zone_type"] == "truck_parking" and satir["rule_type"] == "zone_intrusion")
     ]
 
 
@@ -187,7 +191,8 @@ def forklifte_bagli_kurallar(baglanti) -> list[dict]:
     """Araç olarak yalnız "Forklift"i seçmiş etkin kurallar.
 
     Forkliftsiz modelde (hazır model ya da forklift modelinden geri dönülmüş
-    kurulum) forklift sınıfı hiç üretilmez: bu kurallar HİÇ uyarı vermez.
+    kurulum) forklift sınıfı hiç üretilmez: bu kurallar forklift için HİÇ uyarı
+    vermez (kural insanı da izliyorsa insan uyarısı sürer).
     """
     return [
         dict(satir)
@@ -198,8 +203,17 @@ def forklifte_bagli_kurallar(baglanti) -> list[dict]:
 
 def forklift_karsiliklari(model_dosyasi: str) -> list[str]:
     """Çalışan modelin forklift karşılıkları: insanı ve aracı onunla aynı tanıyan,
-    forklifti ayrıca tanıyan kayıtlı modeller (dosya adları)."""
-    return sorted(ad for ad, taban in FORKLIFT_TABANI.items() if taban == model_dosyasi)
+    forklifti ayrıca tanıyan kayıtlı modeller (dosya adları), kayıt sırasıyla:
+    yeni sürüm sona eklenir, en yenisi sondadır."""
+    return [ad for ad, taban in FORKLIFT_TABANI.items() if taban == model_dosyasi]
+
+
+def _en_yeni_forklift_modelleri() -> dict[str, str]:
+    """Her hazır model için en yeni forklift karşılığı: {taban: forklift modeli}."""
+    en_yeni: dict[str, str] = {}
+    for ad, taban in FORKLIFT_TABANI.items():
+        en_yeni[taban] = ad  # sonraki kayıt öncekinin yerini alır
+    return en_yeni
 
 
 def _forklift_notu(supervizor, model_dosyasi: str) -> str:
@@ -226,16 +240,21 @@ def _forklift_notu(supervizor, model_dosyasi: str) -> str:
     karsiliklar = forklift_karsiliklari(model_dosyasi)
     if karsiliklar:
         return not_ + (
-            f" Forklifti ayrıca tanıyan “{gorunen_model_adi(karsiliklar[0])}” modeline "
+            f" Forklifti ayrıca tanıyan “{gorunen_model_adi(karsiliklar[-1])}” modeline "
             "Ayarlar'daki “Tanıma modeli” listesinden geçebilirsiniz; insanı ve aracı "
             "bu modelle aynı tanır."
         )
     if FORKLIFT_TABANI:
-        ad, taban = sorted(FORKLIFT_TABANI.items())[0]
+        secenekler = _ve_ile(
+            [
+                f"“{gorunen_model_adi(ad)}” (insanı ve aracı “{gorunen_model_adi(taban)}” "
+                "modeliyle tanır)"
+                for taban, ad in sorted(_en_yeni_forklift_modelleri().items())
+            ]
+        )
         return not_ + (
-            f" Forklifti ayrıca tanıyan model yalnız “{gorunen_model_adi(ad)}” olarak "
-            "var (Ayarlar, “Tanıma modeli”); ona geçen sistem insanı ve aracı "
-            f"“{gorunen_model_adi(taban)}” modeliyle tanır."
+            " Forklifti ayrıca tanıyan model Ayarlar'daki “Tanıma modeli” listesinde "
+            f"var: {secenekler}. Geçmeden önce insanı hangi modelle tanıyacağına bakın."
         )
     return not_ + (
         " Forkliftin kendisini tanıması için eğitilmiş model gerekir; destek ekibinden isteyin."
@@ -356,22 +375,32 @@ def _forklift_kural_adimi(kurallar: list[dict], forklift_taniyor: bool) -> dict:
     sayılır, kurulum bitmiş olsa da listeyi yeniden açar ("Sistem hazır."
     rozeti gizleyemez).
     """
-    kameralar = sorted({k["kamera_adi"] for k in kurallar})
-    yer = (
-        f"{_ve_ile(kameralar)} {'kamerasındaki' if len(kameralar) == 1 else 'kameralarındaki'} "
-        f"{len(kurallar)} kural"
+    turler = {
+        "zone_intrusion": "bölge kuralı",
+        "safe_distance": "güvenli mesafe kuralı",
+        "vehicle_speed": "hız kuralı",
+    }
+    tanimlar = [
+        f"{k['kamera_adi']} kamerasındaki "
+        + (f"“{k['bolge_adi']}” " if k.get("bolge_adi") else "")
+        + turler.get(k["rule_type"], "kural")
+        for k in kurallar
+    ]
+    liste = _ve_ile(tanimlar[:3]) + (
+        f" ve {len(tanimlar) - 3} kural daha" if len(tanimlar) > 3 else ""
     )
     if forklift_taniyor:
         aciklama = (
-            f"Forklift ayrı sınıf olarak tanınıyor, ama {yer} yalnız “Tır/Araç” için "
-            "kurulu ve forklifti GÖRMEZ. Kuralı açıp “Forklift”i de işaretleyin (tır "
-            "park alanı kuralı bilerek yalnız tır içindir)."
+            "Forklift ayrı sınıf olarak tanınıyor, ama şu kurallar araç olarak yalnız "
+            f"“Tır/Araç”ı izliyor ve forklifti GÖRMEZ: {liste}. Kuralı açıp “Forklift”i "
+            "de işaretleyin (tır park alanının bölge kuralı bilerek yalnız tır içindir)."
         )
     else:
         aciklama = (
-            f"{yer[0].upper()}{yer[1:]} yalnız “Forklift” için kurulu, ama çalışan tanıma "
-            "modeli forklifti ayrı sınıf olarak tanımıyor: bu kurallar HİÇ uyarı "
-            "vermez. Kuralı açıp “Tır/Araç”ı da işaretleyin"
+            "Çalışan tanıma modeli forklifti ayrı sınıf olarak tanımıyor, ama şu kurallar "
+            "araç olarak yalnız “Forklift”i izliyor ve forklift için HİÇ uyarı vermez "
+            f"(kural insanı da izliyorsa insan uyarısı sürer): {liste}. Kuralı açıp "
+            "“Tır/Araç”ı da işaretleyin"
             + (
                 " ya da Ayarlar'daki “Tanıma modeli” listesinden forklifti tanıyan modeli seçin."
                 if FORKLIFT_TABANI

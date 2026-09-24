@@ -60,7 +60,8 @@ def model_aciklamasi(forklift_modeli_var: bool) -> str:
         "Adında “Forklift” geçen model forklifti ayrı sınıf olarak da tanır; insanı ve "
         "aracı adındaki hazır modelle aynı tanır, işlemciyi biraz daha yorar. O modelde "
         "forklift artık “Tır/Araç” sayılmaz: yalnız “Tır/Araç” seçili kurallarda "
-        "“Forklift”i de işaretleyin. "
+        "“Forklift”i de işaretleyin (tır park alanının bölge kuralı bilerek yalnız "
+        "tırdır). Kurulum listesi bu kuralları söyler. "
         if forklift_modeli_var
         else ""
     )
