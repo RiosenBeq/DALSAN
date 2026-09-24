@@ -424,11 +424,29 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Varyantın çalışma klasörü
+      # Her bacak kendi adıyla yükler (forklift-egit-bacak.yml): en yenisi seçilir
+      - name: Varyantın bacak kayıtları
         uses: actions/download-artifact@v8
         with:
-          name: calisma-${{ matrix.varyant }}
-          path: calisma
+          pattern: calisma-${{ matrix.varyant }}-b*
+          path: indirilen
+
+      - name: Son bacağın kaydını seç
+        run: |
+          for n in 3 2 1; do
+            if [ -d "indirilen/calisma-$VARYANT-b$n" ]; then
+              mv "indirilen/calisma-$VARYANT-b$n" "$W"
+              break
+            fi
+          done
+          if [ ! -d "$W" ]; then
+            echo "::error title=$VARYANT kaydı yok::Hiçbir bacak çalışma klasörü yüklemedi; eğitim bacaklarının günlüğüne bakın."
+            exit 1
+          fi
+          deneme=$(cat "$W/DENEME" 2>/dev/null || echo bilinmiyor)
+          if [ "$deneme" != "$GITHUB_RUN_ATTEMPT" ]; then
+            echo "::warning title=Önceki denemenin kaydı::$VARYANT: ölçülen kayıt $deneme. denemenin, bu çalıştırma $GITHUB_RUN_ATTEMPT. deneme."
+          fi
 
       - name: Eğitim bitti mi, adaylar var mı
         run: |

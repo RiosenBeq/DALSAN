@@ -1,8 +1,13 @@
 # Forklift eğitiminin TEK bacağı: bir varyantın (ör. tiny-v1) en çok ~5,5
 # saatlik eğitim dilimi. forklift-egit.yml bunu her varyant için üç kez, sırayla
-# çağırır; her bacak bir öncekinin çalışma klasöründen (calisma-<varyant>
+# çağırır; her bacak bir öncekinin çalışma klasöründen (calisma-<varyant>-b<N>
 # yapıtı) sürer. Eğitimi bitiren bacak birleşik ONNX'leri de üretir ve resmi
 # modelle denetler.
+#
+# Her bacak KENDİ adıyla yükler: yarıda kalan bir yükleme önceki bacağın
+# kaydını silemez (aynı ad ezilseydi, üzerine yazma yeni yüklemeden önce eskisini
+# siler ve saatlerin kaydı giderdi). Kayıt yazıldığı denemeyi de taşır (DENEME):
+# başka bir denemenin kaydından sürdürülürse uyarı düşer.
 #
 # TUZAK: 2. ve 3. bacak önceki bacağın ara kaydı OLMADAN asla başlamaz.
 # Başlasaydı eğitim sessizce sıfırdan başlar, son bacağın birkaç devri "bitmiş
@@ -97,13 +102,34 @@ jobs:
         with:
           persist-credentials: false
 
-      # continue-on-error YOK: yapıt yoksa iş burada düşer, sıfırdan başlamaz.
-      - name: Önceki bacağın çalışma klasörü (yoksa DURUR)
+      # continue-on-error YOK: hiçbir bacağın kaydı yoksa iş aşağıda düşer,
+      # sıfırdan başlamaz. Eğitimi erken biten varyantın sonraki bacakları
+      # yüklemez; bu yüzden hepsi indirilir, en yenisi seçilir.
+      - name: Önceki bacakların çalışma klasörleri
         if: inputs.bacak > 1
         uses: actions/download-artifact@v8
         with:
-          name: calisma-${{ inputs.varyant }}
-          path: calisma/${{ inputs.varyant }}
+          pattern: calisma-${{ inputs.varyant }}-b*
+          path: indirilen
+
+      - name: Önceki bacağın kaydını seç (yoksa DURUR)
+        if: inputs.bacak > 1
+        run: |
+          for n in $(seq $((BACAK - 1)) -1 1); do
+            if [ -d "indirilen/calisma-$VARYANT-b$n" ]; then
+              mkdir -p "$(dirname "$W")"
+              mv "indirilen/calisma-$VARYANT-b$n" "$W"
+              break
+            fi
+          done
+          if [ ! -d "$W" ]; then
+            echo "::error title=Ara kayıt eksik::$VARYANT: önceki bacakların hiçbirinin çalışma klasörü yok. Eğitim sıfırdan başlatılmaz."
+            exit 1
+          fi
+          deneme=$(cat "$W/DENEME" 2>/dev/null || echo bilinmiyor)
+          if [ "$deneme" != "$GITHUB_RUN_ATTEMPT" ]; then
+            echo "::warning title=Önceki denemenin kaydı::$VARYANT: kayıt $deneme. denemenin, bu çalıştırma $GITHUB_RUN_ATTEMPT. deneme. Yalnız düşen işler yeniden çalıştırıldıysa beklenen budur; bütün işler yeniden çalıştırıldıysa önceki bacak bu denemede kayıt bırakmadı."
+          fi
 
       - id: durum
         name: Bu bacakta iş var mı
@@ -252,6 +278,7 @@ jobs:
             --resmi-pth "$RESMI_PTH" --calisma "$W" --devir "$DEVIR" --sure-sn "$SURE_SN" \
             --is-parcacigi 4 --veri-isci 2
           echo "$BACAK" > "$W/BACAK"
+          echo "$GITHUB_RUN_ATTEMPT" > "$W/DENEME"
           python -m pip freeze > "$W/paketler-bacak$BACAK.txt"
           if [ -f "$W/BITTI" ]; then
             echo "bitti=true" >> "$GITHUB_OUTPUT"
@@ -343,14 +370,15 @@ jobs:
               | tee "$W/denetim-k$k.txt"
           done
 
-      # Aynı ad, her bacakta yenisiyle değişir (overwrite). Bacak düşerse
-      # yükleme yapılmaz; bu varyantın zinciri orada durur (sonraki bacak
-      # eski kaydı BACAK dosyasından tanır), ötekiler sürer (forklift-egit.yml).
+      # Bacak başına ayrı ad: aynı bacak yeniden çalışırsa yalnız kendi kaydını
+      # ezer (overwrite), önceki bacağınkine dokunmaz. Bacak düşerse yükleme
+      # yapılmaz; bu varyantın zinciri orada durur (sonraki bacak eski kaydı
+      # BACAK dosyasından tanır), ötekiler sürer (forklift-egit.yml).
       - name: Çalışma klasörünü yükle
         if: steps.durum.outputs.egit == 'true'
         uses: actions/upload-artifact@v7
         with:
-          name: calisma-${{ inputs.varyant }}
+          name: calisma-${{ inputs.varyant }}-b${{ inputs.bacak }}
           path: calisma/${{ inputs.varyant }}/
           retention-days: 7
           overwrite: true

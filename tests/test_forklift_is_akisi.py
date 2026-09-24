@@ -392,13 +392,17 @@ def test_bacak_sifirdan_baslamaz(bacak):
     adimlar = bacak["jobs"]["egit"]["steps"]
     # İlk adım saati yazar: egit.py süre bütçesini bundan sayar (kurulum dahil)
     assert adimlar[0]["run"].strip() == 'echo "DALSAN_IS_BASLANGICI=$(date +%s)" >> "$GITHUB_ENV"'
-    indir = _adim(bacak, "egit", "Önceki bacağın çalışma klasörü (yoksa DURUR)")
+    indir = _adim(bacak, "egit", "Önceki bacakların çalışma klasörleri")
     assert _ifade(indir["if"]) == "inputs.bacak > 1"
-    assert indir["with"]["name"] == "calisma-${{ inputs.varyant }}"
+    assert indir["with"]["pattern"] == "calisma-${{ inputs.varyant }}-b*"
+    assert "merge-multiple" not in indir["with"]  # her bacak kendi klasörüne iner
+    sec = _adim(bacak, "egit", "Önceki bacağın kaydını seç (yoksa DURUR)")
+    assert _ifade(sec["if"]) == "inputs.bacak > 1"
     # Hiçbir adım hatayı yutmaz: yapıt yoksa iş düşer
     assert not [a.get("name") for a in adimlar if "continue-on-error" in a]
+    # Her bacak KENDİ adıyla yükler: yarıda kalan yükleme önceki bacağın kaydını silemez
     yukle = _adim(bacak, "egit", "Çalışma klasörünü yükle")
-    assert yukle["with"]["name"] == "calisma-${{ inputs.varyant }}"
+    assert yukle["with"]["name"] == "calisma-${{ inputs.varyant }}-b${{ inputs.bacak }}"
     assert yukle["with"]["overwrite"] is True
     assert yukle["with"]["retention-days"] == 7
     # Eğitim önceki bacakta bittiyse hiçbir şey yapılmaz, yapıt yeniden yüklenmez
@@ -847,6 +851,87 @@ def test_bacak_is_var_mi(bacak, tmp_path, no, dosyalar, beklenen):
     else:
         assert sonuc.returncode == 0, sonuc.stdout + sonuc.stderr
         assert _ciktilar(ortam) == {"egit": beklenen}
+
+
+@arac_gerekli
+@pytest.mark.parametrize(
+    ("no", "yuklenen", "secilen"),
+    [
+        (2, [1], 1),
+        (3, [1, 2], 2),
+        (3, [1], 1),  # 1. bacakta biten varyantın 2. bacağı yüklemez
+        (2, [], None),
+        (3, [], None),
+    ],
+)
+def test_bacak_en_yeni_onceki_kaydi_secer(bacak, tmp_path, no, yuklenen, secilen):
+    for n in yuklenen:
+        klasor = tmp_path / "indirilen" / f"calisma-tiny-v3-b{n}"
+        klasor.mkdir(parents=True)
+        (klasor / "BACAK").write_text(f"{n}\n", encoding="utf-8")
+        (klasor / "DENEME").write_text("1\n", encoding="utf-8")
+    calisma = tmp_path / "calisma" / "tiny-v3"
+    ortam = _ortam(
+        tmp_path, BACAK=str(no), W=str(calisma), VARYANT="tiny-v3", GITHUB_RUN_ATTEMPT="1"
+    )
+    betik = _adim(bacak, "egit", "Önceki bacağın kaydını seç (yoksa DURUR)")["run"]
+    sonuc = _calistir(betik, tmp_path, ortam)
+    if secilen is None:
+        assert sonuc.returncode != 0
+        assert "::error title=Ara kayıt eksik::" in sonuc.stdout
+    else:
+        assert sonuc.returncode == 0, sonuc.stdout + sonuc.stderr
+        assert (calisma / "BACAK").read_text(encoding="utf-8").strip() == str(secilen)
+        assert "::warning" not in sonuc.stdout
+
+
+@arac_gerekli
+def test_baska_denemenin_kaydindan_surdurmek_uyari_yazar(bacak, tmp_path):
+    """Bütün işler yeniden çalıştırılır ve 1. bacak bu kez yükleyemezse 2. bacak
+    önceki denemenin kaydını bulur: sessiz kalmaz, uyarır."""
+    klasor = tmp_path / "indirilen" / "calisma-s-v3-b1"
+    klasor.mkdir(parents=True)
+    (klasor / "BACAK").write_text("1\n", encoding="utf-8")
+    (klasor / "DENEME").write_text("1\n", encoding="utf-8")
+    ortam = _ortam(
+        tmp_path,
+        BACAK="2",
+        W=str(tmp_path / "calisma" / "s-v3"),
+        VARYANT="s-v3",
+        GITHUB_RUN_ATTEMPT="2",
+    )
+    betik = _adim(bacak, "egit", "Önceki bacağın kaydını seç (yoksa DURUR)")["run"]
+    sonuc = _calistir(betik, tmp_path, ortam)
+    assert sonuc.returncode == 0, sonuc.stdout + sonuc.stderr
+    assert "::warning title=Önceki denemenin kaydı::s-v3: kayıt 1. denemenin" in sonuc.stdout
+
+
+def test_bacak_kaydina_denemeyi_yazar(bacak):
+    egit = _adim(bacak, "egit", "egitim")["run"]
+    assert 'echo "$GITHUB_RUN_ATTEMPT" > "$W/DENEME"' in egit
+
+
+@arac_gerekli
+@pytest.mark.parametrize(
+    ("yuklenen", "secilen"), [([1], 1), ([1, 2], 2), ([1, 2, 3], 3), ([], None)]
+)
+def test_olc_son_bacagin_kaydini_olcer(ana, tmp_path, yuklenen, secilen):
+    indir = _adim(ana, "olc", "Varyantın bacak kayıtları")
+    assert indir["with"]["pattern"] == "calisma-${{ matrix.varyant }}-b*"
+    for n in yuklenen:
+        klasor = tmp_path / "indirilen" / f"calisma-s-v3-b{n}"
+        klasor.mkdir(parents=True)
+        (klasor / "BACAK").write_text(f"{n}\n", encoding="utf-8")
+        (klasor / "DENEME").write_text("1\n", encoding="utf-8")
+    ortam = _ortam(tmp_path, W="calisma", VARYANT="s-v3", GITHUB_RUN_ATTEMPT="1")
+    sonuc = _calistir(_adim(ana, "olc", "Son bacağın kaydını seç")["run"], tmp_path, ortam)
+    if secilen is None:
+        assert sonuc.returncode != 0
+        assert "::error title=s-v3 kaydı yok::" in sonuc.stdout
+    else:
+        assert sonuc.returncode == 0, sonuc.stdout + sonuc.stderr
+        bacak_no = (tmp_path / "calisma" / "BACAK").read_text(encoding="utf-8").strip()
+        assert bacak_no == str(secilen)
 
 
 @arac_gerekli
