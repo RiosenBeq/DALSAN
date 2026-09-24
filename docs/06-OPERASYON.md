@@ -286,12 +286,17 @@ gri satır gösterir.
 
 ```bash
 git pull
+bash models/indir.sh      # yeni sürümün getirdiği model dosyaları (var olanlar atlanır)
 docker compose build
 docker compose up -d
 docker compose logs -f --tail=100
 ```
 
-Şema değişikliği varsa açılışta kendiliğinden uygulanır.
+Şema değişikliği varsa açılışta kendiliğinden uygulanır. `models/indir.sh` imaja
+girecek modelleri sunucuda indirir; Ayarlar'da seçilebilen her model (forklift
+tanıyan model dahil) böylece imajın içinde olur. Container'ın kendi indirdiği
+model imaj yeniden kurulunca kaybolur ve yeniden iner (internet gerekir).
+Forklift modeli isteğe bağlıdır: inmezse betik uyarı yazıp öteki modellerle biter.
 
 > **23.09.2026 sürümüne geçerken bir kez:** ayar dosyası artık `ayar/.env`
 > olarak bağlanıyor ve Docker'da şifre zorunlu. `docker compose up -d`'den önce
@@ -434,6 +439,8 @@ görünmelidir.
 | "Tespit modeli: Yüklenemedi" | İnternet yoksa `bash models/indir.sh` ile elle indirin; dosya bozuksa silip tekrar indirin |
 | Kutular çıkmıyor / nesne kaçıyor | `.env` içinde `TESPIT_GUVEN_ESIGI` ve `TESPIT_INSAN_GUVEN_ESIGI` değerlerini kademeli düşürün (0,05'lik adımlarla). Uzak nesnede `TESPIT_EN_KUCUK_KENAR_PX` düşürülür |
 | Çok fazla yanlış tespit | Aynı eşikleri yükseltin; **NextGen AI İsabetli** (`MODEL_DOSYASI=models/yolox_s.onnx`) daha isabetlidir (daha yavaş) |
+| "Tespit modeli: ... yayın yerinde bulunamadı" | İnternet çalışıyor, model dosyası yayında yok: Ayarlar → "Tanıma modeli"nden başka model seçip yeniden başlatın, destek ekibine haber verin |
+| Forklift modeline geçince bazı kurallar forklifte tepki vermiyor | Kurulum listesindeki "Araç kuralları tanıma modeline uyuyor mu?" adımı kuralları adıyla söyler: yalnız "Tır/Araç" seçili kurallarda "Forklift"i de işaretleyin (tır park alanı kuralı bilerek yalnız tırdır). Forkliftsiz modele dönünce yalnız "Forklift" seçili kurallar aynı adımda görünür |
 | Olay üretilmiyor | Kural açık mı; bölge doğru tipte mi; mesafe kuralında kalibrasyon var mı (Kurallar sayfasındaki rozet söyler) |
 | KKD sayfasına yeni örnek düşmüyor | Sayfanın üstündeki "Veri toplama" kapısı **KAPALI** olabilir (varsayılan). Rev.02 onayından sonra açılır; kapalıyken kişi görüntüsü bilerek toplanmaz. Açıksa: kişi KKD zorunlu alanda mı, muaf alanın dışında mı, kural boyundan (`min_person_height_px`) uzun mu |
 | KKD hiç olay üretmiyor | Model henüz eğitilmedi - bu **beklenen** davranıştır (docs/04). KKD sekmesinin üstündeki "KKD modeli" kartı durumu yazar; veri toplanıyor mu da orada |

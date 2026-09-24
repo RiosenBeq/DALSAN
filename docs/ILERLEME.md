@@ -27,6 +27,24 @@ eğit"*. Karar kaydı ve lisans çerçevesi docs/17 §16, yöntem §12.3.
   model reddedilir); forklift sınıflı modelde yalnız "Tır/Araç" seçili kurallar kurulum
   listesinde söylenir; paket sınaması modelin gerçekten yüklendiğini bekler; modeller bu
   deponun yayınından SHA-256 ile iner; Ayarlar'da "Tanıma modeli" seçimi.
+- **Entegrasyon provası (24.09.2026):** kapıyı geçen bir aday gelmeden, koşu 5'in gerçek bir
+  dosyasıyla ayrı bir dalda (main'e gitmedi) kayıt uçtan uca denendi: uygulama modeli ilk
+  açılışta yayından indirip SHA-256 ile doğruladı ve yükledi, `models/indir.sh` de indirdi,
+  Ayarlar ve kılavuz doğru gösterdi, tam takım geçti. Karar: kapıyı geçen aday Ayarlar'da
+  SEÇİLEBİLİR olur, varsayılan DEĞİŞMEZ (yayın notu: "sahada ölçülüp operatör onaylamadan
+  uygulamaya konmaz"). Provanın bağımsız incelemesi ürün açıkları buldu, düzeltildi:
+  - kurulumu bitmiş tesiste forklift modeline geçilince yalnız "Tır/Araç" seçili kuralların
+    forklifti artık görmediği hiçbir sayfada söylenmiyordu (uyarı yalnız kurulum listesinin
+    gizlenen açıklamasındaydı); forkliftsiz modele dönülünce yalnız "Forklift" seçili
+    kuralların sustuğu da söylenmiyordu. İkisi artık kırmızı, zorunlu bir kurulum adımıdır;
+  - kılavuz notu İsabetli kullanan tesise Hızlı tabanlı forklift modelini, insanı daha az
+    isabetli tanıyacağını söylemeden öneriyordu; not artık çalışan modelin karşılığını önerir;
+  - Ayarlar açıklaması forklift modelinde "Tır/Araç" kurallarının ne olacağını söyler;
+  - `models/indir.sh` isteğe bağlı forklift dosyası inmeyince bütünüyle düşüyordu (Docker
+    hazırlığı ve eğitim hattı da onunla); artık uyarı yazıp öteki modellerle biter, yarım
+    dosya bırakmaz. Docker güncelleme adımları `bash models/indir.sh`'i içerir;
+  - yayında olmayan dosya (HTTP 404/410) "internetinizi kontrol edin" diye bildiriliyordu;
+  - hız ölçümü (`tests.hiz_kiyas`) diskteki forklift modelini de ölçer.
 - **GitHub'da sınandı:** duman çalıştırması (3) 12 işin hepsinde yeşil: LOCO arşivi 2 dakikada
   indi ve SHA-256'sı sabitlendi, üç bacaklı zincir ara kayıttan sürdü, eski sınıflar resmi
   modelle aynı çıktı, model testleri makinede de geçti; ölçümde insan ve araç kaybı 0.
