@@ -21,6 +21,12 @@ def test_belge_listesi_her_belgeyi_basligiyla_gosterir(istemci):
     assert "Uzaktan" in sayfa  # 15-UZAKTAN-ERISIM.md'nin başlığından
 
 
+def test_kilavuz_belge_listesine_goturur(istemci):
+    """Liste yalnız tek bir belgenin sayfasından bulunamamalı: kılavuzun
+    içindekiler bölümü de ona gider."""
+    assert 'href="/komuta/belgeler"' in istemci.get("/komuta/kilavuz").text
+
+
 def test_belge_duz_metin_olarak_ve_kacisli_gosterilir(istemci):
     yanit = istemci.get("/komuta/belgeler/15-UZAKTAN-ERISIM.md")
     assert yanit.status_code == 200
