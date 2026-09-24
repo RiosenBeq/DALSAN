@@ -34,7 +34,31 @@ eğit"*. Karar kaydı ve lisans çerçevesi docs/17 §16, yöntem §12.3.
   olayının commit listesinden değişen dosyaları okuyordu, Actions'ta o liste boş gelir. Kip
   artık yalnız git farkından verilir, kuyruk kaldırıldı; tam eğitim çalıştırma 5'te sürüyor
   (tiny 30, s 20 devir; tiny'de adım 1,3 sn, aday başına tahminen 2,5-4 saat).
-- **Sonuçlar:** tam eğitim bitince buraya yazılır.
+- **İlk tam eğitim (çalıştırma 5, 23-24.09.2026): dört adayın hiçbiri geçmedi.** tiny ve s,
+  v1 ve v2; 6 saat 4 dakika sürdü, adaylar `forklift-r5` ön sürümünde. LOCO testinde (2277
+  görüntü, 124 forklift kutusu) **tek bir doğru forklift tespiti yok** (forklift bulma oranı 0,
+  en iyi forklift AP50 0,011). Resmi kısım yapı gereği korundu: insan ve araç kaybı 0,
+  gecikme resmi modelin 1,0-1,17 katı. Hiçbir aday uygulamaya kaydedilmedi, varsayılan model
+  değişmedi.
+- **Neden (eğitim günlüğü ve tanı):** v1 ve v2'de kutu ve nesne puanı resmi modelin DONUK
+  kutu dalından gelir. Kutu kaybı eğitim boyunca 3,0-3,8'de kaldı (eşleşen çapalarda resmi
+  kutunun IoU'su ortalama en çok ~0,57; YOLOX sınıf hedefini bu IoU yapar), nesne kaybı
+  düşmedi, gerçek kutu başına yalnız 1-4 çapa ön plan oldu; tiny-v1'in 20 test görüntüsündeki
+  en yüksek forklift puanı 0,18. Resmi kutunun iyi oturduğu Open Images forklift
+  fotoğraflarında bile (kutuların %97'sinde IoU'su 0,5 üstü bir çapa var) forklift puanının
+  medyanı 0,06 ve hiçbirinde 0,35'i geçmiyor (k = 0 adaylarıyla). Sınıf dalını da eğiten v2
+  v1'den farksız: darboğaz donuk kutu ve nesne dalı.
+- **v3 kipi:** ek baş kendi kutu dalını (iki 3x3 evrişim + kutu ve nesne katmanı, resmi
+  daldan başlar) öğrenir. Birleşik modelde forklift puanı eşlenen bütün resmi puanları
+  geçtiği çapada kutu da ek baştan gelir; öteki her çapada kutu ve insan/araç puanları resmi
+  modelinkiyle aynı kalır (denetim bunu çapa çapa sınar, kip model kartından okunur).
+  Ölçüme tanı metrikleri eklendi (adayın ve resmi modelin kutu tavanı `fk_kutu_tavani`,
+  `fk_kutu_tavani_resmi`; `fk_puan50_medyan`, `fk_kazanir50`): sonraki sonuçta sorunun
+  kutuda mı puanda mı olduğu doğrudan görünür. Bacak iş akışının girdi
+  denetimi yalnız v1 ve v2'yi kabul ediyordu, v3'ü GitHub'da ilk adımda düşürecekti:
+  gönderimden önce bulundu, plandan geçen her varyantı bacağın denetiminde çalıştıran test
+  eklendi.
+- **Sıradaki:** kısa duman sınaması (v1, v2, v3), ardından tiny-v3 ve s-v3 tam eğitimi.
 
 ## Hata avı ve uygulama üretim hattı (23.09.2026)
 

@@ -1607,18 +1607,23 @@ gölge mod. Hedef veri miktarı docs/04 §4.5'tedir; bu belge yeni sayı koymaz.
 
 ### 12.3 Forklift / tır özel sınıfı yolu
 
-**Durum (23.09.2026): eğitim hattı kuruldu ve GitHub'da uçtan uca sınandı, ilk tam eğitim
-sürüyor** (operatör: "forklifti tanıması lazım ... en iyi şekilde eğit"; karar kaydı §16).
-Sonuçlar ve seçilen model docs/ILERLEME'ye yazılır. Aşağıdaki 1-3, ilk planın (GPU'lu
+**Durum (24.09.2026): eğitim hattı kuruldu ve GitHub'da uçtan uca sınandı; ilk tam
+eğitimin (çalıştırma 5, v1 ve v2) dört adayı da kapılardan kaldı** (LOCO testinde tek doğru
+forklift tespiti yok; neden docs/ILERLEME). Kutu ve nesne dalını da öğrenen `v3` kipi
+eklendi, yeniden eğitilecek (operatör: "forklifti tanıması lazım ... en iyi şekilde eğit";
+karar kaydı §16). Sonuçlar ve seçilen model docs/ILERLEME'ye yazılır. Aşağıdaki 1-3, ilk planın (GPU'lu
 makinede bütün ağın ince ayarı, COCO alt kümesiyle) yerini alır.
 
 1. **Yöntem: donuk resmi model + ek baş.** Resmi YOLOX COCO modeli (tiny 416, s 640)
    DEĞİŞMEZ. Yanına yalnız iki sınıfı (forklift, el transpaleti `pallet_jack`) öğrenen küçük
    bir ek baş eğitilir; resmi başın kendi özniteliklerini kullanır. `v1`: yalnız 1x1 sınıf ve
    nesne katmanları (işlemci yükü neredeyse sıfır); `v2`: ek başın kendi sınıf dalı (iki 3x3
-   evrişim). Dışa aktarımda ikisi TEK ONNX'te birleşir: kutular ve insan/araç puanları resmi
-   modelinkiyle bit bit aynıdır (591 görüntüde, ürünün kendi `Tespitci`siyle doğrulandı),
-   forklift puanı ek baştan gelir. İnsan ve araç tanıma bu yüzden yapı gereği korunur ve
+   evrişim); `v3`: ek başın kendi kutu dalı (iki 3x3 evrişim + kutu ve nesne katmanı). v1 ve
+   v2 ilk tam eğitimde geçmedi: kutu ve nesne puanı donuk resmi daldan geldiği için forklift
+   puanı eşiğin altında öğrenildi (docs/ILERLEME). Dışa aktarımda ikisi TEK ONNX'te birleşir:
+   insan/araç puanları ve kutular resmi modelinkiyle bit bit aynıdır (591 görüntüde, ürünün
+   kendi `Tespitci`siyle doğrulandı); forklift puanı ek baştan gelir, v3'te forkliftin
+   kazandığı çapanın kutusu da. İnsan ve araç tanıma bu yüzden yapı gereği korunur ve
    COCO görüntüsüne ya da öğretmen etiketine gerek kalmaz.
 2. **Kişi önceliği.** Birleşik modelde forklift puanı resmi insan puanıyla bastırılır:
    `forklift x (1 - insan)^k`. k = 1'de resmi modelin 0,5 ve üstü güvenle bulduğu HİÇBİR kişi,
