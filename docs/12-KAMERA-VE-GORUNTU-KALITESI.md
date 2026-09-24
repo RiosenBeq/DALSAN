@@ -122,9 +122,11 @@ tanıdığı model dosyasının içinden okunur (`dalsan_classes`,
 
 **Bugün kayıtlı forklift modeli yok.** İki tam eğitimin adayları geçitleri geçemedi.
 İkincisinde (24.09.2026) forklift kutuları doğru bulundu ama başka depolardaki
-forkliftlerin ancak dörtte biri tanındı (geçit en az %60). Sıradaki adım daha çeşitli
-veri: sahadaki kameraların etiketli görüntüsü ya da lisansı onaylanırsa Open Images
-(docs/ILERLEME.md).
+forkliftlerin ancak dörtte biri tanındı (geçit en az %60). Sıradaki adım bu
+fabrikanın kendi kameralarıdır ve yolu hazır (24.09.2026): **Forklift** sayfası
+kareleri toplar ve etiketletir, eğitim kapalı bir bilgisayarda tek komutla yapılır,
+çıkan model aynı geçitlerle yeniden denetlenip aynı sayfadan kurulur ve Ayarlar'da
+seçilebilir olur (docs/06 §9, docs/17 §12.6). Sahada henüz kare toplanmadı.
 
 Seçilen forklift modeli inmezse ya da açılamazsa sistem durmaz: tabanındaki
 hazır modelle insan ve araç tespitine devam eder, ana sayfada sebebini yazar ve

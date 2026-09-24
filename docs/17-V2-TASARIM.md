@@ -101,7 +101,7 @@ Bu belgenin iskeleti **EVRİM**dir. Jürilerin "aşılansın" dediği fikirler e
 | K7 | Takip hafızası | `.env TAKIP_HAFIZA_SN` (öneri 2) → `lost_track_buffer = hafıza × 30`. Yeni iz başlatma eşiği **bugünkü gibi** kalır | Olgu 8: hafıza bugün ~1 sn; eşik hizalaması operatör kararı (S15) | §7 "sabit eşik yok" |
 | K8 | Kamera | RTSP açılış 5 sn / okuma 10 sn zaman aşımı (`kamera.py:223`); kamera bir kez çevrimiçi olduktan sonra `CAMERA_DOWN` 10 sn (`.env KAMERA_KOPUK_ESIGI_SN`); ilk bağlantıda 60 sn tolerans (belgelenmiş sabit, Ç36); `CAMERA_UP` için 5 sn kesintisiz kare (`.env KAMERA_UP_KARARLILIK_SN`; `durum()`'da değil süpervizörün olay üretiminde uygulanır) | §4.5; docs/16 §8 öneri 5; DOWN/UP seline karşı histerezis | Uyumlu; 10 sn eşiği S18 |
 | K9 | Fail-safe sıra | Olay satırı yazılamasa **ya da kural satırı okunamasa** bile uyarı gönderilir; gölge ve anons kararı bellekteki kural haritasından verilir | Bugün `_kural_kaydi` (`supervizor.py:545` → `:570-580`) ya da `ihlal_yaz` (`:546`) hata verirse `duyur` (`:563`) hiç çağrılmıyor, istisna `:252`'de yutuluyor | §7 "tiplenmiş hata + log" |
-| K10 | Bekçi | `analiz/bekci.py`; eşik 90 sn (docs/16 §8); tepki `BEKCI_TEPKISI` ile: `uyar` (varsayılan) ya da `yeniden_baslat` (yalnız Docker/systemd). Masaüstünde süreçten asla çıkmaz | Docker "unhealthy" container'ı yeniden başlatmaz; paketli masaüstünde çıkış Kontrol Paneli'ni de öldürür (`dalsan_launcher.py:975-979`) | Yeni servis değil, stdlib iş parçacığı |
+| K10 | Bekçi | `analiz/bekci.py`; eşik 90 sn (docs/16 §8); tepki `BEKCI_TEPKISI` ile: `uyar` (varsayılan) ya da `yeniden_baslat` (yalnız Docker/systemd). Masaüstünde süreçten asla çıkmaz. **24.09.2026'dan beri (§3.6, §16):** varsayılan `yeniden_baslat`; süreçten yalnız onu yeniden açan biri varken çıkılır (Docker, systemd, Başlat betiğinin Kontrol Paneli, paketlenmiş Windows uygulamasının gözetmeni), yoksa (Mac uygulaması, elle çalıştırılan sunucu) yalnız uyarılır | Docker "unhealthy" container'ı yeniden başlatmaz; paketli masaüstünde çıkış Kontrol Paneli'ni de öldürür (`dalsan_launcher.py:975-979`); Windows'ta onu artık gözetmen yeniden açar | Yeni servis değil, stdlib iş parçacığı |
 | K11 | Sağlık ucu | `/saglik` **her zaman 200** ve `durum=calisiyor`; gövde genişler. `?hazirlik=1` ile hazır değilken 503. `/healthz` açılmaz | Kontrol Paneli 200 dışını "port başkasında" sayar (`dalsan_launcher.py:266-277`) | En az parça; §2 Ç16 |
 | K12 | Metrik | `/saglik` JSON'u yeter. `/metrics` yalnız müşteride Prometheus varsa, elle yazılmış metin olarak | E7; `prometheus_client` eklenmez | §3 "yeni kütüphane yok" (S13) |
 | K13 | Günlük | uvicorn'un üç logger'ı `loglama.py` JSON biçimleyicisine bağlanır | Olgu 5: uvicorn satırları bugün düz metin | Uyumlu |
@@ -187,7 +187,7 @@ GPU gereksinim dosyası ve imajı yapılmadı (S1 bekleniyor, §12.4). K31'e ope
 | Ç40 | §4.11 "KKD uyum istatistikleri (vardiya / gün / hafta)" | CLAUDE.md §2; KVKK 8770 (performans takibi meşru amaç değil) | Bu turda gölge karnesi + olay kodu başına yanlış alarm; uyum oranı (iz başına kararlı "var" / geçerli kararlı iz, kamera/bölge × gün/hafta, kişi kırılımı **yok**) yalnız S34 "evet" ise 008'de `analysis_hours`'a kalem sayaçlarıyla eklenir; vardiya kırılımı vardiya saatleri verilirse | Uyum oranı her kararlı izin sayılmasını ister (bugün yalnız ihlal yazılıyor) | **S34** |
 | Ç41 | §4.11 "REST + WebSocket API" | E7; CLAUDE.md §3 | WebSocket yok (Ç3). Olay/kamera için ayrı JSON REST API açılmaz; bugünkü JSON uçlar (`/saglik`, SSE akışı, birkaç yardımcı uç, ör. `alan_rotalari.py:224`) ve CSV dışa aktarımı kalır; dışarıya itme webhook'la (S4) | Tüketicisi olmayan API ölü parçadır | S13 |
 | Ç42 | §4.7 RT-DETR (PaddleDetection, Apache-2.0) adayı; "seçimi ölçülen doğrulukla gerekçelendir" | ADR-002 (YOLOX); CLAUDE.md §3 | YOLOX kalır. **Hiçbir adayın doğruluğu ölçülmedi**; seçim lisans + mevcut ORT hattı + hız ölçümüne (AUDIT-OLCUM §1) dayanır. YOLOX doğruluğu `tests/dogruluk_kiyas`'ta ölçülecek; §4.8 hedefi tutmazsa RT-DETR aynı takımla ölçülür (Paddle eğitim ortamı ürün dışı kalır) | Paddle ikinci bir eğitim çalışma zamanı demektir | S2 |
-| Ç43 | §4.6 Windows'ta WASAPI ile cihaz seçimi | CLAUDE.md §3 (ek modül yok); docs/09 (fabrika Linux) | Windows'ta `winsound` işletim sisteminin varsayılan çıkışına çalar; cihaz seçimi yok, sağlık `None` (§7.7) | WASAPI ek paket/COM katmanı ister; Windows sunucu 7x24 için önerilmiyor | S1 |
+| Ç43 | §4.6 Windows'ta WASAPI ile cihaz seçimi | CLAUDE.md §3 (ek modül yok); docs/09 (fabrika Linux) | Windows'ta `winsound` işletim sisteminin varsayılan çıkışına çalar; cihaz seçimi yok, sağlık `None` (§7.7) | WASAPI ek paket/COM katmanı ister; Windows sunucu 7x24 için önerilmiyor. **24.09.2026:** ilk aşamada sistem yine de fabrikanın Windows bilgisayarında, paketlenmiş uygulamayla çalışır (§16 karar kaydı, S1); bu gerekçe sonraki sunucu aşaması içindir. Orada ses kartı kanalının sağlığı bu yüzden "bilinmiyor" kalır (§7.7) | S1 |
 | Ç44 | §4.5 kural alanı `zones` (çoğul) | `rules.zone_id` tek bölge (`sema/001`), 85 kural testi | Kural başına tek bölge kalır; çok bölge = bölge başına bir kural satırı (hazır kural düğmesi bölge başınadır) | Şema değişikliği `rules` tablosunu yeniden kurmayı ve CASCADE tuzağını (R24) ister | - |
 | Ç45 | §4.7 `ANNOTATION.md` tespit kutusu kuralları (kesik nesne, örtüşme, kabin içi sürücü) ve tespit veri setinde kamera/gün ayrımı | Ç26 ve §5.8 yalnız KKD'yi kapsıyordu | Kutu etiketleme kuralı docs/04 §5'e "tespit kutuları" alt bölümü olarak eklenir; tespit ince ayarının birleştirme betiği (§12.3) de kamera+gün bölmesini zorlar | Aynı çekimin iki kümeye düşmesi ölçümü şişirir | S11 |
 | Ç46 | §4.7 artırmalarda "yağmur" | docs/04 §6.2 listesinde yok | Artırma listesine yağmur eklenir (dış mekân rampası); docs/04 §6.2'ye satır | - | - |
@@ -344,7 +344,8 @@ susturmamalı. `olay_yazilamadi` bir sonraki başarılı kayıtta kalkar. `duyur
   deseni), CRITICAL günlük, `/saglik` `hazir=false`. `BEKCI_TEPKISI=yeniden_baslat` ise ayrıca
   `os._exit(70)`; bu yalnız Docker (`restart: unless-stopped`, `docker-compose.yml`) ve systemd
   (`Restart=always`) kurulumunda anlamlıdır. Paketli masaüstünde (`dalsan_launcher.py:975-979`
-  aynı süreç) bekçi **her durumda** yalnız uyarır.
+  aynı süreç) bekçi **her durumda** yalnız uyarır. *(24.09.2026'da değişti: varsayılan ve
+  kural bölüm sonundaki "Değişti" notunda.)*
 - **Ölü iş parçacığı:** `is_alive()` False ise süpervizör yeniden kurulmaz (aynı hatayla tekrar
   ölür); olay + uyarı + gerekiyorsa çıkış. Takılan iş parçacığı Python'da öldürülemez; tek çare
   süreç yeniden başlatmadır.
@@ -358,7 +359,21 @@ susturmamalı. `olay_yazilamadi` bir sonraki başarılı kayıtta kalkar. `duyur
   `WATCHDOG=1` (systemd'nin MIT-0 örneği). `Type=notify` seçilmez: o zaman `READY=1` de
   gönderilmek zorundadır, gönderilmezse systemd başlatmayı `TimeoutStartSec` sonunda başarısız
   sayar (docs/16:622) ve §4.9'un "açılışta başlama" maddesi yeniden kırılır. `sdnotify` paketi
-  eklenmez. R26 (`app.main:app`) bundan bağımsızdır ve F2a'da düzeltilir.
+  eklenmez. R26 (`app.main:app`) bundan bağımsızdır ve F2a'da düzeltilir. *(24.09.2026: ilk
+  aşamada dağıtım Docker da systemd de değildir, fabrikanın Windows bilgisayarıdır (§16 karar
+  kaydı, S1); bu gerekçe sonraki sunucu aşaması için geçerli kalır.)*
+
+**Değişti (24.09.2026, §16 karar kaydı):** operatörün "ben kapatana kadar" isteğiyle
+`BEKCI_TEPKISI`'nin varsayılanı `yeniden_baslat` oldu (`2c73b56`). Bekçi `os._exit(70)`'i artık
+yalnız süreci yeniden açan biri varken çağırır (`kaynaklar.yeniden_acan_var_mi`): Docker,
+systemd (birim `DALSAN_HIZMET=1` koyar), Başlat betiğinin Kontrol Paneli (sunucusuna
+`DALSAN_GOZETMEN=1` verir, 70'te saatte en çok 3 kez yeniden açar) ve paketlenmiş Windows
+uygulamasının gözetmeni (`masaustu/surekli_calisma.py`, `970c3d4`). Paketli masaüstünde çıkış
+yine paneli de kapatır, ama Windows'ta paneli gözetmen yeniden açar; saatte 3 kezden sonra
+son bir kez `DALSAN_GOZETMEN=0` ile açar ve bekçi o zaman yalnız uyarır. Yeniden açan yoksa
+(elle çalıştırılan sunucu, testler, Mac uygulaması) bekçi yalnız uyarır. Önceki kural
+"paketlenmemişse çık" idi: elle çalıştırılan sunucu ve testler de çıkıyordu, paketlenmiş
+uygulama ise her durumda yalnız uyarıyordu.
 
 ### 3.7 Yapılandırma yayılımı
 
@@ -366,6 +381,7 @@ susturmamalı. `olay_yazilamadi` bir sonraki başarılı kayıtta kalkar. `duyur
 |---|---|---|
 | Kamera, bölge, kural, kalibrasyon, hoparlör/kanal satırı (tek yer, K22), anons metni | SQLite | Hayır (5 sn damga) |
 | KKD veri toplama kapısı | SQLite `ppe_collection_gate` (007) | Hayır; her örnekten önce okunur |
+| Forklift eğitim karesi toplama kapısı | SQLite `forklift_collection_gate` (012, §12.6) | Hayır; her kayıttan önce okunur |
 | Süreç düzeyi eşik ve sırlar | `.env` → `ayarlar.py`; ekranda Ayarlar sayfası (`ayar_rotalari.py`). Docker'da `.env` F2a'dan sonra dizin olarak bağlanır (R27) ki Ayarlar kaydı çalışsın | Evet |
 | Sınıf kimliği, bölge tipi adı, olay kodu, önem adı | Kod (`rules/tipler.py`, `rules/olay_kodu.py`, `web/ortak.py`) | Kod değişikliği |
 | Modelin ürettiği sınıflar, sürüm, veri penceresi | ONNX `custom_metadata_map` | Model değişince |
@@ -380,7 +396,7 @@ değeri testte farklı olması gereken alanlar için güncellenir (ör. Host izi
 
 | Faz | Anahtar (varsayılan) |
 |---|---|
-| F2 | `TAKIP_HAFIZA_SN` (2, öneri) · `KAMERA_KOPUK_ESIGI_SN` (10, §4.5) · `KAMERA_UP_KARARLILIK_SN` (5) · `RTSP_ACILIS_ZAMAN_ASIMI_MS` (5000) · `RTSP_OKUMA_ZAMAN_ASIMI_MS` (10000) · `BEKCI_ESIGI_SN` (90) · `BEKCI_TEPKISI` (`uyar`) · `KKD_KARE_ARALIGI` (5, bugünkü `boru_hatti.py:49`) · `ANALIZ_YAVAS_SURE_SN` (60, öneri; `ANALYSIS_DEGRADED`) · `ANALIZ_HATA_ESIGI` (30, öneri) · `IZINLI_SUNUCU_ADLARI` (boş; `127.0.0.1`, `localhost` ve `SUNUCU_ADRESI` her zaman izinli, R8) |
+| F2 | `TAKIP_HAFIZA_SN` (2, öneri) · `KAMERA_KOPUK_ESIGI_SN` (10, §4.5) · `KAMERA_UP_KARARLILIK_SN` (5) · `RTSP_ACILIS_ZAMAN_ASIMI_MS` (5000) · `RTSP_OKUMA_ZAMAN_ASIMI_MS` (10000) · `BEKCI_ESIGI_SN` (90) · `BEKCI_TEPKISI` (`uyar`; 24.09.2026'dan beri `yeniden_baslat`, §3.6) · `KKD_KARE_ARALIGI` (5, bugünkü `boru_hatti.py:49`) · `ANALIZ_YAVAS_SURE_SN` (60, öneri; `ANALYSIS_DEGRADED`) · `ANALIZ_HATA_ESIGI` (30, öneri) · `IZINLI_SUNUCU_ADLARI` (boş; `127.0.0.1`, `localhost` ve `SUNUCU_ADRESI` her zaman izinli, R8) |
 | F3 | `KKD_MODEL_DOSYASI` (boş = model yok) · `KKD_KAPI_PRECISION` (0,90, docs/04 §8.1) · `KKD_KAPI_GUN` (3) · `KKD_KAPI_EN_AZ_OLAY` (30, öneri; S33) |
 | F4 | `ANONS_SAGLIK_ARALIGI_SN` (10, §4.6) · `ANONS_KOPUK_ESIGI_SN` (30, §4.6) · `ULASMAYAN_UYARI_ARALIGI_SN` (300, öneri; `ALERT_UNDELIVERED` hız sınırı) |
 | F5 | `DISK_DUR_GB` (1, öneri; S35) |
@@ -800,12 +816,14 @@ Durum: `exists` (var, yalnız kod verilir) · `rename` (var, adı ve önemi v2'y
 | `VIDEO_FINISHED` | "Video analizi tamamlandı" (`supervizor.py:656-661`) | rename | system, anlık; yalnız tek geçişlik video |
 | `DISK_LOW` | "Disk azalıyor" (`supervizor.py:748-753`) | rename | system. Faz 5: `DISK_DUR_GB` altında kanıt fotoğrafı yazımı durur, olay kaydı sürer (uygulanmadı, S35 açık) |
 | `MODEL_LOAD_FAILED` | "Tespit modeli yüklenemedi" (`supervizor.py:292`, tipli hata yolu). Genel istisna yolu (`:222-233`) bugün olay yazmıyor | rename + genişletme | system. İki yol da bu kodu yazar. KKD modeli ve sha256 uyuşmazlığı da bu kod. Veritabanı açılamazsa (`:209-220`) olay yazılamaz; yalnız günlük + `/saglik` sorunu |
-| `MODEL_FALLBACK` | yok (plan dışı; 24.09.2026'da eklendi) | new | system; seçili forklift modeli inmez ya da açılamazsa sistem tabanındaki hazır modelle çalışır (§12.3-8). Ayrıntıda sebep yazar, indirme adresi ve dosya yolu yazmaz; `/saglik` `model_yedekte` (`hazir`'ı bozmaz) |
+| `MODEL_FALLBACK` | yok (plan dışı; 24.09.2026'da eklendi) | new | system; seçili forklift modeli inmez ya da açılamazsa sistem tabanındaki hazır modelle çalışır (§12.3-9). Ayrıntıda sebep yazar, indirme adresi ve dosya yolu yazmaz; `/saglik` `model_yedekte` (`hazir`'ı bozmaz) |
 | `INFERENCE_DEVICE_FALLBACK` | `cihaz_uyarisi` sistem olayı (`supervizor.py:274-277`) | rename | system; CUDA istenip CPU'ya düşülünce |
 | `ANALYSIS_STALLED` | yok (bekçi yok, R5) | new | system; `bekci.py` (§3.6) |
 | `ANALYSIS_DEGRADED` | yok (kare işleme hatası yalnız günlükte, `supervizor.py:529-532`) | new | system; işlenen fps `FPS_UYARI_ORANI` (mevcut, 0,6) × hedefin altında `ANALIZ_YAVAS_SURE_SN` (öneri 60) kalırsa ya da kamera hattı ardışık hata sayısı `ANALIZ_HATA_ESIGI`'ni (öneri 30) aşarsa |
 | `SYSTEM_STARTED` / `SYSTEM_STOPPED` | yalnız günlükte "Sistem hazır" / "durduruluyor" (`uygulama.py` lifespan) | new | system; uptime ölçümünün kanıtı (§14) |
 | `PPE_COLLECTION_CHANGED` | yok | new | system; KKD veri toplama açıldı/kapandı |
+| `FORKLIFT_COLLECTION_CHANGED` | yok | new (24.09.2026) | system; forklift eğitimi için kare toplama açıldı/kapandı (şema 012, §12.6); ayrıntıda `toplama` = `acik` / `kapali` |
+| `FORKLIFT_MODEL_INSTALLED` | yok | new (24.09.2026) | system; yerelde eğitilen forklift modeli Forklift sayfasında denetlenip kuruldu; seçim değişmez (§12.6). Ayrıntıda model dosyasının adı |
 | `PPE_MODEL_CHANGED` | yok | new (F3) | system; KKD modeli sürümü onaylı sürümden farklı, kural gölgeye döndürüldü (§5.7) |
 | `PPE_GATE_OVERRIDDEN` | yok | new (F3e) | system; KKD anonsu kapının şartları sağlanmadan "ölçülmeden açıyorum" onayıyla açıldı; ayrıntıda kural id'leri, model sürümü ve eksik şartlar (§5.7) |
 | `AUDIO_CHANNEL_DOWN` | yok (`cihaz_bagli_mi` yalnız `/anons` render edilirken, `anons_web.py:81`) | new (F4) | system; 30 sn kesintisiz "koptu" |
@@ -1380,7 +1398,7 @@ INSERT INTO ppe_collection_gate (id, enabled) VALUES (1, 0);
 -- varsayılanı" demektir. Veri güncellenmez.
 ```
 
-### 8.3 Sonraki göçlerin özeti (008-010)
+### 8.3 Sonraki göçlerin özeti (008-012)
 
 Aynı deneme veritabanına 007'nin ardından uygulandı; hatasız geçti, `foreign_key_check` boş.
 
@@ -1460,6 +1478,9 @@ taslaklardır. Webhook (S4) ile dakika sınırı ve birleştirme (S23) kodlanmad
 yorumlarında `channel` listesinde `webhook`, `result` listesinde `rate_limited` ve `coalesced`
 yoktur. Operatörün uyarı kayıtları isteğiyle (§16) `011_uyari_kaydi_arsivi.sql` eklendi:
 `purge_log.alerts_archived` ve `purge_log.alert_archive_file`.
+Operatörün forklift isteğiyle (§12.6, §16) `012_forklift_ornekleri.sql` eklendi:
+`forklift_collection_gate` (tek satır, kapalı doğar), `forklift_samples` (tam kare,
+öneri kutuları, etiketler) ve `purge_log.forklift_samples_deleted`.
 
 ### 8.4 Göç güvenliği
 
@@ -1559,7 +1580,8 @@ taşır; kamera satırlarında ayrıca `hedef_fps` ve `yavas` vardır.
 §3.6. systemd birimi `docs/06:83`'te `app.main:uygulama` yazıyor ve bugün başlamıyor; F2a'da
 `app.main:app` olur (R26, koşulsuz). Bildirim/bekçi entegrasyonu yalnız S1 "systemd" ise F5'te:
 `Type=simple` + `WatchdogSec=120` + `NotifyAccess=main` + stdlib `WATCHDOG=1`. Varsayılan Docker
-dağıtımında bu kod yazılmaz (docs/07).
+dağıtımında bu kod yazılmaz (docs/07). *(24.09.2026: ilk aşamada dağıtım fabrikanın Windows
+bilgisayarıdır; bekçinin oradaki tepkisi §3.6'daki "Değişti" notunda.)*
 
 ### 9.4 Günlük
 
@@ -1609,6 +1631,7 @@ E8 gereği dosya adı `docs/KVKK.md` değil `docs/18-KVKK.md`. Tek sayfalık uyu
 | Rol ve sözleşme | m.12/2 müşterek sorumluluk | DALSAN-müşteri veri işleyen sözleşmesi; bulut, telemetri, yurt dışı aktarım yok (tek dış bağlantı model indirme, `model_indir.py:21`) |
 | Ağ bölümlendirmesi (§4.10 "belgelenir") | m.12 teknik tedbir; docs/05:47 (kamera VLAN'ı yalnız donanım gereksinimi olarak) | F5'te `docs/18-KVKK.md` ve docs/06'ya bölüm: kameralar ayrı VLAN'da; sunucu yalnız kamera VLAN'ına, yönetim ağına ve anons cihazlarına erişir; dışarıya tek çıkış model indirmedir (kurulumdan sonra kapatılabilir); uzaktan erişim yalnız docs/15'teki yolla. Kod değil belge; ağ ekibiyle birlikte doldurulur |
 | KKD veri toplama | docs/00:63-64 (Rev.02) | SQLite `ppe_collection_gate` kapısı, restart'sız ve gecikmesiz kapanır (§5.8) |
+| Forklift veri toplama | Operatör isteği 24.09.2026; KKD ile aynı dayanak şartı (Rev.02 ya da ek protokol) | SQLite `forklift_collection_gate` kapısı (012), kapalı doğar, restart'sız ve gecikmesiz kapanır; etiketsiz kare 30 gün; eğitim kapalı bilgisayarda (§12.6) |
 
 ### 10.2 Saklanmayanlar
 
@@ -1695,6 +1718,7 @@ betikler) bütün şablonlardaki `?v=N` birlikte artırılır; yoksa tarayıcı 
 | Komuta → Olay rengi (`komuta.py:275`) | Önemden; inceleme durumu rozet olur | F2 |
 | Ayarlar `komuta_ayarlar.html` | Şifre alanı; yeni `.env` anahtarları gruplar hâlinde (Takip, Kamera, Bekçi, KKD, Uyarı, Gizlilik). **Uygulandı:** yeni anahtarlar "Güvenlik", "Anons (hoparlör)", "Takip ve kamera bağlantısı", "Analiz sağlığı", "KKD anons kapısı" ve "Saklama süreleri ve disk" (uyarı kaydı arşivi) gruplarındadır; `KAMERA_UP_KARARLILIK_SN` ve RTSP zaman aşımları sayfada yok (§3.7); KVKK kayıtları ayrı bölümdedir (aşağıda) | F2-F5 |
 | KKD `kkd.html`, `kkd_web.py` | Toplama kapısı (SQLite, restart'sız) + Rev.02 onayı; "Veri setini dışa aktar"; model adı/sürümü/sha256; gölge mod karnesi (olay sayısı, incelenen, **inceleme kapsamı %**, N, precision, kapı durumu ve hangi şartın eksik olduğu); zor örnek seçimi | F2 (kapı), F3 |
+| Forklift `forklift.html`, `forklift_etiket.html`, `forklift_web.py` (24.09.2026, plan dışı) | Toplama kapısı (SQLite, restart'sız) + KVKK onayı; etiketleme ekranı (öneri kutusu Forklift / Transpalet / Değil, fareyle kutu, "Forklift yok"); eğitim verisi zip'i ve uyarıları; "Modeli kur" (iki dosya, kapılar yeniden denetlenir) ve kurulu modeller tablosu; onaylı "Hepsini sil". Raf ve üst menüde "Forklift" (§12.6) | - |
 | Anons `anons.html`, `anons_web.py`; komuta anons `komuta_anons.html` | Kanal tablosu: tür, cihaz, üç durumlu rozet (yeşil "Bağlı" / kırmızı "Koptu" / gri "Bilinmiyor", R38); satır başına "Test sesi" (R39); son 24 saatte teslim oranı; kare→ses (yazılım) p50/p90; "Bluetooth tek sesli kanal" uyarısı; "Tüm fabrika" satırı bugünkü ses çıkışı seçiminin yerini alır. Aynı tablo komuta ekranında (R40: `ses_cikisi_baglami` → `anons_baglami`, `komuta.py:1211`). **Uygulandı:** kanal listesi Komuta → Anons'taki "Uyarı kanalları"dır, eski `/anons` sayfası kanal özetini gösterir; analiz açıkken rozetler "bağlı / koptu / bilinmiyor / denetleniyor"dur, satır düğmesi "▶ Dene"; tek Bluetooth uyarısı sistem şeridinde ve kurulum listesindedir | F4 |
 | Hoparlörler (`hoparlorler.py`) | Tür (IP hoparlör / ses kartı-Bluetooth) ve cihaz (bağlı sink listesinden, Linux'ta zorunlu, varsayılan sink önceden seçili) alanları | F4 |
 | Kurulum listesi (`kilavuz.py:339`) | "Sesli kanal tanımlı değil", "Bluetooth tek sesli kanal olamaz", "Etkin mesafe/hız kuralı kalibrasyon bekliyor" kırmızı maddeleri; "mahremiyet alanı kontrolü" maddesi. **Uygulandı:** adım olarak: 6 "Sesli anons kuruldu mu?" (kanal yoksa ya da ses yalnız Bluetooth'a dayanıyorsa kırmızı), 8 "Mesafe ve hız kuralları çalışıyor mu?" ("Kalibrasyon bekleniyor"), 9 "Kamera görüş alanlarında mahremiyet alanı yok mu?"; ayrıca 10 "Araç kuralları tanıma modeline uyuyor mu?" (§12.3-5) | F2/F4/F5 |
@@ -1716,7 +1740,7 @@ Ultralytics Construction-PPE de öyle.
 
 | Kaynak | Lisans (docs/16 doğrulama düzeyi) | Kullanım | Koşul |
 |---|---|---|---|
-| **DALSAN saha verisi** | Müşterinin; KVKK dayanağı ve Rev.02 şart | KKD ince ayarı ve **bütün** değerlendirme; forklift/tır ince ayarı | KKD veri toplama kapısı (`ppe_collection_gate`); S10 |
+| **DALSAN saha verisi** | Müşterinin; KVKK dayanağı ve Rev.02 şart | KKD ince ayarı ve **bütün** değerlendirme; forklift/tır ince ayarı | KKD veri toplama kapısı (`ppe_collection_gate`); forklift için `forklift_collection_gate` (012, §12.6); S10 |
 | **LOCO** (TUM) | CC0 1.0 (DOĞRULANDI) | **Kullanılıyor (23.09.2026):** forklift ek başının eğitimi ve testi (§12.3, `egitim/forklift`); `pallet_jack` ayrı sınıf, palet atılır | `person` yok (ek baş kişi öğrenmez, gerekmez); el kamerası perspektifi; arşiv GitHub makinesinden iner (yoklama: 769 MB zip) |
 | YOLOX kodu ve resmi ağırlıklar | Apache-2.0 (DOĞRULANDI) | Mevcut tespit; ince ayar başlangıcı | Ağırlıkların COCO/Flickr görüntü kökeni için hukuk görüşü (S20) |
 | YuNet `2023mar` | MIT (DOĞRULANDI) | İsteğe bağlı yüz bulanıklaştırma | sha256 ile indirilir |
@@ -1740,9 +1764,14 @@ forklift tespiti yok; neden docs/ILERLEME). Kutu ve nesne dalını da öğrenen 
 eklendi, dumanda uçtan uca geçti (operatör: "forklifti tanıması lazım ... en iyi şekilde
 eğit"; karar kaydı §16). **İkinci tam eğitimin (çalıştırma 7, tiny-v3 ve s-v3) altı adayı da
 kaldı:** kutu sorunu çözüldü (test forkliftlerinin %98'inde doğru kutu), ama forklift bulma
-oranı %23-25, kesinlik %9-15'te kaldı; darboğaz artık veri çeşitliliği. Sıradaki adım (saha
-görüntüsü ya da Open Images, lisans S20) operatörün kararı; sonuçlar docs/ILERLEME. Aşağıdaki 1-3, ilk planın (GPU'lu
-makinede bütün ağın ince ayarı, COCO alt kümesiyle) yerini alır.
+oranı %23-25, kesinlik %9-15'te kaldı; darboğaz artık veri çeşitliliği; sonuçlar docs/ILERLEME.
+**Sıradaki adım fabrikanın kendi görüntüsüdür (24.09.2026, §16 karar kaydı; yol §12.6):**
+program kareleri kameralardan kendisi toplar, operatör Forklift sayfasında etiketler, eğitim
+kapalı bir bilgisayarda tek komutla yapılır, çıkan model Forklift sayfasından denetlenerek
+kurulur. Toplama kapısı kapalı doğar; açmak KVKK dayanağının onayını ister. Sahada henüz kare
+toplanmadı, bu yolla eğitilmiş model yok. Open Images görüntüsü eğitime girmedi (yalnız
+ölçümün araç setinde; lisans S20). Aşağıdaki 1-3, ilk planın (GPU'lu makinede bütün ağın
+ince ayarı, COCO alt kümesiyle) yerini alır.
 
 1. **Yöntem: donuk resmi model + ek baş.** Resmi YOLOX COCO modeli (tiny 416, s 640)
    DEĞİŞMEZ. Yanına yalnız iki sınıfı (forklift, el transpaleti `pallet_jack`) öğrenen küçük
@@ -1774,7 +1803,7 @@ makinede bütün ağın ince ayarı, COCO alt kümesiyle) yerini alır.
    (eğitim klasörü, iki iş akışı, forklift testleri, tespit motoru, `backend/requirements.txt`,
    `.env.example`, `models/indir.sh`, `models/SHA256SUMS`) biri değişirse kısa duman sınaması.
    **Saha görüntüsü bu hatta ASLA girmez** (iş kayıtları ve yayınlar herkese açıktır, KVKK);
-   sahadan ince ayar ayrı ve kapalı yapılır.
+   sahadan ince ayar ayrı ve kapalı yapılır (§12.6).
 4. Sınıf sırası ve üst veri: çıktı sütunları `person, forklift, truck, pallet_jack, car, bus`;
    `dalsan_classes` sözlük biçimindedir, `pallet_jack` eşlenmez (katalogda yok, S12), car ve
    bus bugünkü gibi "truck" sayılır. `loader` yalnız sahada varsa ve yalnız müşteri
@@ -1792,17 +1821,11 @@ makinede bütün ağın ince ayarı, COCO alt kümesiyle) yerini alır.
    tanıyacağı söylenir (İsabetli kullanan tesis bilmeden Hızlı düzeyine inmesin).
 6. Doğruluk: LOCO testi, Open Images forklift ve sanayi fotoğrafları ve bir yaya videosu
    vekil ölçümdür (sonuçlar docs/ILERLEME). Kabul için asıl ölçüm hâlâ etiketli saha test
-   günüdür (§14); kutu etiketlemeyi kimin yapacağı S11.
+   günüdür (§14); kutu etiketlemeyi kimin yapacağı S11. Forklift sayfası bu test günlerini
+   üretir: etiketli karelerin son günleri test kümesidir ve yerel eğitim adayları onlarla
+   ölçer (§12.6).
 7. Sürücü: mesafe kuralında sürücü muafiyeti yoktur; forklifti daha iyi tanıyan model,
    hareket eden forkliftin kendi sürücüsüyle eşleşmesini de daha sık görebilir (S38).
-8. **Yedeğe düşme (24.09.2026).** Seçili forklift modeli inmezse (internetsiz saha) ya da
-   açılamazsa (bozuk, uyumsuz dosya) süpervizör kayıttaki tabanına (`FORKLIFT_TABANI`, ör.
-   `yolox_tiny.onnx`) kendiliğinden geçer: insan ve araç tespiti sürer, forklift ayrı sınıf
-   olarak tanınmaz ve yalnız "Forklift" seçili kurallar uyarı vermez. Ekranda sebep satırı,
-   Olaylar'da `MODEL_FALLBACK`, `/saglik`'ta `model_yedekte` görünür. Seçim değişmez: her
-   açılışta önce forklift modeli denenir. Taban da açılamazsa sistem modelsiz kalır ve ilk
-   hatanın sebebiyle `MODEL_LOAD_FAILED` yazılır (`analiz/supervizor.py` `_secili_modeli_ac`,
-   `analiz/model_indir.py` `forklift_yedegi`).
 8. **Kapılar, karar ve kayıt.** Aday ancak `egitim/forklift/esikler.json`'daki kapıların
    hepsini geçerse kayda girer: insan ve araç kaybı, forkliftlerin araç (forklift ya da tır)
    olarak bulunma oranındaki artış, forklift bulma oranı (en az 0,60), görüntü başına yanlış
@@ -1822,6 +1845,19 @@ makinede bütün ağın ince ayarı, COCO alt kümesiyle) yerini alır.
    yeniden indirilmez. Ayarlar açıklaması ve kurulum listesinin notu kayıttan kendiliğinden
    güncellenir; testler kayıttan bağımsızdır (tiny ve s birlikte kayıtlıyken provası
    geçti, docs/ILERLEME).
+   Fabrikanın kendi verisiyle yerelde eğitilen model kayda girmez: Forklift sayfasında
+   kurulurken aynı kapılar ürünün taşıdığı kopyayla (`egitim/forklift_kurulum.py`
+   `KAPILAR`, esikler.json ile aynı olduğunu test denetler) yeniden değerlendirilir ve
+   yalnız bu kurulumun listesine girer (§12.6).
+9. **Yedeğe düşme (24.09.2026).** Seçili forklift modeli inmezse (internetsiz saha) ya da
+   açılamazsa (bozuk, uyumsuz dosya) süpervizör tabanına (kayıtlı modelde `FORKLIFT_TABANI`, ör.
+   `yolox_tiny.onnx`; Forklift sayfasından kurulan yerel modelde adındaki boy,
+   `nextgen_forklift_<boy>_yerel_...` → `yolox_<boy>.onnx`) kendiliğinden geçer: insan ve araç tespiti sürer, forklift ayrı sınıf
+   olarak tanınmaz ve yalnız "Forklift" seçili kurallar uyarı vermez. Ekranda sebep satırı,
+   Olaylar'da `MODEL_FALLBACK`, `/saglik`'ta `model_yedekte` görünür. Seçim değişmez: her
+   açılışta önce forklift modeli denenir. Taban da açılamazsa sistem modelsiz kalır ve ilk
+   hatanın sebebiyle `MODEL_LOAD_FAILED` yazılır (`analiz/supervizor.py` `_secili_modeli_ac`,
+   `analiz/model_indir.py` `forklift_yedegi`).
 
 ### 12.4 Export, kuantizasyon, çalışma zamanı
 
@@ -1860,6 +1896,100 @@ makinede bütün ağın ince ayarı, COCO alt kümesiyle) yerini alır.
   TTS ve veri setleri (tekrar denenmesin diye). **Uygulandı:** dosyada LOCO (5. madde) ve
   masaüstü penceresinin bileşenleri (6. madde: pywebview, WebView2 SDK) var; YuNet (S27
   kodlanmadı), koşullu setler (kullanılmadı) ve reddedilen TTS ile veri setleri yazılmadı.
+
+
+### 12.6 Fabrikanın kendi verisiyle eğitim (24.09.2026)
+
+Operatör: *"gidip fabrikadan daha çok görüntü çekip mi yükleyeyim ve sadece yüklesem yeter
+mi ekstra kod vs. bir şey yapmam lazım mı?"* LOCO ile iki tam eğitim kapılardan geçemedi
+(§12.3): model başka depolardaki forkliftlere genelleyemiyor. Bu yol hedef ortamın kendi
+verisini kullanır. Fotoğraf çekmek ya da kod yazmak gerekmez; dört adımın üçü programın
+**Forklift** sayfasındadır (`web/forklift_web.py`, `forklift.html`, `forklift_etiket.html`),
+biri kapalı bir bilgisayarda tek komuttur.
+
+1. **Toplama** (şema 012, `egitim/forklift_verisi.py`, `analiz/supervizor.py`
+   `_forklift_ornekle`). Kapı `forklift_collection_gate` tek satırdır ve KAPALI doğar; KKD
+   kapısıyla (K17) aynı düzen: açmak onay kutusu ister ("Çalışanlara aydınlatma yapıldı ve
+   bu kareleri forklift modeli eğitimi için saklamanın hukuki dayanağı (Rev.02 ya da ek
+   protokol) var"), kapatmak onaysız ve gecikmesizdir (kapı her kayıttan önce okunur,
+   okunamazsa kapalı sayılır). Her değişiklik `FORKLIFT_COLLECTION_CHANGED` ve erişim izi
+   bırakır. Kapı açıkken araç (tır) ya da forklift görünen kare kamera başına saatte en çok
+   `FORKLIFT_ORNEK_SAAT_LIMIT` (12) kez, araçsız kare bunun altıda biri kadar saklanır
+   (model boş sahnede forklift görmemeyi de öğrenmeli ve bu ölçülmeli). Toplam
+   `FORKLIFT_ORNEK_EN_COK` (3000) kareye varınca toplama durur ve günlüğe bir kez yazılır.
+   Kare, uzun kenarı 1280 pikseli geçmeyecek şekilde küçültülüp görüntü klasörünün
+   `forklift-ornekler/` alt klasörüne yazılır; o karedeki araç ve forklift kutuları
+   etiketçiye öneri olarak saklanır. Kaydedilemeyen kare analizi durdurmaz.
+2. **Etiketleme** (`/forklift/etiket`). Her öneri kutusu Forklift, Transpalet ya da Değil
+   olarak işaretlenir; önerilmeyen forklift fareyle çizilir; forklift yoksa "Forklift yok"
+   (boş etiket). İşe yaramayan kare silinir. Karenin görüntülenmesi erişim izine düşer
+   (`view_forklift_frame`), etiket vermek düşmez.
+3. **Eğitim verisi** (`/forklift/veri-seti.zip`). Etiketli kareler Türkiye yerel gününe
+   göre kronolojik bölünür: son günlerin yaklaşık dörtte biri (iki ve daha çok günde en az
+   bir gün) test kümesidir ve eğitime girmez; rastgele bölme yoktur, aynı anın kareleri iki
+   kümeye düşmez. Zip, LOCO hazırlığıyla (`egitim/forklift/veri.py hazirla`) aynı COCO
+   düzenindedir; `manifest.json` her dosyanın SHA-256'sını, gün bölmesini ve uyarıları,
+   `BENIOKU.txt` KVKK uyarısını taşır. Sayfa ve zip dört durumu uyarır: etiketli kareler
+   tek günden (test yok); hiçbir karede forklift yok; test günlerinde 50'den az forklift
+   kutusu (bulma oranı güvenle ölçülemez); test günlerinde forkliftsiz kare yok (yanlış
+   forklift ölçülemez, o kapı kalır). İndirme erişim izine kare sayısıyla düşer
+   (`export_dataset`).
+4. **Eğitim** (ürün dışı; `egitim/forklift/yerel.py`, Windows'ta `Egit-Windows.bat`,
+   kılavuzu `egitim/forklift/YEREL-EGITIM.md`). Kapalı bir bilgisayarda (Python 3.12, en az
+   8 GB bellek, 6 GB boş disk; LOCO önceden hazırlanmışsa 2 GB) zip'i .bat'ın üstüne
+   bırakmak yeter. Betik kendi sanal ortamını kurar (torch 2.14.0, torchvision 0.29.0,
+   `gereksinimler-yerel.txt`; varsayılan çalışma klasörü `C:\NextGen-Forklift`) ve sırayla:
+   ortamı denetler; paketi açıp manifest özetleriyle doğrular (test günü yoksa durur);
+   kaynakları bir kez indirip SHA-256 ya da içerik özetiyle doğrular (sabit commit'teki
+   YOLOX kaynağı, resmi ağırlık ve ONNX, yaya videosu, Open Images araç setinin 523
+   görüntüsü: son ikisi yalnız ölçüm içindir); kısa bir ön deneme koşar (64 kare, 4 devir,
+   dışa aktarma, denetim, 10 görüntüde ölçüm); LOCO'yu indirip hazırlar; birleştirir
+   (fabrikanın eğitim kareleri 3 kez; test kümesi yalnız fabrikanın test günleridir;
+   `veri.py birlestir`); eğitir (varsayılan tiny-v3, devir `istek.json`'dan; kesilirse
+   kaldığı devirden sürer); k = 0, 1, 2 ile dışa aktarıp denetler; ölçer (fabrikanın test
+   günleri, yaya videosu, araç seti; kapılar `esikler.json`, §12.3-8) ve `SONUC.txt`'yi
+   yazar. Geçen aday varsa (öneri sırası k = 1, 2, 0) model ve ölçümü `KURULACAK/`'a
+   konur. Kilit dosyası ikinci kopyayı engeller; betik düşük öncelikle, çekirdeklerin
+   yarısıyla ve bilgisayarı uyutmadan çalışır; her şey `gunluk.txt`'ye de yazılır. Çıkış
+   kodu 0 bitti (geçti ya da kaldı), 1 yarıda kaldı (yeniden çalıştırılır), 2 girdi ya da
+   ortam hatası. GitHub hattından (§12.3-3) tek farkı ölçüm yeridir: aday LOCO testinde
+   değil fabrikanın test günlerinde ölçülür; kapılar aynıdır.
+5. **Kurulum** (Forklift sayfası "4. Modeli kur", `egitim/forklift_kurulum.py`).
+   `KURULACAK`'taki iki dosya seçilir. Program kurmadan önce denetler: ölçüm bu modele mi
+   ait (SHA-256); tabanı programın hazır modeli mi (`yolox_tiny.onnx` ya da `yolox_s.onnx`,
+   özetiyle); kapılar ölçümün sayılarıyla, ürünün taşıdığı kopyaya göre yeniden
+   değerlendirilir (ölçülmemiş metrik kapıyı kaldırır); kısa deneme (duman, ön deneme)
+   modeli reddedilir; model ürünün kendi tespit motoruyla (`Tespitci`, CPU, tek iş
+   parçacığı) açılır ve forklifti ayrı sınıf olarak tanıdığı görülür. Geçen model
+   `models/nextgen_forklift_<boy>_yerel_<sha8>.onnx` adıyla, ölçümü yanına `.olcum.json`
+   olarak konur ve `FORKLIFT_MODEL_INSTALLED` yazılır. Seçim değişmez (§12.3-8): model
+   Ayarlar'daki "Tanıma modeli" listesine ("NextGen AI Hızlı + Forklift (fabrika eğitimi
+   <sha8>)") ve kurulum listesinin forklift notuna girer; seçip yeniden başlatmak
+   operatörün işidir. Dosyası silinir ya da açılamazsa sistem tabanına düşer (§12.3-9).
+6. **KVKK.** Kareler yalnız programın bilgisayarında ve eğitimi yapan bilgisayarda durur;
+   GitHub hattına ve yayınlara girmez (CLAUDE.md, forklift eğitimi istisnası). Etiketsiz
+   kare `FORKLIFT_HAM_VERI_SAKLAMA_GUN` (30) gün sonra bakımda silinir ve imha kaydında
+   sayılır; etiketliler veri setidir ve Forklift sayfasından tek tek ya da onaylı "hepsini
+   sil" ile silinir (docs/18).
+7. **Sınananlar.** Birim ve entegrasyon testleri (`tests/test_forklift_verisi.py`,
+   `test_forklift_web.py`, ürünün gerçek dışa aktarımıyla `test_forklift_birlestirme.py`,
+   `test_forklift_yerel.py`, `test_forklift_kurulum.py`). Yerel eğitim Linux'ta gerçek
+   torch ile baştan sona koştu: LOCO test karelerinden ürünün dışa aktarımıyla üretilmiş
+   dört günlük bir deneme paketi (test günlerinde 15 kare, 11 forklift kutusu), küçük bir
+   hazır LOCO alt kümesi (`--loco-veri`, 90 eğitim görüntüsü), 4 devir; ön deneme,
+   birleştirme, eğitim, üç aday, denetim ve ölçüm (523 görüntülük araç seti ve video
+   dahil) bitti, sonuç beklendiği gibi KALDI ve `KURULACAK` boş kaldı.
+   Kurulum tarayıcıda o koşunun gerçek adayıyla denendi: kendi ölçümüyle reddedildi ve
+   kalan kapılar ekranda yazdı; kapıları geçecek şekilde elle yazılmış bir ölçümle kuruldu
+   ve Ayarlar listesinde seçilebilir oldu. **Sınanmayanlar:** `Egit-Windows.bat` gerçek
+   Windows'ta çalıştırılmadı (torch'un Windows tekerlekleri PyPI'da doğrulandı); indirme
+   adımları (YOLOX arşivi, resmi ağırlık ve ONNX, video, LOCO) yerelde koşmadı: kaynaklar
+   önceden yerindeydi ve betik onları özetleriyle doğrulayıp atladı; bu ortamdan GitHub'daki
+   YOLOX arşivine erişilemedi, arşivin içerik özeti sabit commit'in kopyasından hesaplandı
+   (GitHub hattı YOLOX'u arşivden değil `git fetch` ile alır); fabrikada
+   henüz kare toplanmadı; bu yolla kapıları geçen bir model yok. Docker kurulumunda
+   sayfadan kurulan model container'ın içinde durur ve imaj yeniden kurulunca kaybolur
+   (docs/06 §9).
 
 ---
 
@@ -2007,7 +2137,9 @@ docs/07'ye satır olur.
   ürün dışıdır (S31). Cevap gelene kadar hukuk görüşü olmadan yeni ön eğitimli ağırlık ya da
   kamu veri seti kullanılmaz.
 - **Açık:** S1, S5, S6, S7, S13, S15 (kayıtlı saha videosu gerekir), S20, S27, S35, S37, S38
-  (S37 23.09.2026 eksik denetiminde, S38 forklift modeliyle eklendi; docs/ILERLEME).
+  (S37 23.09.2026 eksik denetiminde, S38 forklift modeliyle eklendi; docs/ILERLEME). S1'in
+  ilk aşaması 24.09.2026'da kararlaştı (fabrikanın Windows bilgisayarı, sunucusuz; aşağıda);
+  açık kalan sonraki aşamanın sunucusudur: donanımı, GPU'su, Docker mı systemd mi.
 - **23.09.2026, hoparlör:** operatör "risk anında hoparlörden uyarı verdiğinden emin ol
   (bağlı hoparlör)" dedi. Ses çıkışı kanalı mesajın WAV'ı yoksa artık susmaz: üretilmiş
   uyarı tonu çalar (`olaylar/ton.py`, docs/14 §2.3). §7.9'daki "sabit mesaj = insan sesiyle
@@ -2047,10 +2179,51 @@ docs/07'ye satır olur.
   risk anında hoparlörün susmamasını istedi. Artık olay kendi adıyla duyurulur
   (`anons.genel_uyari_mesaji`): ses çıkışı uyarı tonunu çalar, IP hoparlör olayın adını
   okur, garanti aranır. Susturmanın tek yolu gölge moddur. docs/14 §2.3.
+- **24.09.2026, ilk aşama dağıtımı (S1'in ilk aşaması):** operatör "bu uygulamayı
+  fabrikanın windows bilgisayarında çalıştırcm ona göre lütfen bil sunucu olmayacak ilk
+  etapta" dedi. İlk aşamada sistem fabrikanın olağan Windows bilgisayarında, paketlenmiş
+  Windows uygulamasıyla (`NextGen Detector.exe`, docs/13) sunucusuz çalışır: Docker yok,
+  systemd yok; tespit CPU'dadır (paket yalnız CPU ONNX Runtime içerir). Sunucu donanımı,
+  GPU ve Docker ile systemd arasındaki seçim sonraki aşama için açık kalır (S1). Windows'ta
+  hız henüz ölçülmedi; tek ölçüm 4 çekirdekli, GPU'suz bir makinededir (AUDIT-OLCUM §1).
+  Windows'ta ses kartı kanalının sağlığı okunamaz (§7.7). Uygulama bir sonraki madde;
+  docs/06 §1.5 (bilgisayarda yapılacaklar ve kabul maddeleri), docs/05 §2, docs/09.
+- **24.09.2026, siz kapatana kadar açık:** operatör "uygulamayı bir kere açınca ben
+  kapatana kadar otomatik açılmayı ve bu tarz senaryoları düşünüp buna göre kodla lütfen"
+  dedi. Paketlenmiş Windows uygulamasında çift tıklanan kopya artık bir gözetmendir:
+  Kontrol Paneli'ni `--panel` ile alt süreç olarak açar; panel çökerse, bekçi takılan
+  analizi 70 koduyla kapatırsa ya da sunucu beklenmedik şekilde durursa (71) paneli
+  yeniden açar, bir saatte en çok 3 kez, sonra son bir kez bekçi yalnız uyaracak şekilde;
+  Windows kapanırken ya da oturum kapanırken açmaz. Program oturum açılınca kendiliğinden
+  başlar (HKCU Run kaydı, her açılışta yeniden yazılır). Kontrol Paneli kapatılınca onay
+  sorulur ("Sistem kapatılsın mı?", varsayılan Hayır); Evet'te kayıt silinir, sistem durur,
+  gözetmen de kapanır. Sistem çalışırken Windows uyumaz; ikinci açılış açık paneli öne
+  getirir; panelde "Sürekli çalışma" satırı. `BEKCI_TEPKISI`'nin varsayılanı `uyar`'dan
+  `yeniden_baslat`'a döndü (S24'ün varsayılanı değişti); bekçi süreçten yalnız yeniden açan
+  biri varken çıkar (§3.6). Mac uygulamasında gözetmen, Windows açılışı ve uyku engeli
+  yoktur; kapatma onayı orada da sorulur. Uygulama `masaustu/surekli_calisma.py`,
+  `masaustu/dalsan_launcher.py`, `analiz/bekci.py`, `kaynaklar.yeniden_acan_var_mi`,
+  `paketleme/acilis_kancasi.py` (`2c73b56`, `970c3d4`); docs/06 §1.2.1 ve §1.5, docs/11
+  §7.1, docs/13 §3.1 ve §5.2. Fabrikanın bilgisayarında henüz denenmedi (docs/ILERLEME).
+- **24.09.2026, forklift için fabrikanın kendi görüntüsü:** operatör "gidip fabrikadan daha
+  çok görüntü çekip mi yükleyeyim ve sadece yüklesem yeter mi ekstra kod vs. bir şey yapmam
+  lazım mı? Bunları bilerek ilerle" dedi. LOCO ile iki tam eğitim kapılardan geçemediği için
+  (§12.3) sıradaki veri fabrikanın kendi kameralarıdır; fotoğraf çekmek ya da kod yazmak
+  gerekmez (§12.6). Program kareleri kendisi toplar (şema 012; kapı kapalı doğar, açmak
+  aydınlatma ve hukuki dayanağın onayını ister: KVKK kararı müşterinindir, S10 ile aynı),
+  etiketleme Forklift sayfasındadır, eğitim kapalı bir bilgisayarda tek komutla yapılır
+  (`egitim/forklift/yerel.py`, `Egit-Windows.bat`), çıkan model Forklift sayfasından kapılar
+  yeniden denetlenerek kurulur ve seçilebilir olur; seçim operatöründür (§12.3-8). Bu,
+  forklift için S31'in varsayılanını ("uzman işi") ve S11'in "GPU'lu ayrı makine" kısmını
+  değiştirir: eğitimi operatör tek komutla, GPU'suz bir bilgisayarda çalıştırır; eğitim yine
+  ürün dışıdır (paket ve imaj onu içermez) ve kareler GitHub hattına girmez. Open Images
+  görüntüsü eğitime girmedi (S20). Uygulama `35f1c24`, `6a10ec5`, `c7b7813`, `0eb6a9f`,
+  `784e39a`, `ff3ea17`, `f503439`, `c4fa17e`, `1a123d3`, `261ce14` (docs/ILERLEME).
+  Fabrikada henüz kare toplanmadı.
 
 | # | GÖREV | Soru | Neden önemli | Varsayılan seçenek | Gerektiği an |
 |---|---|---|---|---|---|
-| S1 | §8-1 | Fabrika sunucusunun kesin donanımı nedir (GPU modeli, sürücünün CUDA 12 mi 13 mü desteklediği, çekirdek sayısı, VNNI, Ubuntu sürümü)? Kurulum Docker mı, systemd mi, paketli masaüstü mü? | GPU imajını, ORT sürümünü (GPU imajı pratikte ORT ≥ 1.21 ister, `preload_dlls`), ses/Bluetooth yolunu, bekçinin tepkisini, systemd bildiriminin yazılıp yazılmayacağını ve §4.8 gecikme hedefinin tutup tutmayacağını belirler | Ubuntu + Docker tek container (CLAUDE.md §4); GPU doğrulanana kadar `yolox_tiny` + CPU; systemd bildirimi (koşullu) yazılmaz | Faz 5 (bekçi için Faz 2) |
+| S1 | §8-1 | Fabrika sunucusunun kesin donanımı nedir (GPU modeli, sürücünün CUDA 12 mi 13 mü desteklediği, çekirdek sayısı, VNNI, Ubuntu sürümü)? Kurulum Docker mı, systemd mi, paketli masaüstü mü? | GPU imajını, ORT sürümünü (GPU imajı pratikte ORT ≥ 1.21 ister, `preload_dlls`), ses/Bluetooth yolunu, bekçinin tepkisini, systemd bildiriminin yazılıp yazılmayacağını ve §4.8 gecikme hedefinin tutup tutmayacağını belirler | Ubuntu + Docker tek container (CLAUDE.md §4); GPU doğrulanana kadar `yolox_tiny` + CPU; systemd bildirimi (koşullu) yazılmaz. **İlk aşama kararlaştı (24.09.2026, karar kaydı):** fabrikanın Windows bilgisayarı, paketlenmiş uygulama, sunucusuz (Docker ve systemd yok, tespit CPU'da). Açık kalan: sonraki aşamanın sunucusu (donanım, GPU, Docker mı systemd mi) | Faz 5 (bekçi için Faz 2) |
 | S2 | §8-2 | AGPL-3.0 lisanslı model kabul edilebilir mi? | Model seçimini ve lisans yükümlülüğünü belirler; RT-DETR (Paddle) yalnız YOLOX §4.8'i tutmazsa ölçülür (Ç42) | Hayır; YOLOX (Apache-2.0, ADR-002) | Faz 3 |
 | S3 | §8-3 | Hangi alanlar KKD'den muaf? Forklift/tır kabinindeki sürücüye baret şart mı? KKD yalnız çizilen bölgede mi, muaf alanlar dışında her yerde mi (dışlama kipi)? docs/04 §5.3'teki 10 politika sorusunu kim, ne zaman cevaplayacak? | Etiketleme ve kural davranışı bu cevaplara bağlı; yanlış politikayla etiketlenen veri baştan bozuktur (docs/08 R11). Dışlama kipi üç katmanda değişiklik ister (§5.5) | Sürücü muaf; kapsam = çizilen KKD bölgesi, `ppe_exempt` o bölgeden oyulur (kuralda ve örneklemede); dışlama kipi **koşullu**, kodlanmaz | Faz 3 |
 | S4 | §8-4 | Sesli uyarının yanında hangi kanallar isteniyor, kim alacak (İSG uzmanı, vardiya şefi)? Ekran başında 7x24 biri var mı? Webhook'u alacak bir sistem var mı, imzayı doğrulayabilir mi? Yeni kurulumda kablolu ses (`local_audio`) kendiliğinden varsayılan kanal olsun mu (Ç39)? | Ekransız kurulumda sistem olayları ancak webhook ile dışarı çıkar; garanti yalnız sesli/uzak kanallara dayanır (K21) | Ekran + ses kartı / IP hoparlör; bugünkü `.env ANONS` "Tüm fabrika" satırına aktarılır; yeni kurulumda sesli kanal kendiliğinden kurulmaz, `sesli_kanal_yok` kırmızı görünür; webhook **koşullu**, kodlanmaz | Faz 4 |
@@ -2073,7 +2246,7 @@ docs/07'ye satır olur.
 | S21 | E3 | Türkçe anons WAV'larını kim kaydedecek? Üç yeni metnin (007) son hâli ne olacak? Sunucu TTS'i istenmediği varsayımı doğru mu? | WAV yoksa o olayda yalnız ekran + HTTP cihaz metni çalışır | Metinler taslak; WAV gelene kadar ekran + tarayıcı seslendirmesi | Faz 2 (metin), Faz 4 (WAV) |
 | S22 | - | `zones.zone_type` CHECK kısıtı kaldırılsın mı (doğrulama yalnız kodda)? | Kaldırılmazsa her yeni bölge tipi CASCADE tuzaklı bir tablo yeniden kurması ister | Kaldır; kodların tek kaynağı `rules/tipler.py` | **Faz 2 öncesi** |
 | S23 | §4.6 | Kanal başına dakikada en çok kaç sesli uyarı, hangi birleştirme penceresi? Kritik uyarılar sınırdan muaf mı? | Sel ile kaçırma arasında denge | Sınır ve birleştirme **koşullu**, kodlanmaz; bugünkü (kamera, mesaj) bastırması kanal başına korunur, critical açılış muaf | Faz 4 |
-| S24 | - | Bekçi analizin takıldığını görünce Docker/systemd'de süreci kapatıp yeniden başlatsın mı, yalnız uyarsın mı? | Kendiliğinden toparlanma ile gereksiz yeniden başlatma arasında seçim | `uyar`; masaüstünde her durumda yalnız uyarı | Faz 2 |
+| S24 | - | Bekçi analizin takıldığını görünce Docker/systemd'de süreci kapatıp yeniden başlatsın mı, yalnız uyarsın mı? | Kendiliğinden toparlanma ile gereksiz yeniden başlatma arasında seçim | `uyar`; masaüstünde her durumda yalnız uyarı. **24.09.2026'dan beri** (operatörün "ben kapatana kadar" isteği, karar kaydı): `yeniden_baslat`; süreçten yalnız yeniden açan biri varken çıkılır (Docker, systemd, Başlat betiğinin Kontrol Paneli, Windows uygulamasının gözetmeni), yoksa yalnız uyarılır (§3.6) | Faz 2 |
 | S25 | §4.5 | Yeni ek hazır kurallar (yaya yolunda araç, araç yolunda yaya) gölge modda mı doğsun? Yasak alan eşiği 2 sn mi kalsın, §4.5'in 1 sn'sine mi insin? | Yanlış alarm disiplini; mevcut hazır kuralların davranışı | Yeni ek hazır kurallar ve KKD gölgede doğar (`HazirKural.golge`); mevcutlar değişmez; yasak alan 2 sn | **Faz 2 öncesi** |
 | S26 | GÖREV §0-6 | Yeni kod adları: komşularla tutarlı Türkçe mi, CLAUDE.md §8 ve GÖREV §0-6'daki İngilizce mi? | CLAUDE.md kendi içinde çelişik (§5 Türkçe dosya adları, §8 İngilizce isim kuralı); varsayılan öncelik kuralından bilerek sapar (Ç27) | Yeni Python dosyaları Türkçe; şema, olay kodu, ayar değeri, metrik İngilizce; karar CLAUDE.md §8'e yazılır | **Faz 2 öncesi** |
 | S27 | §4.10 | Yüz bulanıklaştırma isteniyor mu; hangi yöntem (kutu üstü, YuNet yüz bandı)? | Kutu üstü baret kanıtını siler; YuNet uzak yüzü bulamaz | **Koşullu**, kodlanmaz; "evet" ise yalnız dışa aktarım ve KKD dışı kanıt | Faz 5 |

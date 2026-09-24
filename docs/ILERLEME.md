@@ -1,5 +1,199 @@
 # İlerleme
 
+## Forklift: fabrikanın kendi görüntüsüyle eğitim (24.09.2026 akşam)
+
+Operatör: *"gidip fabrikadan daha çok görüntü çekip mi yükleyeyim ve sadece yüklesem yeter
+mi ekstra kod vs. bir şey yapmam lazım mı? Bunları bilerek ilerle"* ve *"forklifti tanıması
+lazım ve bunun gibi eğitilmesi gerekiyorsa en iyi şekilde eğit"*.
+
+**Cevap:** fotoğraf çekmek ya da kod yazmak gerekmez. Program kareleri kameralardan kendisi
+toplar. Operatörün işi: KVKK dayanağıyla toplamayı açmak, kareleri etiketlemek, eğitimi tek
+dosyayla başlatmak ve çıkan modeli kurmak (docs/06 §9; tasarım docs/17 §12.6; karar kaydı
+docs/17 §16).
+
+**Yapılanlar:**
+
+- **Toplama ve etiketleme** (`35f1c24`, `6a10ec5`, `c7b7813`). Şema 012:
+  `forklift_collection_gate` (kapalı doğar), `forklift_samples`,
+  `purge_log.forklift_samples_deleted`. Ayarlar `FORKLIFT_ORNEK_SAAT_LIMIT` (12),
+  `FORKLIFT_ORNEK_EN_COK` (3000), `FORKLIFT_HAM_VERI_SAKLAMA_GUN` (30). Olay kodu
+  `FORKLIFT_COLLECTION_CHANGED`. Yeni **Forklift** sayfası (raf ve üst menü): toplama kapısı,
+  etiketleme ekranı (öneri kutusu Forklift / Transpalet / Değil, fareyle kutu, "Forklift
+  yok"), eğitim verisi zip'i (Türkiye gününe göre kronolojik bölme, son günlerin yaklaşık
+  dörtte biri test; manifest SHA-256), onaylı "Hepsini sil". Erişim izine
+  `view_forklift_frame`, `forklift_collection_gate`, `forklift_frames_deleted`.
+- **Birleştirme** (`0eb6a9f`): `egitim/forklift/veri.py birlestir` LOCO ile fabrika
+  paketini birleştirir. Fabrikanın eğitim kareleri 3 kez girer; test kümesi yalnız
+  fabrikanın test günleridir. Paket, LOCO JSON'u ve LOCO görüntülerinin özeti denetlenir:
+  bozuk LOCO eğitimden saatler önce reddedilir.
+- **Tek komutla yerel eğitim** (`784e39a`): `egitim/forklift/yerel.py` ve
+  `Egit-Windows.bat`, kılavuzu `egitim/forklift/YEREL-EGITIM.md`. Zip'i .bat'ın üstüne
+  bırakmak yeter: sanal ortam, kaynaklar (SHA-256 ya da içerik özeti), ön deneme, LOCO,
+  birleştirme, eğitim (kaldığı yerden sürer), k = 0, 1, 2 adayları, fabrikanın test
+  günlerinde ölçüm, `SONUC.txt` ve `KURULACAK/`.
+- **Modeli programdan kurma** (`ff3ea17`): Forklift sayfasında "Modeli kur". Ölçüm bu
+  modele mi ait, tabanı hazır model mi, kapılar (ürünün kopyasıyla yeniden), kısa deneme
+  reddi, ürünün tespit motoruyla açılış; `FORKLIFT_MODEL_INSTALLED`. Model Ayarlar'da
+  seçilebilir olur, seçim değişmez; dosyası silinir ya da açılamazsa tabanına düşer
+  (`MODEL_FALLBACK`).
+- **Uyarılar** (`f503439`, `c4fa17e`): sayfa ve zip, test günlerinde forkliftsiz kare yoksa
+  (yanlış forklift ölçülemez, o kapı kalır) ve test günlerinde 50'den az forklift kutusu
+  varsa uyarır; eğitimin sonucu aynı uyarıyı ikinci kez yazmaz. İkincisini kılavuz
+  vaat ediyordu ama sayfa vermiyordu (belge denetiminde bulundu).
+- **İmha günlüğü** (`1a123d3`): şema 012 silinen etiketsiz forklift karelerini ve o günkü
+  süreyi kaydediyordu, ama Ayarlar'daki KVKK bölümü göstermiyordu; sütun eklendi.
+- **Kaynak kurulumda ölçüm dosyası** (`261ce14`): kurulan modelin `.olcum.json`'u
+  `models/`'de git'e izlenmeyen dosya olarak görünüyordu; `.gitignore`'a eklendi (model
+  zaten dışarıdaydı).
+- **Belgeler:** docs/17 §12.3 (durum; yedeğe düşme artık §12.3-9, iki "8." numarası
+  düzeldi), yeni §12.6, olay tablosu, §3.7, §8.3, §10.1, §11, §12.1, §16 karar kaydı;
+  docs/06 §1.1, §4, §5, §7 ve yeni §9; docs/18 (uyum kartı, erişim izi, imha kaydı, S5);
+  docs/02, docs/08 R1, docs/12 §5, README, NASIL-CALISIR ve CLAUDE.md forklift istisnasının
+  olgusal kısmı.
+
+**Sınama:** tam takım (`261ce14` ve bu belgelerle) 3.11'de 2273 test geçti (24'ü bu ortamda
+atlanır), 3.12'de 2291 (6 atlanır); ruff temiz; kod commit'lerinin her biri ayrıca tam
+takımla doğrulandı. GitHub'da `f503439` üzerinde "Uygulama üret" (Windows, Mac) ve
+"Forklift eğitimi" (duman) yeşil. Yerel eğitim Linux'ta gerçek torch ile baştan sona
+koştu: LOCO test karelerinden ürünün kendi dışa aktarımıyla üretilmiş dört günlük bir
+deneme paketi (test günlerinde 15 kare, 11 forklift kutusu), küçük bir hazır LOCO alt
+kümesi (90 eğitim görüntüsü), tiny-v3, 4 devir. Bütün adımlar bitti; sonuç beklendiği gibi
+KALDI (forklift bulma oranı 0,09), `KURULACAK` boş kaldı. Bu paketin test kareleri hep
+kutulu olduğu için yanlış forklift ölçülemedi: `f503439`'un uyarısı buradan çıktı. İlk
+denemede önbellekteki bir LOCO kopyası bozuk çıktı (eğitim "file not found" ile durdu);
+artık birleştirmede görüntü özetiyle hemen yakalanıyor. Kurulum tarayıcıda o koşunun
+gerçek adayıyla denendi: kendi ölçümüyle reddedildi ve kalan kapılar ekranda yazdı;
+kapıları geçecek şekilde elle yazılmış bir ölçümle kuruldu ve Ayarlar'da seçilebilir
+oldu.
+
+**Sınanmayanlar:** `Egit-Windows.bat` gerçek Windows'ta çalıştırılmadı (torch 2.14.0'ın
+Windows tekerlekleri PyPI'da doğrulandı). İndirme adımları yerelde koşmadı: kaynaklar
+önceden yerindeydi; bu ortamdan GitHub'daki YOLOX arşivine ve download.pytorch.org'a
+erişilemedi, arşivin içerik özeti sabit commit'in kopyasından hesaplandı. Docker'da sayfadan
+kurulan model imaj yeniden kurulunca kaybolur (docs/06 §9).
+
+**Açık kalanlar:**
+
+- **Fabrikada henüz kare toplanmadı; bu yolla kapıları geçen model yok.** İlk adım
+  operatörün: çalışanlara aydınlatma ve hukuki dayanak (Rev.02 ya da ek protokol), sonra
+  Forklift sayfasında "Kare toplamayı aç".
+- Modeli varsayılan yapmak için saha ölçümü ve operatör onayı gerekir (forklift AP50
+  ≥ 0,90, docs/06 §8); kapıyı geçen model yalnız seçilebilir olur.
+
+## Fabrikanın Windows bilgisayarı: siz kapatana kadar açık (24.09.2026 akşam)
+
+Operatör: *"bu uygulamayı fabrikanın windows bilgisayarında çalıştırcm ona göre
+lütfen bil sunucu olmayacak ilk etapta"* ve *"uygulamayı bir kere açınca ben
+kapatana kadar otomatik açılmayı ve bu tarz senaryoları düşünüp buna göre kodla
+lütfen"*.
+
+**Karar (docs/17 §16):** S1'in ilk aşaması kapandı. Sistem ilk aşamada fabrikanın
+olağan Windows bilgisayarında, paketlenmiş Windows uygulamasıyla
+(`NextGen Detector.exe`) sunucusuz çalışır: Docker yok, systemd yok, tespit CPU'da.
+Sunucu donanımı, GPU ve Docker ile systemd arasındaki seçim sonraki aşama için açık.
+
+**Yapılanlar:**
+
+- **Takılan analiz varsayılan olarak yeniden başlar** (`2c73b56`). `BEKCI_TEPKISI`
+  varsayılanı `uyar`'dan `yeniden_baslat`'a döndü (`ayarlar.py`, `.env.example`;
+  Ayarlar sayfasında seçenek sırası ve açıklaması). Takılan analiz hiç uyarı
+  üretmez; kendiliğinden toparlanması yalnız uyarmasından iyidir. Bekçi süreçten
+  (kod 70) artık yalnız onu yeniden açan biri varken çıkar
+  (`kaynaklar.yeniden_acan_var_mi`): Docker, systemd (birim `DALSAN_HIZMET=1`
+  koyar), sunucusuna `DALSAN_GOZETMEN=1` veren Başlat betiğinin Kontrol Paneli
+  (70'te yeniden açar, saatte en çok 3 kez) ya da Windows uygulamasının gözetmeni.
+  Eskiden `yeniden_baslat` seçiliyse bekçi paketlenmiş uygulama dışında her yerde
+  çıkıyordu (onu kimsenin açmadığı elle çalıştırılan sunucu ve testler dahil);
+  paketlenmiş uygulama ise hep yalnız uyarıyordu. Yeniden açan yoksa (elle
+  çalıştırılan sunucu, testler, Mac uygulaması) bekçi yalnız uyarır.
+- **Windows uygulaması siz kapatana kadar açık** (`970c3d4`, yeni
+  `masaustu/surekli_calisma.py`):
+  - **Gözetmen.** Kullanıcının açtığı (ya da Windows açılışında başlayan) kopya
+    penceresiz bir gözetmendir; Kontrol Paneli'ni `--panel` argümanı ve
+    `DALSAN_GOZETMEN=1` ile alt süreç olarak açar. Panel çökerse, bekçi 70 koduyla
+    kapatırsa ya da sunucu beklenmedik şekilde durursa (71) paneli yeniden açar;
+    bir saatte en çok 3 kez, sonra son bir kez `DALSAN_GOZETMEN=0` ile (bekçi
+    yalnız uyarır, pencere sorunu gösterir). Windows kapanırken ya da oturum
+    kapanırken açmaz (`SM_SHUTTINGDOWN`). Alt süreç
+    `PYINSTALLER_RESET_ENVIRONMENT=1` ile başlar: PyInstaller onu bağımsız bir
+    program sayar. Kendi günlüğü `veri/loglar/gozetmen.log` (256 KB'ta
+    `gozetmen.log.1`'e döner).
+  - **Windows açılışı.** Gözetmen her başlayışta programı
+    `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` altına "NextGen Detector"
+    adıyla, `--kendiliginden` argümanıyla yazar (klasör taşınırsa kayıt yeni yeri
+    gösterir). Kontrol Paneli kapatılınca "Sistem kapatılsın mı?" diye sorulur
+    (varsayılan Hayır); Evet'te kayıt silinir, sistem durur, gözetmen de kapanır.
+    Görev Yöneticisi'nde başlangıçta kapatılmışsa (StartupApproved) program buna
+    dokunmaz, panel uyarır. Böylece program açıldıktan sonra operatör kapatana
+    kadar açık kalır; elektrik kesintisinden, Windows'un ya da Windows Update'in
+    yeniden başlatmasından sonra Windows kullanıcısı oturum açınca yeniden başlar.
+  - **Tek kopya.** Program açıkken yeniden açılırsa açık Kontrol Paneli öne gelir
+    (`Local\NextGenDetector.Gozetmen` adlı muteks); pencere bulunamazsa "zaten
+    çalışıyor" der.
+  - **Uyku.** Sistem çalışırken panel Windows'un uyumasını engeller
+    (`SetThreadExecutionState`, panelin ana iş parçacığından); ekran kapanabilir,
+    uyarı sesi çalar; bilgisayarı elle uyutmak engellenmez.
+  - **Panel.** Yeni "Sürekli çalışma" satırı (ör. "Açık - takılır ya da bilgisayar
+    yeniden başlarsa kendiliğinden açılır. Bilgisayar uyumuyor.") ve yeni üst satır
+    ("Siz kapatana kadar açık kalır: bilgisayar yeniden başlasa da kendiliğinden
+    açılır."); panel açılışta neden (yeniden) açıldığını günlüğe yazar (Windows
+    açılışı, bekçi, çıkış koduyla çökme, sınır). Gözetimli panel çökerse hata
+    yalnız `acilis-hatasi.log`'a yazılır, kapatılmayı bekleyen hata penceresi
+    açılmaz (`paketleme/acilis_kancasi.py`).
+  - **Değişmeyenler.** Mac uygulamasında gözetmen, Windows açılışı ve uyku engeli
+    yok (kapatma sorusu orada da çıkar). Başlat betiğiyle kurulan sistem Windows'ta
+    uyku engelini alır ve 70'te kendi yeniden başlatmasını sürdürür; Windows
+    açılışında başlamaz.
+- **Belgeler:** docs/06 §1.5 (fabrikanın Windows bilgisayarı: davranış, bir kez
+  yapılacaklar, yedek, güncelleme, hız) ve §8'e üç kabul maddesi; docs/17 §16 karar
+  kaydında iki madde, S1, S24, K10, §3.6; docs/11 §6 ve §7.1; docs/13 §3.1, §5.2,
+  §6.4, §7; docs/05, docs/08 (R16), docs/09, docs/16, docs/02, docs/07, docs/14,
+  AUDIT R5; README ve NASIL-CALISIR.
+
+**Sınama:** birim testleri `tests/test_surekli_calisma.py`, `tests/test_bekci.py`
+ve `tests/test_panel_yeniden_baslatma.py` (Windows çağrıları sahte nesnelerle).
+Gerçek Windows'ta programın gözetmenle açılışını paketleme iş akışının
+"Uygulamayı baştan sona çalıştır" adımı GitHub'ın Windows makinesinde çalıştırır;
+yeniden açma, Windows açılışı ve uyku engeli orada sınanmaz.
+Tam takım (`970c3d4`): 3.11'de 2182 test geçti (24'ü bu ortamda atlanır), 3.12'de 2200
+(6 atlanır); ruff temiz. GitHub'da Windows ve Mac uygulaması `f503439` üzerinde üretildi
+ve açılış adımı geçti.
+**Fabrikanın bilgisayarında henüz hiçbir şey denenmedi.**
+
+**Operatörün fabrikanın bilgisayarında yapacakları** (kodla yapılamaz; ayrıntı
+docs/06 §1.5):
+
+- BIOS/UEFI'de elektrik gelince açılma: "Restore on AC Power Loss", "AC Recovery"
+  gibi adlı ayar **Power On**. Yapılmazsa elektrik kesintisinden sonra bilgisayar
+  kapalı kalır.
+- Programa ayrılmış tek bir Windows hesabında otomatik oturum açma (veri kullanıcı
+  başınadır: `%LOCALAPPDATA%\NextGen Detector`); program oturum açılınca başlar.
+  Bu yüzden bilgisayar kilitli bir odada durur.
+- Sürekli elektrik (dizüstüyse fişte); Windows Update etkin saatleri (yeniden
+  başlatma sorun değil, program oturum açılınca geri gelir).
+- SmartScreen ve virüs korumasının uyarısına izin (program imzasız ve kendini
+  Windows açılışına ekliyor).
+- İlk açılışta internet: tespit modeli bir kez iner (yaklaşık 20-35 MB); sonra
+  internetsiz çalışır.
+- Yedek: Teşhis → "Veritabanını Yedekle" aynı diske yazar;
+  `%LOCALAPPDATA%\NextGen Detector\veri` ve `.env` haftada bir USB diske.
+- Güncelleme: Kontrol Paneli'ni kapat (Evet) → program klasörünü yenisiyle değiştir
+  → yeni exe'yi aç (Windows açılışı kaydı yeniden yazılır). Kaldırma: önce kapat,
+  sonra klasörü sil.
+- Windows'ta "Saati otomatik olarak ayarla" açık kalır.
+- Hız: Windows'ta ölçülmedi. Tek ölçüm 4 çekirdekli Intel Xeon 2.1 GHz, GPU'suz
+  makinededir: hızlı model (`yolox_tiny`) 4 kamera × 6 fps'i bütçenin %100'üyle
+  karşıladı (docs/AUDIT-OLCUM.md, aşağıdaki «Hız ve CPU»). Daha çok çekirdekli bir
+  bilgisayar seçilir; devreye almada Komuta → Kamera sağlığı'nda "İşlenen fps"
+  ölçülür.
+- Kabul (docs/06 §8): fişi çekip geri takınca bilgisayar açılır, oturum açılır ve
+  program geri gelir; Görev Yöneticisi > Başlangıç uygulamaları'nda "NextGen
+  Detector" etkin; "Sürekli çalışma" satırı "Açık" der.
+
+**Açık kalanlar:** S1'in sunucu aşaması (donanım, GPU, Docker mı systemd mi).
+Windows'ta ses kartı kanalının sağlığı okunamaz ("bilinmiyor", docs/17 §7.7):
+hoparlör sahada **▶ Dene** ile dinlenerek doğrulanır.
+
 ## Sorunların çözümü ve belgelerin kodla denetimi (24.09.2026 öğleden sonra)
 
 Operatör: *"Olan problemleri de çöz ve md dosyalarını da baştan aşağı gerçek olacak

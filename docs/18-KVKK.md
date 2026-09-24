@@ -6,7 +6,8 @@
 > teyidi bekler.** Veri sorumlusu müşteridir; aydınlatma metnini ve levhayı
 > müşteri hazırlar (docs/00 "KVKK - atlanamaz").
 
-Son güncelleme: 24.09.2026 (Faz 5c; yazılım davranışı kodla karşılaştırıldı).
+Son güncelleme: 24.09.2026 (Faz 5c; forklift eğitim kareleri eklendi; yazılım davranışı
+kodla karşılaştırıldı).
 
 ---
 
@@ -21,7 +22,7 @@ Son güncelleme: 24.09.2026 (Faz 5c; yazılım davranışı kodla karşılaştı
 | Amaç sınırı | 8770 (sürekli gözetim, performans/disiplin takibi meşru amaç değil) | Yalnız İSG olayları; kişi bazlı rapor ve "en çok ihlal yapan kişi" yok; uyarılar bölge ve konum bazlı | Rapor, Olaylar | bekliyor |
 | İnsan onayı | m.11/1-g | Kişi aleyhine sonuç doğmadan İSG uzmanı incelemesi şartı aydınlatma metnine yazılır; ürün yalnız "inceleme" işaretleri sunar | Olay inceleme ekranı | bekliyor |
 | Çalışan görüşü | 6331 m.18/1-b | Kurulum listesine "İSG kurulu / çalışan temsilcisine danışıldı" maddesi **eklenmedi**: uygulanabilirliği avukata sorulacak (docs/17 §10.1) | - | **soru** |
-| Saklama | m.4/2-d, m.7; Silme Yönetmeliği (6 ayda bir periyodik imha; imha kaydı en az 3 yıl); sabit gün yok | Olay 180, fotoğraf 90, etiketsiz KKD kırpığı 30, sistem olayı 90 gün (`.env`, Ayarlar sayfası). Etiketli KKD kırpığı veri setidir, bakım onu silmez. Bakım günde bir çalışır ve her koşuda imha kaydı yazar (§4). Gün sayılarını müşteri ve avukat belirler (docs/17 S5 açık) | docs/06 §5; Ayarlar → KVKK | bekliyor |
+| Saklama | m.4/2-d, m.7; Silme Yönetmeliği (6 ayda bir periyodik imha; imha kaydı en az 3 yıl); sabit gün yok | Olay 180, fotoğraf 90, etiketsiz KKD kırpığı 30, etiketsiz forklift karesi 30, sistem olayı 90 gün (`.env`, Ayarlar sayfası). Etiketli KKD kırpığı ve forklift karesi veri setidir, bakım onları silmez. Bakım günde bir çalışır ve her koşuda imha kaydı yazar (§4). Gün sayılarını müşteri ve avukat belirler (docs/17 S5 açık) | docs/06 §5; Ayarlar → KVKK | bekliyor |
 | Uyarı kaydı arşivi | Operatör kararı (23.09.2026); m.7 (imha) | Teslim kaydı (hangi uyarı hangi kanaldan, ne sonuçla) 15 günde bir masaüstüne (masaüstü yoksa, ör. Docker'da, `veri/arsiv/uyari-kayitlari`'na) CSV olarak yazılır, doğrulanır, sonra silinir; imha kaydında sayı ve dosyanın yolu durur (§4). Kayıtta kişi bilgisi yoktur (kamera, bölüm, olay no, kanal). **Masaüstündeki kopya sistemin saklama süresine tabi değildir**: kim erişir, ne kadar tutulur müşterinin politikasıdır | Ayarlar → Saklama süreleri; `olaylar/uyari_arsivi.py` | bekliyor |
 | Olay dondurma | 8770 ("hukuki süreçte yalnız ilgili kayıt") | Olay sayfasında "Dondur": olay, kanıt fotoğrafı ve uyarı teslim kaydı süre dolsa da silinmez (§3) | Olay sayfası; `events.hold` | bekliyor |
 | Erişim ve güvenlik | m.12; Kurul 2018/10; 8770 yetki matrisi | Tek yönetici şifresi (Docker'da zorunlu) + erişim izi (§2); giriş kilidi, köken ve sunucu adı denetimi, oturum sırrı (docs/17 §10.5) | Ayarlar → KVKK | bekliyor |
@@ -29,13 +30,14 @@ Son güncelleme: 24.09.2026 (Faz 5c; yazılım davranışı kodla karşılaştı
 | Rol ve sözleşme | m.12/2 müşterek sorumluluk | NextGen-müşteri veri işleyen sözleşmesi. Bulut, telemetri, yurt dışı aktarım yok; tek dış bağlantı model indirmedir (`analiz/model_indir.py`) ve kurulumdan sonra kapatılabilir | Sözleşme | bekliyor |
 | Ağ bölümlendirmesi | m.12 teknik tedbir | Kameralar ayrı ağda; sunucu yalnız kamera ağına, yönetim ağına ve anons cihazlarına erişir. Belge ağ ekibiyle doldurulur | docs/06 §1.4 | bekliyor |
 | KKD veri toplama | docs/00 (Rev.02) | Kapı SQLite'ta, yeniden başlatmadan ve gecikmesiz kapanır; açmak Rev.02 onayı ister; her değişiklik olay ve erişim izi bırakır | KKD sayfası | bekliyor |
+| Forklift eğitim kareleri | Operatör isteği 24.09.2026; KKD ile aynı dayanak şartı | Tam kare (uzun kenarı en çok 1280 piksel) çalışanları da gösterebilir. Kapı kapalı doğar (şema 012), yeniden başlatmadan ve gecikmesiz kapanır; açmak aydınlatma ve hukuki dayanağın (Rev.02 ya da ek protokol) onayını ister; her değişiklik olay ve erişim izi bırakır. Kareler yalnız bu bilgisayarda durur; eğitim verisi zip olarak indirilir (erişim izine kare sayısıyla düşer) ve kapalı bir bilgisayarda eğitilir, GitHub'a ve internete çıkmaz (docs/17 §12.6) | Forklift sayfası | bekliyor |
 
 ## 2. Erişim izi (`access_log`)
 
 Kişisel veriye dokunan ya da onu koruyan ayarı değiştiren aşağıdaki istekler
 birer satır bırakır: **zaman, istemci adresi, ne yapıldı, neye.** Canlı kamera
-önizlemesini izlemek ve KKD kırpığına etiket vermek iz bırakmaz (kırpığın
-görüntülenmesi bırakır). Ayarlar sayfasının en altında "KVKK: erişim ve imha
+önizlemesini izlemek ve KKD kırpığına ya da forklift karesine etiket vermek iz bırakmaz
+(görüntülenmesi bırakır). Ayarlar sayfasının en altında "KVKK: erişim ve imha
 kayıtları" bölümünde okunur.
 
 | Ne yapıldı (`action`) | Ne zaman yazılır | Neye (`target`) |
@@ -43,11 +45,14 @@ kayıtları" bölümünde okunur.
 | `view_snapshot` | Kanıt fotoğrafı açıldı (olay listesi küçük resmi, olay sayfası, inceleme) | `event:<id>` |
 | `view_ppe_crop` | KKD kırpığı açıldı | `sample:<id>` |
 | `export_csv` | Olaylar CSV'si ya da rapor CSV'si indirildi | satır sayısı / dönem |
-| `export_dataset` | KKD veri seti zip'i indirildi | örnek sayısı |
+| `view_forklift_frame` | Forklift eğitim karesi açıldı | `frame:<id>` |
+| `export_dataset` | KKD ya da forklift veri seti zip'i indirildi | `kkd (<n> örnek)` / `forklift (<n> kare)` |
 | `settings_change` | Ayarlar kaydedildi (yalnız gerçekten değişen ayarların **adları**); kamera mahremiyet onayı | `OLAY_SAKLAMA_GUN, …` / `camera:<id>` |
 | `rule_change` | Kural kaydedildi, hazır kural eklendi, silindi; gölge / anons değişti | `rule:<id>` |
 | `hold_change` | Olay donduruldu ya da dondurma kaldırıldı | `event:<id> hold=1/0` |
 | `ppe_collection_gate` | KKD veri toplama açıldı ya da kapandı | `acik` / `kapali` |
+| `forklift_collection_gate` | Forklift kare toplama açıldı ya da kapandı | `acik` / `kapali` |
+| `forklift_frames_deleted` | Forklift karesi ya da hepsi silindi | `frame:<id>` / `hepsi (<n> kare)` |
 
 - **Yazılmayanlar:** şifre, oturum çerezi, ayarın DEĞERİ, kamera ve hoparlör
   adresi. Bir test bunu şifreli bir kurulumda denetler (`tests/test_kvkk_izleri.py`).
@@ -77,10 +82,10 @@ Dondurma ve kaldırma erişim izine düşer. Yetki yönetici şifresinin sahibin
 
 ## 4. İmha kaydı (`purge_log`)
 
-Her bakım koşusu (günde bir) bir satır yazar: silinen olay, fotoğraf ve KKD
-örneği sayısı, dondurulduğu için silinmeyen olay sayısı, arşivlenip silinen
-uyarı kaydı sayısı ve CSV dosyasının tam yolu (ekranda yalnız adı; şema 011) ve
-o günkü saklama gün sayıları. Kişisel veri içermez. Silme Yönetmeliği imha
+Her bakım koşusu (günde bir) bir satır yazar: silinen olay, fotoğraf, KKD
+örneği ve etiketsiz forklift karesi (şema 012) sayısı, dondurulduğu için
+silinmeyen olay sayısı, arşivlenip silinen uyarı kaydı sayısı ve CSV dosyasının
+tam yolu (ekranda yalnız adı; şema 011) ve o günkü saklama gün sayıları. Kişisel veri içermez. Silme Yönetmeliği imha
 kaydının en az 3 yıl saklanmasını ister; bakım bu tabloyu hiç silmez.
 
 ## 5. Saklanmayanlar
@@ -88,7 +93,8 @@ kaydının en az 3 yıl saklanmasını ister; bakım bu tabloyu hiç silmez.
 Yüz kırpığı, yüz gömmesi, kişi adı ya da sicil numarası, iz → personel eşlemesi,
 ses, ham video akışı. Yalnız kullanıcının yüklediği test videoları saklanır ve
 bakım onlara dokunmaz. Şemada bunları taşıyabilecek bir sütun olmadığını bir
-test denetler.
+test denetler. Forklift eğitim kareleri tam karedir ve çalışanları da
+gösterebilir: yalnız toplama kapısı açıkken saklanır (§1).
 
 ## 6. Yapılmayanlar
 
@@ -101,8 +107,9 @@ test denetler.
 
 ## 7. Operatöre açık sorular
 
-- **S5:** Olay, fotoğraf ve KKD kırpığı kaç gün saklanacak? Veri sorumlusu kim?
-  Dondurma yetkisi kimde? Erişim izi ne kadar saklanacak?
+- **S5:** Olay, fotoğraf, KKD kırpığı ve etiketsiz forklift karesi kaç gün
+  saklanacak? Veri sorumlusu kim? Dondurma yetkisi kimde? Erişim izi ne kadar
+  saklanacak?
 - **S6:** Kamera ağı ayrı bir VLAN'da mı? Görüş alanında mahremiyet beklentisi
   olan alan var mı? RTSP akışlarında ses kanalı var mı?
 - **S27:** Yüz bulanıklaştırma isteniyor mu, hangi yöntemle?
