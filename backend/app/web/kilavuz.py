@@ -563,8 +563,8 @@ def _ham_adimlar(baglanti, supervizor, ayarlar) -> list[dict]:
                 if kamera_sayisi
                 else (
                     "Henüz kamera eklenmedi. Fabrika kamerası için RTSP adresi gerekir. "
-                    "Kamera hazır değilse “Video Yükle” deyip elinizdeki bir video "
-                    "dosyasıyla şimdiden deneyebilirsiniz."
+                    "Kamera hazır değilse Kameralar sayfasındaki “Video ile Test” ile "
+                    "elinizdeki bir video dosyasıyla şimdiden deneyebilirsiniz."
                 )
             ),
             # Bağlantı "Kamera ekle" KALIR: RTSP adresi elinde olan kullanıcı

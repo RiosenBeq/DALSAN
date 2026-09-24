@@ -118,7 +118,7 @@ def simge_dosyasi() -> Path | None:
     """Pencere simgesinin (.ico) tam yolu; bulunamazsa None.
 
     Yol app/kaynaklar.py'den cozulur: paketlenmis programda dosyalar depoda
-    degil, paketin acildigi gecici klasordedir. Paketleme tarifi simgeyi
+    degil, paketin icindeki kaynak klasorundedir (sys._MEIPASS). Paketleme tarifi simgeyi
     ayni klasor duzeniyle pakete koyar (paketleme/paketleme_ortak.py).
     """
     try:
@@ -522,7 +522,10 @@ def guncelleme_durumu():
     etkilenmez - guncelleme istege bagli bir istektir, arka planda calismaz.
     """
     if not git_deposu_mu():
-        return "depo-degil", "Bu kurulum bir git deposu degil; guncelleme paket kopyalayarak yapilir."
+        return "depo-degil", (
+            "Bu klasör bir git deposu değil (kod ZIP gibi başka bir yoldan alınmış); "
+            "Güncelle düğmesi yalnız git ile kurulmuş klasörde çalışır."
+        )
     basarili, cikti = _git("fetch", "--quiet")
     if not basarili:
         return "hata", f"GitHub'a ulasilamadi: {cikti[:200]}"
@@ -553,7 +556,7 @@ def guncelle(yedek_al=True):
     """
     satirlar = []
     if not git_deposu_mu():
-        return False, ["Bu kurulum bir git deposu degil (docs/13 §5)."]
+        return False, ["Bu klasör bir git deposu değil (docs/13 §5)."]
 
     # Yerel degisiklik varsa pull yarim kalir; kullaniciya SEBEBI soylenmeli.
     #
@@ -1212,8 +1215,9 @@ def arayuzu_baslat():
         durum, mesaj = guncelleme_durumu()
         log(f"   {mesaj}")
         if durum == "depo-degil":
-            log("    Bu kurulumda güncelleme, yeni uygulamayı eskisinin üstüne")
-            log("    kopyalayarak yapılır (docs/13 §5).")
+            log("    Bu klasörde güncelleme elle yapılır: yeni sürümün kodunu")
+            log("    bu klasörün üstüne kopyalayın; veri/ ve .env korunur.")
+            log("    Sonra 'İlk Kurulumu Yap' paketleri tazeler (docs/13 §5).")
             return
         if durum == "hata":
             log("    İnternet bağlantısını kontrol edip yeniden deneyin.")

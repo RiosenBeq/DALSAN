@@ -24,7 +24,8 @@ KLASÖR MÜ, TEK DOSYA MI - bilerek klasör (onedir) seçildi:
     kalan her şey `_internal` içindedir. Kullanıcı yanlış dosyaya tıklayamaz.
 Teslim ederken KLASÖRÜN TAMAMI kopyalanır (bkz. docs/13).
 
-WINDOWS'A ÖZGÜ ÜÇ NOKTA (Mac tarifinden farkı budur):
+WINDOWS'A ÖZGÜ İKİ NOKTA (Mac tarifinden farkı budur) ve İKİ TARİFTE ORTAK
+BİR NOKTA:
 
 1. `.app` KABUĞU YOKTUR. macOS'un BUNDLE adımı ve Info.plist izin metinleri
    Windows'ta karşılıksızdır; kamera izni diye bir kavram yoktur.
@@ -32,7 +33,8 @@ WINDOWS'A ÖZGÜ ÜÇ NOKTA (Mac tarifinden farkı budur):
 2. SİMGE `.ico` OLMALIDIR. Windows `.icns` okumaz. Simge, Mac simgesiyle
    AYNI çizimden üretilmiştir (bkz. aşağıdaki not).
 
-3. KONSOL PENCERESİ GİZLİ (`console=False`) AMA HATA GÖRÜNÜR. Gizli konsolun
+3. (ORTAK - Mac tarifi de aynısını yapar) KONSOL PENCERESİ GİZLİ
+   (`console=False`) AMA HATA GÖRÜNÜR. Gizli konsolun
    bedeli ağırdır: `sys.stdout` ve `sys.stderr` yok olur, program açılırken
    çökerse kullanıcı EKRANDA HİÇBİR ŞEY GÖRMEZ. Bu yüzden bir açılış
    kancası takılıyor (paketleme/acilis_kancasi.py): kayıp çıkış

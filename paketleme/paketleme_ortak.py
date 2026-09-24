@@ -10,7 +10,10 @@ Platforma özel olan ne varsa ilgili `.spec` dosyasında kalır:
 
 * macOS: `.app` kabuğu (BUNDLE), kamera izni metinleri, `.icns` simgesi ve
   OpenSSL çakışması düzeltmesi (`otool` yalnız macOS'ta vardır).
-* Windows: `.ico` simgesi, gizli konsol penceresi ve açılış hatası kancası.
+* Windows: `.ico` simgesi.
+
+Gizli konsol (`console=False`) ve açılış hatası kancası (`acilis_kancasi.py`)
+iki tarifte de vardır.
 
 Bu dosya PyInstaller tarafından ÇALIŞTIRILMAZ; `.spec` dosyaları onu normal
 bir Python modülü gibi okur.

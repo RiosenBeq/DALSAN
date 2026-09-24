@@ -1,4 +1,4 @@
-"""Video yükleyip kamerasız deneme: "Kameralar → Video Yükle".
+"""Video yükleyip kamerasız deneme: "Kameralar → Video ile Test".
 
 NE İŞE YARAR - sistemi bir fabrika kamerasına bağlamadan, elinizdeki bir
 video dosyasıyla baştan sona denemek. Video yüklenir, üzerine bölgeler

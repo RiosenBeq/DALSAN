@@ -166,7 +166,7 @@ AYAR_GRUPLARI: tuple[AyarGrubu, ...] = (
         aciklama=(
             "Sesin hangi kanaldan çıkacağı (bu bilgisayarın ses çıkışı, Bluetooth "
             "hoparlör, IP hoparlör) burada değil, Anons sistemi ekranındaki kanal "
-            "listesinde tanımlanır. Buradaki iki ayar bütün kanallar için ortaktır."
+            "listesinde tanımlanır. Buradaki ayarlar bütün kanallar için ortaktır."
         ),
         alanlar=(
             AyarAlani(

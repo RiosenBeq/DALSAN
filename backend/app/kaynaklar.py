@@ -10,14 +10,15 @@
    kullanıcıya aittir, program bunlara YAZAR.
    Cevap: `veri_konumu()`.
 
-NEDEN AYRILDI - paketleme (tek dosyalık uygulama) sırasında bu iki soru aynı
-cevabı vermez:
+NEDEN AYRILDI - paketlenmiş uygulamada (PyInstaller klasör paketi, tek dosya
+değil) bu iki soru aynı cevabı vermez:
 
-* Kaynak dosyalar, program açılırken geçici bir klasöre açılır. `__file__`
-  o klasörü göstermez; PyInstaller yerini `sys._MEIPASS` içinde bildirir.
-* Uygulama paketinin kendisi SALT OKUNURDUR (macOS'ta imzalı `.app`,
-  Windows'ta Program Files). Veritabanı, günlük ve indirilen model oraya
-  yazılamaz; kullanıcı profilindeki klasöre yazılır.
+* Kaynak dosyalar paketin içindeki bir klasördedir (Windows'ta `_internal`,
+  macOS'ta `.app` içinde). PyInstaller yerini `sys._MEIPASS` içinde bildirir.
+* O klasör SALT OKUNUR OLABİLİR (macOS'ta imzalı `.app`, Windows'ta Program
+  Files) ve güncellemede üstüne yenisi kopyalanır. Veritabanı, günlük ve
+  indirilen model bu yüzden oraya yazılmaz; kullanıcı profilindeki klasöre
+  yazılır.
 
 Paketlenmemiş (geliştirme) çalışmada davranış BUGÜNKÜ HALİYLE aynıdır:
 her iki soru da depo kökünü gösterir. Ayrım tek yerde, burada yapılır;
@@ -41,9 +42,9 @@ _VERITABANI_IZI = ("veri", "dalsan.db")
 
 
 def paketlenmis_mi() -> bool:
-    """Program tek dosyalık paket olarak mı çalışıyor?
+    """Program PyInstaller paketi olarak mı çalışıyor?
 
-    PyInstaller, açtığı geçici kaynak klasörünü `sys._MEIPASS` içine yazar;
+    PyInstaller, paketin kaynak klasörünü `sys._MEIPASS` içine yazar;
     normal Python çalıştırmasında bu değişken YOKTUR. Karar tam olarak bu
     değişkene bağlanır, çünkü kaynak dosyaların yerini belirleyen de odur.
     """

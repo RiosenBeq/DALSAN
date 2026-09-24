@@ -105,8 +105,9 @@ _TARAMA_EN_AZ_ARALIK_PX = 9
 _TARAMA_KALINLIK_ORANI = 0.11
 
 # Tarama çizgilerinin harmanı: bölge rengi %75, alttaki görüntü %25. Çizgiler
-# alanın ancak %8'ini kapladığı için güçlü renk ALTTAKİ GÖRÜNTÜYÜ ÖRTMEZ;
-# zayıf harman ise dokulu bir fabrika zemininde tamamen kayboluyordu.
+# alanın çözünürlüğe göre yalnız %7-22'sini kapladığı için (720p'de %6,7,
+# 1080p'de %21,7; tamsayı aralık ve kalınlıktan) güçlü renk ALTTAKİ GÖRÜNTÜYÜ
+# ÖRTMEZ; zayıf harman ise dokulu bir fabrika zemininde tamamen kayboluyordu.
 _TARAMA_KARISIMI = 0.75
 
 # Bölge sayacının "kararlı" saydığı ardışık kare sayısı. Kamera 6 kare/sn

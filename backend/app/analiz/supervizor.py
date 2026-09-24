@@ -265,8 +265,8 @@ class AnalizSupervizoru:
             # kullanıcıyı boşuna beklemeye iterdi.
             mesaj = (
                 "Video sonuna kadar izlendi - analiz tamamlandı. Bulunan ihlaller "
-                "Olaylar sayfasında. Baştan çalıştırmak için Kameralar → Video Yükle "
-                'sayfasındaki "Yeniden Çalıştır" düğmesini kullanın.'
+                "Olaylar sayfasında. Baştan çalıştırmak için Kameralar → Video ile Test "
+                'sayfasındaki "Yeniden çalıştır" düğmesini kullanın.'
             )
         else:
             mesaj = "Bağlantı yok."
