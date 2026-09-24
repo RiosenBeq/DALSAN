@@ -81,6 +81,48 @@ def test_rotalar_model_adini_fonksiyondan_gecirir():
     assert not ham, f"Ekrana ham dosya adı veren satır(lar) var: {ham}"
 
 
+# Kodda kalan, ekrana çıkmayan sabitler: indirme adresi ve dosya adı tabloları.
+# Forklift modeli kaydedilince (docs/ILERLEME) DALSAN_MODELLERI yayındaki yeri,
+# FORKLIFT_TABANI hazır modelin dosya adını ("yolox_tiny.onnx") taşır.
+TEKNIK_SABITLER = {
+    "_YAYIN_ADRESI",
+    "BILINEN_MODELLER",
+    "GORUNEN_ADLAR",
+    "DALSAN_MODELLERI",
+    "FORKLIFT_TABANI",
+}
+
+
+def _alt_bilesen_adi_gecen_metinler(kaynak: str) -> list[tuple[int, str]]:
+    """Kaynaktaki, ekrana çıkabilecek ve alt bileşen adı geçen metinler."""
+    agac = ast.parse(kaynak)
+    docstringler = {
+        id(dugum.body[0].value)
+        for dugum in ast.walk(agac)
+        if isinstance(dugum, ast.Module | ast.ClassDef | ast.FunctionDef)
+        and dugum.body
+        and isinstance(dugum.body[0], ast.Expr)
+        and isinstance(dugum.body[0].value, ast.Constant)
+    }
+    sabit_metinler = {
+        id(alt)
+        for atama in ast.walk(agac)
+        if isinstance(atama, ast.Assign | ast.AnnAssign)
+        for hedef in ([atama.target] if isinstance(atama, ast.AnnAssign) else atama.targets)
+        if isinstance(hedef, ast.Name) and hedef.id in TEKNIK_SABITLER
+        for alt in ast.walk(atama.value)
+    }
+    return [
+        (dugum.lineno, dugum.value)
+        for dugum in ast.walk(agac)
+        if isinstance(dugum, ast.Constant)
+        and isinstance(dugum.value, str)
+        and id(dugum) not in docstringler
+        and id(dugum) not in sabit_metinler
+        and "yolox" in dugum.value.lower()
+    ]
+
+
 def test_ekrana_cikan_metinlerde_alt_bilesen_adi_gecmez():
     """Kullanıcıya gösterilen cümlelerde alt bileşen adı yer almaz.
 
@@ -95,34 +137,31 @@ def test_ekrana_cikan_metinlerde_alt_bilesen_adi_gecmez():
         KOK / "backend" / "app" / "analiz" / "model_adi.py",
         KOK / "backend" / "app" / "web" / "rotalar.py",
     ]
-    teknik_sabitler = {"_YAYIN_ADRESI", "BILINEN_MODELLER", "GORUNEN_ADLAR"}
     for dosya in dosyalar:
-        agac = ast.parse(dosya.read_text(encoding="utf-8"))
-        docstringler = {
-            id(dugum.body[0].value)
-            for dugum in ast.walk(agac)
-            if isinstance(dugum, ast.Module | ast.ClassDef | ast.FunctionDef)
-            and dugum.body
-            and isinstance(dugum.body[0], ast.Expr)
-            and isinstance(dugum.body[0].value, ast.Constant)
-        }
-        sabit_metinler = {
-            id(alt)
-            for atama in ast.walk(agac)
-            if isinstance(atama, ast.Assign | ast.AnnAssign)
-            for hedef in ([atama.target] if isinstance(atama, ast.AnnAssign) else atama.targets)
-            if isinstance(hedef, ast.Name) and hedef.id in teknik_sabitler
-            for alt in ast.walk(atama.value)
-        }
-        for dugum in ast.walk(agac):
-            if not isinstance(dugum, ast.Constant) or not isinstance(dugum.value, str):
-                continue
-            if id(dugum) in docstringler or id(dugum) in sabit_metinler:
-                continue
-            assert "yolox" not in dugum.value.lower(), (
-                f"{dosya.name}:{dugum.lineno} kullanıcıya çıkabilecek metinde alt bileşen adı: "
-                f"{dugum.value!r}"
-            )
+        bulunan = _alt_bilesen_adi_gecen_metinler(dosya.read_text(encoding="utf-8"))
+        assert not bulunan, (
+            f"{dosya.name}: kullanıcıya çıkabilecek metinde alt bileşen adı: {bulunan}"
+        )
+
+
+def test_forklift_modeli_kaydi_teknik_sabit_sayilir():
+    """Kayıt betiğinin yazdığı satırlar bu denetimi kırmamalı.
+
+    Forklift modeli kaydedilince FORKLIFT_TABANI hazır modelin dosya adını
+    taşır; bu, ekrana değil koda ait bir dosya adıdır (kurulum listesi ve
+    Ayarlar görünen adı gösterir).
+    """
+    kayit = (
+        "DALSAN_MODELLERI: dict[str, str] = {\n"
+        '    "nextgen_forklift_tiny_r9.onnx": "forklift-r9/tiny-v3-k1.onnx",\n'
+        "}\n"
+        "FORKLIFT_TABANI: dict[str, str] = {\n"
+        '    "nextgen_forklift_tiny_r9.onnx": "yolox_tiny.onnx",\n'
+        "}\n"
+    )
+    assert _alt_bilesen_adi_gecen_metinler(kayit) == []
+    # Aynı dosya adı bir çalışma zamanı cümlesinde geçerse yakalanır
+    assert _alt_bilesen_adi_gecen_metinler('HATA = f"{ad} yolox_tiny.onnx bulunamadı"\n')
 
 
 def test_lisans_atfi_depo_kokunde_durur():

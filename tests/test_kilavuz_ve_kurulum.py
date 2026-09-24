@@ -424,6 +424,17 @@ def _arac_kurali_ekle(test_ayarlari, kamera_id: int, siniflar: str) -> None:
 UYUMSUZ_ADIM = "Araç kuralları tanıma modeline uyuyor mu?"
 
 
+def _forklift_kayitlarini_bosalt(monkeypatch) -> None:
+    """Forklift modeli kayıtlarını test süresince boşaltır.
+
+    Kurulum listesinin notu kayıtlı forklift modellerine göre değişir; eğitilen
+    model main'e kaydedilince (model_indir.FORKLIFT_TABANI) bu testler o kayıttan
+    bağımsız kalmalı: her test kendi kaydını kendisi kurar.
+    """
+    for ad in list(model_indir.FORKLIFT_TABANI):
+        monkeypatch.delitem(model_indir.FORKLIFT_TABANI, ad)
+
+
 def test_kurulu_tesiste_forklift_modeline_gecince_tir_kurali_uyarisi_gizlenmez(
     istemci, test_ayarlari
 ):
@@ -463,6 +474,7 @@ def test_forkliftsiz_modelde_yalniz_forklift_secili_kural_uyarisi(
     """Forklift modelinden geri dönülünce (ya da hiç yokken) yalnız "Forklift"
     seçili kural HİÇ uyarı vermez: kırmızı adım. Forklift modeli kayıtlıysa
     ona dönmek de önerilir, değilse önerilmez (seçilecek model yok)."""
+    _forklift_kayitlarini_bosalt(monkeypatch)
     if forklift_modeli_kayitli:
         monkeypatch.setitem(
             model_indir.FORKLIFT_TABANI, "nextgen_forklift_tiny_r0.onnx", "yolox_tiny.onnx"
@@ -510,6 +522,7 @@ def test_insani_da_izleyen_kuralda_insan_uyarisinin_surdugu_soylenir(istemci, te
 
 def test_forklift_notu_en_yeni_surumu_onerir(istemci, monkeypatch):
     """Aynı hazır model için iki sürüm kayıtlıysa sonra eklenen (yeni) önerilir."""
+    _forklift_kayitlarini_bosalt(monkeypatch)
     for ad, gorunen in (
         ("nextgen_forklift_tiny_r0.onnx", "NextGen AI Hızlı + Forklift (eski)"),
         ("nextgen_forklift_tiny_r1.onnx", "NextGen AI Hızlı + Forklift"),
@@ -541,6 +554,7 @@ def test_forklift_notu_calisan_modelin_karsiligini_onerir(istemci, monkeypatch):
     """Hızlı çalışan sisteme "Hızlı + Forklift" önerilir (insanı aynı tanır).
     İsabetli çalışan sisteme yalnız Hızlı tabanlı forklift modeli varsa, ona
     geçmenin insanı ve aracı "Hızlı" ile tanımak demek olduğu söylenir."""
+    _forklift_kayitlarini_bosalt(monkeypatch)
     monkeypatch.setitem(
         model_indir.FORKLIFT_TABANI, "nextgen_forklift_tiny_r0.onnx", "yolox_tiny.onnx"
     )
@@ -568,7 +582,8 @@ def test_forklift_notu_calisan_modelin_karsiligini_onerir(istemci, monkeypatch):
     istemci.app.state.ayarlar = ayarlar
 
 
-def test_forklift_modeli_kayitli_degilken_destek_istenir(istemci):
+def test_forklift_modeli_kayitli_degilken_destek_istenir(istemci, monkeypatch):
+    _forklift_kayitlarini_bosalt(monkeypatch)
     _motoru_hazirla(istemci, "hazir")
     metin = istemci.get("/komuta").text
     assert "destek ekibinden isteyin" in metin
