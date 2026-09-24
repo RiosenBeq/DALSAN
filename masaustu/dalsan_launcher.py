@@ -356,6 +356,7 @@ SAGLIK_SORUN_METINLERI = {
     "analiz_takildi": "Analiz takıldı - uyarı üretilmiyor",
     "analiz_olu": "Analiz durdu - uyarı üretilmiyor",
     "model_yuklenemedi": "Tespit modeli yüklenemedi - uyarı üretilmiyor",
+    "model_yedekte": "Forklift modeli kullanılamıyor - hazır modelle çalışılıyor",
     "veritabani_acilamadi": "Veritabanı okunamıyor",
     "olay_yazilamadi": "Olaylar kaydedilemiyor (anons yine çalıyor)",
     "kritik_kural_pasif": "Mesafe/hız kuralı kalibrasyon bekliyor",

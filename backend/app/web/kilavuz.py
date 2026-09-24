@@ -25,6 +25,7 @@ from app.analiz.model_indir import FORKLIFT_TABANI
 from app.olaylar.kanallar import kanal_sagligi_ozeti
 from app.rules.motor import KALIBRASYON_GEREKTIREN
 from app.rules.tipler import SINIF_FORKLIFT, SINIF_TIR
+from app.web.ortak import calisan_model
 
 # ---------------------------------------------------------------------------
 # EKRAN AÇIKLAMALARI
@@ -270,7 +271,8 @@ def _model_adimi(supervizor, ayarlar, baglanti=None) -> dict:
     yüklenemezken bile kamera eklemek, bölge çizmek ve kural kurmak anlamlıdır.
     Kullanıcıyı boş yere bekletmek, kurulumu tek adımda durdururdu.
     """
-    ad = gorunen_model_adi(ayarlar.model_dosyasi.name)
+    calisan = calisan_model(supervizor, ayarlar)
+    ad = gorunen_model_adi(calisan.name)
     ortak = {
         "no": 1,
         "baslik": "Tespit motoru hazır mı?",
@@ -282,7 +284,9 @@ def _model_adimi(supervizor, ayarlar, baglanti=None) -> dict:
     durum = getattr(supervizor, "model_durumu", None) if supervizor is not None else None
 
     if durum == "hazir":
-        notu = _forklift_notu(supervizor, ayarlar.model_dosyasi.name)
+        # Seçili forklift modeli kullanılamadıysa "forklift modeline geçin" önerisi
+        # anlamsızdır (zaten seçili): sebep ve yedek söylenir
+        notu = getattr(supervizor, "model_uyarisi", "") or _forklift_notu(supervizor, calisan.name)
         aciklama = f"{ad} çalışıyor. {notu}"
         return {**ortak, "tamam": True, "hal": "", "aciklama": aciklama}
     if durum in ("indiriliyor", "yukleniyor"):

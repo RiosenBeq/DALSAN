@@ -130,6 +130,7 @@ def test_her_saglik_kodunun_panel_metni_var(panel):
     from app.web.rotalar import HAZIRLIGI_BOZAN_SORUNLAR
 
     kodlar = HAZIRLIGI_BOZAN_SORUNLAR | {
+        "model_yedekte",
         "kritik_kural_pasif",
         "ort_paket_cakismasi",
         "sesli_kanal_yok",

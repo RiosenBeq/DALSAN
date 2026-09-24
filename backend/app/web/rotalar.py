@@ -35,6 +35,7 @@ from app.web.ortak import (
     SINIF_OGELERI,
     SINIFLAR,
     baglanti_al,
+    calisan_model,
     sayi_eki,
 )
 
@@ -149,12 +150,14 @@ def ana_sayfa(istek: Request, yedek: str = "", baglanti=Depends(baglanti_al)):
             "model_durumu": model_durumu,
             "model_hatasi": model_hatasi,
             "cihaz_uyarisi": getattr(supervizor, "cihaz_uyarisi", "") if supervizor else "",
+            "model_uyarisi": getattr(supervizor, "model_uyarisi", "") if supervizor else "",
             "canli_sayim": [
                 (SINIFLAR.get(sinif, sinif), adet) for sinif, adet in sorted(canli_sayim.items())
             ],
             "ihlal_24s": ihlal_24s,
             "yeni_ihlal": yeni_ihlal,
-            "model_adi": gorunen_model_adi(ayarlar.model_dosyasi.name),
+            # Yüklenen model: seçili forklift modeli kullanılamadıysa hazır model
+            "model_adi": gorunen_model_adi(calisan_model(supervizor, ayarlar).name),
             "anons_durumu": anons_durumu,
             "son_yedek": _son_yedek(ayarlar),
             "yedek_sonucu": (

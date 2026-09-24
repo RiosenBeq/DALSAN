@@ -7,6 +7,7 @@ from __future__ import annotations
 import json
 from collections.abc import Iterator
 from dataclasses import dataclass
+from pathlib import Path
 
 from fastapi import Request
 
@@ -470,6 +471,13 @@ def _ihlal_ozeti(olay: dict) -> str:
     return ad
 
 
+def calisan_model(supervizor, ayarlar) -> Path:
+    """Yüklenen tespit modeli. Seçili forklift modeli kullanılamadıysa tabanındaki
+    hazır modeldir (analiz/supervizor.py _secili_modeli_ac); ekran "çalışan
+    modeli" bundan söyler. Analiz yoksa ya da henüz model açılmadıysa seçili model."""
+    return getattr(supervizor, "calisan_model", None) or ayarlar.model_dosyasi
+
+
 def baglanti_al(istek: Request) -> Iterator:
     """İstek başına SQLite bağlantısı (FastAPI dependency)."""
     baglanti = veritabani.baglanti_ac(istek.app.state.ayarlar.veritabani_yolu)
@@ -751,6 +759,9 @@ SAGLIK_SORUN_METINLERI: dict[str, str] = {
     "analiz_takildi": "Analiz takıldı - görüntü geliyor ama uyarı üretilmiyor",
     "analiz_olu": "Analiz durdu - uyarı üretilmiyor",
     "model_yuklenemedi": "Analiz yapılmıyor - model yüklenemedi",
+    "model_yedekte": (
+        "Forklift modeli kullanılamıyor - hazır modelle çalışılıyor, forklift ayrı tanınmıyor"
+    ),
     "veritabani_acilamadi": "Veritabanı okunamıyor - olaylar kaydedilemeyebilir",
     "olay_yazilamadi": "Son ihlal kaydedilemedi - anons yine de çaldı",
     "kritik_kural_pasif": "Mesafe ya da hız kuralı çalışmıyor - kalibrasyon bekleniyor",

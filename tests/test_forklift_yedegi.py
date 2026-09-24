@@ -15,11 +15,13 @@ import urllib.error
 from pathlib import Path
 
 import pytest
+from fastapi.testclient import TestClient
 
 from app import veritabani
 from app.analiz import model_adi, model_indir
 from app.analiz.model_indir import ModelIndirmeHatasi
 from app.analiz.tespit import ModelHatasi
+from app.uygulama import uygulama_olustur
 
 FORKLIFT = "nextgen_forklift_tiny_r9.onnx"
 TABAN = "yolox_tiny.onnx"
@@ -153,3 +155,24 @@ def test_forklift_modeli_calisirsa_uyari_yok(forklift_ayarlari):
     assert sup.calisan_model == forklift_ayarlari.model_dosyasi
     assert sup.model_uyarisi == "" and sup.sorunlar() == []
     assert olaylar == []
+
+
+def test_ekranlar_calisan_modeli_ve_sebebi_soyler(forklift_ayarlari):
+    """Teşhis sayfası yüklenen modeli ve uyarıyı, kurulum listesi "forklift
+    modeline geçin" yerine sebebi, /saglik da "model_yedekte" kodunu verir."""
+    sup = _supervizor(forklift_ayarlari, inmeyen={FORKLIFT})
+    _kur(sup, forklift_ayarlari)
+    uygulama = uygulama_olustur(forklift_ayarlari, analiz=False)
+    with TestClient(uygulama) as istemci:
+        uygulama.state.supervizor = sup
+        ana = istemci.get("/").text
+        komuta = istemci.get("/komuta").text
+        saglik = istemci.get("/saglik").json()
+
+    assert '<span class="motor-ad">NextGen AI Hızlı</span>' in ana
+    assert "<th>Forklift modeli</th>" in ana
+    assert "NextGen AI Hızlı + Forklift kullanılamadığı için" in ana
+    assert "NextGen AI Hızlı çalışıyor. NextGen AI Hızlı + Forklift kullanılamadığı" in komuta
+    assert "modeline Ayarlar'daki" not in komuta
+    assert saglik["model"] == "hazir" and "model_yedekte" in saglik["sorunlar"]
+    assert saglik["hazir"] is True
