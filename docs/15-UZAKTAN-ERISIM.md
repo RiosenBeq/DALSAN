@@ -4,10 +4,10 @@ Sisteme fabrika dışından (evden, telefondan) girip bir sorunu görebilmek iç
 
 > **Önce en önemli cümle:** Bu sistem **fabrika içindeki insanların
 > görüntüsünü** taşır. Uzaktan erişim açmak, o görüntüleri fabrika ağının
-> dışına çıkarma kararıdır ve bir **KVKK kararıdır** (`00-PROJE-BAGLAMI.md`,
-> risk R13). DALSAN veri sorumlusudur; bu adımı atmadan önce hukuk biriminin
-> onayını alın. Bu belge nasıl yapılacağını anlatır, yapılıp yapılmayacağına
-> karar vermez.
+> dışına çıkarma kararıdır ve bir **KVKK kararıdır** (`00-PROJE-BAGLAMI.md`;
+> risk R13, `08-RISKLER-VE-ACIK-KARARLAR.md`). DALSAN veri sorumlusudur; bu
+> adımı atmadan önce hukuk biriminin onayını alın. Bu belge nasıl yapılacağını
+> anlatır, yapılıp yapılmayacağına karar vermez.
 
 ---
 
@@ -16,7 +16,7 @@ Sisteme fabrika dışından (evden, telefondan) girip bir sorunu görebilmek iç
 | Seviye | Nereden erişilir | Kurulum | Risk |
 |---|---|---|---|
 | **A · Yalnız sunucu** *(bugünkü hâli)* | Sistemin kurulu olduğu bilgisayardan | Yok | Yok |
-| **B · Fabrika ağı** | Fabrikadaki her bilgisayar/telefon | Tek satır ayar | Düşük - şifre şart |
+| **B · Fabrika ağı** | Fabrikadaki her bilgisayar/telefon | Üç satır ayar | Düşük - şifre şart |
 | **C · Fabrika dışı** | Evden, telefondan, her yerden | §4'teki yollardan biri | **Yüksek** - doğru yapılmazsa |
 
 Çoğu "bir sorun olduğunda müdahale" ihtiyacı için **B yeterlidir**: fabrikada
@@ -44,8 +44,10 @@ Sistemi yeniden başlatın. Artık fabrikadaki başka bir bilgisayardan
 > yeniden bağlama* saldırısıdır: bir internet sitesi kendi alan adını bu
 > sunucunun adresine yönlendirip, fabrikadaki bir çalışanın tarayıcısı
 > üzerinden kamera görüntülerini ve olay listesini okuyabilirdi. Şifre bunu
-> durdurmaz (oturum açık tarayıcı saldırganın işini görür); izin listesi
-> durdurur. `127.0.0.1`, `localhost` ve `SUNUCU_ADRESI` her zaman izinlidir.
+> tek başına durdurmaz: şifresiz kurulumda (varsayılan) betik her sayfayı
+> okur, şifreli kurulumda da giriş sayfasına ve `/saglik`'e ulaşır. İzin
+> listesi bu isteklerin hepsini reddeder. `127.0.0.1`, `localhost` ve
+> `SUNUCU_ADRESI` her zaman izinlidir.
 > Sunucuya bir adla da giriliyorsa (ör. `isg.dalsan.local`) onu da virgülle
 > ekleyin. **Tanımadığınız bir adı eklemeyin.**
 >
@@ -181,19 +183,22 @@ Arayüzün tamamı çalışır. Bir sorun anında bakılacak yerler:
 |---|---|
 | Sistem ayakta mı? | `http://.../saglik` - tek satır cevap verir |
 | Hangi kamera düşmüş? | **Komuta → Kamera sağlığı** |
-| Ne zamandır düşük? | Aynı sayfada "ölçülen fps" ve son kare zamanı |
+| Ne zamandır düşük? | Aynı sayfada "Okunan fps", "İşlenen fps" ve "Son kare" sütunları |
 | Uyarılar geliyor mu? | **Komuta → Komuta ekranı** (bugünkü sayılar) |
 | Hoparlör çalıştı mı? | **Komuta → Anons sistemi** - son anons sonucu yazar |
-| Sistem ne diyor? | **Ana sayfa → Sistem günlüğü** ve `veri/loglar/sistem.log` |
+| Sistem ne diyor? | **Olaylar** sayfası ("Yalnız sistem" süzgeci) ve komuta ekranlarının üstündeki sistem şeridi. Web arayüzünde günlük sayfası yoktur: `veri/loglar/sistem.log` ve Kontrol Paneli'nin "Sistem günlüğü" yalnız sunucunun başında okunur |
 
 **Uzaktan yapılamayan üç şey:** sistemi durdurup başlatmak, yedekten geri
-yükleme ve **güncelleme**. Üçü de Kontrol Paneli'nde, sunucunun başındadır -
-bilerek. Uzaktan "Durdur" düğmesi yanlış tıklamayla fabrikayı izlemesiz
+yükleme ve **güncelleme**. Üçü de sunucunun başındadır - bilerek: masaüstü
+kurulumunda Kontrol Paneli'nde, Docker ve systemd kurulumunda sunucunun komut
+satırında (docs/06 §1.2.2 ve §3). Uzaktan "Durdur" düğmesi yanlış tıklamayla fabrikayı izlemesiz
 bırakabilirdi; web arayüzünden çalıştırılan bir güncelleme ise şifreyi ele
 geçiren birine sunucuda **kod çalıştırma** yolu açardı.
 
-Bunları uzaktan yapmanız gerekiyorsa sunucuya **uzak masaüstü / SSH** ile
-bağlanıp Kontrol Paneli'ni orada kullanın. Böylece kod güncellemek, işletim
+Bunları uzaktan yapmanız gerekiyorsa sunucuya bağlanın: masaüstü kurulumunda
+**uzak masaüstü** ile Kontrol Paneli'ni orada kullanın (panel bir pencere
+olduğu için yalın SSH'ta açılmaz); Docker ve systemd kurulumunda **SSH** ile
+bağlanıp docs/06'daki komutları çalıştırın. Böylece kod güncellemek, işletim
 sistemi düzeyinde bir yetki isteyen ayrı bir iş olarak kalır.
 
 Sunucuyu uzaktan yeniden başlatmanız gerekiyorsa BT'den sunucuya uzak masaüstü
@@ -222,6 +227,6 @@ Sunucuyu uzaktan yeniden başlatmanız gerekiyorsa BT'den sunucuya uzak masaüst
 |---|---|
 | Sistemin kendi HTTPS'i | Sertifika üretimi, yenilemesi ve saklanması sisteme üç yeni parça ekler. Bu işi ters vekiller (nginx/Caddy) zaten olgun biçimde yapıyor; VPN yolunda ise hiç gerekmiyor. |
 | Uygulamanın içine gömülü VPN/tünel | İşletim sistemi düzeyinde bir iştir; sisteme gömmek onu bir ağ ürününe çevirirdi. Kullanıcının öğrenmesi gereken parça sayısı artmadan, dışarıdan çözülüyor. |
-| Uzaktan "Durdur / Başlat" düğmesi | Yanlış bir tıklama fabrikayı izlemesiz bırakır. Bu iki düğme bilerek sunucunun başında (Kontrol Paneli'nde) kalıyor. |
+| Uzaktan "Durdur / Başlat" düğmesi | Yanlış bir tıklama fabrikayı izlemesiz bırakır. Durdurma ve başlatma bilerek sunucunun başında kalıyor (masaüstünde Kontrol Paneli, sunucu kurulumunda komut satırı). |
 | Kullanıcı hesapları ve roller | Bugün tek yönetici şifresi var. Birden çok kişi kendi hesabıyla girmeye başladığında gerekir - `07-YOL-HARITASI.md` #5. |
 | İki adımlı doğrulama (SMS/uygulama) | Tek kullanıcılı bir sistemde VPN'in verdiği korumayı tekrar etmiş olurdu. Kullanıcı sayısı artarsa yol haritası #5 ile birlikte değerlendirilir. |

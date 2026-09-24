@@ -45,7 +45,7 @@ sistemi yönetebilmek.
 **Sağ tık → Aç → Aç** yaparsan bir daha sormaz.
 
 > Homebrew ile kurulmuş Python kullanıyorsan pencere açılmayabilir.
-> Terminalde `brew install python-tk` çalıştır, ya da python.org sürümünü kur.
+> Terminalde `brew install python@3.12 python-tk@3.12` çalıştır, ya da python.org sürümünü kur.
 
 ### Windows
 
@@ -67,8 +67,10 @@ SmartScreen uyarısı çıkarsa: **Daha fazla bilgi → Yine de çalıştır**
 │  Gerekli paketler    Kurulu                          │
 │  Sistem kodu         Hazır                           │
 │  Sistem durumu       ÇALIŞIYOR - http://127.0.0.1... │
+│  Analiz              Hazır - uyarılar üretiliyor     │
 ├──────────────────────────────────────────────────────┤
-│ [İlk Kurulumu Yap] [Sistemi Başlat] [Durdur] [Aç]    │
+│ [İlk Kurulumu Yap] [Sistemi Başlat] [Durdur]         │
+│ [İzleme Ekranını Aç] [Yedekten Geri Yükle] [Güncelle]│
 ├──────────────────────────────────────────────────────┤
 │  Sistem günlüğü                                      │
 │  ▶ Gerekli paketler kuruluyor                        │
@@ -83,7 +85,9 @@ SmartScreen uyarısı çıkarsa: **Daha fazla bilgi → Yine de çalıştır**
 | **Sistemi Başlat** | Sistemi çalıştırır ve izleme ekranını kendi penceresinde açar. |
 | **Durdur** | Düzgün şekilde kapatır. |
 | **İzleme Ekranını Aç** | İzleme penceresini açar; programın kendi penceresi zaten açıksa öne getirir (tarayıcının uygulama kipindeki yedek pencerede her basış yeni bir pencere açar). |
-| **Sistem günlüğü** | Olan biten. **Bir sorun olduğunda buradaki kırmızı satırları kopyalayıp Claude Code'a yapıştır.** |
+| **Yedekten Geri Yükle** | Yalnız sistem durmuşken: seçilen yedeği geri yükler, önce mevcut veritabanının bir kopyasını `veri/yedekler/` altına alır (docs/06 §1.2.2). |
+| **Güncelle** | Yalnız sistem durmuşken: GitHub'daki yeni sürümü çeker, önce veritabanını yedekler (docs/13 §5.1). Teslim edilen uygulamada yoktur. |
+| **Sistem günlüğü** | Olan biten. Sunucunun satırları "saat [!] mesaj" biçimindedir: `[HATA]` hata, `[!]` uyarıdır, işaretsiz satır bilgidir (renk yoktur). **Bir sorun olduğunda `[HATA]` ve `[!]` satırlarını kopyalayıp Claude Code'a yapıştır.** |
 
 ## 4. Günlük kullanım
 
@@ -98,11 +102,14 @@ Pencereyi kapatmak da sistemi durdurur; ayrıca "Durdur"a basman şart değil.
 | Yazı | Anlamı | Ne yapmalısın |
 |---|---|---|
 | Python: **Hazır** | Tamam | - |
-| Python: **3.10 veya üstü gerekiyor** | Sürüm eski | python.org'dan 3.12 kur |
-| Paketler: **Kurulmamış** | İlk kurulum yapılmamış | "İlk Kurulumu Yap"a bas |
+| Python: **… çok eski; Python 3.12 gerekiyor** ya da **… henüz desteklenmiyor; Python 3.12 gerekiyor** | Desteklenen tek sürüm 3.12 | python.org'dan 3.12 kur (yeni sürümle yan yana kurulabilir) |
+| Gerekli paketler: **Kurulmamış** ya da **Eksik** | İlk kurulum yapılmamış ya da yarım kalmış | "İlk Kurulumu Yap"a bas |
 | Sistem kodu: **Henüz yazılmadı** | Normal - kod Claude Code ile üretilecek | Geliştirmeye devam |
-| Sistem: **ÇALIŞIYOR** | Her şey yolunda | İzleme ekranını aç |
-| Sistem: **Durdu** | Kapalı | "Sistemi Başlat"a bas |
+| Sistem durumu: **ÇALIŞIYOR** | Sunucu çalışıyor; uyarı üretilip üretilmediğini "Analiz" satırı söyler | İzleme ekranını aç |
+| Sistem durumu: **Durdu** | Kapalı | "Sistemi Başlat"a bas |
+| Sistem durumu: **8080 portunu başka bir program tutuyor** | XAMPP / MAMP, Tomcat, Jenkins gibi bir program portu kullanıyor | O programı kapatıp "Sistemi Başlat"a bas |
+| Analiz: **Hazır - uyarılar üretiliyor** | Tamam | - |
+| Analiz: sarı, kırmızı ya da gri yazı | Sistem çalışıyor ama bir eksik ya da sorun var (uyarı üretilmiyor, duyulmayabilir ya da doğrulanamıyor); yazı sebebi söyler (docs/06 §2) | docs/06 §7 |
 
 ## 6. Fabrika sunucusunda durum farklı
 
@@ -126,18 +133,21 @@ tıklar, hepsi bu.
 > **`docs/13-UYGULAMA-PAKETLEME.md`** içindedir. Burada yalnızca panelin
 > davranış farkı yazılı.
 
-Teslim edilen uygulamanın penceresi, bu bilgisayardaki panelden **iki noktada**
-ayrılır:
+Teslim edilen uygulamanın penceresi, bu bilgisayardaki panelden **şu
+noktalarda** ayrılır:
 
 | | Bu bilgisayarda (geliştirme) | Teslim edilen uygulama |
 |---|---|---|
 | "İlk Kurulumu Yap" | Var - Python ortamı kurulur | **Yok** - her şey içinde gelir |
 | Başlama | "Sistemi Başlat"a basılır | **Kendiliğinden başlar** (pencere açıkken sistem çalışır) |
+| "Güncelle" | Var - GitHub'dan çeker | **Yok** - yeni uygulama eskisinin üstüne kopyalanır (docs/13 §5.2) |
+| Durum satırları | Python, Gerekli paketler, Sistem kodu, Sistem durumu, Analiz | Yalnız **Sistem durumu** ve **Analiz** |
+| Pencere başlığı | DALSAN İSG - Kontrol Paneli | NextGen Detector - Kontrol Paneli |
 
-Geri kalan her şey aynıdır: Durdur, İzleme Ekranını Aç, sistem günlüğü ve
-"pencereyi kapatırsanız sistem durur" kuralı değişmez.
+Geri kalan her şey aynıdır: Durdur, İzleme Ekranını Aç, Yedekten Geri Yükle,
+sistem günlüğü ve "pencereyi kapatırsanız sistem durur" kuralı değişmez.
 
-Kayıtlar da farklı yerde durur - teslim edilen uygulama kendi içine yazamaz,
+Kayıtlar da farklı yerde durur - teslim edilen uygulama kendi içine yazmaz,
 kullanıcının kendi klasörüne yazar. Bu bilgisayardaki geliştirme kurulumunun
 veri yolu **değişmedi**: o hâlâ proje klasöründeki `veri/` klasörünü kullanır.
 Yerlerin tam listesi `docs/13` §4'te.
@@ -151,7 +161,7 @@ Bugün gerekmeyen ama sonradan eklenebilecekler:
 | Uygulamayı imzalama (Apple / Windows sertifikası) | "Doğrulanamadı" ve "bilinmeyen yayıncı" uyarıları rahatsız etmeye başladığında |
 | Fabrika sunucusuna uzaktan bağlanıp durumunu gösterme | Uzaktan bakım yapmaya başladığında |
 | Kamera bağlantısı koptuğunda masaüstü bildirimi | Sisteme günlük bağımlılık arttığında |
-| Tek düğmeyle yedek alma | Yedeği elle kopyalamak zahmetli gelmeye başladığında |
+| Panelden tek düğmeyle tam yedek (fotoğraflar dahil; veritabanının yedeği bugün de izleme ekranının ana sayfasında tek düğmedir: "Veritabanını Yedekle") | Yedeği elle kopyalamak zahmetli gelmeye başladığında |
 
 Hiçbiri bugün gerekli değil. Uygulama, ihtiyaç doğduğunda bunların eklenmesini
 engellemeyecek şekilde yazıldı - ama bugün yazılmadılar.

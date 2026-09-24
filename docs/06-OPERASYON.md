@@ -22,7 +22,8 @@ uygulamada programın kendi penceresi, docs/11), adresi `http://127.0.0.1:8080`.
 (internet gerekir); ana sayfadaki "Tespit modeli" satırı "Hazır" olana kadar bekleyin.
 Şirket ağında güvenlik duvarı varsa bu ilk indirme için `github.com` ve GitHub'ın dosya
 sunucusu `release-assets.githubusercontent.com` açık olmalı: hazır modeller YOLOX'un resmi
-yayınından, forklift tanıyan modeller bu deponun kendi yayınından (GitHub Release) iner.
+yayınından, kayıtlı bir forklift modeli olduğunda o da bu deponun kendi yayınından
+(GitHub Release) iner (bugün kayıtlı forklift modeli yok, docs/12 §5).
 İkisi de SHA-256 ile doğrulanır; tutmayan dosya kullanılmaz.
 
 Ayrıntı: `NASIL-CALISIR.md`.
@@ -30,7 +31,7 @@ Ayrıntı: `NASIL-CALISIR.md`.
 ### 1.2 Fabrika sunucusu (Linux + Docker)
 
 ```bash
-git clone <depo-adresi> && cd DALSAN
+git clone <depo-adresi> DALSAN && cd DALSAN
 mkdir -p ayar && cp .env.example ayar/.env
                            # ayar/.env: YONETICI_SIFRESI (ZORUNLU), saklama süreleri,
                            # tespit eşikleri. Uyarı kanalları ekrandan eklenir (docs/14)
@@ -99,6 +100,7 @@ Wants=network-online.target
 Type=simple
 User=<KULLANICI>
 WorkingDirectory=<KURULUM-YOLU>
+Environment=DALSAN_HIZMET=1
 ExecStart=<KURULUM-YOLU>/.venv/bin/python -m uvicorn app.main:app \
           --host 127.0.0.1 --port 8080 --app-dir backend \
           --timeout-graceful-shutdown 3
@@ -116,28 +118,36 @@ sudo systemctl status dalsan      # "active (running)" olmalı
 ```
 
 `Restart=always`, sistem bir hata yüzünden kapanırsa da 10 saniye içinde
-yeniden başlatır - 7x24 çalışmanın gereği.
+yeniden başlatır - 7x24 çalışmanın gereği. `DALSAN_HIZMET=1` uygulamaya
+systemd hizmeti olarak çalıştığını söyler: hata mesajları ve kılavuz o zaman
+"Kontrol Paneli'nde Durdur'a basın" yerine "sistemi sunucuda yeniden başlatın"
+der (`backend/app/kaynaklar.py` `kurulum_turu`; Docker kendiliğinden tanınır).
 
 **Takılan analiz de yeniden başlasın.** Analiz takılırsa (görüntü geliyor ama
 90 sn'dir hiçbir kare işlenmiyor) bekçi "Analiz takıldı" olayı yazar ve komuta
 ekranlarında kırmızı şerit çıkar. Takılan bir iş parçacığı program içinden
-kurtarılamaz; sunucu kurulumunda (Docker ya da systemd) `.env`'e
+kurtarılamaz; `.env`'e (Docker'da `ayar/.env`)
 
 ```
 BEKCI_TEPKISI=yeniden_baslat
 ```
 
-yazın: program olayı yazıp kendini kapatır, `restart: unless-stopped` ya da
-`Restart=always` yeniden açar. Masaüstü programında bu ayar etkisizdir - orada
-program Kontrol Paneli'yle aynı süreçte çalışır ve yalnız uyarır.
+yazın: program olayı yazıp kendini kapatır (çıkış kodu 70), `restart:
+unless-stopped` ya da `Restart=always` yeniden açar. Başlat betiğiyle kurulan
+masaüstü sisteminde bu işi Kontrol Paneli yapar: sunucu onun alt sürecidir,
+70 koduyla kapanınca panel yeniden başlatır; bir saatte üçten fazla olursa
+durur ve günlükte söyler. Paketlenmiş Windows/Mac uygulamasında ayar
+etkisizdir - orada program Kontrol Paneli'yle aynı süreçte çalışır ve yalnız
+uyarır. Varsayılan `uyar`'dır: yalnız olay, günlük ve kırmızı şerit.
 
 ### 1.2.2 Yedekten geri yükleme provası (K7)
 
 **Prova edilmemiş bir yedek, yedek değildir.** Kurulum tamamlandıktan sonra
 bunu bir kez yapın:
 
-1. İzleme ekranındaki **"Yedek Al"** düğmesine basın → `veri/yedekler/` altına
-   bir `.db` dosyası düşer.
+1. İzleme ekranının ana sayfasındaki (komuta rafında **Teşhis**)
+   **"Veritabanını Yedekle"** düğmesine basın → `veri/yedekler/` altına bir
+   `.db` dosyası düşer.
 2. Sisteme bir deneme kamerası ekleyin (sonra silinecek).
 3. Kontrol Paneli'nde **Durdur**'a basın. *(Geri yükleme sistem çalışırken
    yapılamaz: veritabanı dosyası açıktır ve altından değiştirmek veri kaybıdır.
@@ -195,11 +205,11 @@ ayar `/etc/chrony/chrony.conf`'tadır.
 
 | | Depodan çalışırken (bugün) | Paketlenmiş programda |
 |---|---|---|
-| Kaynak dosyalar (şablon, stil, şema betiği) | depo kökü | programın açtığı geçici klasör (`sys._MEIPASS`) |
+| Kaynak dosyalar (şablon, stil, şema betiği) | depo kökü | paketin içindeki kaynak klasörü (`sys._MEIPASS`; Windows'ta `_internal`) |
 | Yazılabilir veri (`veri/`, `models/`, `.env`) | depo kökü | macOS: `~/Library/Application Support/NextGen Detector/` · Windows: `%LOCALAPPDATA%\NextGen Detector\` |
 
-Neden ayrı: paketlenmiş uygulamanın kendisi **salt okunurdur**; veritabanı,
-günlük ve indirilen model oraya yazılamaz.
+Neden ayrı: paketlenmiş uygulamanın kendisi **salt okunur olabilir** (ör.
+Program Files'ta); veritabanı, günlük ve indirilen model bu yüzden oraya yazılmaz.
 
 **Veri asla kendiliğinden taşınmaz.** Paketlenmiş program, kendi yanındaki
 klasörde bir `veri/dalsan.db` bulur ve yeni konum boşsa **eski konumu
@@ -252,7 +262,9 @@ boyut hesapladığı için sağlık kontrolünde kullanılmaz. Her durumda 200 v
 `"durum": "calisiyor"` döner (Kontrol Paneli portun bu sisteme ait olduğunu
 buna bakarak anlar); yalnız `?hazirlik=1` hazır olmayan sistemde 503 döner.
 Docker "unhealthy" container'ı **yeniden başlatmaz** - bu yalnız görünürlüktür;
-takılan analizi bekçi yeniden başlatır (§1.2.1).
+takılan analizi `BEKCI_TEPKISI=yeniden_baslat` ise bekçi kapatır ve Docker,
+systemd ya da Kontrol Paneli yeniden açar (§1.2.1); varsayılan `uyar` yalnız
+uyarır.
 
 Şifresiz gövde yalnız `durum`, `analiz`, `model`, `hazir`, `uyari_garantisi` ve
 `sorunlar` kodlarını verir. Kamera başına okunan/işlenen hız, işleme süresi
@@ -272,6 +284,7 @@ gri satır gösterir.
 | `analiz_takildi` | Görüntü geliyor ama analiz ilerlemiyor (bekçi) | evet |
 | `analiz_olu` | Analiz iş parçacığı çalışmıyor | evet |
 | `model_yuklenemedi` | Tespit modeli yüklenemedi | evet |
+| `model_yedekte` | Seçili forklift modeli inmedi ya da açılamadı; sistem tabanındaki hazır modelle çalışıyor: insan ve araç tespiti sürer, forklift ayrı sınıf olarak tanınmaz (`MODEL_FALLBACK` yazıldı) | hayır |
 | `veritabani_acilamadi` | Sağlık denetimi veritabanını okuyamadı | evet |
 | `olay_yazilamadi` | Son ihlal kayda geçmedi (anons yine çaldı) | evet |
 | `uyari_ulasmiyor` | Son uyarı hiçbir sesli/uzak kanala ulaşmadı (`ALERT_UNDELIVERED` yazıldı); sonraki ulaşan uyarı ya da başarılı bir kanal denemesi siler | evet |
@@ -294,10 +307,11 @@ docker compose logs -f --tail=100
 ```
 
 Şema değişikliği varsa açılışta kendiliğinden uygulanır. `models/indir.sh` imaja
-girecek modelleri sunucuda indirir; Ayarlar'da seçilebilen her model (forklift
-tanıyan model dahil) böylece imajın içinde olur. Container'ın kendi indirdiği
+girecek modelleri sunucuda indirir; Ayarlar'da seçilebilen her model (kayıtlı
+forklift modeli dahil) böylece imajın içinde olur. Container'ın kendi indirdiği
 model imaj yeniden kurulunca kaybolur ve yeniden iner (internet gerekir).
-Forklift modeli isteğe bağlıdır: inmezse betik uyarı yazıp öteki modellerle biter.
+Forklift modeli isteğe bağlıdır: kayıtlı olduğunda inmezse betik uyarı yazıp
+öteki modellerle biter (bugün kayıtlı forklift modeli yok, docs/12 §5).
 
 > **23.09.2026 sürümüne geçerken bir kez:** ayar dosyası artık `ayar/.env`
 > olarak bağlanıyor ve Docker'da şifre zorunlu. `docker compose up -d`'den önce
@@ -307,8 +321,22 @@ Forklift modeli isteğe bağlıdır: inmezse betik uyarı yazıp öteki modeller
 > Aynı sürümde oturum çerezleri kuruluma özgü bir sırla imzalanmaya başladı
 > (R16): güncellemeden sonra herkes **bir kez** yeniden giriş yapar.
 
+**systemd kurulumunda** (Docker'sız, §1.2.1) aynı iş:
+
+```bash
+git pull
+.venv/bin/python -m pip install -r backend/requirements.txt
+bash models/indir.sh      # isteğe bağlı: sistem eksik modeli açılışta kendisi indirir
+sudo systemctl restart dalsan
+journalctl -u dalsan -f   # ya da: tail -f veri/loglar/sistem.log
+```
+
+Masaüstü kurulumunda (Başlat betikleri) güncelleme Kontrol Paneli'nin
+**Güncelle** düğmesiyledir (docs/13 §5.1); düğme önce veritabanını yedekler.
+
 Geri alma:
-`git checkout <önceki-sürüm>` → `docker compose build` → `up -d`.
+`git checkout <önceki-sürüm>` → `docker compose build` → `up -d`
+(systemd'de `git checkout <önceki-sürüm>` → `sudo systemctl restart dalsan`).
 
 > Şema betikleri **geri alınamaz** (Alembic yoktur - `docs/09` kararı). Geri
 > dönüş yolu yedektir: sürüm yükseltmeden ÖNCE `veri/` klasörünü kopyalayın.
@@ -318,10 +346,12 @@ Geri alma:
 ## 4. Yedekleme
 
 **Tam yedek = `veri/` klasörünü ve ayar dosyasını kopyalamak.** Hepsi bu.
-Ayar dosyası Docker kurulumunda `ayar/.env`, Kontrol Paneli kurulumunda
-proje kökündeki `.env`'dir.
+Ayar dosyası Docker kurulumunda `ayar/.env`, Başlat betikleriyle kurulan
+Kontrol Paneli kurulumunda proje kökündeki `.env`'dir; paketlenmiş uygulamada
+`veri/` ve `.env` docs/13 §4'teki kullanıcı klasöründedir.
 
 ```bash
+mkdir -p       /yedek/dalsan-$(date +%Y-%m-%d)       # önce klasör: yoksa veri/ içeriği klasörsüz kopyalanır
 cp -R veri/    /yedek/dalsan-$(date +%Y-%m-%d)/
 cp ayar/.env   /yedek/dalsan-$(date +%Y-%m-%d)/     # Docker; panelde: cp .env
 ```
@@ -356,8 +386,9 @@ her 24 saatlik çalışma süresinde bir çalışır. Ayrı zamanlanmış görev
 | Sistem olayları | `SISTEM_OLAY_SAKLAMA_GUN` | 90 gün | |
 | Uyarı teslim kaydı | `UYARI_KAYDI_ARSIV_GUN` | 15 gün | Silinmeden önce masaüstüne CSV (aşağıda); 0 = kapalı, kayıt olayla gider |
 
-Bu süreler, disk uyarı sınırı, anons adresi ve tespit eşikleri **arayüzden**
-de değiştirilebilir: soldaki raftan **Sistem ayarları** (`/ayarlar`). Sayfa
+Bu süreler, disk uyarı sınırı, anons (hoparlör) ayarları ve tespit eşikleri
+**arayüzden** de değiştirilebilir: soldaki raftan **Sistem ayarları** (`/ayarlar`);
+hoparlör adresleri ise Anons sistemi ekranındaki kanal listesindedir. Sayfa
 `.env` dosyasını açıklama satırlarını bozmadan günceller ve değeri yazmadan
 önce açılıştaki doğrulayıcıdan geçirir - geçersiz bir ayar dosyaya yazılmaz.
 **Değişiklik, sistem yeniden başlatılınca geçerli olur.**
@@ -399,7 +430,9 @@ sistem politikayı teknik olarak zorlar, politikayı belirlemez.
 Günlük dosyası: `veri/loglar/sistem.log` (5 MB'ta döner, son 3 kopya saklanır).
 Windows ve Mac uygulamasında bu klasör kullanıcı klasöründedir (docs/13 §4);
 hata mesajları dosyanın yerini kuruluma göre söyler.
-Kontrol Paneli aynı satırları penceresinde gösterir.
+Kontrol Paneli aynı kayıtları penceresinde okunur biçimde gösterir: "saat
+[HATA] mesaj" (hata), "saat [!] mesaj" (uyarı), işaretsiz satır bilgidir;
+`ayrinti` alanı yalnız dosyadadır.
 
 ```bash
 tail -f veri/loglar/sistem.log
@@ -408,8 +441,10 @@ grep '"bilesen": "kamera"' veri/loglar/sistem.log
 docker compose logs -f            # Docker kurulumunda
 ```
 
-Biçim: her satır tek bir JSON nesnesi - `ts, level, bilesen, mesaj`.
-Sorun bildirirken kırmızı/`ERROR` satırlarını **olduğu gibi** kopyalayın.
+Biçim: her satır tek bir JSON nesnesi - `ts, level, bilesen, mesaj`; teknik
+ayrıntı (dosya yolu, hata izi) varsa dosyada `ayrinti` alanı da bulunur.
+Sorun bildirirken `ERROR` satırlarını (panelde `[HATA]` ile başlayanları)
+**olduğu gibi** kopyalayın.
 
 Web sunucusunun (uvicorn) satırları da aynı biçimde ve aynı dosyadadır:
 `"bilesen": "uvicorn.error"` sunucunun açılışı, kapanışı ve beklenmeyen
@@ -435,13 +470,18 @@ görünmelidir.
 
 ## 7. Sorun giderme
 
+Aşağıda "yeniden başlatın" kurulum türüne göre şudur: masaüstünde Kontrol
+Paneli'nde **Durdur**, sonra **Sistemi Başlat**; Docker'da `docker compose
+restart`; systemd'de `sudo systemctl restart dalsan`.
+
 | Belirti | Bakılacak yer |
 |---|---|
 | Kamera "bağlanıyor"da kalıyor | Kamera sayfasındaki durum satırı sebebi yazar (ulaşılamıyor / şifre / dosya yok). İlk bağlantı 30 sn sürebilir |
 | Kamera "çevrimdışı" | Aynı durum satırı + `veri/loglar/sistem.log` içinde `"bilesen": "kamera"`; NVR eşzamanlı bağlantı limiti sık sebeptir |
 | "Tespit modeli: Yüklenemedi" | İnternet yoksa `bash models/indir.sh` ile elle indirin; dosya bozuksa silip tekrar indirin |
 | Kutular çıkmıyor / nesne kaçıyor | `.env` içinde `TESPIT_GUVEN_ESIGI` ve `TESPIT_INSAN_GUVEN_ESIGI` değerlerini kademeli düşürün (0,05'lik adımlarla). Uzak nesnede `TESPIT_EN_KUCUK_KENAR_PX` düşürülür |
-| Çok fazla yanlış tespit | Aynı eşikleri yükseltin; **NextGen AI İsabetli** daha isabetlidir (daha yavaş): Ayarlar → "Tanıma modeli"nden seçip Kontrol Paneli'nden yeniden başlatın |
+| Çok fazla yanlış tespit | Aynı eşikleri yükseltin; **NextGen AI İsabetli** daha isabetlidir (daha yavaş): Ayarlar → "Tanıma modeli"nden seçip yeniden başlatın |
+| Ana sayfada "Forklift modeli" satırı "… kullanılamadığı için sistem … ile çalışıyor" diyor; Olaylar'da "Seçili model yerine hazır model çalışıyor" | Seçili forklift modeli inmedi (genelde internet) ya da açılamadı. Sistem durmadı: tabanındaki hazır modelle insan ve araç tespiti sürüyor, yalnız "Forklift" seçili kurallar uyarı vermiyor. Satır sebebi yazar; sebebi giderip yeniden başlatın. Seçim değişmez: her açılışta önce forklift modeli denenir. `/saglik` bu sırada `model_yedekte` der (§2) |
 | "Tespit modeli: ... yayın yerinde bulunamadı" | İnternet çalışıyor, model dosyası yayında yok: Ayarlar → "Tanıma modeli"nden başka model seçip yeniden başlatın, destek ekibine haber verin |
 | Forklift modeline geçince bazı kurallar forklifte tepki vermiyor | Kurulum listesindeki "Araç kuralları tanıma modeline uyuyor mu?" adımı kuralları kamera, bölge ve türüyle söyler: yalnız "Tır/Araç" seçili kurallarda "Forklift"i de işaretleyin (tır park alanının bölge kuralı bilerek yalnız tırdır). Forkliftsiz modele dönünce yalnız "Forklift" seçili kurallar aynı adımda görünür. Kapalı kameranın kuralı sayılmaz |
 | Olay üretilmiyor | Kural açık mı; bölge doğru tipte mi; mesafe kuralında kalibrasyon var mı (Kurallar sayfasındaki rozet söyler) |
@@ -454,17 +494,17 @@ görünmelidir.
 | Rapor'daki bir satırda yanlış alarm oranı yanında "(kapsama %40)" | O satırdaki olayların yalnız %40'ı işaretli: oran bu kısımdan hesaplandı ve satırı temsil etmeyebilir. Komuta → İnceleme'de kalanları işaretleyin. Baret ve yelek oranları "Olay koduna göre" tablosunda ayrı satırdadır |
 | Rapor'da yanlış alarm / saat "ölçülemedi" ya da kapsama düşük | O kameranın bazı günlerinde işaretlenmemiş ihlal var. Komuta → İnceleme'de o günlerin olaylarını "İncelendi" ya da "Yanlış alarm" diye işaretleyin: oran yalnız bütün ihlalleri işaretli günlerden hesaplanır. "Analiz edilen: -" ise o dönemde analiz kaydı yok (model yüklenmemiş, kamera kopuk ya da dönem bu kayıt başlamadan önce) |
 | Uyarılar gecikiyor | Kamera `sample_fps` değerini düşürün; substream kullanın; `CIKARIM_CIHAZI=cuda` (yalnız NVIDIA'lı Linux) |
-| "cuda seçili ama CPU ile çalışıyor" | Ana sayfada uyarı olarak görünür: NVIDIA sürücüsü + `onnxruntime-gpu` gerekir, ya da `.env`'de `cpu` yapın |
+| "CIKARIM_CIHAZI=cuda seçili ama … sistem CPU ile çalışıyor" | Ana sayfada uyarı olarak görünür: NVIDIA sürücüsü + `onnxruntime-gpu` gerekir, ya da `.env`'de `cpu` yapın |
 | Anons çalmıyor | **Anons** sayfası → "Anonsu Dene". Sonuç satırı sebebi yazar (ses dosyası yok / adres yanlış / komut bulunamadı) |
 | Ekranda uyarı sesi gelmiyor | Sağ alttaki ses çipi sebebini yazar: "KAPALI" ise tıklayın (ses bu tarayıcıda açılır); "beklemede" ise sayfaya bir kez tıklayın (tarayıcı kuralı: ses ancak bir tıklamadan sonra çalar); "çalışmıyor" ise tarayıcı ses çalamıyor - başka bir tarayıcı deneyin. Çip yoksa ekran sesi çalışıyordur |
-| Komuta ekranının üstünde kırmızı şerit | Uyarı üretilmiyor ya da kaydedilmiyor (analiz takıldı, model yüklenemedi…), kritik bir kural çalışmıyor ya da bir kameradan görüntü gelmiyor; şerit hangisi olduğunu yazar, "Ayrıntı →" Sağlık ekranını açar. Gri şerit: durum doğrulanamıyor (sunucuya ulaşılamıyor ya da model yükleniyor) |
+| Komuta ekranının üstünde kırmızı şerit | Uyarı üretilmiyor ya da kaydedilmiyor (analiz takıldı, model yüklenemedi…), kritik bir kural çalışmıyor, bir kameradan görüntü gelmiyor ya da sesli uyarı hoparlöre ulaşmıyor (sesli kanal yok, kanallar koptu, yalnız Bluetooth); şerit hangisi olduğunu yazar, "Ayrıntı →" Sağlık ekranını açar. Gri şerit: durum doğrulanamıyor (sunucuya ulaşılamıyor, model yükleniyor ya da sesli uyarının ulaştığı doğrulanamıyor) |
 | Disk doluyor | Ana sayfadaki "Boş alan"; saklama sürelerini kısaltın; `veri/goruntuler` en büyük kalemdir |
-| Herkes aynı anda oturumdan düştü | Şifre değişti, sistem yeni sürüme güncellendi ya da `veri/oturum.anahtar` silindi veya bozuldu (yenisi üretilir, günlükte uyarı). Yeniden giriş yapmak yeter |
+| Herkes aynı anda oturumdan düştü | Şifre değişti, sistem yeni sürüme güncellendi ya da `veri/oturum.anahtar` silindi veya bozuldu (yenisi üretilir; bozulduysa günlükte uyarı). Yeniden giriş yapmak yeter |
 | Kamera ya da hoparlör formunda adres `••••@` ile görünüyor | Beklenen: kullanıcı adı ve şifre sayfaya basılmaz. •••• olduğu gibi bırakılırsa kayıtlı şifre korunur, ip ya da yol değişse de. Değiştirmek için •••• yerine `kullanici:sifre` yazın |
-| Canlı uyarı paneli "bağlantı koptu" | Sunucu durmuş olabilir; Kontrol Paneli'nden yeniden başlatın |
+| Canlı uyarı paneli "bağlantı koptu" | Sunucu durmuş olabilir; yeniden başlatın |
 | Olaylar'da "Analiz takıldı" ya da "Analiz durdu" | Görüntü geliyor ama analiz ilerlemiyor: o sürede **hiçbir uyarı üretilmiyor**. Sistemi yeniden başlatın (sunucuda `BEKCI_TEPKISI=yeniden_baslat` bunu kendiliğinden yapar, §1.2.1). `veri/loglar/sistem.log` içinde `"bilesen": "bekci"` satırından önceki hatalara bakın |
 | Olaylar'da "Analiz yavaşladı" | Ya kamerada kare üst üste işlenemedi (hattı yeniden kuruldu; günlükte "Kare işlenemedi" satırları sebebi yazar) ya da işlenen görüntü hızı hedefin altında kaldı: kamera `sample_fps`'ini düşürün, kamera sayısını azaltın ya da daha güçlü donanım kullanın. Eşikler Ayarlar → Analiz sağlığı |
-| Olaylar'da "Sistem başladı - önceki çalışma düzgün kapanmamıştı" | Sistem "Sistem durdu" yazamadan kapandı: elektrik kesintisi, bilgisayarın kapatılması, görev yöneticisinden sonlandırma ya da çökme. O sırada açık kalan olaylar "sistem yeniden başladı" sebebiyle kapatılmıştır. Sık görülüyorsa `veri/loglar/sistem.log`'un kapanıştan önceki son satırlarına bakın |
+| Olaylar'da "Sistem başladı - önceki çalışma düzgün kapanmamıştı" | Sistem "Sistem durdu" yazamadan kapandı: elektrik kesintisi, bilgisayarın kapatılması, görev yöneticisinden sonlandırma ya da çökme. O sırada açık kalan olaylar "Sistem yeniden başladı; olay açık kalmıştı" sebebiyle kapatılmıştır. Sık görülüyorsa `veri/loglar/sistem.log`'un kapanıştan önceki son satırlarına bakın |
 
 ---
 
@@ -527,8 +567,8 @@ görünmelidir.
 
 ### 8.1 Uyarı gecikmesini ölçmek (telefon videosu)
 
-Yazılımın payı ekranda ölçülür: Anons sistemi → Teslim kaydı "kare → ses
-(yazılım) p50 / p90" ve `/saglik?ayrinti=1` → `uyari_gecikmesi`. Bu sayı
+Yazılımın payı ekranda ölçülür: Anons sistemi → Teslim kaydı → "Kare → ses
+(yazılım)" kartı (p50 ve p90) ve `/saglik?ayrinti=1` → `uyari_gecikmesi`. Bu sayı
 kameradan gelen karenin yakalandığı andan çalıcının ya da HTTP isteğinin
 başladığı ana kadardır. Bluetooth'un (A2DP) ve hoparlörün kendi tamponu
 yazılımdan **ölçülemez**; "100-250 ms" gibi bir sayı ölçüm değildir, yazılmaz

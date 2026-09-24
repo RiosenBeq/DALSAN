@@ -34,6 +34,10 @@ klonlama - hangisi kolaysa).
 > Kurmak için Terminal'e tek satır: `xcode-select --install` - açılan
 > pencerede "Yükle" deyip bitmesini bekleyin, sonra aşağıdan devam edin.
 > Daha önce Xcode kurduysanız bu adım gerekmez.
+>
+> Üretim, bu bilgisayardaki geliştirme kurulumunun Python ortamını (`.venv`,
+> Python 3.12, tkinter'lı) kullanır: önce `Baslat-Mac.command` ile **İlk
+> Kurulumu Yap** yapılmış olmalı. Yapılmamışsa üretim durur ve bunu söyler.
 
 1. `paketleme/Mac-Uygulama-Uret.command` dosyasına **çift tıklayın**.
 2. Bir terminal penceresi açılır ve satırlar akmaya başlar. **2-5 dakika**
@@ -67,8 +71,8 @@ kurulum ekranındaki **"Add Python to PATH"** kutusunu mutlaka işaretleyin.
 2. `paketleme\Windows-Uygulama-Uret.bat` dosyasına **çift tıklayın**.
 3. Siyah bir pencere açılır ve altı adım sırayla akar. İlk seferde
    **5-15 dakika** sürer (paketler indirilir).
-4. İş bitince Dosya Gezgini açılır ve `dist\NextGen Detector` klasörünü
-   gösterir. İçinde iki şey vardır:
+4. İş bitince Dosya Gezgini `dist` klasörünü açar. İçindeki
+   `NextGen Detector` klasöründe iki şey vardır:
 
    ```
    NextGen Detector.exe   ← çift tıklanacak dosya
@@ -86,7 +90,8 @@ gönderebilirsiniz.
 ## 3.1 Teslim edilen uygulama nasıl görünür
 
 Çift tıklayınca **iki pencere** vardır ve ikisi de programın kendi
-penceresidir; **tarayıcı hiçbir yoldan açılmaz** (operatör isteği 23.09.2026):
+penceresidir; **olağan tarayıcı sekmesi hiçbir yoldan açılmaz** (operatör isteği
+23.09.2026; yedek pencere aşağıda):
 
 1. **Kontrol Paneli** - başlat/durdur ve sistem günlüğü. Windows'ta görev
    çubuğunda kendi simgesiyle, ayrı bir uygulama olarak durur (Python'un
@@ -128,11 +133,11 @@ sıfırlamaz). Bu veri **yedeklenmez**: içinde kullanıcı verisi değil,
 ## 3.2 Hazır paketi indirmek (Windows ya da Mac bilgisayar gerekmeden)
 
 Uygulamayı üretmek için Windows ya da Mac bilgisayar bulmak şart değildir:
-GitHub, uygulamayı değiştiren her gönderimde üç paketi kendi bilgisayarlarında
-üretir ve teslimden önce **gerçekten açıp sınar**: izleme penceresi işletim
-sisteminin web görünümünde açılıp kapanmalı, uygulamanın tamamı sistemi
-kendisi başlatıp izleme penceresini açmalı. Sınamayı geçemeyen paket
-yayımlanmaz (`.github/workflows/uygulama-uret.yml`).
+GitHub, `main` dalına gelen ve uygulamayı değiştiren her gönderimde üç paketi
+kendi bilgisayarlarında üretir ve teslimden önce **gerçekten açıp sınar**:
+izleme penceresi işletim sisteminin web görünümünde açılıp kapanmalı,
+uygulamanın tamamı sistemi kendisi başlatıp izleme penceresini açmalı.
+Sınamayı geçemeyen paket yayımlanmaz (`.github/workflows/uygulama-uret.yml`).
 
 1. GitHub'da depo sayfasında **Actions** sekmesine girin.
 2. Soldan **"Uygulama üret"**i seçin, en üstteki **yeşil** çalıştırmayı açın.
@@ -165,8 +170,9 @@ sırasında o bilgisayarda alınmış ekran görüntüleri de vardır.
 
 ## 4. Üretilen uygulama nereye veri yazar
 
-Uygulamanın kendi içine yazılamaz (işletim sistemi izin vermez). Veritabanı,
-kanıt fotoğrafları, günlük ve ayarlar kullanıcının kendi klasörüne yazılır:
+Uygulama kendi içine yazmaz (orası salt okunur olabilir, ör. Program
+Files'ta). Veritabanı, kanıt fotoğrafları, günlük ve ayarlar kullanıcının
+kendi klasörüne yazılır:
 
 | | Yer |
 |---|---|
@@ -192,9 +198,9 @@ giriş ve teşhis sayfası ayar dosyasını, kılavuz ve Anons sayfası seslerin
 yedek düğmesi yedeklerin yerini yukarıdaki biçimde
 (`%LOCALAPPDATA%\NextGen Detector\veri\loglar\sistem.log` gibi) verir.
 Sayfalarda görünen yol Dosya Gezgini'nin adres çubuğuna ya da Finder'da
-**Git → Klasöre Git** kutusuna olduğu gibi yapıştırılabilir. (Kontrol Paneli'nin
-günlük satırları JSON biçimindedir; orada Windows yolundaki ters bölüler çift
-görünür.) Eski bir kurulumdan kalan kayıtlar programın yanındaki klasörden
+**Git → Klasöre Git** kutusuna olduğu gibi yapıştırılabilir; Kontrol Paneli'nin
+günlük penceresindeki yollar da öyledir ("saat [!] mesaj" satırları, ters bölüler
+tek). Eski bir kurulumdan kalan kayıtlar programın yanındaki klasörden
 okunuyorsa metinler "program klasörü" der (`backend/app/kaynaklar.py`).
 
 Bu bilgisayardaki **geliştirme kurulumunun** veri yolu değişmedi: o hâlâ proje
@@ -210,7 +216,12 @@ klasöründeki `veri/` klasörünü kullanır. İkisi birbirine karışmaz.
 
 **İki farklı kurulum, iki farklı yol var.** Hangisinde olduğunuzu Kontrol
 Paneli söyler: **"Güncelle" düğmesi varsa** git kurulumundasınız (§5.1),
-yoksa paketlenmiş uygulamadasınız (§5.2).
+yoksa paketlenmiş uygulamadasınız (§5.2). Kod git yerine ZIP ile alındıysa
+düğme yine görünür ama basınca "Bu klasör bir git deposu değil" der; o zaman
+yeni sürümün kodu bu klasörün üstüne kopyalanır (`veri/` ve `.env` korunur),
+sonra **İlk Kurulumu Yap** paketleri tazeler. Fabrika sunucusundaki Docker ya
+da systemd kurulumunda Kontrol Paneli yoktur; güncelleme komutla yapılır
+(`06-OPERASYON.md` §3).
 
 ### 5.1 Git kurulumu - "Güncelle" düğmesi
 
@@ -226,18 +237,20 @@ Düğmenin yaptıkları, günlükte satır satır görünür:
 | Adım | Neden |
 |---|---|
 | Sistem çalışıyor mu diye bakar | Çalışan bir program kendi kodunu değiştiremez |
-| GitHub'da yeni sürüm var mı sorar | Yoksa hiçbir şey yapmaz, "Sistem güncel" der |
-| **Veritabanının yedeğini alır** | Güncelleme yeni bir şema göçü getirmiş olabilir ve şemalar ileri yönlüdür; yedeksiz "güncelledim, bozuldu" geri alınamaz |
+| GitHub'da yeni sürüm var mı sorar | Yoksa hiçbir şey yapmaz, "Sistem guncel" der |
 | Kaydedilmemiş kod değişikliği var mı bakar | Sunucuda elle düzeltilmiş bir dosya sessizce kaybolmamalı - varsa durur ve hangi dosya olduğunu yazar |
+| **Veritabanının yedeğini alır** | Güncelleme yeni bir şema göçü getirmiş olabilir ve şemalar ileri yönlüdür; yedeksiz "güncelledim, bozuldu" geri alınamaz |
 | Kodu çeker | `git pull --ff-only` |
 | Paket listesi değiştiyse paketleri kurar | `requirements.txt` değişmediyse **kurulum yapılmaz** - her güncellemede pip çalıştırmak dakikalar alır ve gereksizdir |
 
 > **Kayıtlarınız silinmez.** `veri/` klasörü git'e girmez; güncelleme
 > kameralara, bölgelere, kurallara ve olay geçmişine dokunmaz. `.env` de öyle.
 
-**Uzaktan güncelleme:** düğme sunucunun başındadır. Uzaktan güncellemek
-isterseniz sunucuya uzak masaüstü / SSH ile bağlanıp Kontrol Paneli'ni orada
-kullanın (`15-UZAKTAN-ERISIM.md`). Güncelleme web arayüzüne **bilerek
+**Uzaktan güncelleme:** düğme bilgisayarın başındadır. Uzaktan güncellemek
+isterseniz o bilgisayara uzak masaüstüyle bağlanıp Kontrol Paneli'ni orada
+kullanın; Kontrol Paneli bir pencere olduğu için yalın SSH'ta açılmaz. Sunucu
+kurulumunda SSH ile bağlanıp `06-OPERASYON.md` §3'teki komutları çalıştırın
+(`15-UZAKTAN-ERISIM.md`). Güncelleme web arayüzüne **bilerek
 konmadı**: oradan çalıştırılan bir `git pull`, şifreyi ele geçiren birine
 sunucuda kod çalıştırma yolu açardı.
 
@@ -256,7 +269,8 @@ Yol şudur:
 
 **Kayıtlar silinmez.** Veri kullanıcı klasöründedir (§4), uygulamanın içinde
 değil; uygulamayı değiştirmek kayıtlara dokunmaz. Ayarlar (`.env`) da orada
-kalır - yani daha önce girdiğiniz kameralar ve eşikler durmaya devam eder.
+kalır - yani daha önce girdiğiniz kameralar (veritabanında) ve eşikler
+(`.env`'de) durmaya devam eder.
 
 Emin olmak isterseniz güncellemeden önce §4'teki klasörün bir kopyasını alın.
 
@@ -271,8 +285,9 @@ söyleniyor. Yine de burada dursun, çünkü hepsi "program bozuk" gibi görün�
 Windows 10/11'de Python kurulu **olmasa bile** `python` komutu vardır: sıfır
 baytlık bir takma addır, çalıştırılınca Mağaza penceresi açılır ve hiçbir şey
 üretilmez.
-**Karşılandı:** betik önce `py -3`'ü dener ve adayın gerçekten Python olduğunu
-`import sys` ile doğrular. Doğrulanamazsa Türkçe kurulum yönergesi verir.
+**Karşılandı:** betik önce `py` başlatıcısını dener (`py -3.12`, sonra `py -3`;
+en son `python`) ve adayın gerçekten Python olduğunu `import sys` ile doğrular.
+Doğrulanamazsa Türkçe kurulum yönergesi verir.
 
 ### 6.2 260 karakter yol sınırı
 Windows'ta bir dosya yolu 260 karakteri geçemez. Üretim sırasında proje
@@ -336,8 +351,11 @@ içine bir **açılış kancası** kondu:
 Destek isterken gönderilecek dosya budur.
 
 ### Mac
-Terminal'i açıp uygulamayı oradan çalıştırın; panele düşen satırlar aynı anda
-terminale de yazılır:
+Aynı açılış kancası Mac uygulamasında da vardır: açılırken çökerse macOS'un
+uyarı penceresi çıkar ve ayrıntı
+`~/Library/Application Support/NextGen Detector/veri/loglar/acilis-hatasi.log`
+dosyasına yazılır. Daha fazlası için Terminal'i açıp uygulamayı oradan
+çalıştırın; panele düşen satırlar aynı anda terminale de yazılır:
 
 ```
 "/Applications/NextGen Detector.app/Contents/MacOS/NextGen Detector"
@@ -347,7 +365,8 @@ terminale de yazılır:
 Kontrol Paneli günlüğü sebebi yazar (örneğin "işletim sisteminin web görünümü
 açılamadı"). Pencere bileşeninin pakette olduğunu ve bu bilgisayarda
 yüklendiğini uygulamanın kendisi sınar; pencere açmaz, sonucu tek satırla
-söyler ve 0 koduyla biter:
+söyler; bileşen sağlamsa 0 koduyla biter (pywebview yoksa 3, web görünümü
+yüklenemezse 4):
 
 ```
 & ".\NextGen Detector.exe" --pencere-denetimi | Out-String   (Windows, PowerShell, uygulamanın klasöründe)
@@ -368,8 +387,8 @@ açılır, WebView2 Runtime kurulunca kendi penceresine döner.
 | `paketleme/Windows-Uygulama-Uret.bat` | Windows'ta çift tıklanır, `.exe` üretir |
 | `paketleme/paketleme_ortak.py` | **İki tarifin ortak bölümü** - pakete ne konacağı burada yazılıdır |
 | `paketleme/NextGenDetector-mac.spec` | macOS'a özel olanlar (`.app` kabuğu, kamera izni, OpenSSL düzeltmesi) |
-| `paketleme/NextGenDetector-windows.spec` | Windows'a özel olanlar (`.ico` simge, gizli konsol, açılış kancası) |
-| `paketleme/acilis_kancasi.py` | Gizli konsolun yuttuğu hataları görünür kılar (§7) |
+| `paketleme/NextGenDetector-windows.spec` | Windows'a özel olanlar (`.ico` simge; `.app` kabuğu yok) |
+| `paketleme/acilis_kancasi.py` | Açılış kancası - iki tarif de takar: gizli konsolun yuttuğu hataları görünür kılar (§7) |
 | `paketleme/requirements-paketleme.txt` | Paketleme aracı ve pakete giren pencere bileşeni (`pywebview`) |
 | `.github/workflows/uygulama-uret.yml` | Üç paketi GitHub'ın Windows ve Mac bilgisayarlarında üretip sınar (§3.2) |
 | `paketleme/pencere_sinamasi.py` | Üretilen paketi gerçekten açıp sınar: izleme penceresi ve uygulamanın tamamı |
@@ -394,11 +413,13 @@ ama üretimin sınanabilir her parçası `pytest` ile sınanıyor:
 | `.env.example` **eksiksiz** | Sistemin okuduğu her ayar örnekte yazıyor mu; örnekte okunmayan ayar var mı |
 | İzleme penceresi **tarayıcı açmıyor** | Pencere süreci sahte bir `pywebview` ile gerçekten başlatılır: açılış, öne getirme, panelle kapanış, IE motorunun reddi ve yükleme zaman aşımı gerçek borularla sınanır; kodda `webbrowser` kullanımı yasaktır (`tests/test_uygulama_penceresi.py`) |
 
-Bu testler yalnızca **PyInstaller kuruluysa** çalışır (araç bilerek
-`backend/requirements.txt`'te değildir); kurulu değilse atlanır, kırılmaz.
-Çalıştırmak için:
+Tarifi çalıştıran testler (ilk üç satır) yalnızca **PyInstaller kuruluysa**
+çalışır (araç bilerek `backend/requirements.txt`'te değildir); kurulu değilse
+atlanır, kırılmaz. Öbür satırların testleri her `pytest` koşusunda çalışır.
+Hepsini çalıştırmak için:
 
 ```bash
 pip install -r paketleme/requirements-paketleme.txt
-pytest tests/test_paketleme.py tests/test_mac_uygulamasi.py tests/test_paketlemeye_hazirlik.py
+pytest tests/test_paketleme.py tests/test_mac_uygulamasi.py tests/test_paketlemeye_hazirlik.py \
+       tests/test_ayarlar.py tests/test_uygulama_penceresi.py
 ```
