@@ -88,9 +88,10 @@ def genel_uyari_mesaji(kod: str | None, sebep: str) -> dict:
     (23.09.2026). Eskiden bu olaylar dağıtıcıya hiç gelmiyordu: hoparlör
     susuyor, "uyarı ulaşmadı" alarmı da çıkmıyordu. Susturmanın tasarlanmış
     yolu gölge moddur. Mesajın ses dosyası yoktur: ses çıkışında uyarı tonu
-    çalar (ton.py), IP hoparlör olayın Türkçe adını okur. Bastırma anahtarı
-    olay koduna göredir: aynı koddaki olaylar bekleme süresince birbirini
-    susturur, farklı kodlar susturmaz.
+    çalar (ton.py); IP hoparlöre `uyari` anahtarı ve olayın Türkçe adı gider
+    (metni seslendiren cihaz adı okur, dosya çalan cihaza `uyari` sesi
+    yüklenir, docs/14). Bastırma anahtarı olay koduna göredir: aynı koddaki
+    olaylar bekleme süresince birbirini susturur, farklı kodlar susturmaz.
     """
     bilgi = OLAY_KODLARI.get(kod or "")
     return {

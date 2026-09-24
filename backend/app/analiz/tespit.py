@@ -218,8 +218,9 @@ class Tespitci:
         # Kamera saniyede 6 kare verdiği için aradaki bekleme uzundur ve bu
         # dönme işlemciyi boşa yakar. Ölçüm (yolox_tiny, 4 çekirdek, saniyede
         # 6 çıkarım): dönme açıkken CPU %115, kapalıyken %58; gecikme p50
-        # 26 → 36 ms. Dört kamerada iş parçacıkları zaten meşgul olduğundan
-        # verim değişmez (tests/hiz_kiyas --dort, docs/ILERLEME).
+        # 26 → 36 ms. Dört kamerada Hızlı modelin işlediği kare sayısı
+        # değişmez; CPU'da zaten 4 kameraya yetmeyen İsabetli modelin payı
+        # %50'den %43'e iner (tests/hiz_kiyas --dort, docs/ILERLEME).
         secenekler.add_session_config_entry("session.intra_op.allow_spinning", "0")
         secenekler.add_session_config_entry("session.inter_op.allow_spinning", "0")
         # 0 = ONNX Runtime kendi seçer (tüm çekirdekler). Sunucu başka işler de

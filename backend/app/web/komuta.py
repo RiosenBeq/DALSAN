@@ -357,7 +357,8 @@ ONE_CIKAN_KAMERA = 4
 KARE_TAZELEME_MS = 2000
 
 # Uyarı zincirinde mesajı seçilmemiş kuralın "Anons" hücresi. Böyle bir kural
-# SUSMAZ: hoparlörden uyarı tonu çalar, IP hoparlör olayın adını okur (docs/17 K21).
+# SUSMAZ: hoparlörden uyarı tonu çalar, IP hoparlöre `uyari` anahtarı ve olayın
+# adı gider (docs/14 §2.3, docs/17 K21).
 MESAJSIZ_ANONS = "mesaj yok - uyarı tonu çalar"
 
 
