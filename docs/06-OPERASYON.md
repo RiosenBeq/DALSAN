@@ -1,16 +1,21 @@
 # 06 - Operasyon
 
 > Bu doküman **çalışan sistemi** anlatır. Mimari `docs/09-BASITLESTIRME-KARARLARI.md`
-> ile sadeleştirildi: tek program, tek SQLite dosyası, tek container. Eski
+> ile sadeleştirildi: tek program, tek SQLite dosyası, sunucuda tek container. Eski
 > PostgreSQL + Alembic + üç servis kurgusu **artık yoktur**.
+>
+> **İlk aşamada fabrikada sunucu yok** (operatör kararı 24.09.2026): sistem
+> fabrikanın Windows bilgisayarında, paketlenmiş uygulamayla çalışır (§1.5).
+> §1.2'deki Linux + Docker kurulumu sunucuya geçilirse geçerlidir.
 
 ---
 
 ## 1. Kurulum
 
-### 1.1 Günlük kullanım / geliştirme (Mac, Windows)
+### 1.1 Geliştirme ve deneme bilgisayarı (Mac, Windows)
 
-Docker gerekmez. Kontrol Paneli yeter:
+Fabrikanın bilgisayarına bu kurulum değil, paketlenmiş uygulama kurulur (§1.5).
+Burada Docker gerekmez. Kontrol Paneli yeter:
 
 | Mac | Windows |
 |---|---|
@@ -23,12 +28,13 @@ uygulamada programın kendi penceresi, docs/11), adresi `http://127.0.0.1:8080`.
 Şirket ağında güvenlik duvarı varsa bu ilk indirme için `github.com` ve GitHub'ın dosya
 sunucusu `release-assets.githubusercontent.com` açık olmalı: hazır modeller YOLOX'un resmi
 yayınından, kayıtlı bir forklift modeli olduğunda o da bu deponun kendi yayınından
-(GitHub Release) iner (bugün kayıtlı forklift modeli yok, docs/12 §5).
+(GitHub Release) iner (bugün kayıtlı forklift modeli yok, docs/12 §5; fabrikanın kendi
+görüntüsüyle eğitilen model internetten inmez, Forklift sayfasından kurulur, §9).
 İkisi de SHA-256 ile doğrulanır; tutmayan dosya kullanılmaz.
 
 Ayrıntı: `NASIL-CALISIR.md`.
 
-### 1.2 Fabrika sunucusu (Linux + Docker)
+### 1.2 Fabrika sunucusu (Linux + Docker; ilk aşamada yok)
 
 ```bash
 git clone <depo-adresi> DALSAN && cd DALSAN
@@ -67,6 +73,9 @@ Erişim: `http://127.0.0.1:8080` (compose varsayılanı sunucunun kendisine aça
 uygulananlar `sema_surumu` tablosuna yazılır. Ayrı migrasyon komutu yoktur.
 
 ### 1.2.1 Sunucu yeniden başlayınca sistem kendiliğinden kalkmalı (K8)
+
+Fabrikanın Windows bilgisayarında (ilk aşama) bu işi paketlenmiş uygulamanın
+kendisi yapar; bilgisayarda yapılacak ayarlar ve provası §1.5'te.
 
 Docker kurulumunda bu **hazırdır**: `docker-compose.yml` içindeki
 `restart: unless-stopped` satırı, sunucu yeniden başladığında container'ı da
@@ -123,22 +132,27 @@ systemd hizmeti olarak çalıştığını söyler: hata mesajları ve kılavuz o
 "Kontrol Paneli'nde Durdur'a basın" yerine "sistemi sunucuda yeniden başlatın"
 der (`backend/app/kaynaklar.py` `kurulum_turu`; Docker kendiliğinden tanınır).
 
-**Takılan analiz de yeniden başlasın.** Analiz takılırsa (görüntü geliyor ama
+**Takılan analiz de yeniden başlar.** Analiz takılırsa (görüntü geliyor ama
 90 sn'dir hiçbir kare işlenmiyor) bekçi "Analiz takıldı" olayı yazar ve komuta
 ekranlarında kırmızı şerit çıkar. Takılan bir iş parçacığı program içinden
-kurtarılamaz; `.env`'e (Docker'da `ayar/.env`)
+kurtarılamaz; bu yüzden varsayılan tepki (`BEKCI_TEPKISI=yeniden_baslat`,
+24.09.2026'dan beri) programı yeniden başlatmaktır: program olayı yazıp kendini
+kapatır (çıkış kodu 70), `restart: unless-stopped` ya da `Restart=always`
+yeniden açar (systemd'de bunu birimdeki `DALSAN_HIZMET=1` bildirir). Başlat
+betiğiyle kurulan masaüstü sisteminde bu işi Kontrol Paneli yapar: sunucu onun
+alt sürecidir, 70 koduyla kapanınca panel yeniden başlatır; bir saatte üçten
+fazla olursa durur ve günlükte söyler. Paketlenmiş Windows uygulamasında sunucu
+Kontrol Paneli'yle aynı süreçtedir; paneli gözetmen yeniden açar (§1.5).
+Programı yeniden açan kimse yoksa (elle çalıştırılan sunucu, Mac uygulaması)
+program kendini kapatmaz, yalnız uyarır. Her kurulumda yalnız uyarmak için
+Ayarlar → Analiz sağlığı → "Takılınca ne yapılsın" → **Yalnız uyar** seçilir
+ya da `.env`'e (Docker'da `ayar/.env`)
 
 ```
-BEKCI_TEPKISI=yeniden_baslat
+BEKCI_TEPKISI=uyar
 ```
 
-yazın: program olayı yazıp kendini kapatır (çıkış kodu 70), `restart:
-unless-stopped` ya da `Restart=always` yeniden açar. Başlat betiğiyle kurulan
-masaüstü sisteminde bu işi Kontrol Paneli yapar: sunucu onun alt sürecidir,
-70 koduyla kapanınca panel yeniden başlatır; bir saatte üçten fazla olursa
-durur ve günlükte söyler. Paketlenmiş Windows/Mac uygulamasında ayar
-etkisizdir - orada program Kontrol Paneli'yle aynı süreçte çalışır ve yalnız
-uyarır. Varsayılan `uyar`'dır: yalnız olay, günlük ve kırmızı şerit.
+yazılır: yalnız olay, günlük ve kırmızı şerit.
 
 ### 1.2.2 Yedekten geri yükleme provası (K7)
 
@@ -244,6 +258,92 @@ docs/18 §1). İlke: kamera görüntüsü yalnız gerektiği yere gider.
 | Anons | (doldurun) | IP hoparlörün HTTP portu | Yalnız IP hoparlör kullanılıyorsa |
 | İnternet | - | Kapalı (kurulumdan sonra) | Model indirme için geçici açılır |
 
+### 1.5 Fabrikanın Windows bilgisayarı (ilk aşama, sunucusuz)
+
+Operatör kararı (24.09.2026): *"bu uygulamayı fabrikanın windows bilgisayarında
+çalıştırcm ona göre lütfen bil sunucu olmayacak ilk etapta"*. İlk aşamada sistem
+fabrikanın olağan bir Windows bilgisayarında, **paketlenmiş Windows
+uygulamasıyla** (`NextGen Detector.exe`; üretimi ve ilk açılışı docs/13 §3,
+§3.2) çalışır. Docker, systemd, Python kurulumu ve Başlat betiği yoktur; tespit
+işlemcide yapılır (paket yalnız CPU ONNX Runtime içerir). Sunucu donanımı, GPU
+ve Docker ile systemd arasındaki seçim sonraki aşamanın açık kararıdır
+(docs/17 §16 S1).
+
+**Program siz kapatana kadar açık kalır** (operatör: *"uygulamayı bir kere
+açınca ben kapatana kadar otomatik açılmayı ve bu tarz senaryoları düşünüp buna
+göre kodla lütfen"*; `masaustu/surekli_calisma.py`, docs/11 §7.1):
+
+| Ne olursa | Program ne yapar |
+|---|---|
+| Analiz takılır (bekçi), sistem beklenmedik şekilde durur ya da program çöker | Program birkaç saniye içinde yeniden açılır ve sistemi başlatır; bir saatte en çok 3 kez. Sınır dolunca son bir kez açılır ve bu sefer takılırsa kendini kapatmaz, yalnız uyarır: pencere açık kalır ve sorunu gösterir. Bilgisayarı yeniden başlatmak sayacı sıfırlar |
+| Elektrik kesilir ya da Windows yeniden başlar (güncelleme dahil) | Windows oturumu açılınca kendiliğinden başlar |
+| Bilgisayar boşta kalır | Sistem çalışırken Windows uykuya geçmez. Ekran kapanabilir; uyarı sesi yine çalar. Bilgisayarı elle uyutmak (menüden, kapağı kapatarak) engellenmez |
+| Program açıkken yeniden açılır | İkinci kopya açılmaz, açık Kontrol Paneli öne gelir |
+| Kontrol Paneli penceresi kapatılır | "Sistem kapatılsın mı?" diye sorar, varsayılan cevap **Hayır**. **Evet** derseniz sistem durur ve Windows açılışında da başlamaz: siz yeniden açana kadar kapalı kalır |
+| Windows kapanıyor ya da oturum kapanıyor | Program yeniden açılmaya çalışmaz |
+
+**Durdur** düğmesi yalnız sistemi durdurur: program açık kalır ve bilgisayar
+yeniden başlarsa sistem yine kendiliğinden başlar. Tamamen kapatmak için
+pencereyi kapatın.
+
+Kontrol Paneli'ndeki **Sürekli çalışma** satırı bunların durumunu söyler; her
+şey yolundaysa: "Açık - takılır ya da bilgisayar yeniden başlarsa kendiliğinden
+açılır. Bilgisayar uyumuyor." Sarı yazı sorunu ve ne yapılacağını söyler (ör.
+program Görev Yöneticisi'nde başlangıçta kapatılmışsa). Panel her açılışta neden (yeniden)
+açıldığını günlüğüne yazar (Windows açılışı, bekçi, çıkış koduyla çökme,
+sınırın dolması); yeniden açılışların kaydı
+`%LOCALAPPDATA%\NextGen Detector\veri\loglar\gozetmen.log` dosyasındadır.
+
+**Bilgisayarda bir kez yapılacaklar** (bunları program yapamaz):
+
+- [ ] **BIOS/UEFI:** elektrik gelince bilgisayar kendiliğinden açılsın. Ayarın
+      adı üreticiye göre değişir ("Restore on AC Power Loss", "AC Recovery"
+      gibi); değeri **Power On**. Yapılmazsa elektrik kesintisinden sonra
+      bilgisayar kapalı kalır, program da açılmaz.
+- [ ] **Programa ayrılmış tek bir Windows hesabı.** Veri Windows kullanıcısı
+      başınadır (`%LOCALAPPDATA%\NextGen Detector`): program başka bir hesapta
+      açılırsa kameraları, kuralları ve kayıtları görmez.
+- [ ] **Bu hesapta Windows'un otomatik oturum açması.** Program oturum
+      açılınca başlar; otomatik oturum açma yoksa biri oturum açana kadar
+      bekler. Oturum kendiliğinden açıldığı için bilgisayarın başına geçen
+      herkes bu hesaptadır: bilgisayar **kilitli bir odada** durur.
+- [ ] **Sürekli elektrik:** dizüstü bilgisayar fişte kalır.
+- [ ] **Windows Update etkin saatleri** ayarlanır. Güncellemenin yeniden
+      başlatması yine de sorun değildir: program oturum açılınca geri gelir.
+- [ ] **Saat:** Windows'un "Saati otomatik olarak ayarla" (İngilizce
+      Windows'ta "Set time automatically") ayarı açık kalır; olayın ve kanıt
+      fotoğrafının zamanı bilgisayarın saatine dayanır (§1.2.3).
+- [ ] **İlk açılışta internet:** tespit modeli bir kez iner (yaklaşık 20-35 MB;
+      §1.1'deki adresler açık olmalı); sonra sistem internetsiz çalışır.
+- [ ] **SmartScreen ve virüs koruması:** program imzasız olduğu için uyarabilir,
+      kendini Windows açılışına eklemesine de; izin verin (docs/13 §6.3, §6.4).
+- [ ] **Görev Yöneticisi > Başlangıç uygulamaları**'nda "NextGen Detector"
+      etkin görünür. Orada kapatılırsa program buna dokunmaz, yalnız Kontrol
+      Paneli uyarır.
+
+**Ses:** Windows'ta anons bilgisayarın varsayılan ses çıkışına çalar ve bu
+kanalın sağlığı okunamaz ("bilinmiyor", gri; docs/14 §2.2.1, docs/17 §7.7):
+hoparlörü devreye almada **▶ Dene** ile sahada dinleyerek doğrulayın (§8).
+
+**Yedek:** Teşhis'teki **"Veritabanını Yedekle"** aynı diskteki
+`veri\yedekler` klasörüne yazar; disk bozulursa yedek de gider.
+`%LOCALAPPDATA%\NextGen Detector\veri` klasörünü ve `.env` dosyasını düzenli
+olarak (haftada bir, §4) bir USB diske kopyalayın.
+
+**Güncelleme ve kaldırma:** önce Kontrol Paneli'ni kapatın ve soruya **Evet**
+deyin, sonra program klasörünü yenisiyle değiştirin, sonra yeni
+`NextGen Detector.exe`'yi açın; Windows açılışı kaydı kendiliğinden yeniden
+yazılır (docs/13 §5.2). Kaldırmak için önce kapatın, sonra program klasörünü
+silin; kayıtlar `%LOCALAPPDATA%\NextGen Detector` altında kalır.
+
+**Hız:** Windows'ta henüz ölçülmedi. Tek ölçüm 4 çekirdekli, 2.1 GHz Intel
+Xeon, GPU'suz bir makinede yapıldı: hızlı model (`yolox_tiny`) 4 kamera × 6
+kare/sn'yi bütçenin %100'üyle karşıladı, pay kalmadı (docs/AUDIT-OLCUM.md §1,
+docs/ILERLEME.md "Hız ve CPU"). Bundan daha çok çekirdekli bir bilgisayar
+seçin ve hızı devreye almada fabrikanın bilgisayarında ölçün: kameralar
+bağlıyken **Komuta → Kamera sağlığı**'nda her kameranın "İşlenen fps"i
+hedefi (kamera başına 6) tutmalı (§8).
+
 ---
 
 ## 2. Servis
@@ -262,9 +362,9 @@ boyut hesapladığı için sağlık kontrolünde kullanılmaz. Her durumda 200 v
 `"durum": "calisiyor"` döner (Kontrol Paneli portun bu sisteme ait olduğunu
 buna bakarak anlar); yalnız `?hazirlik=1` hazır olmayan sistemde 503 döner.
 Docker "unhealthy" container'ı **yeniden başlatmaz** - bu yalnız görünürlüktür;
-takılan analizi `BEKCI_TEPKISI=yeniden_baslat` ise bekçi kapatır ve Docker,
-systemd ya da Kontrol Paneli yeniden açar (§1.2.1); varsayılan `uyar` yalnız
-uyarır.
+takılan analizi varsayılan `BEKCI_TEPKISI=yeniden_baslat` ile bekçi kapatır ve
+Docker, systemd, Kontrol Paneli ya da Windows uygulamasının gözetmeni yeniden
+açar (§1.2.1, §1.5); `uyar` seçiliyse ya da yeniden açan yoksa yalnız uyarır.
 
 Şifresiz gövde yalnız `durum`, `analiz`, `model`, `hazir`, `uyari_garantisi` ve
 `sorunlar` kodlarını verir. Kamera başına okunan/işlenen hız, işleme süresi
@@ -334,6 +434,10 @@ journalctl -u dalsan -f   # ya da: tail -f veri/loglar/sistem.log
 Masaüstü kurulumunda (Başlat betikleri) güncelleme Kontrol Paneli'nin
 **Güncelle** düğmesiyledir (docs/13 §5.1); düğme önce veritabanını yedekler.
 
+Paketlenmiş uygulamada (fabrikanın Windows bilgisayarı, §1.5) önce Kontrol
+Paneli kapatılır ve soruya **Evet** denir, sonra program klasörü yenisiyle
+değiştirilir, sonra yeni program açılır (docs/13 §5.2).
+
 Geri alma:
 `git checkout <önceki-sürüm>` → `docker compose build` → `up -d`
 (systemd'de `git checkout <önceki-sürüm>` → `sudo systemctl restart dalsan`).
@@ -360,6 +464,10 @@ Sistem çalışırken güvenli veritabanı kopyası için: ana sayfadaki
 **"Veritabanını Yedekle"** düğmesi (`veri/yedekler/` içine SQLite backup API ile
 yazar, WAL uyumludur). Fotoğrafları kapsamaz - haftalık tam yedeği ihmal etmeyin.
 
+Forklift sayfasından kurulan model (`models/nextgen_forklift_*_yerel_*`) `veri/`'de değil
+`models/` klasöründedir ve bu yedeğe girmez: eğitimin `KURULACAK` klasöründeki iki
+dosyayı saklayın, yeni kurulumda aynı sayfadan yeniden kurulur (§9).
+
 **Geri yükleme provası - devreye almadan önce zorunlu (K7):**
 
 ```bash
@@ -383,6 +491,7 @@ her 24 saatlik çalışma süresinde bir çalışır. Ayrı zamanlanmış görev
 | İhlal olayları (DB) | `OLAY_SAKLAMA_GUN` | 180 gün | KVKK politikasıyla uyumlu olmalı |
 | Kanıt fotoğrafları | `GORUNTU_SAKLAMA_GUN` | 90 gün | Disk büyümesinin ana kalemi |
 | Etiketlenmemiş KKD kırpıkları | `KKD_HAM_VERI_SAKLAMA_GUN` | 30 gün | **Etiketlenenler silinmez** - eğitim veri setidir |
+| Etiketlenmemiş forklift kareleri | `FORKLIFT_HAM_VERI_SAKLAMA_GUN` | 30 gün | **Etiketlenenler silinmez** - eğitim veri setidir; Forklift sayfasından silinir (§9) |
 | Sistem olayları | `SISTEM_OLAY_SAKLAMA_GUN` | 90 gün | |
 | Uyarı teslim kaydı | `UYARI_KAYDI_ARSIV_GUN` | 15 gün | Silinmeden önce masaüstüne CSV (aşağıda); 0 = kapalı, kayıt olayla gider |
 
@@ -413,7 +522,7 @@ Dondurulan olayın teslim kaydı arşive de girmez, silinmez de. Masaüstündeki
 kopyalar sistemin saklama süresine tabi değildir; ne kadar tutulacağına
 müşterinin KVKK politikası karar verir (docs/18).
 
-**Her bakım koşusu imha kaydı yazar** (silinen olay, fotoğraf, KKD örneği,
+**Her bakım koşusu imha kaydı yazar** (silinen olay, fotoğraf, KKD örneği, forklift karesi,
 dondurulduğu için atlanan olay, arşivlenip silinen uyarı kaydı ve dosyası,
 o günkü gün sayıları). Kayıt ve erişim izi
 Ayarlar sayfasının en altındaki "KVKK: erişim ve imha kayıtları" bölümündedir;
@@ -481,9 +590,12 @@ restart`; systemd'de `sudo systemctl restart dalsan`.
 | "Tespit modeli: Yüklenemedi" | İnternet yoksa `bash models/indir.sh` ile elle indirin; dosya bozuksa silip tekrar indirin |
 | Kutular çıkmıyor / nesne kaçıyor | `.env` içinde `TESPIT_GUVEN_ESIGI` ve `TESPIT_INSAN_GUVEN_ESIGI` değerlerini kademeli düşürün (0,05'lik adımlarla). Uzak nesnede `TESPIT_EN_KUCUK_KENAR_PX` düşürülür |
 | Çok fazla yanlış tespit | Aynı eşikleri yükseltin; **NextGen AI İsabetli** daha isabetlidir (daha yavaş): Ayarlar → "Tanıma modeli"nden seçip yeniden başlatın |
-| Ana sayfada "Forklift modeli" satırı "… kullanılamadığı için sistem … ile çalışıyor" diyor; Olaylar'da "Seçili model yerine hazır model çalışıyor" | Seçili forklift modeli inmedi (genelde internet) ya da açılamadı. Sistem durmadı: tabanındaki hazır modelle insan ve araç tespiti sürüyor, yalnız "Forklift" seçili kurallar uyarı vermiyor. Satır sebebi yazar; sebebi giderip yeniden başlatın. Seçim değişmez: her açılışta önce forklift modeli denenir. `/saglik` bu sırada `model_yedekte` der (§2) |
+| Ana sayfada "Forklift modeli" satırı "… kullanılamadığı için sistem … ile çalışıyor" diyor; Olaylar'da "Seçili model yerine hazır model çalışıyor" | Seçili forklift modeli inmedi (genelde internet) ya da açılamadı. Sistem durmadı: tabanındaki hazır modelle insan ve araç tespiti sürüyor, yalnız "Forklift" seçili kurallar uyarı vermiyor. Satır sebebi yazar; sebebi giderip yeniden başlatın. Seçim değişmez: her açılışta önce forklift modeli denenir. Fabrika eğitimi modelinde satır "dosyası bulunamadı" derse dosya silinmiş ya da taşınmıştır (Docker'da imaj yeniden kurulunca, §9): Forklift sayfasında aynı iki dosyayla yeniden kurun. `/saglik` bu sırada `model_yedekte` der (§2) |
 | "Tespit modeli: ... yayın yerinde bulunamadı" | İnternet çalışıyor, model dosyası yayında yok: Ayarlar → "Tanıma modeli"nden başka model seçip yeniden başlatın, destek ekibine haber verin |
 | Forklift modeline geçince bazı kurallar forklifte tepki vermiyor | Kurulum listesindeki "Araç kuralları tanıma modeline uyuyor mu?" adımı kuralları kamera, bölge ve türüyle söyler: yalnız "Tır/Araç" seçili kurallarda "Forklift"i de işaretleyin (tır park alanının bölge kuralı bilerek yalnız tırdır). Forkliftsiz modele dönünce yalnız "Forklift" seçili kurallar aynı adımda görünür. Kapalı kameranın kuralı sayılmaz |
+| Forklift sayfasına yeni kare düşmüyor | "Kare toplama" **KAPALI** olabilir (varsayılan); KVKK dayanağından sonra açılır (§9). Açıksa: "Sınır doldu" yazıyorsa toplam sınıra (`FORKLIFT_ORNEK_EN_COK`, 3000) varıldı, kareleri etiketleyip eğitim verisini indirin ya da silin. Kamera başına saatte en çok `FORKLIFT_ORNEK_SAAT_LIMIT` (12) araçlı kare, araçsız kare bunun altıda biri saklanır; analiz açık olmalı |
+| Forklift sayfasında "Model ölçüm kapılarından geçmedi; program onu kurmaz. Kalan: …" | Eğitimin adayı kapılardan geçmedi. `SONUC.txt`'deki önerilere bakın (çoğu zaman daha çok ve daha çeşitli etiketli kare); kapılar değiştirilmez (docs/17 §12.3-8) |
+| Eğitim penceresi "Python 3.12 bulunamadi" ya da "Durdu, cikis kodu …" | Python 3.12'yi python.org'dan kurun. Kod 1: internet kesildi ya da bir adım yarıda kaldı; aynı zip'i yeniden bırakın, biten adımlar atlanır. Kod 2: iletideki adımı yapın (ör. çalışma klasörünün yolunda Türkçe karakter, boş disk). Ayrıntı `C:\NextGen-Forklift\gunluk.txt` |
 | Olay üretilmiyor | Kural açık mı; bölge doğru tipte mi; mesafe kuralında kalibrasyon var mı (Kurallar sayfasındaki rozet söyler) |
 | KKD sayfasına yeni örnek düşmüyor | Sayfanın üstündeki "Veri toplama" kapısı **KAPALI** olabilir (varsayılan). Rev.02 onayından sonra açılır; kapalıyken kişi görüntüsü bilerek toplanmaz. Açıksa: kişi KKD zorunlu alanda mı, muaf alanın dışında mı, kural boyundan (`min_person_height_px`) uzun mu |
 | KKD hiç olay üretmiyor | Model henüz eğitilmedi - bu **beklenen** davranıştır (docs/04). KKD sekmesinin üstündeki "KKD modeli" kartı durumu yazar; veri toplanıyor mu da orada |
@@ -502,7 +614,7 @@ restart`; systemd'de `sudo systemctl restart dalsan`.
 | Herkes aynı anda oturumdan düştü | Şifre değişti, sistem yeni sürüme güncellendi ya da `veri/oturum.anahtar` silindi veya bozuldu (yenisi üretilir; bozulduysa günlükte uyarı). Yeniden giriş yapmak yeter |
 | Kamera ya da hoparlör formunda adres `••••@` ile görünüyor | Beklenen: kullanıcı adı ve şifre sayfaya basılmaz. •••• olduğu gibi bırakılırsa kayıtlı şifre korunur, ip ya da yol değişse de. Değiştirmek için •••• yerine `kullanici:sifre` yazın |
 | Canlı uyarı paneli "bağlantı koptu" | Sunucu durmuş olabilir; yeniden başlatın |
-| Olaylar'da "Analiz takıldı" ya da "Analiz durdu" | Görüntü geliyor ama analiz ilerlemiyor: o sürede **hiçbir uyarı üretilmiyor**. Sistemi yeniden başlatın (sunucuda `BEKCI_TEPKISI=yeniden_baslat` bunu kendiliğinden yapar, §1.2.1). `veri/loglar/sistem.log` içinde `"bilesen": "bekci"` satırından önceki hatalara bakın |
+| Olaylar'da "Analiz takıldı" ya da "Analiz durdu" | Görüntü geliyor ama analiz ilerlemiyor: o sürede **hiçbir uyarı üretilmiyor**. Varsayılan ayarda (`BEKCI_TEPKISI=yeniden_baslat`) program kendini kapatır ve Docker, systemd, Kontrol Paneli ya da Windows uygulamasının gözetmeni onu yeniden açar (§1.2.1, §1.5). Yeniden açan yoksa (Mac uygulaması, elle çalıştırılan sunucu) ya da "Yalnız uyar" seçiliyse sistemi yeniden başlatın. `veri/loglar/sistem.log` içinde `"bilesen": "bekci"` satırından önceki hatalara bakın |
 | Olaylar'da "Analiz yavaşladı" | Ya kamerada kare üst üste işlenemedi (hattı yeniden kuruldu; günlükte "Kare işlenemedi" satırları sebebi yazar) ya da işlenen görüntü hızı hedefin altında kaldı: kamera `sample_fps`'ini düşürün, kamera sayısını azaltın ya da daha güçlü donanım kullanın. Eşikler Ayarlar → Analiz sağlığı |
 | Olaylar'da "Sistem başladı - önceki çalışma düzgün kapanmamıştı" | Sistem "Sistem durdu" yazamadan kapandı: elektrik kesintisi, bilgisayarın kapatılması, görev yöneticisinden sonlandırma ya da çökme. O sırada açık kalan olaylar "Sistem yeniden başladı; olay açık kalmıştı" sebebiyle kapatılmıştır. Sık görülüyorsa `veri/loglar/sistem.log`'un kapanıştan önceki son satırlarına bakın |
 
@@ -510,8 +622,16 @@ restart`; systemd'de `sudo systemctl restart dalsan`.
 
 ## 8. Devreye alma kontrol listesi (8. hafta)
 
-- [ ] Sistem, sunucu yeniden başlatma sonrası kendiliğinden ayakta (K8)
-- [ ] Sunucu saati NTP ile eşitleniyor (`timedatectl`: "synchronized: yes"); kameralar ve NVR aynı NTP'de (§1.2.3)
+- [ ] Sistem, sunucu (ilk aşamada fabrikanın Windows bilgisayarı) yeniden başlatma sonrası kendiliğinden ayakta (K8)
+- [ ] Windows bilgisayarında (ilk aşama, §1.5): bilgisayarın fişi çekildi ve geri takıldı;
+      bilgisayar kendiliğinden açıldı, Windows oturumu kendiliğinden açıldı ve program
+      geri geldi (sistem çalışıyor); Olaylar'da "Sistem başladı - önceki çalışma
+      düzgün kapanmamıştı"
+- [ ] Windows bilgisayarında Görev Yöneticisi > Başlangıç uygulamaları'nda "NextGen
+      Detector" etkin
+- [ ] Windows bilgisayarında Kontrol Paneli'nin "Sürekli çalışma" satırı "Açık - …"
+      diyor
+- [ ] Sunucu saati NTP ile eşitleniyor (`timedatectl`: "synchronized: yes"; Windows bilgisayarında "Saati otomatik olarak ayarla" açık, §1.5); kameralar ve NVR aynı NTP'de (§1.2.3)
 - [ ] 3-4 kameranın tamamı ≥ 24 saat kesintisiz `çevrimiçi` (K1)
 - [ ] Bir kameranın kablosu çekildi: ~10 sn içinde kamera "çevrimdışı" ve Olaylar'da
       "Kamera çevrimdışı"; takılınca birkaç saniye sonra "Kamera tekrar çevrimiçi"
@@ -550,7 +670,9 @@ restart`; systemd'de `sudo systemctl restart dalsan`.
 - [ ] Hedef donanımda hız ölçüldü: `.venv/bin/python -m tests.hiz_kiyas` (KKD modeli
       konduysa `--kkd` turu da); kamera başına en az 6 kare/sn (docs/17 §14) ve
       `/saglik?ayrinti=1` içinde her kameranın `islenen_fps`'i; komut ve ham çıktı
-      tutanağa (docs/AUDIT-OLCUM)
+      tutanağa (docs/AUDIT-OLCUM). Paketlenmiş uygulamada `.venv` yoktur: fabrikanın
+      Windows bilgisayarında ölçü `islenen_fps` ve Komuta → Kamera sağlığı'ndaki
+      "İşlenen fps"tir (§1.5)
 - [ ] Tespit doğruluğu KVKK dayanaklı etiketli saha karelerinde ölçüldü: `.venv/bin/python -m tests.dogruluk_kiyas --klasor veri/dogruluk --json dogruluk.json` (insan recall ≥ 0,95; tır ve forklift AP50 ≥ 0,90; kare ve kutu sayısıyla tutanağa, docs/17 §14). Kareler `veri/` altında kalır, depoya girmez
 - [ ] Yanlış alarm hedefi ölçüldü: Komuta → Rapor'da her kamera için incelemesi tam günlerden hesaplanan yanlış alarm / saat, hedefin (saatte en çok 2) altında (`17-V2-TASARIM.md` §14)
 - [ ] Bakım (retention) çalıştığı günlükten doğrulandı, KVKK süreleriyle uyumlu
@@ -588,3 +710,53 @@ yazılımdan **ölçülemez**; "100-250 ms" gibi bir sayı ölçüm değildir, y
 6. Her kanal türü için (kablolu, Bluetooth, IP hoparlör) en az 5 deneme yapın;
    en kötüsünü ve ortancasını tutanağa yazın, Teslim kaydının p90'ını yanına
    ekleyin.
+
+---
+
+## 9. Forklift modelini fabrikanın kendi görüntüsüyle eğitmek
+
+Hazır model forklifti çoğu zaman "tır" olarak görür; açık veriyle (LOCO) yapılan iki
+eğitim kapılardan geçemedi. Çare bu fabrikanın kendi kameralarıdır. Fotoğraf çekmek ya da
+kod yazmak gerekmez; tasarım ve denetimler docs/17 §12.6'da, adım adım kılavuz kaynak
+klasöründeki `egitim/forklift/YEREL-EGITIM.md`'dedir.
+
+1. **Önce KVKK.** Kareler çalışanları da gösterir. Forklift sayfasında "Kare toplamayı
+   aç"a basmadan önce çalışanlara aydınlatma yapılmış ve bu amacın hukuki dayanağı
+   (Rev.02 ya da ek protokol) olmalıdır; sayfa bunu onay kutusuyla sorar (docs/18).
+   Kapatmak her an mümkündür ve hemen geçerlidir.
+2. **Toplama (bir iki hafta).** Analiz açıkken program araç ya da forklift görünen kareyi
+   kamera başına saatte en çok 12 kez, araçsız kareyi daha seyrek saklar; toplam 3000
+   karede durur. Kareler `veri/goruntuler/forklift-ornekler/` altındadır (paketlenmiş
+   uygulamada `%LOCALAPPDATA%\NextGen Detector\veri\goruntuler\forklift-ornekler`);
+   etiketlenmeyenler 30 gün sonra silinir (§5).
+3. **Etiketleme.** Forklift sayfası → "Etiketlemeye başla". Hedef: en az iki ayrı günden
+   birkaç yüz kare. Son günler (yaklaşık dörtte biri) test içindir: test günlerinde en az
+   50 forklift kutusu ve birkaç "Forklift yok" karesi olsun. Eksik olanı sayfa uyarı
+   olarak yazar.
+4. **Eğitim (kapalı bir bilgisayarda).** "Eğitim verisini indir (.zip)" → zip'i o
+   bilgisayara (internete, paylaşılan klasöre değil) taşıyın → programın GitHub'daki
+   kaynak klasörünü ZIP olarak indirip açın → zip'i `egitim\forklift\Egit-Windows.bat`'ın
+   üstüne bırakın. Gerekenler: Windows 10/11, Python 3.12, en az 8 GB bellek, 6 GB boş
+   disk, indirmeler için internet (fabrika kareleri hiçbir yere gitmez). İlk seferde
+   yaklaşık 1 GB paket ve 770 MB LOCO iner; eğitim bilgisayarın hızına göre birkaç
+   saatten bir güne kadar sürer ve kesilirse aynı zip'le kaldığı yerden devam eder. İzleme
+   bilgisayarında da düşük öncelikle çalışabilir ama canlı izlemeyi yavaşlatabilir: gece
+   ya da ayrı bir bilgisayar daha iyidir. Sonuç `C:\NextGen-Forklift\SONUC.txt`'dedir.
+5. **Kurulum.** "GEÇTİ" yazıyorsa Forklift sayfası → "4. Modeli kur" → `KURULACAK`
+   klasöründeki iki dosyayı (model `.onnx` ve ölçümü `.olcum.json`) seçip "Denetle ve
+   kur". Program kapıları yeniden denetler; geçmeyeni kurmaz. Kurulan model Ayarlar →
+   "Tanıma modeli" listesine gelir; **siz seçip kaydetmedikçe çalışan model değişmez.**
+   Seçince sistemi yeniden başlatın ve kurulum listesinde "Araç kuralları tanıma modeline
+   uyuyor mu?" adımına bakın: yalnız "Tır/Araç" seçili kurallarda "Forklift"i de
+   işaretleyin. Modeli varsayılan yapmadan önce saha ölçümü tutanağa girer (§8).
+6. **"KALDI" yazıyorsa** hangi ölçümün kaldığı ve ne yapılacağı `SONUC.txt`'dedir (çoğu
+   zaman daha çok ve daha çeşitli kare). Yeni kareleri etiketleyip yeni zip'le eğitimi
+   yeniden çalıştırın; kapılar değiştirilmez.
+
+Kurulan model `models/` klasöründedir (paketlenmiş uygulamada `%LOCALAPPDATA%\NextGen
+Detector\models`): programın klasörünü yenisiyle değiştirmek (§3) ona dokunmaz, ama §4'teki
+yedeğe girmez; `KURULACAK`'taki iki dosyayı saklayın. **Docker'da** (sonraki aşama) model
+container'ın içine kurulur: `docker compose restart`'tan sağ çıkar, imaj yeniden kurulunca
+(güncelleme) kaybolur ve sistem hazır modele düşer (`MODEL_FALLBACK`). Kalıcı olsun diye iki
+dosyayı sunucudaki `models/` klasörüne de koyun: imaj her kurulduğunda içine girer
+(Docker'da denenmedi).

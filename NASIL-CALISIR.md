@@ -61,13 +61,17 @@ tek şey, bakılacak tek günlük vardır.
 | **Ekran kartı (GPU) hızlandırma** | ❌ *(Mac'te CUDA yok)* | ❌ *(kurulum yalnız CPU paketini kurar)* | ❌ | ❌ *(imaj yalnız CPU paketini kurar; GPU için `onnxruntime-gpu`'lu ayrı imaj gerekir, henüz yok)* |
 | Anons - ses kartı | ✅ | ✅ | ❌ | ⚠️ *(`docker-compose.ses.yml` ile; sunucuda henüz denenmedi)* |
 | Anons - IP hoparlör (HTTP) | ✅ | ✅ | ✅ | ✅ |
-| 7/24 kendiliğinden çalışma | ⚠️ pencere açık kalmalı | ⚠️ pencere açık kalmalı | ✅ | ✅ |
+| 7/24 kendiliğinden çalışma | ⚠️ pencere açık kalmalı | ✅ paketlenmiş uygulamada (`NextGen Detector.exe`), iki şartla: Windows otomatik oturum açmalı, BIOS elektrik gelince bilgisayarı açmalı (docs/06 §1.5). `Baslat-Windows.bat` ile ⚠️ pencere açık kalmalı | ✅ | ✅ |
 
 **Özet karar:**
 - **Geliştirme ve deneme** → Mac/Windows'ta çift tık. Docker gereksiz.
 - **Kafe demoları (Laffogato'nun canlı kamerası)** → çift tık; Docker'da
   bilgisayar kamerası çalışmaz.
-- **Fabrika kurulumu (7/24, GPU)** → Linux sunucu + Docker.
+- **Fabrika kurulumu, ilk aşama** (operatör kararı 24.09.2026) → fabrikanın
+  Windows bilgisayarında paketlenmiş uygulama, sunucusuz: program siz kapatana
+  kadar açık kalır (`docs/06-OPERASYON.md` §1.5).
+- **Fabrika sunucusu (7/24, GPU), sonraki aşama** → Linux sunucu + Docker;
+  donanımı ve kurulum biçimi açık karar (`docs/17-V2-TASARIM.md` §16 S1).
 
 ---
 
@@ -85,8 +89,9 @@ tek şey, bakılacak tek günlük vardır.
 sorar → **İzin Ver**. Sonradan değiştirmek için: Sistem Ayarları → Gizlilik ve
 Güvenlik → Kamera.
 
-**Pencereyi kapatmak sistemi durdurur.** Fabrika kurulumu bunun için değil,
-Docker içindir (aşağıya bakın).
+**Pencereyi kapatmak sistemi durdurur.** Fabrika kurulumu bunun için değil:
+ilk aşamada fabrikada Windows'taki paketlenmiş uygulama çalışır (§2 özet),
+sunucu aşaması Docker içindir (aşağıya bakın).
 
 ---
 
@@ -121,7 +126,8 @@ Windows'a özel olarak halledilmiş şeyler:
 ## 5. Docker ile çalıştırma
 
 Docker, **fabrika sunucusu için** düşünülmüştür: bilgisayar açılınca sistem
-kendiliğinden kalkar, çökerse kendini yeniden başlatır.
+kendiliğinden kalkar, çökerse kendini yeniden başlatır. İlk aşamada fabrikada
+sunucu yoktur (§2 özet); bu bölüm sunucuya geçilirse geçerlidir.
 
 ### Hazırlık (bir kez)
 
@@ -260,9 +266,13 @@ yükleme provası yapın.
   uydurulmaz.
 - Hazır tespit modeli genel amaçlıdır; forklift ve kafe bardağı gibi özel
   nesnelerde isabet, saha görüntüleriyle ince ayar yapılınca belirgin artar.
+  Forklift için bu yol hazır: **Forklift** sayfası kareleri kameralardan toplar
+  ve etiketletir, eğitim kapalı bir bilgisayarda tek komutla yapılır, çıkan
+  model aynı sayfadan kurulur (`docs/06-OPERASYON.md` §9).
 - Ham video **kaydedilmez**; yalnızca olay anı fotoğrafı saklanır (KVKK'da veri
   minimizasyonu). DALSAN'da KKD veri toplama açılırsa etiketlenecek kişi
-  kırpıkları da saklanır; bu toplama varsayılanda kapalıdır.
+  kırpıkları, forklift kare toplama açılırsa forklift eğitim kareleri de
+  saklanır; iki toplama da varsayılanda kapalıdır.
 
 Bunlar "sonra düzeltilecek eksikler" değil, yanlış alarmı azaltmak için
 bilinçli olarak seçilmiş takaslardır.

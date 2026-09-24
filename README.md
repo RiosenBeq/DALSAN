@@ -3,7 +3,9 @@
 Fabrikadaki mevcut kameralardan (3-4 adet, RTSP) görüntü alıp **insan, forklift ve
 tır** tespit eden; **bölge ihlali**, **güvenli mesafe** ve **KKD (baret/yelek)**
 kurallarını değerlendiren; ihlalde ekrana ve (altyapı uygunsa) anonsa uyarı düşüren;
-her olayı kanıt fotoğrafıyla kaydeden, **tek sunucuda çalışan** erken uyarı sistemi.
+her olayı kanıt fotoğrafıyla kaydeden, **tek bilgisayarda çalışan** erken uyarı sistemi.
+İlk aşamada o bilgisayar fabrikanın Windows bilgisayarıdır: sunucu yok, program
+paketlenmiş uygulamadır ve siz kapatana kadar açık kalır (`docs/06-OPERASYON.md` §1.5).
 
 > Sistem, İSG prosedürlerinin yerine geçmez; onları destekleyen bir erken uyarı
 > katmanıdır. Kaçırılan ihlal bilinen sınırdır, yanlış alarm ise ciddi kusurdur -
@@ -16,8 +18,8 @@ her olayı kanıt fotoğrafıyla kaydeden, **tek sunucuda çalışan** erken uya
 2. Proje klasöründe **Baslat-Mac.command** / **Baslat-Windows.bat** dosyasına çift tıklayın.
 3. Kontrol Paneli'nde **İlk Kurulumu Yap** → **Sistemi Başlat**.
 4. İzleme ekranı adres çubuğu olmayan bir pencerede açılır (`http://127.0.0.1:8080`). Varsayılanda giriş
-   sorulmaz: sistem yalnızca bu bilgisayardan açılır. **Fabrika sunucusuna
-   taşırken ya da sistemi ağa açarken** `.env` dosyasındaki `YONETICI_SIFRESI`
+   sorulmaz: sistem yalnızca bu bilgisayardan açılır. **Fabrikaya kurarken ya da
+   sistemi ağa açarken** `.env` dosyasındaki `YONETICI_SIFRESI`
    satırını doldurun (ya da Komuta → Ayarlar → Güvenlik); sistemi yeniden
    başlattıktan sonra her sayfa şifre ister.
 
@@ -53,7 +55,7 @@ onu kamera gibi izler. Kamera sayfasındaki durum satırı bağlanamama sebebini
 | Giriş şifresi (`YONETICI_SIFRESI`) | ✅ varsayılanda boş (giriş sorulmaz); ağa açarken ve fabrika kurulumundan önce doldurulur (docs/07 #0) |
 | KKD (baret/yelek) veri toplama + uygulama içi etiketleme | ✅ |
 | KKD modeli | ⏳ saha verisiyle eğitilecek (eğitim ürün dışı, docs/04 §6); gölge mod, onaylı sürüm ve anons kapısı hazır |
-| Forklift'e özel sınıf | ⏳ eğitim hattı hazır (açık LOCO veri seti, GitHub Actions); iki tam eğitimin adayları geçitleri geçemedi, sıradaki adım daha çeşitli veri (saha görüntüsü ya da Open Images). Geçen aday Ayarlar'da seçilebilir olur. Bugün kayıtlı forklift modeli yok: forklift araç (tır) olarak görünür (docs/12 §5) |
+| Forklift'e özel sınıf | ⏳ açık veriyle (LOCO, GitHub Actions) iki tam eğitimin adayları kapıları geçemedi; sıradaki adım fabrikanın kendi görüntüsü: **Forklift** sayfası kareleri kameralardan toplar ve etiketletir, eğitim kapalı bir bilgisayarda tek komutla yapılır, çıkan model aynı sayfadan denetlenerek kurulur ve Ayarlar'da seçilebilir olur (docs/06 §9). Yazılım hazır, sahada henüz kare toplanmadı; bugün forklift araç (tır) olarak görünür (docs/12 §5) |
 
 ## Mimari (kısaca)
 

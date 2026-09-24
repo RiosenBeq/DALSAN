@@ -50,7 +50,7 @@ dalsan-isg/
 ├── LICENSE-THIRD-PARTY          # üçüncü taraf lisans atıfları (YOLOX vb.)
 ├── backend/
 │   ├── requirements.txt
-│   ├── sema/                    # 001_ilk.sql ... 011_*.sql - sürümlü şema betikleri (Alembic yok)
+│   ├── sema/                    # 001_ilk.sql ... 012_*.sql - sürümlü şema betikleri (Alembic yok)
 │   └── app/
 │       ├── main.py              # TEK giriş noktası (uvicorn app.main:app)
 │       ├── uygulama.py          # FastAPI fabrikası; analizi başlatır
@@ -64,10 +64,13 @@ dalsan-isg/
 │       │                        #   cooldown, olay_durumu, olay_kodu, sayim, motor
 │       ├── olaylar/             # olay yazımı, anons kanalları, dağıtıcı, teslim kaydı, kanal sağlığı
 │       ├── nesneler/            # nesne kütüphanesi (Nesneler sayfası)
-│       └── egitim/              # KKD veri seti dışa aktarımı + değerlendirme raporu
+│       └── egitim/              # KKD veri seti dışa aktarımı + değerlendirme raporu;
+│                                #   forklift saha karesi (forklift_verisi) + yerel modelin kurulumu
 ├── masaustu/                    # Kontrol Paneli (dalsan_launcher.py) + izleme penceresi
+│                                #   + Windows uygulamasının gözetmeni (surekli_calisma.py)
 ├── paketleme/                   # Mac .app / Windows .exe üretimi (PyInstaller)
-├── egitim/forklift/             # forklift modelinin eğitimi - ÜRÜN DIŞI
+├── egitim/forklift/             # forklift modelinin eğitimi (GitHub hattı + kapalı bilgisayarda
+│                                #   yerel.py / Egit-Windows.bat) - ÜRÜN DIŞI
 ├── models/                      # indir.sh + SHA256SUMS; ağırlıklar repoya commit YOK
 ├── tests/                       # rules/ (birim, CV'siz, hızlı), test_*.py (entegrasyon), kıyas takımları
 ├── .github/workflows/           # uygulama-uret.yml, forklift-egit.yml, forklift-egit-bacak.yml
@@ -101,7 +104,7 @@ yerine INTEGER (0/1) kullanıldı. Parantezli sayı, sütunu sonradan ekleyen ş
 | `announcement_messages` | id, key, text, audio_file, enabled, updated_at (007) | 5 mesajla seed: mesafe, yaya yolu, araç konumu, **baret**, **yelek**. Şema 007 üç mesaj ekledi: yaya yolunda araç, araç yolunda yaya, yasak alan. |
 | `ppe_samples` | id, camera_id FK, captured_at, crop_path, helmet_label, vest_label, source (scheduled/auto/feedback), labeled_at, person_height_px, sharpness, hard_case (008) | KKD veri seti. Etiketlenmemiş kırpıklar `KKD_HAM_VERI_SAKLAMA_GUN` dolunca dosyasıyla silinir; etiketlenenler veri setidir, saklama temizliği onlara dokunmaz. |
 
-Sonraki şemaların eklediği tablolar (bugün toplam 16 tablo + uygulanan betiklerin
+Sonraki şemaların eklediği tablolar (bugün toplam 18 tablo + uygulanan betiklerin
 kaydı `sema_surumu`):
 
 | Tablo | Şema | Ne tutar |
@@ -113,6 +116,8 @@ kaydı `sema_surumu`):
 | `ppe_collection_gate` | 007 | KKD veri toplama kapısı (tek satır, başlangıçta kapalı) |
 | `alert_deliveries` | 009 | Uyarı teslim kaydı (her deneme ve sonucu) |
 | `purge_log`, `access_log` | 010 | İmha kaydı ve erişim izi (KVKK) |
+| `forklift_collection_gate` | 012 | Forklift eğitimi için kare toplama kapısı (tek satır, başlangıçta kapalı) |
+| `forklift_samples` | 012 | Forklift eğitim kareleri: tam kare, öneri kutuları, etiketler (docs/17 §12.6). Etiketsizler `FORKLIFT_HAM_VERI_SAKLAMA_GUN` dolunca silinir |
 
 ### Veri bütünlüğü kararları
 
@@ -151,7 +156,7 @@ başlatır/durdurur. Restart yok, broker yok.
 - **"Son kare" deseni:** RTSP akışı sürekli okunur, işlenmeyen kareler atılır. Aksi halde tampon dolar ve gecikme dakikalara çıkar. Kamera thread'i her zaman en güncel kareyi tutar.
 - **Akış seçimi (ana / alt akış):** Sistem akış seçmez; kamera formuna hangi RTSP adresi yazılırsa o açılır (`analiz/kamera.py`). Hangi akışın yazılacağı `12-KAMERA-VE-GORUNTU-KALITESI.md` §2'de (madde 5: ana akış; alt akış genelde 352x288'dir). KKD bölgelerinde piksel eşiği belirleyicidir (bkz. `04-KKD-BARET-YELEK.md` Bölüm 3); kamera bazında 1. hafta ölçümüyle kararlaştırılır.
 - **Kamera izolasyonu:** Bir kameranın okuma hatası yalnızca kendi okuma iş parçacığını etkiler ve o iş parçacığı üstel bekleme ile (1→30 sn) yeniden bağlanır (`analiz/kamera.py`); işleme hatası da süpervizör döngüsünde yalnız o kamerayı atlatır. Yeni başlatılan kamera ilk 60 sn `connecting` (bağlanıyor) sayılır ve olay üretmez; bu sürede hiç kare gelmezse `offline` + sebebi yazılı sistem olayı. Akan görüntü kesilince `offline` kopukluk eşiğinde gelir (`.env KAMERA_KOPUK_ESIGI_SN`, varsayılan 10 sn); "tekrar çevrimiçi" olayı görüntü `KAMERA_UP_KARARLILIK_SN` (5 sn) kesintisiz akınca yazılır. RTSP açılış/okuma zaman aşımı 5/10 sn (`RTSP_*_ZAMAN_ASIMI_MS`).
-- **Hata yolları:** Analiz döngüsündeki hata günlüğe yazılır, döngü bir sonraki turda sürer. GPU oturumu açılamazsa model CPU ile açılır ve ana sayfada Türkçe uyarı çıkar (aşağıda). Analiz iş parçacığı takılır ya da ölürse bekçi (`analiz/bekci.py`) `ANALYSIS_STALLED` yazar; `BEKCI_TEPKISI=yeniden_baslat` ise süreç kendini kapatır ki Docker ya da systemd yeniden açsın (masaüstü programında yalnız uyarır). Yarım kalan durum yok çünkü tek durum kaynağı DB.
+- **Hata yolları:** Analiz döngüsündeki hata günlüğe yazılır, döngü bir sonraki turda sürer. GPU oturumu açılamazsa model CPU ile açılır ve ana sayfada Türkçe uyarı çıkar (aşağıda). Analiz iş parçacığı takılır ya da ölürse bekçi (`analiz/bekci.py`) `ANALYSIS_STALLED` yazar; `BEKCI_TEPKISI=yeniden_baslat` (varsayılan) iken süreç kendini kapatır ki onu Docker, systemd, Başlat betiğinin Kontrol Paneli ya da paketlenmiş Windows uygulamasının gözetmeni (`masaustu/surekli_calisma.py`) yeniden açsın. Yeniden açan yoksa (elle çalıştırılan sunucu, Mac uygulaması) yalnız uyarır (`kaynaklar.yeniden_acan_var_mi`). Yarım kalan durum yok çünkü tek durum kaynağı DB.
 - **Ayak noktası:** Bölge ve mesafe hesabı bbox'ın alt-orta noktasıyla (zemin teması) yapılır; merkez nokta perspektifte yanıltır.
 - **KKD çağrısı seyrek:** Kişi track'i başına 5 karede bir, yalnızca KKD bölgesinde (muaf alan oyulur). Piksel eşiği sınıflandırmadan önce değil, sonra kuralda uygulanır (`rules/kkd.py`). O karedeki kırpıklar tek çağrıda sınıflandırılır; kameralar arası toplu (batch) çağrı yok.
 

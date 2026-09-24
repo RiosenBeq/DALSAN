@@ -88,16 +88,22 @@ Yeni bir araç, kütüphane, servis veya çalışma zamanı eklemeden önce sor:
 > YOLOX kaynak koduyla bir tespit modeli eğitir. Bu da SINIRLI bir istisnadır:
 >
 > * **Ürün dışıdır.** Yalnız GitHub Actions'taki eğitim işinde
->   (`.github/workflows/forklift-egit.yml`) kendi sanal ortamına kurulur
->   (`egitim/forklift/gereksinimler.txt`). `backend/` torch'u da, bu klasörü de
->   hiç import etmez; paket ve Docker imajı onu içermez.
+>   (`.github/workflows/forklift-egit.yml`, `egitim/forklift/gereksinimler.txt`)
+>   ve fabrikanın kendi verisiyle kapalı bir bilgisayardaki yerel eğitimde
+>   (`egitim/forklift/yerel.py`, `Egit-Windows.bat`, `gereksinimler-yerel.txt`;
+>   24.09.2026) kendi sanal ortamına kurulur. `backend/` torch'u da, bu klasörü
+>   de hiç import etmez; paket ve Docker imajı onu içermez.
 > * **Ürüne yalnız bir ONNX dosyası girer**, o da depoya değil deponun kendi
 >   yayınına (GitHub Release) konur ve uygulama onu SHA-256 ile doğrulayarak
->   indirir (`models/indir.sh`, `analiz/model_indir.py`).
+>   indirir (`models/indir.sh`, `analiz/model_indir.py`). Yerel eğitimin
+>   modeli ne depoya ne yayına girer: Forklift sayfasında ölçümüyle birlikte
+>   denetlenip (kapılar yeniden) yalnız o kuruluma kurulur
+>   (`egitim/forklift_kurulum.py`).
 > * Müşteri kamerasından tek kare bile bu hatta girmez: iş kayıtları ve
->   yayınlar herkese açıktır (KVKK). Saha verisiyle eğitim ayrı ve kapalı yapılır.
+>   yayınlar herkese açıktır (KVKK). Saha verisiyle eğitim ayrı ve kapalı yapılır
+>   (yerel eğitim; kareler yalnız programın ve eğitimi yapan bilgisayarda durur).
 >
-> Ayrıntı: `docs/17-V2-TASARIM.md` §12.3.
+> Ayrıntı: `docs/17-V2-TASARIM.md` §12.3 ve §12.6.
 
 Gerekçeler: `docs/09-BASITLESTIRME-KARARLARI.md`
 
@@ -111,6 +117,7 @@ dalsan-isg/
 ├── Baslat-Mac.command          # çift tıkla
 ├── Baslat-Windows.bat          # çift tıkla
 ├── masaustu/dalsan_launcher.py # kontrol paneli
+├── masaustu/surekli_calisma.py # Windows uygulamasının gözetmeni (siz kapatana kadar açık)
 ├── .env / .env.example
 ├── backend/
 │   ├── requirements.txt
@@ -126,7 +133,8 @@ dalsan-isg/
 │       ├── rules/              # SAF karar mantığı - aşağıya bak (sayim.py dahil)
 │       ├── olaylar/            # olay yazımı, fotoğraf, anons
 │       ├── nesneler/           # nesne kütüphanesi (yüklenen fotoğrafta arar, canlı analize girmez)
-│       └── egitim/             # veri seti dışa aktarımı, değerlendirme, HTML rapor
+│       └── egitim/             # veri seti dışa aktarımı, değerlendirme, HTML rapor;
+│                               #   forklift saha karesi ve yerel modelin kurulumu
 │                               #   (eğitimin kendisi ürün dışı - docs/04 §6)
 ├── egitim/forklift/            # forklift modelinin eğitimi - ÜRÜN DIŞI (§4 istisnası)
 ├── models/                     # indir.sh + SHA256SUMS (model dosyaları git'e girmez)
