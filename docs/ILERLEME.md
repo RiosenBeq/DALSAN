@@ -1,5 +1,53 @@
 # İlerleme
 
+## Denetim (24.09.2026 sabah)
+
+Operatör: *"Eksik kalan hatalı olan var mı kontrol yap"*. main (96a19a2) yeşildi (3.11'de
+2059, 3.12'de 2077 test). Forklift kaydının güncel main'de provası ve dört bağımsız inceleme
+(eğitim hattı, uygulama tarafı, masaüstü ve paketleme, belgeler) şunları buldu, düzeltildi:
+
+- **Ayarlar ikinci kayıtta ilkini geri alıyordu.** Form çalışan sistemin değerlerini
+  gösteriyordu; kaydedip yeniden başlatmadan başka bir ayarı kaydeden kullanıcı ilk
+  değişikliği (ör. forklift modeli seçimi) sessizce eski haline yazıyordu. Form artık
+  kayıtlı değerleri gösterir, yeniden başlatma bekleyen değişiklik varsa söyler.
+- **Forklift modeli inmezse** (internetsiz saha) insan ve araç tespiti de durur ve mesaj
+  yalnız "interneti kontrol edin" diyordu. Mesaj modelin adını verir ve Ayarlar'dan hazır
+  modele dönmeyi söyler. Model hatalarında `.env`'i elle düzenletme cümleleri Ayarlar'daki
+  "Tanıma modeli"ne yönlendi (paketlenmiş uygulamada `.env` program klasöründe değildir).
+- **Windows paket sınaması pencere açılmasa da geçiyordu**: arayan PowerShell kendi komut
+  satırını eşliyordu. Tam sınama artık ekranın canlı akışa bağlanmasını ve pencerenin açık
+  kalmasını da bekler; pencere sınaması HATA satırında ve motor bildirilmezse düşer.
+- **Mac uygulamasında pencerenin kendi metinleri İngilizceydi** (onay kutusunda OK/Cancel,
+  uygulama menüsü, kaydetme penceresi): Türkçe verildi.
+- **Kurulum listesi:** kapalı bölgenin kuralı (R21: hiç değerlendirilmez) 8. ve 10. adımda
+  sayılmıyor; uyumsuz kurallar tekrarsız, "A, B, C ve 1 kural daha" diye yazılıyor.
+- **Lisans:** pakete giren pywebview (BSD-3) ve WebView2 SDK (BSD tarzı) atfı ve metinleri
+  `LICENSE-THIRD-PARTY`'de; dosya pakete de konuyor. `.env.example` ya da bu dosya değişince
+  paket yeniden üretiliyor.
+- **Eğitim hattı:** eğitim bitip dışa aktarım düşerse eğitilmiş baş ayrı adla saklanıyor;
+  yayın başlığı gerçek etiketi yazıyor.
+- **Anons:** mesajsız kuralın IP hoparlöre `uyari` anahtarıyla gittiği yazıldı (dosya çalan
+  cihaza bu ses yüklenir); üç bayat metin düzeltildi.
+- **Belgeler:** forklift kapıları, kararı ve kayıt adımları docs/17 §12.3-8'de; tarayıcı
+  yerine pencere, model seçimi Ayarlar'dan; çalışmayan PowerShell örneği; Mac'te pencere
+  verisinin yeri; CPU değişikliğinin İsabetli modeldeki payı.
+
+Doğrulanmadığı için değiştirilmedi: güvenlik duvarı listesine `objects.githubusercontent.com`
+eklenmesi önerildi; forklift ve YOLOX dosyaları bugün `release-assets.githubusercontent.com`'a
+yönleniyor, liste doğru.
+
+Açık (karar ya da ayrı iş):
+
+- Forklift modeli inmezse sistemin kendiliğinden hazır modele geçmesi: bugün kullanıcı
+  Ayarlar'dan döner. Kendiliğinden geçmek bir ürün kararıdır.
+- Hata metinlerindeki "program klasöründeki veri/loglar/sistem.log" paketlenmiş uygulamada
+  kullanıcı klasörüdür (uygulamanın on kadar yerinde geçer).
+- Eğitim hattı: her bacağın kaydı aynı adla üzerine yazılır, yükleme yarıda kalırsa önceki
+  kayıt da gider; "bütün işleri yeniden çalıştır" önceki denemenin yapıtlarını kullanabilir.
+  İkisi de olası değil ama iz bırakır.
+- Başlat betikleriyle kurulan sistemde pywebview yoktur: ekran tarayıcının uygulama kipinde
+  açılır (docs/11).
+
 ## Forklift tanıyan model (23.09.2026)
 
 Operatör: *"forklifti tanıması lazım ve bunun gibi eğitilmesi gerekiyorsa en iyi şekilde
