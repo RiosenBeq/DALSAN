@@ -44,7 +44,7 @@ if str(FORKLIFT) not in sys.path:
 import ortak  # noqa: E402
 
 GECERLI_VARYANTLAR = {f"{boy}-{kip}" for boy in ortak.BOYLAR for kip in ortak.KIPLER}
-DUMAN_VARYANTLARI = ["tiny-v1", "tiny-v2"]
+DUMAN_VARYANTLARI = ["tiny-v1", "tiny-v2", "tiny-v3"]
 
 # Yalnız GitHub'ın kendi eylemleri, 23.09.2026'daki güncel ana sürümleriyle.
 IZINLI_EYLEMLER = {

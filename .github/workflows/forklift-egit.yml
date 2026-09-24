@@ -154,13 +154,13 @@ jobs:
           import ortak
 
           YOL = "egitim/forklift/istek.json"
-          # Duman: en hızlı boy, iki kip, 4 devir. Bacak iş akışı dumanda ilk iki
+          # Duman: en hızlı boy, bütün kipler, 4 devir. Bacak iş akışı dumanda ilk iki
           # bacağı birer devirde durdurur: 1. bacak mozaikli devri, 2. bacak
           # sürdürüp mozaiği kapatır, 3. bacak bitirir. Neden 4: egit.py'de
           # no_aug_epochs en az 2 ve YOLOX mozaiği "devir + 1 == devir sayısı -
           # no_aug_epochs" olan devrin BAŞINDA kapatır; 3 devirde hiç mozaik
           # olmazdı.
-          DUMAN_VARYANTLARI = ["tiny-v1", "tiny-v2"]
+          DUMAN_VARYANTLARI = ["tiny-v1", "tiny-v2", "tiny-v3"]
           DUMAN_DEVRI = 4
           EN_COK_DEVIR = 300
 

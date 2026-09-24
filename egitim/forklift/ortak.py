@@ -38,7 +38,10 @@ BOYLAR = {
 # v1: ek baş resmi başın kendi özniteliklerinin üstünde yalnız 1x1 katman
 #     (neredeyse sıfır ek işlemci yükü).
 # v2: ek başın kendi sınıf dalı (iki 3x3 evrişim) + 1x1 katman.
-KIPLER = ("v1", "v2")
+# v3: ek başın kendi kutu dalı (iki 3x3 evrişim + kutu ve nesne katmanı) +
+#     resmi sınıf özniteliği üstünde 1x1 sınıf katmanı. Forkliftin kazandığı
+#     çapada kutu da ek baştan gelir (model.py, "Neden v3").
+KIPLER = ("v1", "v2", "v3")
 
 # ---- Sabitlenmiş kaynaklar (sha256) ----
 

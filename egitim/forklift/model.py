@@ -5,7 +5,9 @@ değişmez. Yanına iki yeni sınıfı (forklift, el transpaleti) öğrenen kü�
 "ek baş" eğitilir; ek baş, resmi başın kendi ara özniteliklerini okur.
 Dışa aktarımda ikisi TEK ONNX'te birleşir:
 
-* kutular resmi başın ham kutu çıktısıdır (reg_preds),
+* kutular resmi başın ham kutu çıktısıdır (reg_preds); yalnız v3'te,
+  forklift puanının bütün eşlenen resmi puanları geçtiği çapada kutu ek başın
+  kendi kutu dalından gelir,
 * insan, tır, araba ve otobüs puanları resmi modelin nesne x sınıf puanıdır,
 * forklift ve el transpaleti puanları ek baştan gelir.
 
@@ -22,7 +24,18 @@ bozuk bir ek başla bile); k = 2 eşiği 0.382'ye indirir. Transpalet sütunu
 değişmez (uygulama onu eşlemez).
 
 Kipler: v1 yalnız iki 1x1 katman (sınıf + nesne) öğrenir; v2 ayrıca kendi
-sınıf dalını (iki 3x3 evrişim, resmi daldan başlatılır) öğrenir.
+sınıf dalını (iki 3x3 evrişim, resmi daldan başlatılır) öğrenir; v3 kendi
+kutu dalını (iki 3x3 evrişim + kutu ve nesne katmanı, resmi daldan
+başlatılır) öğrenir, sınıf katmanı v1'deki gibi resmi sınıf özniteliğini okur.
+
+Neden v3 (23.09.2026 tam eğitimi, çalıştırma 5): v1 ve v2'nin dört adayı LOCO
+testinde (2277 görüntü) tek bir doğru forklift tespiti vermedi. İkisinde de kutu
+ve nesne puanı resmi modelin DONUK kutu dalından gelir: YOLOX sınıf hedefini o
+kutunun gerçek kutuyla IoU'su yapar (eşleşen çapalarda ortalama en çok ~0,57),
+1x1 nesne katmanı donuk öznitelikten forklifti ayıramaz (nesne kaybı düşmedi).
+Resmi kutunun iyi oturduğu Open Images forklift fotoğraflarında bile forklift
+puanının medyanı 0,06 kaldı; sınıf dalını da eğiten v2 v1'den farksızdı. v3 kutu
+ve nesne dalını da öğrenir (docs/ILERLEME, forklift modeli).
 
 Komut satırı:
     python egitim/forklift/model.py disa-aktar --boy tiny --kip v1
@@ -72,7 +85,10 @@ ONCUL_OLASILIK = 0.01
 EGITILEN_BOLUMLER = {
     "v1": ("cls_preds", "obj_preds"),
     "v2": ("cls_convs", "cls_preds", "obj_preds"),
+    "v3": ("reg_convs", "reg_preds", "obj_preds", "cls_preds"),
 }
+# Ek başın kutusunu kullanan kipler (birleşik modelde forklift kazanınca)
+KENDI_KUTUSU = ("v3",)
 
 # Kişi önceliği: forklift puanı x (1 - resmi insan puanı)^k (modül belgesi)
 KISI_ONCELIGI_VARSAYILAN = 1
@@ -83,6 +99,10 @@ SKOR_TOLERANSI = 1e-5
 KUTU_TOLERANSI = 1e-4
 # Olasılık sütunları [0, 1] aralığında olmalı; bölmenin yuvarlama payı
 _OLASILIK_PAYI = 1e-6
+# v3 denetimi: forklift puanı eski puanların en büyüğüne bu kadar yakınsa çapa
+# "belirsiz" sayılır (sütunlar nesne x sınıf olarak yeniden kurulduğu için
+# karşılaştırma yuvarlama payı taşır); belirsiz çapanın kutusu karşılaştırılmaz.
+_KAZANMA_PAYI = 1e-6
 
 GORUNTU_UZANTILARI = (".jpg", ".jpeg", ".png", ".bmp")
 
@@ -303,8 +323,12 @@ class Birlesik(nn.Module):
     resmi reg_preds. Eski puan = sigmoid(resmi nesne) x sigmoid(resmi sınıf);
     yeni puan = sigmoid(ek nesne) x sigmoid(ek sınıf). v1'de ek sınıf katmanı
     resmi sınıf özniteliğini, v2'de ek başın kendi sınıf dalını okur; ek
-    nesne katmanı her iki kipte resmi kutu özniteliğini okur. Kişi önceliği k
-    ile forklift puanı (1 - resmi insan puanı)^k ile çarpılır (k = 0: düz).
+    nesne katmanı v1 ve v2'de resmi kutu özniteliğini okur. v3'te ek başın
+    kendi kutu dalı vardır: ek nesne katmanı onun özniteliğini okur ve
+    forklift puanının (kişi önceliğinden sonra) bütün eski puanları KESİN
+    geçtiği çapada kutu da ondan gelir; öteki her çapada kutu resmi kutudur.
+    Kişi önceliği k ile forklift puanı (1 - resmi insan puanı)^k ile çarpılır
+    (k = 0: düz).
     """
 
     def __init__(
@@ -347,15 +371,23 @@ class Birlesik(nn.Module):
             kutu = self.resmi_bas.reg_preds[k](kutu_ozniteligi)
             nesne = self.resmi_bas.obj_preds[k](kutu_ozniteligi).sigmoid()
             sinif = self.resmi_bas.cls_preds[k](sinif_ozniteligi).sigmoid()
-            if self.kip == "v1":
-                yeni_sinif = self.ek_bas.cls_preds[k](sinif_ozniteligi).sigmoid()
-            else:
+            if self.kip == "v2":
                 yeni_sinif = self.ek_bas.cls_preds[k](self.ek_bas.cls_convs[k](h)).sigmoid()
-            yeni_nesne = self.ek_bas.obj_preds[k](kutu_ozniteligi).sigmoid()
+            else:
+                yeni_sinif = self.ek_bas.cls_preds[k](sinif_ozniteligi).sigmoid()
+            if self.kip in KENDI_KUTUSU:
+                ek_kutu_ozniteligi = self.ek_bas.reg_convs[k](h)
+                ek_kutu = self.ek_bas.reg_preds[k](ek_kutu_ozniteligi)
+                yeni_nesne = self.ek_bas.obj_preds[k](ek_kutu_ozniteligi).sigmoid()
+            else:
+                yeni_nesne = self.ek_bas.obj_preds[k](kutu_ozniteligi).sigmoid()
             eski = nesne * sinif[:, self._eski_satirlar]
             yeni = yeni_nesne * yeni_sinif
             if self.kisi_onceligi:
                 yeni = self._kisi_onceligi_uygula(eski, yeni)
+            if self.kip in KENDI_KUTUSU:
+                forklift = yeni[:, self._forklift : self._forklift + 1]
+                kutu = torch.where(forklift > eski.amax(1, keepdim=True), ek_kutu, kutu)
             puan = torch.cat([eski, yeni], 1)[:, self._cikis_sirasi]
             ust = puan.amax(1, keepdim=True).clamp_min(1e-9)
             cikislar.append(torch.cat([kutu, ust, puan / ust], 1))
@@ -383,12 +415,16 @@ def disa_aktar(
 ) -> Path:
     """Resmi model + ek başı tek ONNX'e yazar (opset 11, sabit [1, 3, S, S] girdi).
 
-    Model kartına kullanılan kişi önceliği ("kisi_onceligi") her zaman yazılır.
+    Model kartına dışa aktarılan kip ("kip") ve kullanılan kişi önceliği
+    ("kisi_onceligi") her zaman yazılır; kartta başka bir kip yazıyorsa dışa
+    aktarım durur (denetim kutu karşılaştırmasını karttaki kipe göre yapar).
     Verilen modeller değişmez: dışa aktarım bir kopya üzerinde yapılır (SiLU
     değişimi modülleri yerinde değiştirir).
     """
     girdi = _boy_ayari(boy)["girdi"]
-    kart = {**kart, "kisi_onceligi": kisi_onceligi}
+    if kart.get("kip", kip) != kip:
+        raise ForkliftHatasi(f"model kartında kip {kart['kip']!r} yazıyor; dışa aktarılan {kip!r}")
+    kart = {**kart, "kip": kip, "kisi_onceligi": kisi_onceligi}
     birlesik = copy.deepcopy(Birlesik(resmi, ek_bas, kip, kisi_onceligi))
     birlesik = replace_module(birlesik, nn.SiLU, SiLU)
     birlesik.eval()
@@ -444,6 +480,17 @@ def _oturum(yol: Path) -> onnxruntime.InferenceSession:
         raise ForkliftHatasi(f"ONNX dosyası açılamadı: {yol} ({hata!r})") from hata
 
 
+def _kart_kipi(oturum: onnxruntime.InferenceSession) -> str | None:
+    """Model kartındaki kip ("v1", "v2", "v3"); kart yoksa ya da okunamıyorsa None."""
+    ust = dict(oturum.get_modelmeta().custom_metadata_map or {})
+    try:
+        kart = json.loads(ust.get("dalsan_model_karti", "null"))
+    except ValueError:
+        return None
+    kip = kart.get("kip") if isinstance(kart, dict) else None
+    return kip if kip in KIPLER else None
+
+
 def _ust_veri_denetimi(oturum: onnxruntime.InferenceSession) -> list[str]:
     """Birleşik modelin üst verisi ortak.py'deki sabitlerle aynı mı?"""
     ust = dict(oturum.get_modelmeta().custom_metadata_map or {})
@@ -472,7 +519,9 @@ def denetle(
 
     (a) Her görüntüde, HER çapada eski sınıf puanları (nesne x sınıf; person,
         truck, car, bus) resmi ONNX'in COCO 0/7/2/5 satırlarıyla 1e-5 içinde,
-        kutu sütunları 0-3 1e-4 içinde aynı olmalı.
+        kutu sütunları 0-3 1e-4 içinde aynı olmalı. Kendi kutusu olan kipte
+        (v3, kip model kartından okunur) kutu, forkliftin kazanmadığı her
+        çapada karşılaştırılır; kazandığı çapalar "ek_kutulu_capa"da sayılır.
     (b) Çıktı [1, A, 5 + 6], değerler sonlu, nesne ve sınıf sütunları [0, 1].
     (c) Üst veri ortak.py'deki sınıf sabitleriyle aynı.
     """
@@ -485,6 +534,7 @@ def denetle(
         "goruntu": 0,
         "gecti": False,
         "yeni_sinif_en_buyuk_puan": {ad: 0.0 for ad in EK_SINIFLAR},
+        "ek_kutulu_capa": 0,
         "nedenler": [],
     }
     nedenler: list[str] = sonuc["nedenler"]
@@ -495,6 +545,8 @@ def denetle(
     if nedenler:
         return sonuc
     nedenler.extend(_ust_veri_denetimi(birlesik))
+    kendi_kutusu = _kart_kipi(birlesik) in KENDI_KUTUSU
+    forklift_sutunu = 5 + CIKIS_SINIFLARI.index("forklift")
 
     birlesik_girdi = birlesik.get_inputs()[0].name
     resmi_girdi = resmi.get_inputs()[0].name
@@ -529,7 +581,13 @@ def denetle(
         birlesik_puan = b[:, 4:5] * b[:, eski_sutunlar]
         resmi_puan = r[:, 4:5] * r[:, resmi_sutunlar]
         skor_farki = float(np.abs(birlesik_puan - resmi_puan).max())
-        kutu_farki = float(np.abs(b[:, :4] - r[:, :4]).max())
+        kutu_farklari = np.abs(b[:, :4] - r[:, :4]).max(1)
+        if kendi_kutusu:
+            forklift_puani = b[:, 4] * b[:, forklift_sutunu]
+            eski_en_buyuk = birlesik_puan.max(1)
+            sonuc["ek_kutulu_capa"] += int((forklift_puani > eski_en_buyuk + _KAZANMA_PAYI).sum())
+            kutu_farklari = kutu_farklari[forklift_puani < eski_en_buyuk - _KAZANMA_PAYI]
+        kutu_farki = float(kutu_farklari.max()) if kutu_farklari.size else 0.0
         if not (skor_farki <= SKOR_TOLERANSI and kutu_farki <= KUTU_TOLERANSI):
             nedenler.append(
                 f"{yol.name}: resmi modelden sapma (puan {skor_farki:.2e}, kutu {kutu_farki:.2e})"

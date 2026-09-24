@@ -29,6 +29,7 @@ pytest.importorskip("yolox", reason="YOLOX yok: eğitim ortamında PYTHONPATH'e 
 np = pytest.importorskip("numpy")
 cv2 = pytest.importorskip("cv2")
 onnxruntime = pytest.importorskip("onnxruntime")
+onnx = pytest.importorskip("onnx")
 
 KOK = Path(__file__).resolve().parents[1]
 FORKLIFT = KOK / "egitim" / "forklift"
@@ -60,7 +61,23 @@ _V2_ADLARI = _V1_ADLARI | {
     for i in range(2)
     for ad in ("conv.weight", "bn.weight", "bn.bias")
 }
-BEKLENEN_EGITILENLER = {"v1": (_V1_ADLARI, 873), "v2": (_V2_ADLARI, 499_689)}
+_V3_ADLARI = (
+    {
+        f"head.reg_convs.{k}.{i}.{ad}"
+        for k in range(3)
+        for i in range(2)
+        for ad in ("conv.weight", "bn.weight", "bn.bias")
+    }
+    | {f"head.{bolum}.{k}.{ad}" for bolum in ("reg_preds", "obj_preds", "cls_preds")
+       for k in range(3) for ad in ("weight", "bias")}
+)  # fmt: skip
+BEKLENEN_EGITILENLER = {
+    "v1": (_V1_ADLARI, 873),
+    "v2": (_V2_ADLARI, 499_689),
+    "v3": (_V3_ADLARI, 500_853),
+}
+# Eğitim kipinde istatistik biriktiren (kendi) BN dalı
+KENDI_BN_DALI = {"v1": None, "v2": "head.cls_convs.", "v3": "head.reg_convs."}
 
 
 def _resmi_pth_yolu() -> Path | None:
@@ -145,7 +162,7 @@ def _uygulama_sinif_eslemesi(ust: dict[str, str]) -> tuple[dict[int, str], list[
 # ---- yapı: hangi parametreler öğrenir, donuk BN eval'de kalır mı ----
 
 
-@pytest.mark.parametrize("kip", ["v1", "v2"])
+@pytest.mark.parametrize("kip", ["v1", "v2", "v3"])
 def test_egitilen_parametreler_kipe_gore(kip):
     donuk = _donuk(kip)
     adlar, sayi = BEKLENEN_EGITILENLER[kip]
@@ -162,7 +179,7 @@ def test_egitilen_parametreler_kipe_gore(kip):
         assert all(p.dim() == 1 or p.shape[-2:] == (1, 1) for p in egitilenler)
 
 
-@pytest.mark.parametrize("kip", ["v1", "v2"])
+@pytest.mark.parametrize("kip", ["v1", "v2", "v3"])
 def test_donuk_bn_egitim_kipinde_eval_kalir(kip):
     donuk = _donuk(kip)
     donuk.eval()
@@ -173,7 +190,8 @@ def test_donuk_bn_egitim_kipinde_eval_kalir(kip):
     for ad, modul in donuk.named_modules():
         if isinstance(modul, nn.BatchNorm2d):
             bn_sayisi += 1
-            egitilen = kip == "v2" and ad.startswith("head.cls_convs.")
+            dal = KENDI_BN_DALI[kip]
+            egitilen = dal is not None and ad.startswith(dal)
             assert modul.training is egitilen, ad
     assert bn_sayisi > 50
 
@@ -198,7 +216,7 @@ def test_ek_bas_resmi_bastan_baslar():
 # ---- eğitim adımı: yalnız eğitilenler değişir ----
 
 
-@pytest.mark.parametrize("kip", ["v1", "v2"])
+@pytest.mark.parametrize("kip", ["v1", "v2", "v3"])
 def test_iki_egitim_adimi_yalniz_egitilenleri_degistirir(kip):
     donuk = _donuk(kip)
     deney = egit.EkBasDeneyi(
@@ -264,9 +282,10 @@ def test_iki_egitim_adimi_yalniz_egitilenleri_degistirir(kip):
     for bolum in {ad.split(".")[1] for ad in adlar}:
         assert any(a.startswith(f"head.{bolum}.") for a in degisen), bolum
     assert {a for a in adlar if a.endswith("weight") and ".bn." not in a} <= degisen
-    if kip == "v2":
-        # v2'nin kendi sınıf dalının BN'leri eğitim kipinde istatistik biriktirir
-        assert any(a.startswith("head.cls_convs.") and a.endswith("running_mean") for a in degisen)
+    if KENDI_BN_DALI[kip] is not None:
+        # v2'nin sınıf, v3'ün kutu dalının BN'leri eğitim kipinde istatistik biriktirir
+        dal = KENDI_BN_DALI[kip]
+        assert any(a.startswith(dal) and a.endswith("running_mean") for a in degisen)
 
 
 def test_ema_donuk_tensorlere_dokunmaz():
@@ -323,11 +342,16 @@ def test_birlesik_onnx_ust_verisi_uygulamaca_okunur(tmp_path):
         resmi, ek, "v1", "tiny", tmp_path / "birlesik.onnx", {"not": "deneme"}
     )
     assert not list(tmp_path.glob("*.part"))
+    # Kartta başka bir kip yazıyorsa dışa aktarım durur (denetim karttaki kipe güvenir)
+    with pytest.raises(forklift_modeli.ForkliftHatasi, match="kip"):
+        forklift_modeli.disa_aktar(resmi, ek, "v1", "tiny", tmp_path / "yanlis.onnx", {"kip": "v3"})
+    assert not list(tmp_path.glob("yanlis.onnx*"))
     oturum = onnxruntime.InferenceSession(str(yol), providers=["CPUExecutionProvider"])
     ust = dict(oturum.get_modelmeta().custom_metadata_map)
     assert json.loads(ust["dalsan_classes"]) == DALSAN_SINIFLARI
     assert json.loads(ust["dalsan_cikis_siniflari"]) == list(CIKIS_SINIFLARI)
-    assert json.loads(ust["dalsan_model_karti"]) == {"not": "deneme", "kisi_onceligi": 1}
+    kart = {"not": "deneme", "kip": "v1", "kisi_onceligi": 1}
+    assert json.loads(ust["dalsan_model_karti"]) == kart
     girdi = oturum.get_inputs()[0]
     assert girdi.name == "images" and list(girdi.shape) == [1, 3, 416, 416]
     cikti = oturum.run(None, {"images": np.zeros((1, 3, 416, 416), np.float32)})[0]
@@ -341,7 +365,9 @@ def test_birlesik_onnx_ust_verisi_uygulamaca_okunur(tmp_path):
 # ---- resmi ağırlıklarla: birleşik ONNX resmi modelin davranışını korur ----
 
 
-@pytest.mark.parametrize(("kip", "kisi_onceligi"), [("v1", 1), ("v2", 1), ("v1", 0), ("v2", 2)])
+@pytest.mark.parametrize(
+    ("kip", "kisi_onceligi"), [("v1", 1), ("v2", 1), ("v1", 0), ("v2", 2), ("v3", 1), ("v3", 0)]
+)
 def test_egitilmemis_disa_aktarim_denetimden_gecer(
     kip, kisi_onceligi, resmi_pth, resmi_onnx, goruntuler, tmp_path
 ):
@@ -349,13 +375,86 @@ def test_egitilmemis_disa_aktarim_denetimden_gecer(
     torch.manual_seed(0)
     ek = forklift_modeli.ek_bas_olustur(resmi, "tiny").eval()
     yol = forklift_modeli.disa_aktar(
-        resmi, ek, kip, "tiny", tmp_path / f"{kip}.onnx", {}, kisi_onceligi=kisi_onceligi
+        resmi, ek, kip, "tiny", tmp_path / f"{kip}.onnx", {"kip": kip}, kisi_onceligi=kisi_onceligi
     )
     sonuc = forklift_modeli.denetle(yol, resmi_onnx, goruntuler, "tiny")
     assert sonuc["gecti"], sonuc["nedenler"]
     assert sonuc["goruntu"] == len(goruntuler)
     assert sonuc["en_buyuk_skor_farki"] <= forklift_modeli.SKOR_TOLERANSI
     assert sonuc["en_buyuk_kutu_farki"] <= forklift_modeli.KUTU_TOLERANSI
+
+
+def _baskin_ek_bas(resmi):
+    """Her yerde forklift diyen, kutusu resmi kutudan büyük bir ek baş (v3 sınaması)."""
+    torch.manual_seed(0)
+    ek = forklift_modeli.ek_bas_olustur(resmi, "tiny").eval()
+    with torch.no_grad():
+        for sinif in ek.cls_preds:
+            sinif.bias[EK_SINIFLAR.index("forklift")] = 12.0
+        for nesne in ek.obj_preds:
+            nesne.bias += 8.0
+        for kutu in ek.reg_preds:
+            kutu.bias[2:4] += 0.7  # genişlik ve yükseklik (log) büyür
+    return ek
+
+
+def _kazanan_ve_kaybeden(cikti):
+    """Forklift puanı eski puanların en büyüğünü açıkça geçiyor mu / geçmiyor mu."""
+    puan = cikti[:, 4:5] * cikti[:, 5:]
+    forklift = puan[:, CIKIS_SINIFLARI.index("forklift")]
+    eski = puan[:, [CIKIS_SINIFLARI.index(ad) for ad in forklift_modeli.ESKI_SINIFLAR]]
+    en_buyuk = eski.max(1).values
+    return forklift > en_buyuk + 1e-6, forklift < en_buyuk - 1e-6
+
+
+def test_v3_kutusu_yalniz_forkliftin_kazandigi_capada_ek_bastan():
+    """v3: forklift kazanınca kutu ek başın kutu dalından, kazanmayınca resmi daldan;
+    puan sütunları v1 ile aynı (eğitilmemiş kutu dalı resmi daldan başlar)."""
+    torch.manual_seed(0)
+    resmi = forklift_modeli.resmi_mimari("tiny")
+    ek = _baskin_ek_bas(resmi)
+    x = torch.rand(1, 3, 128, 128, generator=torch.Generator().manual_seed(3)) * 255
+    with torch.no_grad():
+        v3 = forklift_modeli.Birlesik(resmi, ek, "v3").eval()(x)[0]
+        v1 = forklift_modeli.Birlesik(resmi, ek, "v1").eval()(x)[0]
+    kazanan, kaybeden = _kazanan_ve_kaybeden(v3)
+    assert int(kazanan.sum()) > 100  # sınama gerçekten kutu değiştiriyor
+    torch.testing.assert_close(v3[:, 4:], v1[:, 4:])
+    torch.testing.assert_close(v3[kaybeden, :4], v1[kaybeden, :4], rtol=0, atol=0)
+    torch.testing.assert_close(v3[kazanan, :2], v1[kazanan, :2], rtol=0, atol=0)
+    torch.testing.assert_close(v3[kazanan, 2:4], v1[kazanan, 2:4] + 0.7, rtol=0, atol=1e-5)
+
+
+def _kart_kipini_sil(kaynak: Path, hedef: Path) -> Path:
+    """Aynı model, kartında kip olmadan (eski ya da elle yazılmış kart)."""
+    model = onnx.load(str(kaynak))
+    for ozellik in model.metadata_props:
+        if ozellik.key == "dalsan_model_karti":
+            kart = json.loads(ozellik.value)
+            del kart["kip"]
+            ozellik.value = json.dumps(kart)
+    onnx.save(model, str(hedef))
+    return hedef
+
+
+def test_v3_denetimi_kutuyu_yalniz_kart_v3_derse_gevsetir(
+    resmi_pth, resmi_onnx, goruntuler, tmp_path
+):
+    """Kart "v3" derse forkliftin kazandığı çapaların kutusu karşılaştırılmaz ama
+    sayılır; kip bilinmiyorsa denetim sıkıdır ve ek başın kutusu sapma sayılır."""
+    resmi = forklift_modeli.resmi_model("tiny", resmi_pth)
+    ek = _baskin_ek_bas(resmi)
+    # Kart kip taşımasa da dışa aktarım onu yazar
+    v3 = forklift_modeli.disa_aktar(resmi, ek, "v3", "tiny", tmp_path / "v3.onnx", {})
+    sonuc = forklift_modeli.denetle(v3, resmi_onnx, goruntuler, "tiny")
+    assert sonuc["gecti"], sonuc["nedenler"]
+    assert sonuc["ek_kutulu_capa"] > 0
+    assert sonuc["en_buyuk_skor_farki"] <= forklift_modeli.SKOR_TOLERANSI
+    kartsiz = _kart_kipini_sil(v3, tmp_path / "kartsiz.onnx")
+    sonuc = forklift_modeli.denetle(kartsiz, resmi_onnx, goruntuler, "tiny")
+    assert not sonuc["gecti"]
+    assert any("resmi modelden sapma" in neden for neden in sonuc["nedenler"])
+    assert sonuc["ek_kutulu_capa"] == 0  # kip bilinmeyince sayılmaz, hepsi karşılaştırılır
 
 
 def test_komut_satiri_cikis_kodlari(resmi_pth, resmi_onnx, goruntuler, tmp_path, capsys):
@@ -461,7 +560,7 @@ def test_egit_resmi_olmayan_agirligi_reddeder(tmp_path):
     assert not (tmp_path / "calisma").exists()
 
 
-@pytest.mark.parametrize("kip", ["v1", "v2"])
+@pytest.mark.parametrize("kip", ["v1", "v2", "v3"])
 def test_egit_uctan_uca_sure_butcesi_ve_devam(kip, resmi_pth, resmi_onnx, tmp_path):
     veri = _sahte_coco(tmp_path / "veri")
     calisma = tmp_path / "calisma"
@@ -512,7 +611,8 @@ def test_egit_uctan_uca_sure_butcesi_ve_devam(kip, resmi_pth, resmi_onnx, tmp_pa
         forklift_modeli.ek_bas_yukle(resmi, "tiny", baska_kip, ek_bas_yolu)
 
     # Eğitilmiş ek başla birleşik model: eski sınıflar yine resmi modelle aynı
-    aday = forklift_modeli.disa_aktar(resmi, ek, kip, "tiny", tmp_path / "aday.onnx", {})
+    # Kart kipi taşır (iş akışının kartı gibi): v3'te kutu karşılaştırması ona göre
+    aday = forklift_modeli.disa_aktar(resmi, ek, kip, "tiny", tmp_path / "aday.onnx", {"kip": kip})
     denetim = forklift_modeli.denetle(
         aday, resmi_onnx, sorted((veri / "egitim").glob("*.jpg")), "tiny"
     )
