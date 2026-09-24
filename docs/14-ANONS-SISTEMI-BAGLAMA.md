@@ -174,10 +174,13 @@ görünür. Ton bir yedektir: kim ne yapmalı söylemez, sözlü kayıt yine ger
 
 **Kurala mesaj seçilmemişse de hoparlör susmaz.** Kural formunda "mesaj yok"
 seçili kalmışsa (ya da kuralın mesajı kapatılmış, silinmişse) olay kendi
-adıyla duyurulur: ses çıkışı uyarı tonunu çalar, IP hoparlör olayın Türkçe
-adını okur (örneğin "Yükleme alanında yaya"), teslim kaydına "kurala anons
-mesajı bağlanmamış" yazılır ve "uyarı ulaşmadı" denetimi bu olaylar için de
-çalışır (docs/17 K21). Bir kuralı tamamen susturmanın yolu **gölge mod**dur.
+adıyla duyurulur. Ses çıkışı uyarı tonunu çalar ve teslim kaydına "kurala
+anons mesajı bağlanmamış" (mesaj kapatılmışsa "kuralın anons mesajı kapalı")
+yazılır. IP hoparlöre `uyari` anahtarı ve olayın Türkçe adı gider: metni
+seslendiren cihaz adı okur (örneğin "Yükleme alanında yaya"), dosya çalan
+cihaza `uyari` adıyla bir uyarı sesi yüklenmelidir (aşağıdaki tablo, §3.3
+Örnek 1). "Uyarı ulaşmadı" denetimi bu olaylar için de çalışır (docs/17 K21).
+Bir kuralı tamamen susturmanın yolu **gölge mod**dur.
 
 | Mesaj anahtarı | Varsayılan metin |
 |---|---|
@@ -189,6 +192,7 @@ mesajı bağlanmamış" yazılır ve "uyarı ulaşmadı" denetimi bu olaylar iç
 | `vehicle_on_walkway` | Dikkat, yaya yolunda araç var. |
 | `person_in_vehicle_lane` | Lütfen araç yolundan çıkınız. |
 | `restricted_entry` | Bu alana giriş yasaktır. |
+| `uyari` | Mesajı olmayan (ya da kapalı) kuralın olayı: metin olayın adıdır. Ses çıkışında dosya gerekmez, uyarı tonu çalar; dosya çalan IP hoparlöre bu adla bir uyarı sesi yükleyin |
 
 Dosyaları **`veri/sesler/`** klasörüne koyun (sistem açılışta bu klasörü
 kendisi açar). `veri/` altında oldukları için yedeğe girerler ve Docker'da
@@ -306,6 +310,10 @@ Biçim (Ayarlar → Anons):  get
 Kanal adresi:             http://10.0.0.9/play?file={anahtar}
 ```
 Baret ihlalinde çağrılan adres: `http://10.0.0.9/play?file=helmet`
+
+Cihazda sekiz mesajın yanında `uyari` sesi de olmalı: mesajı olmayan kuralın
+olayı `http://10.0.0.9/play?file=uyari` ile gelir. Yoksa cihaz ya hata verir
+("uyarı ulaşmadı" alarmı çıkar) ya da sessizce hiçbir şey çalmaz.
 
 **Örnek 2 - Cihaz, metni okuyup seslendiriyor (metinden konuşma):**
 ```
@@ -527,7 +535,8 @@ Bu listeyi olduğu gibi iletebilirsiniz:
 | Her ihlalde **aynı** ses çalıyor | `get` biçiminde adres `{anahtar}` taşımıyor | Adrese `{anahtar}` ekleyin (§3.2) |
 | Hoparlör aynı olayda üst üste bağırıyor | Bekleme süresi kısa | `ANONS_BEKLEME_SN` değerini artırın |
 | Yanlış bölümün hoparlörü çalıyor | Bölüm adları eşleşmiyor | Kamera **Alan**ı ile kanalın **Bölüm**ü birebir aynı olmalı (§4) |
-| Ekranda uyarı var, hoparlör hiç çalmıyor | Kurala anons mesajı bağlanmamış | Kurallar → kuralı düzenle → anons mesajı seç |
+| Hoparlör söz yerine yalnız uyarı tonu çalıyor | Kurala anons mesajı bağlanmamış ya da mesaj kapalı | Kurallar → kuralı düzenle → anons mesajı seç; mesajı Anons sayfasında açın |
+| Mesajı olmayan kuralda IP hoparlör çalmıyor | Dosya çalan cihazda `uyari` sesi yok | Cihaza `uyari` adıyla bir uyarı sesi yükleyin ya da kurala anons mesajı seçin |
 
 Her denemenin sonucu **Anons sistemi** sayfasında son satır olarak yazar
 (çalındı / çalınamadı + sebep). Bir şey çalışmıyorsa önce oraya bakın.
