@@ -124,8 +124,9 @@ class Ayarlar:
     # --- Analiz sağlığı (docs/17 §3.6) ---
     # Analiz döngüsü bu kadar saniye ilerlemezse "takıldı" sayılır (bekçi).
     bekci_esigi_sn: float = 90.0
-    # Takılmada ne yapılsın: uyar | yeniden_baslat (yalnız Docker/systemd'de).
-    bekci_tepkisi: str = "uyar"
+    # Takılmada ne yapılsın: yeniden_baslat | uyar. Yeniden başlatma yalnız
+    # süreci yeniden açan biri varken yapılır (kaynaklar.yeniden_acan_var_mi).
+    bekci_tepkisi: str = "yeniden_baslat"
     # İşleme hızı hedefin altında bu kadar saniye kalırsa "analiz yavaşladı".
     analiz_yavas_sure_sn: float = 60.0
     # Bir kamerada üst üste bu kadar kare işlenemezse hattı yeniden kurulur.
@@ -478,7 +479,7 @@ def ayarlari_coz(
         # --- Analiz sağlığı (docs/17 §3.6; öneriler docs/16 §8) ---
         # En az 20 sn: RTSP okuma zaman aşımı (10 sn) takılma sanılmasın.
         bekci_esigi_sn=_ondalik(degerler, "BEKCI_ESIGI_SN", 90.0, 20.0, 3600.0),
-        bekci_tepkisi=_secenek(degerler, "BEKCI_TEPKISI", "uyar", _BEKCI_TEPKILERI),
+        bekci_tepkisi=_secenek(degerler, "BEKCI_TEPKISI", "yeniden_baslat", _BEKCI_TEPKILERI),
         analiz_yavas_sure_sn=_ondalik(degerler, "ANALIZ_YAVAS_SURE_SN", 60.0, 10.0, 3600.0),
         analiz_hata_esigi=_tam_sayi(degerler, "ANALIZ_HATA_ESIGI", 30, 3, 10000),
         # --- KKD anons kapısı (docs/17 §5.7; docs/04 §8.1 hedef 0,90; S33) ---

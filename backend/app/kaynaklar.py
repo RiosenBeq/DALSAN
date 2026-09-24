@@ -198,6 +198,23 @@ def sunucu_kurulumu_mu() -> bool:
     return kurulum_turu() in ("docker", "hizmet")
 
 
+# Sunucuyu kendi alt süreci olarak çalıştıran ve kapanınca yeniden açan
+# masaüstü gözetmeni bu değişkeni "1" yapar: Başlat betiğinin Kontrol Paneli
+# (masaustu/dalsan_launcher.py). Testler adın orada da aynı olduğunu denetler.
+GOZETMEN_DEGISKENI = "DALSAN_GOZETMEN"
+
+
+def yeniden_acan_var_mi() -> bool:
+    """Program kapanırsa onu yeniden açan biri var mı?
+
+    Docker (`restart:`) ve systemd (`Restart=`) açar; masaüstünde bu işi
+    Kontrol Paneli ya da paketlenmiş uygulamanın gözetmeni yapar ve bunu
+    GOZETMEN_DEGISKENI ile bildirir. Elle çalıştırılan sunucuyu (geliştirme,
+    testler) kimse açmaz: bekçi orada süreçten çıkmaz, yalnız uyarır.
+    """
+    return sunucu_kurulumu_mu() or os.environ.get(GOZETMEN_DEGISKENI) == "1"
+
+
 def baslatma_tarifi(*, yeniden: bool = True, cumle_basi: bool = True) -> str:
     """Sistemi (yeniden) başlatmanın bu kurulumdaki yolu: noktasız emir cümlesi.
 

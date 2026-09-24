@@ -65,3 +65,29 @@ def test_cikti_okuyucu_kapaninca_karar_verir():
         if isinstance(c, ast.Call) and isinstance(c.func, ast.Name)
     }
     assert {"surec_kapaninca", "alt_surecte_baslat"} <= cagrilar
+
+
+def test_gozetmen_degiskeninin_adi_backendle_ayni():
+    from app import kaynaklar
+
+    assert _panel().GOZETMEN_DEGISKENI == kaynaklar.GOZETMEN_DEGISKENI
+
+
+def test_panel_alt_surece_yeniden_acacagini_bildirir():
+    """Bekçi ancak süreci yeniden açan biri varken çıkar (kaynaklar.yeniden_acan_var_mi).
+    Panel bunu alt sürecin ortamına yazmazsa "yeniden başlat" ayarı Başlat
+    betiğiyle kurulan sistemde sessizce "yalnız uyar"a dönerdi."""
+    agac = ast.parse(BASLATICI.read_text(encoding="utf-8"))
+    baslatici = next(
+        d
+        for d in ast.walk(agac)
+        if isinstance(d, ast.FunctionDef) and d.name == "alt_surecte_baslat"
+    )
+    popen = next(
+        c
+        for c in ast.walk(baslatici)
+        if isinstance(c, ast.Call) and isinstance(c.func, ast.Attribute) and c.func.attr == "Popen"
+    )
+    ortam = next(k.value for k in popen.keywords if k.arg == "env")
+    assert "GOZETMEN_DEGISKENI" in ast.unparse(ortam)
+    assert "'1'" in ast.unparse(ortam)

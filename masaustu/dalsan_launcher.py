@@ -52,6 +52,10 @@ KAPANIS_BEKLEME_SN = 3
 # kapanan sunucuyu kendileri acar; Baslat betigiyle kurulan sistemde bu isi
 # panel yapar (BEKCI_TEPKISI=yeniden_baslat).
 BEKCI_YENIDEN_BASLATMA_KODU = 70
+# Panel, alt surecteki sunucuya "seni ben yeniden acarim" der: bekci ancak
+# bunu (ya da Docker/systemd'yi) gorunce surecten cikar. Ad
+# backend/app/kaynaklar.py GOZETMEN_DEGISKENI ile ayni (test denetler).
+GOZETMEN_DEGISKENI = "DALSAN_GOZETMEN"
 # Analiz her aciliste yine takiliyorsa panel sonsuz donguye girmez.
 OTOMATIK_BASLATMA_SINIRI = 3
 OTOMATIK_BASLATMA_PENCERESI_SN = 3600
@@ -1168,6 +1172,9 @@ def arayuzu_baslat():
             text=True, bufsize=1, encoding="utf-8", errors="replace",
             creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if IS_WINDOWS else 0,
             start_new_session=not IS_WINDOWS,
+            # Bekci takilan analizi 70 koduyla kapatabilir: panel onu
+            # ciktiyi_oku -> surec_kapaninca ile yeniden acar.
+            env=dict(os.environ, **{GOZETMEN_DEGISKENI: "1"}),
         )
         _pid_yaz(durum["surec"].pid)
         threading.Thread(target=ciktiyi_oku, args=(durum["surec"],), daemon=True).start()

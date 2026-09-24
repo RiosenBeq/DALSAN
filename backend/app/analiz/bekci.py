@@ -13,13 +13,13 @@ bırakmaz: 10 sn'de bir analiz döngüsünün nabzına bakar.
 Tepki: `ANALYSIS_STALLED` sistem olayı (bekçinin kendi kısa bağlantısıyla -
 analizin bağlantısı kilitli olabilir), CRITICAL günlük ve /saglik'te
 `analiz_takildi` / `analiz_olu` (hazır değil). `BEKCI_TEPKISI=yeniden_baslat`
-ise süreç `os._exit(70)` ile kapanır: takılan bir iş parçacığı Python'da
-öldürülemez, tek çare süreci yeniden başlatmaktır ve bunu Docker (`restart:`)
-ya da systemd (`Restart=`), Başlat betiğiyle kurulan sistemde de Kontrol
-Paneli yapar (sunucu onun alt sürecidir; dalsan_launcher.py
-`surec_kapaninca`). Masaüstü paketinde sunucu Kontrol Paneli ile aynı süreçte
-çalışır; orada çıkmak paneli de kapatır ve kimse yeniden açmaz - bu yüzden
-orada her durumda yalnız uyarır.
+(varsayılan) ise süreç `os._exit(70)` ile kapanır: takılan bir iş parçacığı
+Python'da öldürülemez, tek çare süreci yeniden başlatmaktır. Bunu Docker
+(`restart:`) ya da systemd (`Restart=`) yapar; masaüstünde Başlat betiğinin
+Kontrol Paneli yapar (sunucu onun alt sürecidir; dalsan_launcher.py
+`surec_kapaninca`). Süreci yeniden açan kimse yoksa (elle çalıştırılan
+sunucu, testler, masaüstü paketi) çıkmak sistemi kalıcı olarak durdururdu:
+orada yalnız uyarılır (kaynaklar.yeniden_acan_var_mi).
 
 Aynı sorun bir kez bildirilir (olay seli yok); sorun geçince işaret kalkar.
 """
@@ -32,7 +32,7 @@ import time
 from collections.abc import Callable
 
 from app import veritabani
-from app.kaynaklar import paketlenmis_mi
+from app.kaynaklar import yeniden_acan_var_mi
 from app.loglama import log_al
 from app.olaylar.yazici import sistem_olayi_yaz
 
@@ -70,7 +70,7 @@ class Bekci:
         self._saat = saat
         self._cikis = cikis
         if cikis_izinli is None:
-            cikis_izinli = ayarlar.bekci_tepkisi == "yeniden_baslat" and not paketlenmis_mi()
+            cikis_izinli = ayarlar.bekci_tepkisi == "yeniden_baslat" and yeniden_acan_var_mi()
         self._cikis_izinli = cikis_izinli
         self._log = log_al("bekci")
         self._dur = threading.Event()

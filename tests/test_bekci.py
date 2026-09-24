@@ -1,8 +1,9 @@
 """Bekçi, analiz yavaşlığı ve analiz saatleri (docs/17 §3.6, §8.2; Faz 2d-2).
 
 - Bekçi: sahte saatle takılmayı yakalar; görüntü yokken ya da model
-  hazırlanırken saymaz; aynı sorunu bir kez bildirir; masaüstü paketinde
-  süreçten çıkmaz, sunucu kipinde `os._exit` çağrılır (sahte çıkış).
+  hazırlanırken saymaz; aynı sorunu bir kez bildirir; süreci yeniden açan
+  biri (Docker, systemd, masaüstü gözetmeni) varsa `os._exit` çağrılır
+  (sahte çıkış), yoksa süreçten çıkılmaz.
 - ANALYSIS_DEGRADED: üst üste işleme hatası hattı yeniden kurar; işlenen hız
   hedefin altında kalırsa bir kez yazılır.
 - analysis_hours: analiz edilen süre, işlenen ve başarısız kare sayısı.
@@ -98,7 +99,7 @@ def test_sahte_saatle_takilma_yakalanir_ve_bir_kez_bildirilir(bekci_ortami, test
     assert bekci.sorun == ANALIZ_TAKILDI
     (mesaj,) = _stalled_olaylari(test_ayarlari)
     assert mesaj.startswith("Analiz takıldı: görüntü geliyor ama analiz 95 sn'dir ilerlemiyor")
-    assert cikislar == [], "varsayılan tepki yalnız uyarmaktır"
+    assert cikislar == [], "süreci yeniden açan kimse yokken çıkılmaz (testler, elle çalıştırma)"
 
     analiz.nabiz = 1104.0  # döngü yeniden ilerledi
     bekci.tur()
@@ -134,10 +135,12 @@ def test_olu_is_parcacigi_bildirilir(bekci_ortami, test_ayarlari):
     assert mesaj.startswith("Analiz durdu:")
 
 
-def test_sunucu_kipinde_yeniden_baslatma_os_exit_cagirir(bekci_ortami, test_ayarlari, monkeypatch):
+def test_yeniden_acan_varken_yeniden_baslatma_os_exit_cagirir(
+    bekci_ortami, test_ayarlari, monkeypatch
+):
     analiz, saat, cikislar, kur = bekci_ortami
-    monkeypatch.setattr(bekci_modulu, "paketlenmis_mi", lambda: False)
-    bekci = kur(bekci_tepkisi="yeniden_baslat")
+    monkeypatch.setattr(bekci_modulu, "yeniden_acan_var_mi", lambda: True)
+    bekci = kur()  # varsayılan tepki: yeniden_baslat
     analiz.nabiz, saat.an = 0.0, 200.0
     bekci.tur()
     assert cikislar == [YENIDEN_BASLATMA_KODU]
@@ -145,14 +148,60 @@ def test_sunucu_kipinde_yeniden_baslatma_os_exit_cagirir(bekci_ortami, test_ayar
     assert _stalled_olaylari(test_ayarlari)[0].endswith("Program yeniden başlatılıyor.")
 
 
-def test_masaustu_paketinde_hicbir_zaman_surecten_cikmaz(bekci_ortami, monkeypatch):
+def test_yeniden_acan_yoksa_hicbir_zaman_surecten_cikmaz(bekci_ortami, test_ayarlari, monkeypatch):
+    """Gözetmensiz paket, elle çalıştırılan sunucu: çıkmak sistemi kalıcı olarak
+    durdururdu (paketlenmiş uygulamada Kontrol Paneli de kapanırdı)."""
     analiz, saat, cikislar, kur = bekci_ortami
-    monkeypatch.setattr(bekci_modulu, "paketlenmis_mi", lambda: True)
+    monkeypatch.setattr(bekci_modulu, "yeniden_acan_var_mi", lambda: False)
     bekci = kur(bekci_tepkisi="yeniden_baslat")
     analiz.nabiz, saat.an = 0.0, 200.0
     bekci.tur()
     assert bekci.sorun == ANALIZ_TAKILDI
-    assert cikislar == [], "Kontrol Paneli de kapanırdı"
+    assert cikislar == []
+    (mesaj,) = _stalled_olaylari(test_ayarlari)
+    assert not mesaj.endswith("Program yeniden başlatılıyor."), "olmayan yeniden başlatma yazılmaz"
+
+
+def test_uyar_secildiyse_yeniden_acan_olsa_da_cikmaz(bekci_ortami, test_ayarlari, monkeypatch):
+    analiz, saat, cikislar, kur = bekci_ortami
+    monkeypatch.setattr(bekci_modulu, "yeniden_acan_var_mi", lambda: True)
+    bekci = kur(bekci_tepkisi="uyar")
+    analiz.nabiz, saat.an = 0.0, 200.0
+    bekci.tur()
+    assert bekci.sorun == ANALIZ_TAKILDI
+    assert cikislar == []
+    assert not _stalled_olaylari(test_ayarlari)[0].endswith("Program yeniden başlatılıyor.")
+
+
+def test_varsayilan_tepki_yeniden_baslatmaktir(tmp_path):
+    """Operatör 24.09.2026: "ben kapatana kadar otomatik açılma"; takılan analiz
+    hiçbir uyarı üretmez, kendiliğinden toparlanması yalnız uyarmaktan iyidir."""
+    from app.ayarlar import Ayarlar, ayarlari_yukle
+
+    assert Ayarlar.__dataclass_fields__["bekci_tepkisi"].default == "yeniden_baslat"
+    (tmp_path / ".env").write_text("", encoding="utf-8")
+    assert ayarlari_yukle(tmp_path).bekci_tepkisi == "yeniden_baslat"
+
+
+@pytest.mark.parametrize(
+    ("ortam", "beklenen"),
+    [
+        ({}, False),
+        ({"DALSAN_GOZETMEN": "1"}, True),
+        ({"DALSAN_GOZETMEN": "0"}, False),
+        ({"DALSAN_KAPSAYICI": "1"}, True),
+        ({"DALSAN_HIZMET": "1"}, True),
+    ],
+)
+def test_yeniden_acan_var_mi(monkeypatch, ortam, beklenen):
+    from app import kaynaklar
+
+    for ad in ("DALSAN_GOZETMEN", "DALSAN_KAPSAYICI", "DALSAN_HIZMET"):
+        monkeypatch.delenv(ad, raising=False)
+    for ad, deger in ortam.items():
+        monkeypatch.setenv(ad, deger)
+    monkeypatch.setattr(kaynaklar, "paketlenmis_mi", lambda: False)
+    assert kaynaklar.yeniden_acan_var_mi() is beklenen
 
 
 def test_bekci_sorunu_supervizorun_sorunlarinda(test_ayarlari):
