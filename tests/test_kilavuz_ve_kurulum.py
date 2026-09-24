@@ -509,6 +509,88 @@ def test_kapali_kameranin_kurali_uyumsuz_sayilmaz(istemci, test_ayarlari):
     assert UYUMSUZ_ADIM not in metin and "Sistem hazır." in metin
 
 
+def _bolgeli_kural_ekle(
+    test_ayarlari, kamera_id: int, bolge_adi: str, siniflar: str = '["truck"]', etkin: int = 1
+) -> None:
+    """Yeni bir yaya yolu bölgesi ve onda verilen sınıfları izleyen bölge kuralı."""
+    _yaz(
+        test_ayarlari,
+        "INSERT INTO zones (camera_id, name, zone_type, polygon, enabled, updated_at) "
+        "VALUES (?, ?, 'pedestrian_path', '[[0.1,0.1],[0.9,0.1],[0.5,0.9]]', ?, ?)",
+        (kamera_id, bolge_adi, etkin, zaman.simdi_utc()),
+    )
+    _yaz(
+        test_ayarlari,
+        "INSERT INTO rules (camera_id, rule_type, zone_id, target_classes, params, updated_at) "
+        "VALUES (?, 'zone_intrusion', (SELECT MAX(id) FROM zones), ?, '{}', ?)",
+        (kamera_id, siniflar, zaman.simdi_utc()),
+    )
+
+
+def test_kapali_bolgenin_kurali_uyumsuz_sayilmaz(istemci, test_ayarlari):
+    """Kapalı bölgenin kuralını kural motoru değerlendirmez (R21): kapalı kamera
+    gibi, onun sessizliği de modelden değildir."""
+    kamera = _kurulumu_tamamla(istemci, test_ayarlari)
+    _yaz(
+        test_ayarlari,
+        "UPDATE cameras SET privacy_checked_at = ? WHERE id = ?",
+        (zaman.simdi_utc(), kamera),
+    )
+    _bolgeli_kural_ekle(test_ayarlari, kamera, "Eski rampa", etkin=0)
+    istemci.app.state.supervizor = SahteSupervizor("hazir", forklift=True)
+    metin = istemci.get("/komuta").text
+    assert UYUMSUZ_ADIM not in metin and "Sistem hazır." in metin
+
+    _yaz(test_ayarlari, "UPDATE zones SET enabled = 1 WHERE name = 'Eski rampa'")
+    assert _adim_durumu(istemci.get("/komuta").text, UYUMSUZ_ADIM) == "sorun"
+
+
+def test_kapali_bolgenin_mesafe_kurali_kalibrasyon_beklemez(istemci, test_ayarlari):
+    """Kapalı bölgenin kuralı kalibrasyonla da çalışmaz: "kalibre edin" demek
+    yanlış yere yollar."""
+    kamera = _kamera_ekle(istemci)
+    _motoru_hazirla(istemci)
+    _yaz(
+        test_ayarlari,
+        "INSERT INTO zones (camera_id, name, zone_type, polygon, enabled, updated_at) "
+        "VALUES (?, 'Rampa', 'loading_area', '[[0.1,0.1],[0.9,0.1],[0.5,0.9]]', 0, ?)",
+        (kamera, zaman.simdi_utc()),
+    )
+    _yaz(
+        test_ayarlari,
+        "INSERT INTO rules (camera_id, rule_type, zone_id, target_classes, params, updated_at) "
+        "VALUES (?, 'safe_distance', (SELECT MAX(id) FROM zones), '[\"person\"]', "
+        '\'{"object_classes": ["forklift"]}\', ?)',
+        (kamera, zaman.simdi_utc()),
+    )
+    baslik = "Mesafe ve hız kuralları çalışıyor mu?"
+    assert baslik not in istemci.get("/komuta").text
+    _yaz(test_ayarlari, "UPDATE zones SET enabled = 1")
+    assert baslik in istemci.get("/komuta").text
+
+
+def test_uyumsuz_kurallar_uctan_fazlaysa_sayiyla_ve_tekrarsiz_soylenir(istemci, test_ayarlari):
+    """Aynı yerdeki aynı türden kurallar tek tanımda sayılır; üçten sonrası
+    "ve N kural daha" olur ("… ve … ve 3 kural daha" değil)."""
+    kamera = _kurulumu_tamamla(istemci, test_ayarlari)
+    for bolge in ("Koridor", "Rampa", "Depo", "Kapı"):
+        _bolgeli_kural_ekle(test_ayarlari, kamera, bolge)
+    _yaz(
+        test_ayarlari,
+        "INSERT INTO rules (camera_id, rule_type, zone_id, target_classes, params, updated_at) "
+        "VALUES (?, 'zone_intrusion', (SELECT id FROM zones WHERE name = 'Koridor'), "
+        "'[\"truck\"]', '{}', ?)",
+        (kamera, zaman.simdi_utc()),
+    )
+    istemci.app.state.supervizor = SahteSupervizor("hazir", forklift=True)
+    metin = html.unescape(istemci.get("/komuta").text)
+    assert (
+        "forklifti GÖRMEZ: Rampa 1 kamerasındaki “Koridor” bölge kuralı (2 kural), "
+        "Rampa 1 kamerasındaki “Rampa” bölge kuralı, Rampa 1 kamerasındaki “Depo” bölge "
+        "kuralı ve 1 kural daha." in metin
+    )
+
+
 def test_insani_da_izleyen_kuralda_insan_uyarisinin_surdugu_soylenir(istemci, test_ayarlari):
     """ "İnsan + Forklift" kuralı forkliftsiz modelde insan için uyarmaya devam
     eder: adım yalnız forklift uyarısının sustuğunu söyler."""

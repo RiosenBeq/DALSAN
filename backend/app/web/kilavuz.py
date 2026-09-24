@@ -152,12 +152,14 @@ def _kural_arac_siniflari(baglanti):
     kuralın hedef sınıflarıdır.
     """
     # Kapalı kameranın kuralı hiç yüklenmez (supervizor yalnız açık kameraları
-    # okur): onun sessizliği modelden değildir, kalibrasyon adımı gibi sayılmaz.
+    # okur), kapalı bölgenin kuralını kural motoru değerlendirmez (R21): onların
+    # sessizliği modelden değildir, kalibrasyon adımı gibi sayılmaz.
     for satir in baglanti.execute(
         "SELECT r.id, r.rule_type, r.target_classes, r.params, c.name AS kamera_adi, "
         "z.zone_type, z.name AS bolge_adi FROM rules r JOIN cameras c ON c.id = r.camera_id "
         "LEFT JOIN zones z ON z.id = r.zone_id "
-        "WHERE r.enabled = 1 AND c.enabled = 1 ORDER BY c.name, r.id"
+        "WHERE r.enabled = 1 AND c.enabled = 1 AND (r.zone_id IS NULL OR z.enabled = 1) "
+        "ORDER BY c.name, r.id"
     ):
         try:
             if satir["rule_type"] == "safe_distance":
@@ -315,7 +317,8 @@ def kalibrasyon_bekleyen_kurallar(baglanti) -> list[dict]:
     Güvenli mesafe ve hız kuralları metre ister (rules/motor.py
     KALIBRASYON_GEREKTIREN); kalibrasyonsuz kamerada sessizce pasif kalırlar.
     Bu yalnız kural sayfasındaki rozette kalmamalı (docs/17 §6.4): kurulum
-    listesi ve /saglik da söyler.
+    listesi ve /saglik da söyler. Kapalı bölgenin kuralı kalibrasyonla da
+    çalışmaz (R21), sayılmaz.
     """
     yer = ",".join("?" * len(KALIBRASYON_GEREKTIREN))
     return [
@@ -324,7 +327,9 @@ def kalibrasyon_bekleyen_kurallar(baglanti) -> list[dict]:
             "SELECT r.id, r.rule_type, c.id AS kamera_id, c.name AS kamera_adi "
             "FROM rules r JOIN cameras c ON c.id = r.camera_id "
             "LEFT JOIN camera_calibrations k ON k.camera_id = r.camera_id "
+            "LEFT JOIN zones z ON z.id = r.zone_id "
             f"WHERE r.enabled = 1 AND c.enabled = 1 AND r.rule_type IN ({yer}) "
+            "AND (r.zone_id IS NULL OR z.enabled = 1) "
             "AND k.camera_id IS NULL ORDER BY c.name, r.id",
             tuple(sorted(KALIBRASYON_GEREKTIREN)),
         )
@@ -380,15 +385,20 @@ def _forklift_kural_adimi(kurallar: list[dict], forklift_taniyor: bool) -> dict:
         "safe_distance": "güvenli mesafe kuralı",
         "vehicle_speed": "hız kuralı",
     }
-    tanimlar = [
-        f"{k['kamera_adi']} kamerasındaki "
-        + (f"“{k['bolge_adi']}” " if k.get("bolge_adi") else "")
-        + turler.get(k["rule_type"], "kural")
-        for k in kurallar
-    ]
-    liste = _ve_ile(tanimlar[:3]) + (
-        f" ve {len(tanimlar) - 3} kural daha" if len(tanimlar) > 3 else ""
-    )
+    # Aynı kamera, bölge ve türdeki kurallar tek tanımda sayılır; ilk üç tanım
+    # yazılır, kalanlar sayıyla: "A, B, C ve 2 kural daha".
+    sayilar: dict[str, int] = {}
+    for k in kurallar:
+        tanim = (
+            f"{k['kamera_adi']} kamerasındaki "
+            + (f"“{k['bolge_adi']}” " if k.get("bolge_adi") else "")
+            + turler.get(k["rule_type"], "kural")
+        )
+        sayilar[tanim] = sayilar.get(tanim, 0) + 1
+    ilk_uc = list(sayilar.items())[:3]
+    ogeler = [tanim if sayi == 1 else f"{tanim} ({sayi} kural)" for tanim, sayi in ilk_uc]
+    kalan = len(kurallar) - sum(sayi for _, sayi in ilk_uc)
+    liste = _ve_ile(ogeler + ([f"{kalan} kural daha"] if kalan else []))
     if forklift_taniyor:
         aciklama = (
             "Forklift ayrı sınıf olarak tanınıyor, ama şu kurallar araç olarak yalnız "
