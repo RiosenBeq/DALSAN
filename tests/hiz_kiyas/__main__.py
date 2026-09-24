@@ -188,7 +188,11 @@ def kkd_turu(tur: int, kisi: int = _KAMERA) -> dict | None:
 
 
 def _modeller() -> list[Path]:
-    bulunan = [_KOK / "models" / ad for ad in ("yolox_tiny.onnx", "yolox_s.onnx")]
+    """Diskte olan her bilinen model: hazır modeller ve seçilebilen forklift
+    modelleri. Sahada çalışan model hangisiyse onun hızı da ölçülmüş olur."""
+    from app.analiz.model_indir import BILINEN_MODELLER
+
+    bulunan = [_KOK / "models" / ad for ad in BILINEN_MODELLER]
     return [m for m in bulunan if m.exists()]
 
 
