@@ -13,6 +13,13 @@ bunları doğrulayamaz. Satır numaraları bu raporun yazıldığı andaki çal�
 göredir. Durum etiketleri: `exists` (var), `partial` (kısmi), `missing` (yok), `conflict`
 (belgelenmiş bir karar gereksinimi reddediyor ya da erteliyor).
 
+> **24.09.2026 durumu (`8f322d7`).** Bu rapor 22.09.2026 kodunun (`390adf5`) kaydıdır;
+> dosya:satır atıfları, sayılar ve "var / yok" cümleleri o günü anlatır ve olduğu gibi
+> bırakıldı. Faz 2-5 (23.09.2026) bulguların çoğunu kapattı: her bulgunun bugünkü durumu
+> §7.4'te, eskiyen başlıca cümlelerin yanında "*24.09.2026 durumu*" notu var. §8'in boşluk
+> haritası yeniden sayılmadı. Kod durumu `8f322d7`'nindir; öteki belgeler için verilen durum da
+> o commit'teki metinlerine aittir, o belgeler sonradan düzeltilmiş olabilir.
+
 ## 0. Özet
 
 - **Sistem:** tek süreçli FastAPI + tek "analiz" iş parçacığı (`supervizor.py:58`); 3-4 RTSP/dosya kamera → YOLOX ONNX (CPU) → ByteTrack → saf kural motoru (4 tip) → SQLite olay + kanıt JPEG → anons (null/ses kartı/HTTP) + SSE ekran bandı.
@@ -20,6 +27,7 @@ göredir. Durum etiketleri: `exists` (var), `partial` (kısmi), `missing` (yok),
 - **Ölçüm:** CPU'da 4 kamera × 6 fps bütçesi `yolox_tiny` ile %100, fabrika modeli `yolox_s` ile %40 (AUDIT-OLCUM §1.2); GPU yolu teslim edilemiyor (AUDIT-OLCUM §1.3-4).
 - **En büyük 5 risk:** (1) KKD sınıflandırıcı yok → PPE olayı hiç üretilmez (`kkd_siniflandirici.py:54-59`); (2) forklift sınıfı yok, car/bus/truck tek "truck" (`tespit.py:31-36`); (3) `onnxruntime-gpu` hiçbir yerde kurulmuyor (`requirements.txt:21`) → fabrika yapılandırması CPU'da bütçeyi karşılamaz; (4) RTSP okuma zaman aşımı yok (`kamera.py:279`) + bekçi yok + tüm kalıcılık tek analiz iş parçacığında; (5) kimlik zayıf: XFF ile atlanan kaba kuvvet kilidi (`giris.py:94`), CSRF/Origin kontrolü yok, yönetici şifresi Ayarlar sayfasında düz metin (`komuta_ayarlar.html:48`).
 - **En büyük 5 boşluk:** (1) olay durum makinesi, `resolved_at`, histerezis, önem seviyeleri; (2) çok kanallı `AlertDispatcher` (öncelik kuyruğu, eşzamanlı kanallar, periyodik kanal sağlığı, `AUDIO_CHANNEL_DOWN`); (3) doğruluk ölçüm takımı (recall/mAP) ve eğitim hattı (`egitim/` yok); (4) Prometheus metrikleri, readiness, işlenen-fps/gecikme ölçümü; (5) `docs/KVKK.md`, yüz bulanıklaştırma, rol/denetim günlüğü.
+- *24.09.2026 durumu (ayrıntı §7.4).* **Riskler:** (1) KKD sınıflandırıcısının kodu var (`19d53ef`), ama KKD modeli henüz eğitilmedi, sahada KKD olayı yine üretilmez; (2) sınıf listesi model dosyasından okunur (`8574a5a`) ve ürün dışı forklift eğitim hattı var (`egitim/forklift/`), hazır COCO modelleri car/bus/truck'ı yine "truck" sayar; (3) açık: `onnxruntime-gpu` hiçbir yerde kurulmuyor (S1); (4) RTSP zaman aşımı (`f42183c`) ve bekçi (`8f37f73`) eklendi, kalıcılık yine analiz iş parçacığında (R11); (5) XFF kilidi, CSRF/Origin/Host denetimi ve şifre alanı düzeldi (`ed88ce9`, `a9dc7a9`). **Boşluklar:** (1) olay yaşam döngüsü, `resolved_at`, histerezis ve önem yapıldı (`67bea95`, `14c7f94`, `bd072b7`, `89083e7`); (2) kanal satırları, çıkış başına kuyruk, periyodik sağlık ve `AUDIO_CHANNEL_DOWN` yapıldı (`23860e1`, `b501294`, `7801520`, `e7c19a6`); (3) doğruluk ölçüm aracı `tests/dogruluk_kiyas` (`3807262`) ve eğitim hatları var, saha verisiyle ölçüm yapılmadı; (4) hazırlık ucu ve işlenen fps/gecikme ölçümü yapıldı (`e766a69`, `f42183c`), Prometheus koşullu (docs/07 #26); (5) `docs/18-KVKK.md` (`6e85522`) ve erişim izi (`25febe9`) var, yüz bulanıklaştırma (S27) ve roller (S5) yok.
 
 ## 1. Depo haritası
 
@@ -73,6 +81,19 @@ sınır yok (`dalsan_launcher.py:209`). CUDA: yok (sağlayıcılar Azure+CPU, AU
 | Geçişli | scipy 1.17.1 · matplotlib 3.11.2 · pillow 12.3.0 · pyyaml 6.0.3 · requests 2.34.2 · protobuf 7.36.2 · uvloop 0.22.1 · websockets 17.1 |
 | Kurulu değil | onnxruntime-gpu · tzdata (yalnız win32) · pyinstaller (ayrı dosya) |
 
+*24.09.2026 durumu:* harita ve paket listesi 22.09.2026'nındır. Sonra eklenenler: `analiz/`
+altında `bekci.py`, `ortam.py` (13 dosya); `olaylar/` altında `dagitici`, `ekran`,
+`kanal_sagligi`, `kanallar`, `teslim`, `ton`, `uyari_arsivi` (12 dosya); `web/` altında
+`erisim_izi`, `kaynak_denetimi`, `kkd_karnesi` (20 `.py`; şablon 29, `static/` 16 dosya);
+`rules/` altında `olay_durumu`, `olay_kodu` (14 dosya); kökte `csv_yazici.py`; `app/egitim/`
+(KKD veri seti dışa aktarımı ve değerlendirme raporu); `backend/sema/` 001-011; depo kökünde
+`egitim/forklift/` (ürün dışı, CLAUDE.md §4), `docker-compose.ses.yml`, `models/SHA256SUMS`;
+`tests/` altında 95 `test_*.py`, `rules/` (13 test dosyası), `dogruluk_kiyas/`, `fixtures/`.
+`backend/app` altında 77 `.py`, `.env.example` 49 anahtar. Kontrol Paneli yalnız Python 3.12
+kabul eder, başlatma betikleri önce 3.12'yi arar (R10, `becb2e2`); `backend/requirements.txt`
+onnxruntime'ı 1.30.0'a sabitler, Intel Mac'te 1.23.2 (`47e39d0`). Bu konteynerin `.venv`'i
+yine 3.11.15, kurulu onnxruntime 1.30.0.
+
 ## 2. Mevcut video hattı
 
 | # | Adım | Dosya:fonksiyon:satır | Not |
@@ -94,6 +115,17 @@ sınır yok (`dalsan_launcher.py:209`). CUDA: yok (sağlayıcılar Azure+CPU, AU
 Ölçüm (AUDIT-OLCUM §1.2): bu hat CPU'da `yolox_tiny` ile 4 kamera × 6 fps bütçesinin %100'ünü,
 `yolox_s` ile %40'ını karşılıyor; kilit sıralaması gecikmeyi p90 121-138 ms'ye çıkarıyor.
 
+*24.09.2026 durumu:* hattın iskeleti aynı (son-kare deseni, tek "analiz" iş parçacığı, tek
+paylaşılan oturum). Değişenler: adım 1-2'de RTSP açılış/okuma zaman aşımı
+(`.env RTSP_ACILIS_ZAMAN_ASIMI_MS` / `RTSP_OKUMA_ZAMAN_ASIMI_MS`, R4) ve adım 3'te akan
+görüntünün kopukluk eşiği `KAMERA_KOPUK_ESIGI_SN` (10 sn) (`f42183c`); adım 8'de takipçiye
+`lost_track_buffer` de verilir (`TAKIP_HAFIZA_SN`, R6); adım 9'da KKD gerçek bir ONNX
+sınıflandırıcısıdır ve karedeki kişileri tek toplu çağrıda değerlendirir (`19d53ef`), model
+dosyası yoksa yine gözlem üretmez; adım 10'da kurala karenin zamanı gider (R29); adım 13'te
+anons çıkış başına kuyruklu dağıtıcıdan çalar (`b501294`) ve olay yazılamasa da duyurulur
+(`f6c9468`). Kalıcılık yine analiz iş parçacığında (R11). Ölçüm onnxruntime 1.19.2 iledir;
+sonraki ölçüm AUDIT-OLCUM başındaki notta.
+
 ## 3. Mevcut model(ler)
 
 | Model | Arayüzdeki ad | Mimari / dosya | Eğitim verisi | Lisans | Ölçülmüş metrik |
@@ -101,6 +133,12 @@ sınır yok (`dalsan_launcher.py:209`). CUDA: yok (sağlayıcılar Azure+CPU, AU
 | Tespit | `yolox_tiny.onnx` → "NextGen AI Hızlı", `yolox_s.onnx` → "NextGen AI İsabetli", başka dosya → "NextGen AI (özel model)" (`model_adi.py:17-28`); README'deki "NextGen AI tespit motoru" (`README.md:41`) budur, `LICENSE-THIRD-PARTY` §1 YOLOX'a bağlar | YOLOX tiny (416) / s (640); girdi boyu modelden `tespit.py:140`. Ham çıktı 85 sütun (4 kutu + 1 nesnellik + 80 COCO). tiny için satır sayısı 3549 = 52² + 26² + 13² (416 px, adımlar 8/16/32, `tespit.py:195-202`); `(1,3549,85)` şekli bir çıkarımda gözlendi ama o koşunun kaydı yok, sayı buradaki aritmetikle tutarlı. `yolox_tiny.onnx` 20 219 662 B (20,2 MB), `yolox_s.onnx` 35 858 002 B (35,9 MB) (`ls -l models/`, `tasks/by392r477.output:1-2`, `tasks/bfdl1ou83.output`) | Hazır COCO ağırlığı, YOLOX 0.1.1rc0 yayını (`model_indir.py:21`); saha ince ayarı yok | Apache-2.0 (`LICENSE-THIRD-PARTY`); `docs/05:65-66` ADR-002 hâlâ "AÇIK" | Doğruluk **ölçülmedi**; hız AUDIT-OLCUM §1 |
 | KKD | - | Yer tutucu: `kkd_siniflandirici.py:47-59`; `supervizor.py:90` `KkdSiniflandirici(None)` | Yok; yalnız kırpık toplama `supervizor.py:582-638` | - | Yok |
 | Nesne kütüphanesi | "Nesneler" sayfası (`/nesneler`) | Model değil: ORB+HSV parmak izi (`nesneler/kutuphane.py`), canlıya girmez | Sentetik tohumlu takım `tests/nesne_kiyas` (12 nesne × 4 referans fotoğraf, toplam 264 sorgu; bunun 204'ü nesneyi içeren pozitif sorgudur, `teshis.py:15-17`, `:118`, `:295`; kalan 60'ın negatif olduğu farktan çıkarılır, DOĞRULANMADI) | - | Kalite kapısı yeşil (tam paket). "8/204 isabet, 0 yanlış isim, çıta 0,24" kod yorumunda (`kutuphane.py:177-180`, `teshis.py:413-417`) ve `docs/07:167`'de ("61/204 → 8/204"); bu raporda yeniden koşulmadı |
+
+*24.09.2026 durumu:* KKD satırı değişti: `kkd_siniflandirici.py` artık `models/kkd.onnx`'i
+(`.env KKD_MODEL_DOSYASI`) SHA-256 ve sözleşme denetimiyle yükleyen ONNX sınıflandırıcısıdır,
+süpervizördeki `KkdSiniflandirici(None)` sabiti kalktı (`19d53ef`); KKD modeli henüz
+eğitilmediği için sahada KKD gözlemi yine yok. Tespit satırı: hazır modeller aynı, saha
+doğruluğu hâlâ ölçülmedi; `docs/05` ADR-002'yi `8f322d7`'de de "AÇIK" yazıyordu.
 
 Sınıf eşlemesi (`tespit.py:31-36`) ve kapalı liste (`rules/tipler.py:35`):
 
@@ -111,6 +149,11 @@ Sınıf eşlemesi (`tespit.py:31-36`) ve kapalı liste (`rules/tipler.py:35`):
 | 5 | bus | truck | |
 | 7 | truck | truck | genel eşik 0.35 (`ayarlar.py:293`) |
 | - | - | forklift | `TANINAN_SINIFLAR`'da var, model hiç üretmez |
+
+*24.09.2026 durumu:* bu eşleme yalnız hazır COCO modelleri içindir ve değişmedi. Dosyasında
+`dalsan_classes` üst verisi olan model sınıf listesini oradan getirir; forklift sınıflı bir
+modelde `forklift` ayrı sınıf olarak üretilir (`tespit.py`, `8574a5a`; eğitim hattı
+`egitim/forklift/`, docs/17 §12.3). Eşikler aynı: insan 0,28, genel 0,35.
 
 Bütünlük: model indirmede tek içerik denetimi dosyanın en az 1 MiB olmasıdır
 (`model_indir.py:79-85`; tam 1 MiB olan dosya da geçer). `Content-Length` okunur ama indirilen
@@ -123,6 +166,11 @@ denetimi de yoktur, yalnız `curl --fail` vardır. Bozuk dosya yükleme anında
 `InferenceSession` hatasıyla `ModelHatasi`'na çevrilir (`tespit.py:103-117`); bu bir indirme
 denetimi değildir. (`model_indir.py:21` yalnız yayın adresidir.) Model sürümü olaylara
 yazılmıyor (yalnız KKD `details.ppe.model_version`, `rules/kkd.py`).
+
+*24.09.2026 durumu:* R17 kapandı: `BILINEN_MODELLER` artık {ad: sha256} ve aynı değerler
+`models/SHA256SUMS`'ta (bir test eşitliği denetler); uygulamanın indirmesi, `models/indir.sh`
+ve Docker derlemesi dosyayı bu özetle doğrular, 1 MiB eşiği kalktı (`e8e2f98`). Tespit
+modelinin sürümü olaylara hâlâ yazılmıyor.
 
 ## 4. Mevcut uyarı mekanizması, kayıt, arayüz, yapılandırma
 
@@ -141,7 +189,29 @@ yazılmıyor (yalnız KKD `details.ppe.model_version`, `rules/kkd.py`).
 Kanal soyutlaması, hoparlör bölgeleri ve test sesi ZATEN var (AUDIT-OLCUM §2.3); öncelik
 kuyruğu, eşzamanlı kanallar ve `health()` yok.
 
+*24.09.2026 durumu:* tablo 22.09.2026 kodunu anlatır. `.env ANONS` tekil seçimi ve
+`NullAnonscu` kalktı: her uyarı kanalı bir `speaker_zones` satırıdır, ya bu bilgisayarın ses
+çıkışı ya IP hoparlör (şema 009; `23a903b`, `23860e1`, `14a6c0c`). Olay, kameranın
+bölümündeki bütün açık kanallardan (bölümde kanal yoksa "Tüm fabrika" kanallarından)
+duyurulur; her çıkışın tek işçisi ve öncelik kuyruğu var (`olaylar/dagitici.py`,
+`b501294`), bastırma (kamera, mesaj, kanal) başına ve yalnız başarılı çalmada tükenir (R20).
+Kanal sağlığı `olaylar/kanal_sagligi.py`'de (`7801520`). Windows'ta çalma PowerShell yerine
+stdlib `winsound` iledir (`e8e2f98`). Zaman aşımları aynı: ses kartı 20 sn, HTTP 5 sn.
+
 ### 4.2 Bluetooth'un bugünkü durumu
+
+> *24.09.2026 durumu:* başlıktaki "bugün" 22.09.2026'dır; bu alt bölümün anlattığı kodun
+> çoğu sonra değişti. Ses çıkışı `.env ANONS_SES_CIHAZI` değil kanal satırının `device`
+> alanıdır; `POST /anons/ses-cikisi` ve `POST /anons/test-sesi` kalktı (`14a6c0c`), test sesi
+> satırın kendi çıkışına çalar ve Linux'ta çıkış adı boş bırakılamaz (`04895ba`). Kanallar
+> "anons-saglik" iş parçacığında 10 sn'de bir yoklanır, 30 sn kesintide `AUDIO_CHANNEL_DOWN`
+> yazılır (`olaylar/kanal_sagligi.py`; `7801520`, `e7c19a6`). Boş çıkış adı artık "bağlı"
+> değil "bilinmiyor"dur (R37); macOS'ta varsayılan çıkışın satırın beklediği çıkış olup
+> olmadığı denetlenir, Windows'ta durum hep "bilinmiyor"dur. Komuta → Anons kanal listesini
+> ve sağlık rozetlerini gösterir (`86511d9`, `04895ba`, `78028c7`); komuta ekranları
+> `uyari.js`'i yükler ve ekran sesinin boş `catch`'leri kalktı (`ba9f724`). Container ses
+> yolu: imajda `pulseaudio-utils`, host'un ses soketi `docker-compose.ses.yml` ile (`7db64bb`;
+> imaj derlenmedi). Bulguların durumu §7.4'te.
 
 - Eşleştirme işletim sisteminde: "Program eşleştirmeyi kendisi yapmaz" (`docs/14:55`).
 - Listeleme `ses_cihazlari.py:cihazlari_listele:77`; liste alınamazsa boş döner, hata fırlatmaz (`:84-95`).
@@ -178,6 +248,7 @@ kuyruğu, eşzamanlı kanallar ve `health()` yok.
 - DB tarafı restart'sız: 5 sn'lik damga (`supervizor.py:329-341`) cameras/zones/rules/camera_calibrations/speaker_zones; **`announcement_messages` damgada yok**.
 - Günlük JSON satır: `{"ts","level","bilesen","mesaj"}` (`loglama.py:45-52`); dosyada ek `ayrinti` alanı (`:53-61`, `:100`), ekranda yok (`:92`). Dosya 5 MB × 3 (`:97-99`), seviye sabit INFO (`:85`). AUDIT-OLCUM §2.1'de çalışır halde gözlendi. JSON biçimleyici yalnız uygulamanın kök logger'ına bağlıdır ve `propagate=False`'tur (`:84-101`). Bu yüzden uvicorn CLI yolunda (Docker, geliştirme) uvicorn'un kendi erişim/hata satırları uvicorn'un varsayılan düz metin biçimiyle çıkar ve `sistem.log`'a girmez (kod okuması, DOĞRULANMADI).
 - Sağlık: `GET /saglik` her koşulda `{"durum":"calisiyor","analiz":<süpervizör nesnesi var mı>,"model":<model_durumu>}` döner (`rotalar.py:136-141`); AUDIT-OLCUM §2.2 gövdesi (`"analiz":true,"model":"hazir"`) bununla tutarlı.
+- *24.09.2026 durumu:* `.env.example` 49 anahtar (iki yönlü eşitlik testi duruyor); `ANONS`, `ANONS_SES_CIHAZI`, `ANONS_HTTP_ADRESI` emekli, kanallar veritabanında (`14a6c0c`). `announcement_messages` artık `updated_at` ile damgada (şema 007, R19, `67bea95`). uvicorn'un günlükleri artık aynı JSON biçiminde `sistem.log`'a yazılır (`f61edc4`). `/saglik` yine her koşulda 200 ve `"calisiyor"` döner, ama gövdede `hazir`, `uyari_garantisi` ve `sorunlar` da var; `?hazirlik=1` hazır değilse 503 döner, `?ayrinti=1` oturumla kamera ölçümlerini verir (`e766a69`, `a9a58cc`).
 
 ### 4.5 Veritabanı şeması (006 sonrası; 11 tablo + `sema_surumu`)
 
@@ -199,6 +270,12 @@ Toplam 6 indeks (`grep -n 'CREATE INDEX' backend/sema/*.sql`). 005'in `DALSAN-SE
 YABANCI-ANAHTAR-KAPALI` işaretinin (005:29) sebebi `events.rule_id` SET NULL'dur: `DROP TABLE
 rules` yabancı anahtar açıkken tüm olayların kural bağlantısını siler (005:14-19). Aynı tuzak
 `zones` yeniden kurulursa `rules.zone_id` CASCADE üzerinden kuralları siler (R24).
+
+*24.09.2026 durumu:* şema 011'e ilerledi: 16 tablo + `sema_surumu`, 11 indeks. Yeni tablolar
+`analysis_hours`, `ppe_collection_gate` (007), `alert_deliveries` (009), `purge_log`,
+`access_log` (010); 007-011 mevcut tablolara da sütun ekler (ör. `events.event_code`,
+`severity`, `resolved_at`, `hold`). `zones` 007'de işaret satırıyla yeniden kuruldu ve
+`zone_type` CHECK'i kalktı (R24, `67bea95`); `events` ve `rules` CHECK'leri yerinde.
 
 ### 4.6 Arayüz
 
@@ -235,6 +312,15 @@ koşusunda istenmedi; testlerde var (`test_komuta_pano_ve_duvar.py`,
   Korumasız olanlar: `/giris`, `/saglik`, `/favicon.ico` (`uygulama.py:101-106`) ve `/static`
   (`:137`). Oturum 12 sa (`giris.py:46`), kilit 5 deneme / 300 sn (`:51-52`, XFF sorunu R7).
   FastAPI `/docs` durumu DOĞRULANMADI (§11 #15).
+- *24.09.2026 durumu:* 77 rota (75 `@router` + 2 `@acik_router`); eklenenler GET
+  `/kkd/veri-seti.zip`, GET `/kurallar/onem` ve POST `/kameralar/{id}/mahremiyet`,
+  `/kkd/toplama`, `/kkd/{id}/zor`, `/olaylar/{id}/coz`, `/olaylar/{id}/dondur`; kalkanlar
+  POST `/anons/ses-cikisi` ve `/anons/test-sesi`. HTML sayfası döndüren GET'ler aynı;
+  şablon 29 (`bilesen.html`), kendi statik dosyası 12 (`sistem_seridi.js`). Kimlik yapısı
+  aynı (15 router, 13'ü korumalı), ama
+  `/docs`, `/redoc`, `/openapi.json` kapatıldı ve her istekte Host izin listesi, durum
+  değiştiren istekte köken denetimi var (`a9dc7a9`); kilit adresi artık bağlantıdan okunur
+  (R7, `ed88ce9`).
 
 ## 5. Testler
 
@@ -301,6 +387,7 @@ rapora ulaşmadı; süre ve uyarı sayısı bilinmiyor. Sayının değişmemesi 
 `tests/hiz_kiyas/` pytest'in toplayacağı `test_*.py` içermez.
 
 - Kapsam boşlukları: SSE `/olaylar/akis` ve `canli.js` hiç test edilmiyor; gerçek ONNX çıkarımı testte yok (`Tespitci.__new__`, sahte `onnxruntime`); `Takipci` doğrudan test edilmiyor; doğruluk (recall/mAP) ölçen test yok; `tests/fixtures/` yok; ses/Bluetooth yolu yalnız sahte `subprocess` ile sınanıyor (§4.2).
+- *24.09.2026 durumu:* takım büyüdü: 95 `test_*.py`, `tests/rules` altında 13 test dosyası; son tam koşular docs/ILERLEME.md «Denetim (24.09.2026 sabah)» bölümünde. Boşluklardan `tests/fixtures/` (uçtan uca senaryolar, `07200f5`) ve doğruluk ölçüm aracı `tests/dogruluk_kiyas` (`3807262`; pytest kapısı değil, etiketli saha verisi yok) eklendi; `Takipci` `tests/test_takip_ve_kamera.py`'de doğrudan sınanıyor.
 
 ## 6. Donanım keşfi
 
@@ -372,9 +459,15 @@ Not: docs/05 §3 "CPU-only ~1-2 fps" der (`docs/05:52-53`); ölçüm bunu modele
 yorumu §1.3 #1). GPU'lu sunucu satın alınsa bile bugünkü imaj GPU'yu kullanamaz (§7, R3).
 Fabrika container'ında ses/Bluetooth yolu da yok (§4.2, R36).
 
+*24.09.2026 durumu:* GPU cümlesi `8f322d7`'de de geçerli (R3 açık, S1). Ses yolu değişti:
+imaja `pulseaudio-utils` girdi, host'un ses soketi `docker-compose.ses.yml` ile bağlanır
+(`7db64bb`); imaj derlenmedi. Bu konteynerin araçları (üstteki ham çıktı) aynı.
+
 ## 7. Teknik borç ve riskler
 
 ### 7.1 Bulgular (önem sırasıyla)
+
+Bulgular 22.09.2026 kodunu anlatır; her birinin 24.09.2026 durumu §7.4'te.
 
 | # | Önem | Dosya:satır | Sorun | Öneri |
 |---|---|---|---|---|
@@ -453,6 +546,15 @@ Düzeltme turunda eklenenler (önem sırasına yerleştirilmedi):
 
 Kodda gömülü şifre/API anahtarı yok (sır avcısı taraması); `.env` okuma yalnız `ayarlar.py`'de.
 
+*24.09.2026 durumu:* `.env`'e taşınanlar: akan görüntünün kopukluk eşiği
+`KAMERA_KOPUK_ESIGI_SN` (10 sn; 60 sn artık yalnız ilk bağlantı toleransı,
+`ILK_BAGLANTI_TOLERANSI_SN`), ByteTrack'in kayıp iz tamponu ve kural/sayım kayıp toleransı
+(ikisi de `TAKIP_HAFIZA_SN`'den; tolerans `ceil(sn × fps)`, verilmezse 5), yeni kameranın
+örnekleme hızı `KARE_ORNEKLEME_FPS`; yeni eklenen RTSP açılış/okuma zaman aşımı da
+`.env`'dedir (hepsi `f42183c`). Model indirmedeki 1 MiB eşiği SHA-256 denetimiyle kalktı
+(`e8e2f98`). ByteTrack yeni iz eşiği (0,25) ve tablonun öteki satırları kodda sabit olarak
+duruyor (satır numaraları 22.09.2026'nındır); eşiklerin tutulduğu yer docs/17 §6.2'de.
+
 ### 7.3 Bellek sızıntısı adayları
 
 7x24 çalışmada takip kimliğiyle ya da istekle büyüyen yapıların taraması (kod okuması; bellek
@@ -478,9 +580,85 @@ Kodda gömülü şifre/API anahtarı yok (sır avcısı taraması); `.env` okuma
 | `nesneler/arama.py:310` | tarama çıktısı JPEG'leri (disk) | en yeni 60 tutulur (`:65`, `:310-328`) | bellek değil; disk sınırlı |
 | `veri/videolar`, `veri/nesneler`, etiketli KKD kırpıkları (disk) | yüklenen dosyalar | bakım döngüsüne girmez (R23; `depo.py:1-10`) | disk büyümesi adayı (bellek değil) |
 
+*24.09.2026 durumu:* tarama 22.09.2026 koduna aittir ve yeniden yapılmadı. Anons satırları
+değişti: anons başına iş parçacığı yok, her çıkışın tek işçisi ve kuyruğu var
+(`olaylar/dagitici.py`, `b501294`); `AnonsYoneticisi._cooldown`'un anahtarı (kamera, mesaj,
+kanal) oldu ve `temizle()` yine çağrılmaz, yani kamera × mesaj × kanal ile sınırlı zayıf aday.
+Sonra eklenen yapılar (teslim kaydı iş parçacığı, kanal sağlığı durumları, bekçi, olay yaşam
+döngüsü) taranmadı. Disk satırı (R23) aynı.
+
+### 7.4 Bulguların bugünkü durumu (24.09.2026, `8f322d7`)
+
+Koddan doğrulandı. Aynı günün ikinci turundaki düzeltmeler (R5'in masaüstü
+yarısı, R18'in IP hoparlör kimliği, R28) satırlarında ayrıca yazılıdır
+(docs/ILERLEME.md, 24.09.2026). Parantezdeki kısaltmalar docs/17 §16'nın açık sorularıdır (S1, S15…).
+
+| # | Durum | Kanıt ve kalan |
+|---|---|---|
+| R1 | kısmen | ONNX KKD sınıflandırıcısı, SHA-256 ve sözleşme denetimiyle (`analiz/kkd_siniflandirici.py`, `.env KKD_MODEL_DOSYASI`; `19d53ef`); `KkdSiniflandirici(None)` sabiti kalktı. KKD modeli henüz eğitilmedi: model dosyası konana kadar KKD olayı yine üretilmez |
+| R2 | kısmen | Sınıf listesi modelin `dalsan_classes` üst verisinden okunur (`8574a5a`); forklift sınıflı modelde forklift ayrı sınıftır, ürün dışı eğitim hattı `egitim/forklift/` (docs/17 §12.3). Hazır COCO modelleri car/bus/truck'ı yine "truck" sayar |
+| R3 | açık | `backend/requirements.txt` yine yalnız CPU `onnxruntime` kurar (artık 1.30.0, Intel Mac'te 1.23.2; `47e39d0`); GPU imajı yok (S1). İki ORT paketi birlikte kuruluysa uyarı ve `/saglik` kodu `ort_paket_cakismasi` var (`47e39d0`, `e766a69`) |
+| R4 | düzeltildi | RTSP açılış/okuma zaman aşımı (`.env RTSP_ACILIS_ZAMAN_ASIMI_MS` / `RTSP_OKUMA_ZAMAN_ASIMI_MS`, 5000/10000) ve kopukluk eşiği `KAMERA_KOPUK_ESIGI_SN` (10 sn) (`f42183c`); bekçi `analiz/bekci.py` (`8f37f73`) |
+| R5 | düzeltildi | Bekçi analiz iş parçacığının ölümünü ve takılmasını olay, CRITICAL günlük ve `/saglik` sorunu (`analiz_olu`, `analiz_takildi`) olarak bildirir, `BEKCI_TEPKISI=yeniden_baslat` iken süreci kapatır (paketlenmiş uygulamada yalnız uyarır) (`8f37f73`); kapanan süreci Docker ve systemd açar, Başlat betiğiyle kurulan sistemde 24.09.2026'dan beri Kontrol Paneli açar (saatte en çok 3 kez; `dalsan_launcher.py` `surec_kapaninca`); `/saglik` `hazir` verir, `?hazirlik=1` hazır değilse 503 (`e766a69`) |
+| R6 | kısmen | Kayıp iz hafızası `.env TAKIP_HAFIZA_SN` (varsayılan 2 sn, fps'ten bağımsız; `f42183c`). Yeni iz eşiği değişmedi (`track_activation_threshold` 0,25 → `det_thresh` 0,35, insan eşiği 0,28): S15 bekliyor |
+| R7 | düzeltildi | Kilit adresi bağlantının kendisinden (`istek.client.host`); vekil arkasında uvicorn'un `FORWARDED_ALLOW_IPS`'i (`ed88ce9`) |
+| R8 | düzeltildi | `web/kaynak_denetimi.py`: her istekte Host izin listesi (421), durum değiştiren istekte köken denetimi (403); `.env IZINLI_SUNUCU_ADLARI` (`a9dc7a9`) |
+| R9 | düzeltildi | Şifre alanı `type="password"`, değer basılmaz, boş bırakmak şifreyi korur (`ed88ce9`) |
+| R10 | düzeltildi | Kontrol Paneli yalnız Python 3.12 kabul eder, başlatma betikleri önce 3.12'yi arar (`becb2e2`) |
+| R11 | açık | Olay kaydı (JPEG, dosya, INSERT) yine analiz iş parçacığında (`supervizor.py` `_ihlali_kaydet`); süresi kamera başına ölçülür (`/kameralar/<id>/durum.json` → `olcum.ihlal_yaz_p90_ms`). Yazıcı kuyruğu koşullu, ölçülmeden yazılmaz (docs/07 #29). Anons ve teslim kaydı ayrı iş parçacıklarında (`b501294`) |
+| R12 | düzeltildi | İşlenen hız ve işleme süresi ölçülür (`f42183c`); Komuta → Sağlık okunan ve işlenen hızı ayrı sütunda gösterir, kılavuz ikisini ayırır (`e766a69`) |
+| R13 | düzeltildi | Container içinde (`DALSAN_KAPSAYICI=1`) `YONETICI_SIFRESI` boşsa sistem açılmaz (`becb2e2`) |
+| R14 | düzeltildi | `.env`'e yazılan değerde satır sonu ve kontrol karakteri reddedilir (`e8e2f98`); ses çıkışı adı artık `.env`'e hiç yazılmaz (`14a6c0c`) |
+| R15 | düzeltildi | Şifre karşılaştırması UTF-8 bayt üzerinden (`giris.py` `_esit`; `ed88ce9`) |
+| R16 | kısmen | İmza anahtarı şifre ile kuruluma özgü rastgele sırdan türer (`veri/oturum.anahtar`; `a119247`). `/cikis` yine yalnız çerezi siler, sunucu tarafında iptal yok |
+| R17 | düzeltildi | `BILINEN_MODELLER` {ad: sha256} ve `models/SHA256SUMS`; uygulama, `models/indir.sh` ve Dockerfile özeti doğrular, 1 MiB eşiği kalktı (`e8e2f98`) |
+| R18 | düzeltildi | Formlar adresteki kimliği `••••` ile basar; günlükte adres ve hata sebebi maskeli, biçimleyici her satırı maskeler (`07b134c`). Kalan açık 24.09.2026'da kapandı: portsuz IP hoparlör adresinde şifre urllib'in "nonnumeric port" metnine `//…@` biçimi dışında giriyor ve maskeden geçiyordu; artık kimlik adresten ayrılıp Basic/Digest ile gönderiliyor (`olaylar/anons.py` `_kimligi_ayir`) |
+| R19 | düzeltildi | `announcement_messages.updated_at` (şema 007) yapılandırma damgasında (`67bea95`) |
+| R20 | düzeltildi | Çıkış başına tek işçi ve öncelik kuyruğu (`olaylar/dagitici.py`); bastırma (kamera, mesaj, kanal) başına ve yalnız başarılı çalmada tükenir (`b501294`) |
+| R21 | kısmen | Bölgesi kapalı ya da yüklenemeyen mesafe kuralı artık çalışmaz, açılmış mesafe olayı histerezisle biter (`89083e7`). Açılışta kayıp toleransı yok, `hiz_mps=None` yine "duruyor" sayılır (`rules/mesafe.py`) |
+| R22 | açık | Aynı `async` gövdeler senkron G/Ç yapar: SSE sorgusu (`olaylar_web.py`), video yazımı (`videolar.py`), `alan_bul`'daki SELECT, `depo.fotograf_ekle` / `nesne_ekle` / `nesne_sil` (`nesne_rotalari.py`), Ayarlar kaydı (`ayar_rotalari.py`; `.env` yazımı, artık erişim izi de) |
+| R23 | açık | Yüz bulanıklaştırma yok (S27); etiketli KKD kırpıkları süresiz; `veri/videolar`, `veri/nesneler` bakım dışı. Hafifletme: KKD veri toplama kapısı varsayılan kapalı (`f651a62`), olay dondurma ve imha kaydı (`2c147ba`), erişim izi (`25febe9`) |
+| R24 | kısmen | `zones` 007'de işaret satırıyla yeniden kuruldu, `zone_type` CHECK'i kalktı, tek kaynak `rules/tipler.py BOLGE_TIPI_KODLARI` (`67bea95`); `events.event_type`/`status` ve `rules.rule_type` CHECK'leri yerinde |
+| R25 | düzeltildi | Form varsayılanları şemadan (`varsayilan_params`), cooldown tipin varsayılanıyla (90 / 120 / 180) (`93fc012`) |
+| R26 | düzeltildi | docs/06'daki systemd birimi `app.main:app` (`e8e2f98`) |
+| R27 | düzeltildi | Ayarlar dizinle bağlanır (`./ayar`, kökteki `.env` oraya bağ), kayıt geçici dosyayı hedefin yanında kurar (`becb2e2`); imaj derlenmedi |
+| R28 | düzeltildi (24.09.2026) | `toplam_canli_sayim` sözlüğün kopyasını dolaşır (`list(...)`); araya giren yazımı taklit eden test eski kodda `RuntimeError` verir (`tests/test_takip_ve_kamera.py`) |
+| R29 | düzeltildi | Kurala karenin zamanı gider (`f42183c`) |
+| R30 | düzeltildi | Loopback ve link-local reddi, formda ve her gönderimde (`anons.hoparlor_adresini_dogrula`; `827f158`) |
+| R31 | düzeltildi | Formül kaçışlı tek CSV yazıcısı (`9092368`; `app/csv_yazici.py`, `95f1b00`) |
+| R32 | açık | Ertelendi (S1): container root çalışır, `ffmpeg` apt paketi duruyor (docs/ILERLEME.md «Faz 5d») |
+| R33 | açık | Web yığını ve numpy sabitsiz; pytest/httpx/ruff aynı dosyadan imaja kurulur |
+| R34 | düzeltildi | Örnekleme hızı değişince hat korunur, yalnız kayıp iz hafızası ve tolerans yeni hıza çevrilir (`44789b3`) |
+| R35 | açık | `kamera_detay.js` yine yalnız fare olaylarını dinler |
+| R36 | düzeltildi (DOĞRULANMADI) | İmaja `pulseaudio-utils`; host'un ses soketi `docker-compose.ses.yml` ile (`7db64bb`); ses sunucusuna bağlanılamazsa kanal "koptu" görünür. İmaj derlenmedi |
+| R37 | kısmen | Boş çıkış adı artık "bilinmiyor" (None), Linux'ta çıkış adı zorunlu, kanallar 10 sn'de bir yoklanır, macOS'ta varsayılan çıkış denetlenir (`7801520`, `04895ba`, `e7c19a6`). Windows'ta durum hep "bilinmiyor": orada kopma yine algılanmaz, ama "bağlı" da denmez |
+| R38 | düzeltildi | Okunamayan liste gri "bilinmiyor" rozeti verir (`78028c7`) |
+| R39 | düzeltildi | `POST /anons/ses-cikisi` kalktı; test sesi kanal satırının kendi çıkışına çalar (`14a6c0c`, `04895ba`) |
+| R40 | düzeltildi | Komuta → Anons ses çıkışını gösterir (`86511d9`), sonra kanal listesi ve sağlık rozetleri (`04895ba`, `78028c7`) |
+| R41 | düzeltildi | Boş `catch`'ler kalktı; ekran sesi çalışmazsa köşede ses çipi çıkar (`ba9f724`) |
+
+Özet: 27 düzeltildi (biri DOĞRULANMADI), 7 kısmen, 7 açık (R28 24.09.2026'da kapandı).
+
 ## 8. §4 gereksinimlerine karşı boşluk haritası
 
 Madde metinleri: `docs/GOREV-TANIMI-V2.md` §4; errata E1-E14 aynı belgenin Ek A'sındadır.
+
+> *24.09.2026 durumu:* "Durum" sütunu ve 8.E sayımı 22.09.2026 kodunundur; tablo yeniden
+> sayılmadı ve Faz 2-5'te birçok satır değişti. Başlıcaları (tam liste değildir): `crossing`
+> ve `ppe_exempt` bölge tipleri (`67bea95`); KKD sınıflandırıcı kodu (`19d53ef`; model yok) ve
+> kabindeki sürücünün "belirsiz" sayılması (`d1ad597`); olay kodları ve önem (`14c7f94`),
+> ACTIVE → RESOLVED yaşam döngüsü (`bd072b7`), mesafe histerezisi (`89083e7`), `resolved_at`
+> (007), `CAMERA_DOWN` için `.env` eşiği (`f42183c`), `AUDIO_CHANNEL_DOWN` (`7801520`);
+> öncelik kuyruğu, çıkış başına tek ses, eşzamanlı kanallar, 10 sn sağlık, 30 sn düşüş ve yedek
+> kanal, `ALERT_UNDELIVERED` (`b501294`, `23860e1`, `7801520`, `e7c19a6`); komuta ekranlarında
+> uyarı bandı (`ba9f724`); `models/SHA256SUMS` (`e8e2f98`), `tests/dogruluk_kiyas`
+> (`3807262`), ürün dışı forklift eğitim hattı (`egitim/forklift/`), KKD veri seti ve gün
+> bölmesi (`35bae2f`), `docs/kkd-politika.md` (`8eee8e6`), saatlik yanlış alarm (`cc159fb`),
+> KKD veri toplama kapısı (`f651a62`); bekçi (`8f37f73`), `/saglik` hazırlığı (`e766a69`),
+> uvicorn'un JSON günlüğü (`f61edc4`), NTP (docs/06 §1.2.3, `1ed1004`), düzgün kapanış
+> (`14c7f94`), systemd sembolü (`e8e2f98`), `docs/18-KVKK.md` (`6e85522`), erişim izi
+> (`25febe9`). Hâlâ yok: Prometheus (docs/07 #26), yüz bulanıklaştırma (S27), roller (S5),
+> GPU imajı (S1), webhook (S4), dakika sınırı ve birleştirme (S23), olay klibi (ADR-009).
 
 ### 8.A Algılama, bölge, KKD, takip, kural (§4.1-§4.5)
 
@@ -647,6 +825,11 @@ koşulu. 8.E'deki 125 madde sayımını değiştirmemek için ayrı tutuldu.
 | Fabrika container'ında ses/Bluetooth yolu (§4.6 `local_audio`/`bluetooth_audio` için ön koşul) | missing | `Dockerfile:10-12`; `docker-compose.yml:47-50`; `anons.py:84-89` | çalıcı araç, Pulse/PipeWire soketi ve BlueZ D-Bus yok; R36; imaj derlenmedi, DOĞRULANMADI |
 | Kimlik varsayılan kapalı (§4.10 rol tabanlı erişimin ön koşulu) | partial | `.env.example:107` (`YONETICI_SIFRESI=`); `ayarlar.py:173-176`, `:211`; `uygulama.py:97-104` | şifre boşken hiçbir sayfa giriş sormaz; ağa açılırken (`SUNUCU_ADRESI`) şifre zorunlu (`ayarlar.py:222-230`), ama Docker bu kilidi atlar (R13); README "bilerek kapalı ⏳" derken docs/07 "Kapandı" der (§10) |
 
+*24.09.2026 durumu:* birinci satır değişti: imaja `pulseaudio-utils` girdi, host'un ses
+soketi `docker-compose.ses.yml` ile bağlanır (R36, `7db64bb`; imaj derlenmedi). İkinci
+satırda Docker artık şifresiz açılmaz (R13, `becb2e2`); şifre Docker dışında yine varsayılan
+boştur; README / docs/07 çelişkisi `8f322d7`'de sürüyordu.
+
 ## 9. Yeniden kullanılabilir parçalar ve çakışanlar
 
 ### 9.1 v2 için olduğu gibi kalacaklar
@@ -676,6 +859,17 @@ koşulu. 8.E'deki 125 madde sayımını değiştirmemek için ayrı tutuldu.
 - Kimlik: şifre alanı, XFF, CSRF, çerez sırrı (R7-R9, R15, R16).
 - Paketleme/çalışma zamanı: GPU imajı, Python üst sınırı, lock dosyası.
 
+*24.09.2026 durumu:* yapılanlar: KKD sınıflandırıcısı (`19d53ef`); bekçi ve işlenen
+fps/gecikme ölçümü (`8f37f73`, `f42183c`, `e766a69`); kanal listesi, çıkış başına tek işçi,
+öncelik ve periyodik sağlık (`23860e1`, `b501294`, `7801520`, `e7c19a6`); R36-R40; olay
+durumu, `resolved_at` ve önem (`67bea95`, `14c7f94`, `bd072b7`); bölge tipi CHECK'i (007);
+`/saglik` hazırlığı ve compose sağlık kontrolü (`e766a69`); kimlik maddeleri (`ed88ce9`,
+`a9dc7a9`, `a119247`); Python üst sınırı (`becb2e2`); takipçinin kayıp iz tamponu
+(`f42183c`); sınıf listesi model dosyasından (`8574a5a`). Kalanlar: tek sınıf kataloğu ve
+ince ayarlı sınıflar (`tipler.py`, `ortak.py` ve form listeleri ayrı duruyor), ByteTrack yeni
+iz eşiği (S15), kalıcılık kuyruğu (docs/07 #29), olay güveni, olay durumu CHECK'i, düz metin
+metrik (docs/07 #26), GPU imajı (S1), kilit dosyası.
+
 ### 9.3 "Bilerek yapılmadı" denilen ve gereksinimle çelişenler
 
 | Gereksinim | Karar kaynağı | Kararın özü |
@@ -693,6 +887,10 @@ koşulu. 8.E'deki 125 madde sayımını değiştirmemek için ayrı tutuldu.
 | KKD recall taahhüdü | docs/04:376-378; E10 | yalnız raporlanır |
 | KKD dışlama modeli (`ppe_exempt`) | docs/04:44; docs/08 R9 | KKD yalnız çizilen bölgede |
 | Roller, denetim günlüğü, 2FA | docs/15 §7 (`:187-188`); docs/01:121,128 | tek kullanıcı varsayımı |
+
+*24.09.2026 durumu:* son satırın "denetim günlüğü" kısmı karşılandı: kanıt görüntüleme,
+dışa aktarım ve değişiklikler `access_log`'a yazılır (şema 010, `25febe9`). Roller ve 2FA
+yine yok (S5); tablonun öteki satırları yerinde.
 
 ## 10. Dokümanlar ile kod arasındaki çelişkiler
 
@@ -744,39 +942,46 @@ koşulu. 8.E'deki 125 madde sayımını değiştirmemek için ayrı tutuldu.
 
 **Son yedi satırın durumu:** bu satırlar Faz 0 çürütme turunda bulunan çelişkilerin kaydıdır ve kayıt için yerinde durur. Hepsi bu raporla aynı commit'te giderildi: AUDIT-OLCUM'daki altı çelişki ve satır kaymaları o belgenin §3 düzeltme kaydında, "docs/AUDIT.md Ek Ö" atfı `GOREV-TANIMI-V2.md` EK A dipnotunda düzeltildi. Düzeltme sırasında bir hata daha çıktı: AUDIT-OLCUM'un "üç koşuda %5 içinde" iddiası yanlıştı, koşular arası fark `yolox_tiny`'de %13,9'dur. Ölçümün asıl sonuçları (bütçe %100 / %40, GPU paketi yok) değişmedi.
 
+**24.09.2026 durumu (`8f322d7`'deki kod ve belgelere göre; belgeler sonradan düzeltilmiş olabilir, güncel metin kendi dosyalarındadır):**
+
+- *Giderildi:* `Announcer.play` (docs/02 §7 artık `cal(anahtar, metin, ses_dosyasi)` ve kanal satırlarını anlatır, `5bfb21a`); komuta anons ekranının ses çıkışı (`86511d9`, sonra kanal listesi `04895ba`); NTP (docs/06 §1.2.3, `1ed1004`); systemd sembolü (docs/06'daki birim `app.main:app`, `e8e2f98`); "İşlenen kare" (kılavuz okunan ve işlenen hızı ayırır, `e766a69`); komuta ekranlarında uyarı bandı (`komuta_temel.html` `uyari.js`'i yükler, `ba9f724`); docs/15'in kilit cümlesi (kilit artık `X-Forwarded-For`'u okumaz, `ed88ce9`); docs/15'in "şifresiz kurulum oluşamaz" cümlesi (container'da şifre zorunlu, `becb2e2`); son yedi satır (`390adf5`).
+- *Kısmen:* KKD toplu sınıflandırma (karedeki kişiler tek çağrıda, `19d53ef`; kameralar arası değil, piksel eşiği yine kuralda); "otomatik yeniden başlar" (bekçi var, `8f37f73`; süreç yalnız `BEKCI_TEPKISI=yeniden_baslat` iken kapanır, varsayılan `uyar`); `egitim/`, `modeller.py` (`backend/app/egitim/` var, `35bae2f`; `modeller.py` yok); Python 3.12 (başlatıcı yalnız 3.12, `becb2e2`; bu konteynerin `.venv`'i 3.11.15).
+- *Sürüyor (kod ve yapılandırma):* compose'un GPU bloğu (imaj yine yalnız CPU ORT); `main.py` docstring'i; `pyproject.toml`'un "Paketleme yok"u; kanıt ucunun "YALNIZCA oturumla" docstring'i (şifre boşken kimliksiz).
+- *Belgede `8f322d7`'de sürüyordu:* docs/02'nin iki süreç, `/api/v1/stream`, "supervisor yeniden bağlanır", "GPU hatasında süreç çıkar", alt akış ve "7 tablo" cümleleri (kodda bugün 16 tablo + `sema_surumu`); docs/05'in ADR-002 "AÇIK", `sse-starlette` ve "CPU-only ~1-2 fps" satırları; docs/09'un "üç kural tipi"; docs/01'in `EventSink`'i; README ve docs/01'in şifre satırları (docs/07 #0 "Kapandı"); README'nin KKD ⏳'ı (KKD modeli yok, bu anlamda doğru); docs/07 #7 canlı görüntü; CLAUDE.md'nin "geri alınabilir"i (tablo yeniden kuran göçten önce artık otomatik yedek alınır, `67bea95`; geri alma betiği yok); docs/11'in "3.10 veya üstü" satırı (kod bugün "Python 3.12 gerekiyor" der); docs/12'nin mavi bölge rengi; docs/03'ün `rules/ppe.py`'si; docs/ILERLEME.md'nin tarihli "29 ayar" kaydı (bugün 49 anahtar).
+
 ## 11. DOĞRULANMADI listesi
 
-1. YOLOX 0.1.1rc0 ONNX'in beklediği girdi düzeni (BGR, 0-255, normalizasyonsuz) - üst kaynakla karşılaştırılmadı (`tespit.py:181-189`).
-2. `models/*.onnx` dosyalarının hash'i/bütünlüğü; resmi yayınla eşleşme.
+1. YOLOX 0.1.1rc0 ONNX'in beklediği girdi düzeni (BGR, 0-255, normalizasyonsuz) - üst kaynakla karşılaştırılmadı (`tespit.py:181-189`). *24.09.2026:* iki model gerçek bir fotoğrafta otobüsü ve kişileri `Tespitci` üzerinden buldu (`47e39d0`); üst kaynakla karşılaştırma yine yapılmadı.
+2. `models/*.onnx` dosyalarının hash'i/bütünlüğü; resmi yayınla eşleşme. *24.09.2026: doğrulandı:* özetler resmi yayından iki ayrı indirmeyle ölçülüp aynı çıktı ve `models/SHA256SUMS`'a yazıldı; indirme ve Docker derlemesi dosyayı bu özetle denetler (`e8e2f98`).
 3. Fabrika sunucusunun Python sürümü, GPU modeli, `onnxruntime-gpu` CUDA/cuDNN eşleşmesi.
-4. FFmpeg RTSP varsayılan okuma zaman aşımının fiili değeri (R4'ün şiddeti buna bağlı).
-5. Gerçek kamerada tespit doğruluğu (person recall, araç mAP) - hiç ölçülmedi.
-6. SH17 veri setinin CC BY-NC-SA 4.0 olduğu (E1); CHV, Pictor-PPE, Roboflow forklift lisansları; COCO ağırlıklarının eğitim verisi lisansı.
-7. `onnxruntime==1.19.2` için cp313/cp314 tekerleği olmadığı (uyumluluk avcısının PyPI sorgusu; bu raporda tekrarlanmadı) ve python.org varsayılan indirmesinin 3.14 olduğu.
-8. `.env` satır enjeksiyonu (R14), `compare_digest` `TypeError` (R15), Docker'da `.env :ro` yüzünden Ayarlar kaydının başarısızlığı (R27) - kod okumasına dayanır, çalıştırılmadı.
-9. systemd biriminin `app.main:uygulama` yüzünden başlamadığı (R26) - docs/07 "provası yapıldı" diyor; çalıştırılmadı.
+4. FFmpeg RTSP varsayılan okuma zaman aşımının fiili değeri (R4'ün şiddeti buna bağlı). *24.09.2026:* docs/16 §8 OpenCV kaynağından 30 000 ms olarak okudu; R4 de kapandı, açılış/okuma zaman aşımı artık veriliyor (`f42183c`).
+5. Gerçek kamerada tespit doğruluğu (person recall, araç mAP) - hiç ölçülmedi. *24.09.2026:* ölçüm aracı `tests/dogruluk_kiyas` eklendi (`3807262`); etiketli saha karesi olmadığı için ölçüm yine yapılmadı.
+6. SH17 veri setinin CC BY-NC-SA 4.0 olduğu (E1); CHV, Pictor-PPE, Roboflow forklift lisansları; COCO ağırlıklarının eğitim verisi lisansı. *24.09.2026:* docs/16 §1 SH17'nin CC BY-NC-SA 4.0 olduğunu, CHV ve Pictor-PPE'nin lisanssız olduğunu birincil kaynaktan doğruladı; Roboflow forklift setleri ve COCO görüntülerinin lisansı orada da DOĞRULANMADI (docs/16 §2).
+7. `onnxruntime==1.19.2` için cp313/cp314 tekerleği olmadığı (uyumluluk avcısının PyPI sorgusu; bu raporda tekrarlanmadı) ve python.org varsayılan indirmesinin 3.14 olduğu. *24.09.2026:* 1.19.2'nin yalnız cp38-cp312 tekerleği olduğu docs/16 §5'te PyPI'den doğrulandı; sabit artık 1.30.0, Intel Mac'te 1.23.2 (`47e39d0`). python.org kısmı doğrulanmadı.
+8. `.env` satır enjeksiyonu (R14), `compare_digest` `TypeError` (R15), Docker'da `.env :ro` yüzünden Ayarlar kaydının başarısızlığı (R27) - kod okumasına dayanır, çalıştırılmadı. *24.09.2026:* R14 düzeltilmeden önce çalıştırılarak yeniden üretildi (`e8e2f98`), R15 docs/17 §10.5'te yerel olarak doğrulandı (`ed88ce9` ile kapandı); R27 çalıştırılmadı, dizin bağlamayla kapandı (`becb2e2`), imaj derlenmedi.
+9. systemd biriminin `app.main:uygulama` yüzünden başlamadığı (R26) - docs/07 "provası yapıldı" diyor; çalıştırılmadı. *24.09.2026:* iki komut da çalıştırılarak denendi ve birim `app.main:app` yapıldı (`e8e2f98`).
 10. Docker imajının derlendiği/çalıştığı (`docs/ILERLEME.md:394` "denenemedi").
 11. Kopuk Bluetooth sink'e `paplay --device`'ın sıfır dışı kodla döndüğü; eşzamanlı `aplay`'in "device busy" verdiği; PipeWire'da `pipewire-pulse` varlığı.
 12. Windows `Get-PnpDevice -Class AudioEndpoint`'ın mikrofonları da listelediği; PowerShell çıktısının Türkçe cihaz adlarını bozması.
 13. Tarayıcı `speechSynthesis` Türkçe sesinin çevrimdışı çalıştığı.
 14. Tarayıcıların Private Network Access engelinin R8 CSRF vektörünü kısıtlayıp kısıtlamadığı.
-15. FastAPI `/docs` ve `/openapi.json`'ın kimliksiz açık olduğu (varsayılan davranış; çalıştırılmadı).
+15. FastAPI `/docs` ve `/openapi.json`'ın kimliksiz açık olduğu (varsayılan davranış; çalıştırılmadı). *24.09.2026:* `/docs`, `/redoc` ve `/openapi.json` kapatıldı (`uygulama.py`, `a9dc7a9`); madde artık geçersiz.
 16. Nesne kütüphanesinin "8/204 isabet" (`kutuphane.py:180`, `docs/07:167`), "~19 ms/fotoğraf" ve docs/07 §5.1 AUC tablosu - "8/204"ün takımı `tests/nesne_kiyas` ama bu raporda koşulmadı; "~19 ms" ve AUC tablosunu hangi kodun ürettiği bulunamadı.
 17. Dalsan sahasında loader/pallet_jack bulunup bulunmadığı; gece/ışık koşulları.
 18. Rev.02 ek protokolünün imzalandığı (KKD veri toplama bunun şartı, docs/00:63-64); docs/08 §2'deki 10 açık kararın akıbeti.
-19. Tam paketin Python 3.12 altında aynı sonucu verdiği (koşu 3.11 venv'inde yapıldı, `by392r477.output:22`); PyInstaller kuruluyken 17 atlanan testin geçtiği.
+19. Tam paketin Python 3.12 altında aynı sonucu verdiği (koşu 3.11 venv'inde yapıldı, `by392r477.output:22`); PyInstaller kuruluyken 17 atlanan testin geçtiği. *24.09.2026:* tam takım sonradan Python 3.12.3'te koşuldu, 3.11 ile aynı sonuç (docs/ILERLEME.md «Faz 5 sertleştirme», 5a); PyInstaller 6.22.2 kurulu 3.12 ortamında paketleme testleri 92/92 geçti (docs/ILERLEME.md «İzleme ekranı kendi penceresinde, tarayıcısız»).
 20. `python:3.12-slim` imajında `tzdata` varlığı (kod sabit UTC+3'e düşer, `zaman.py:16-22`).
 21. Windows Kontrol Paneli `terminate` yolunda lifespan kapanışının (kamera iş parçacıklarının durdurulması) çalıştığı.
-22. Bloke eden I/O sürelerinin (R11, R22) gerçek büyüklüğü - ölçülmedi.
+22. Bloke eden I/O sürelerinin (R11, R22) gerçek büyüklüğü - ölçülmedi. *24.09.2026:* olay yazma süresi artık kamera başına ölçülüyor (`/kameralar/<id>/durum.json` → `olcum.ihlal_yaz_p90_ms`; `f42183c`, `e766a69`); sahada ölçülmedi.
 23. Ayrı `pytest tests/rules -q` → "85 passed in 0.26s" koşusu: çıktı dosyası yok (`tasks/` içinde `85 passed` geçmiyor). 85 testin geçtiği yalnız tam paketten çıkarılır (§5).
 24. Push öncesi ikinci tam paket koşusu (1023 geçti, 17 atlandı, ruff temiz): iş akışı bildirimi; ham çıktı, süre ve uyarı sayısı bu rapora ulaşmadı.
 25. "A2DP 100-250 ms" ölçülmedi, görev tanımından gelir (`GOREV-TANIMI-V2.md:147`; `docs/16` §4 de DOĞRULANMADI der). *Aynı maddede duran iki eksik giderildi:* 15 adres denemesinin ham çıktısı AUDIT-OLCUM §2.2'ye, üç koşunun ham sayıları §1'e eklendi; "%5 içinde" iddiası yanlıştı ve düzeltildi.
-26. Fabrika imajında `aplay`/`paplay`/`pactl` bulunmadığı (R36): imaj derlenmedi; `ffmpeg` apt paketinin bağımlılıklarının `alsa-utils` getirmediği varsayıldı.
-27. Ses çıkışı kaydından sonra test sesinin eski çıkışa çaldığı (R39) ve liste okunamadığında yeşil "bağlı" rozeti (R38): kod okuması, çalıştırılmadı.
+26. Fabrika imajında `aplay`/`paplay`/`pactl` bulunmadığı (R36): imaj derlenmedi; `ffmpeg` apt paketinin bağımlılıklarının `alsa-utils` getirmediği varsayıldı. *24.09.2026:* imaja `pulseaudio-utils` (paplay, pactl) eklendi (`7db64bb`); imaj yine derlenmedi, paket adı hedefte DOĞRULANMADI.
+27. Ses çıkışı kaydından sonra test sesinin eski çıkışa çaldığı (R39) ve liste okunamadığında yeşil "bağlı" rozeti (R38): kod okuması, çalıştırılmadı. *24.09.2026:* iki davranışın kodu değişti (`14a6c0c`, `04895ba`, `78028c7`, §7.4); madde artık geçersiz.
 28. macOS `system_profiler` çıktısındaki `coreaudio_device_transport` alanının Bluetooth için gerçek değeri.
-29. uvicorn CLI yolunda uvicorn'un kendi günlük satırlarının düz metin olduğu ve `sistem.log`'a girmediği (§4.4): kod okuması.
+29. uvicorn CLI yolunda uvicorn'un kendi günlük satırlarının düz metin olduğu ve `sistem.log`'a girmediği (§4.4): kod okuması. *24.09.2026:* AUDIT-OLCUM §2.1 aynı çalıştırmanın düz metin uvicorn satırlarını gösterir; sonra uvicorn satırları JSON olarak `sistem.log`'a bağlandı (`f61edc4`) ve çalışan sistemde öyle görüldü (docs/ILERLEME.md «Faz 2d», uçtan uca kabul). Madde artık geçersiz.
 30. §7.3 bellek taraması kod okumasına dayanır; uzun süreli bellek ölçümü yapılmadı.
-31. `(1,3549,85)` ham çıktı şeklinin gözlendiği çıkarım koşusu (kaydı yok; aritmetikle tutarlı, §3); `tests/nesne_kiyas`'taki 264 - 204 = 60 sorgunun negatif olduğu.
+31. `(1,3549,85)` ham çıktı şeklinin gözlendiği çıkarım koşusu (kaydı yok; aritmetikle tutarlı, §3); `tests/nesne_kiyas`'taki 264 - 204 = 60 sorgunun negatif olduğu. *24.09.2026:* şekil docs/16 §5'te yerel deneyle kayda geçti (tiny `[1,3549,85]`, s `[1,8400,85]`); 60 negatif sorgu hâlâ doğrulanmadı.
 32. 17 atlamanın dosyalara dağılımı (mac 5, paketleme 12): çıktı satırlarının alfabetik toplama sırasıyla eşlenmesinden çıkarıldı.
 
 ## 12. Doğrulama izi

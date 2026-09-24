@@ -14,6 +14,14 @@ bash models/indir.sh
 .venv/bin/python -m tests.hiz_kiyas
 ```
 
+> **24.09.2026 durumu (`8f322d7`).** Bu belge 22.09.2026 ölçümünün kaydıdır; dosya:satır
+> atıfları o günkü koda (`390adf5`) göredir. Ölçüm onnxruntime 1.19.2 ile yapıldı. Sonra
+> sabit 1.30.0'a çıktı (`47e39d0`) ve tespit oturumunun iş parçacıklarının çıkarımlar
+> arasında dönerek beklemesi kapatıldı (`2748ddf`); aynı takımla 23.09.2026'da 4 kamera tam
+> yükte bütçe `yolox_tiny` ile %100,1, `yolox_s` ile %43,4 ölçüldü (docs/ILERLEME.md «Hız ve
+> CPU»). §1.3'ün sonucu değişmedi: `yolox_s` CPU'da 4 kameraya yetmez, GPU paketi hâlâ
+> hiçbir yerde kurulmuyor. §2'deki eksiklerin bugünkü durumu ilgili yerdeki notlarda.
+
 ## 1. Ölçülen performans
 
 Bu bölüm, dokümanlardaki performans iddialarını **ölçerek** sınar.
@@ -85,6 +93,10 @@ Dört iş parçacığı, **tek paylaşılan `Tespitci`**, `tespit.py:159` kilidi
    ana sayfaya taşıyıp Türkçe gösteriyor. Yani teşhis edilebilir bir hata, sessiz bir yavaşlık değil.
    **Gereken:** GPU imajında `onnxruntime-gpu` kurulmalı (CPU paketiyle aynı ortama
    kurulmamalı) ve CUDA/cuDNN sürüm eşleşmesi `docs/16` ile doğrulanmalı.
+   *24.09.2026 durumu:* madde `8f322d7`'de de geçerli (AUDIT R3, S1). Sabit artık
+   `onnxruntime==1.30.0` (Intel Mac'te 1.23.2; `backend/requirements.txt:26-27`, `47e39d0`),
+   Dockerfile aynı dosyayı kurar. Ek hafifletici: iki ORT paketi birlikte kuruluysa günlüğe
+   uyarı düşer ve `/saglik` `ort_paket_cakismasi` verir (`47e39d0`, `e766a69`).
 5. **`CIKARIM_IS_PARCACIGI` için ölçülmüş öneri:** 4 çekirdekte `0` (otomatik) en
    iyisi; `3`'e düşürmek `tiny`'de nötr, `s`'de **%25 yavaşlatıyor**; `1` her iki
    modelde de yıkıcı. `.env.example:37-40`'ın "sunucu başka işler de yapıyorsa
@@ -123,6 +135,10 @@ INFO:     Started server process [8778]
 INFO:     Uvicorn running on http://127.0.0.1:8099 (Press CTRL+C to quit)
 INFO:     127.0.0.1:39344 - "GET /saglik HTTP/1.1" 200 OK
 ```
+
+*24.09.2026 durumu:* bu eksik kapandı. uvicorn'un `uvicorn`, `uvicorn.error` ve
+`uvicorn.access` günlükleri artık uygulamanınkiyle aynı JSON biçiminde `sistem.log`'a
+yazılır; erişim günlüğünden başarılı GET'ler elenir (`loglama.py`, `f61edc4`).
 
 Şema uygulandı, model yüklendi, süpervizör ve bakım çalıştı, sıcak yeniden yükleme
 (§4.9 "yapılandırma sıcak yükleme") gözlendi.
@@ -163,6 +179,11 @@ ve 72 rotanın tamamını sınamaz (rota envanteri `docs/AUDIT.md` §4.6'dadır)
 `/saglik` gövdesi: `{"durum":"calisiyor","analiz":true,"model":"hazir"}`
 → §4.9'un `/healthz` isteği için **yeni uç gerekmez**, mevcut `/saglik` genişletilir.
 
+*24.09.2026 durumu:* böyle yapıldı. `/saglik` yine her koşulda 200 ve `"calisiyor"` döner,
+gövdede artık `hazir`, `uyari_garantisi` ve `sorunlar` da var; `?hazirlik=1` hazır değilse
+503, `?ayrinti=1` oturumla kamera ölçümlerini verir (`e766a69`, `a9a58cc`). Docker sağlık
+kontrolü `?hazirlik=1`'i çağırır.
+
 ### 2.3 Anons ve Bluetooth - görev tanımı §4.6'nın varsaydığından ÇOK daha fazlası var
 
 Görev tanımı "Bluetooth hoparlöre bağlanma seçeneği ekle" derken sıfırdan bir kanal
@@ -179,6 +200,9 @@ varsayıyordu. Kodda **zaten** şunlar var:
 | Kanal sağlığı | `cihaz_bagli_mi()` (`ses_cihazlari.py:98`) - üç durumlu: bağlı / değil / bilinmiyor | **dar**: yalnız sayfa açılınca, yalnız Linux'ta ve yalnız açıkça bir cihaz seçildiyse anlamlı (aşağıya bakın) |
 | Türkçe seslendirme | `uyari.js:71-76` `speechSynthesis`, `lang="tr-TR"` - **tarayıcıda** | var |
 | Test sesi düğmesi | `POST /anons/test-sesi`; `ANONS≠ses_karti` iken 400 + anlaşılır Türkçe hata | var |
+
+*24.09.2026:* tablo ve aşağıdaki eksikler 22.09.2026 kodunundur; bugünkü durum bu alt
+bölümün sonundaki notta.
 
 **Eksik olanlar (gerçek boşluk):** uygulama içi eşleştirme (docs/14 §2.1.1 bilerek
 yapmadı), otomatik yeniden bağlanma, **periyodik** sağlık yoklaması ve
@@ -202,6 +226,21 @@ gecikme ölçümü.
 
 §4.6'nın "en az bir sağlıklı kanala ulaşma garantisi" için asıl eksik budur.
 
+*24.09.2026 durumu:* eksiklerin çoğu yapıldı. Kanal artık `.env ANONS` değil bir
+`speaker_zones` satırıdır, ya bu bilgisayarın ses çıkışı ya IP hoparlör; aynı anda birden çok
+kanal açılabilir (şema 009; `23a903b`, `23860e1`, `14a6c0c`). Her çıkışın tek işçisi ve
+öncelik kuyruğu var (`olaylar/dagitici.py`, `b501294`); tekrar bastırma (kamera, mesaj, kanal)
+başına ve yalnız başarılı çalmada tükenir. Kanal sağlığı "anons-saglik" iş parçacığında 10
+sn'de bir yoklanır, 30 sn kesintide `AUDIO_CHANNEL_DOWN` yazılır, uyarı hiçbir sesli kanala
+ulaşmazsa `ALERT_UNDELIVERED` düşer (`olaylar/kanal_sagligi.py`; `7801520`, `e7c19a6`). Üç
+kör nokta: 1. yoklama periyodik; 2. boş çıkış adı artık "bilinmiyor" (None), Linux'ta çıkış
+adı zorunlu; 3. macOS'ta varsayılan çıkışın satırın beklediği çıkış olup olmadığı denetlenir,
+Windows'ta durum hep "bilinmiyor"dur. `POST /anons/test-sesi` kalktı, her kanalın kendi
+"Dene"si var (`14a6c0c`, `04895ba`). Yazılım gecikmesi (kare → çalıcı başlangıcı) teslim
+kaydına yazılır (`frame_to_start_ms`, `b501294`); hoparlörün kendi gecikmesi ölçülmedi.
+Yapılmayanlar: uygulama içi eşleştirme (S8), otomatik yeniden bağlanma (S9, docs/07 #22),
+dakika sınırı ve birleştirme (S23, docs/07 #23), ses seviyesi.
+
 **Sunucu tarafı TTS neden gereksiz olabilir:** docs/14 §8 sunucuda TTS'i bilerek
 dışarıda bırakmış; gerekçesi artık daha güçlü, çünkü tarayıcı katmanı Türkçe
 seslendirmeyi zaten yapıyor. Görev tanımı §4.6'nın piper/espeak-ng önerisi bu ışıkta
@@ -221,6 +260,11 @@ metnin erken kapanmasını önler ve kendi yorumunda bunu açıkça "komut enjek
 yüzeyi" diye anar. Linux ve Mac yollarında dosya adı ayrı bir argümandır, yorumlanmaz.
 Görev tanımı §4.10'un bu konudaki endişesi Linux fabrika sunucusu için geçersiz,
 Windows geliştirme kurulumu için hafifletilmiş bir risk olarak geçerlidir.
+
+*24.09.2026 durumu:* Windows'ta çalma artık stdlib `winsound` iledir; yol komut metnine
+girmez, bu yüzey kalktı (`e8e2f98`). `shell=True` yine yok. Zaman aşımları aynı (listeleme 5
+sn, ses kartından çalma 20 sn, HTTP anons 5 sn); IP hoparlörün sağlık yoklaması en çok 3 sn
+süren bir TCP bağlantısıdır (`olaylar/kanal_sagligi.py`).
 
 ## 3. Düzeltme kaydı
 

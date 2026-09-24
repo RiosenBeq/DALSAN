@@ -1,7 +1,12 @@
 # 17 - V2 Tasarım (Faz 1)
 
-> **Durum:** TASLAK. Operatör onayı bekliyor. **Depo:** `390adf5` (22 Eyl 2026). Bu belgedeki
-> bütün `dosya:satır` atıfları bu sürüme göredir ve yazılırken koddan tek tek okundu.
+> **Durum:** Operatör Faz 1'i onayladı (karar kaydı §16); Faz 2-5 23.09.2026'da uygulandı.
+> Açık soruya bağlı kalanlar, uygulanmayan maddeler ve plandan ayrılan yerler §13'ün başındaki
+> "Uygulama durumu" notunda ve ilgili bölümlerdeki "Uygulandı" / "Uygulanmadı" notlarındadır;
+> adım adım kayıt docs/ILERLEME.md. **Depo:** `390adf5` (22 Eyl 2026). Bu belgedeki bütün
+> `dosya:satır` atıfları ve tasarım metninde "bugün" diye anlatılan durum (tablolardaki "Bugün"
+> sütunları dahil) bu sürüme göredir ve yazılırken koddan tek tek okundu. Tarihli notlar
+> ("Uygulandı", §12.3, §16 karar kaydı) kendi tarihlerindeki durumu anlatır.
 > Üç mercekli inceleme turunun (CLAUDE.md uyumu, kod tabanında uygulanabilirlik, gereksinim
 > kapsamı ve güvenlik mantığı) bulguları işlendi; kabul ve ret kaydı §17'dedir.
 > **Etiketler:** "DOĞRULANMADI" = kaynağında ya da koddan teyit edilemedi, olgu olarak
@@ -11,8 +16,8 @@
 ## 0. Bu belge ne (tarih 2026-09-22; Faz 0 raporu docs/AUDIT.md ve docs/16-DIS-KAYNAK-DOGRULAMA.md'ye dayanır; Faz 2'ye geçmeden operatör onayı gerekir)
 
 **Ne:** `GOREV-TANIMI-V2.md` §5'teki Faz 1 teslimatı. §5 bunun adını `docs/ARCHITECTURE.md`
-koyuyordu; E8 gereği numaralı Türkçe düzende bu dosyadır. Kod yazılmadı. Yalnız kısa SQL,
-ayar ve arayüz imzası taslakları var.
+koyuyordu; E8 gereği numaralı Türkçe düzende bu dosyadır. Faz 1'de kod yazılmadı; yalnız kısa
+SQL, ayar ve arayüz imzası taslakları vardı (kod Faz 2-5'te yazıldı, bkz. Durum).
 
 **Dayanak:** `docs/AUDIT.md` (Faz 0 okuma yarısı), `docs/AUDIT-OLCUM.md` (ölçülen yarı),
 `docs/16-DIS-KAYNAK-DOGRULAMA.md` (lisans, TTS, BlueZ, ORT), `GOREV-TANIMI-V2.md` (§4 hedef,
@@ -75,7 +80,8 @@ Bu belgenin iskeleti **EVRİM**dir. Jürilerin "aşılansın" dediği fikirler e
     eşlenmiştir.
 
 **Onay kapısı:** Faz 2'ye geçmeden operatör şunları onaylar: (a) §1'deki kararlar, (b) §16'da
-"Gerektiği an: Faz 2 öncesi" yazan soruların cevabı ya da varsayılanın kabulü.
+"Gerektiği an: Faz 2 öncesi" yazan soruların cevabı ya da varsayılanın kabulü. Onay verildi
+(§16 karar kaydı).
 
 **Operatör için okuma sırası:** §1 (ne karar verildi) → §13 (her fazda ne göreceksiniz) →
 §16 (sizin vereceğiniz kararlar). Geri kalanı yapay zekânın yol haritasıdır.
@@ -121,6 +127,15 @@ Bu belgenin iskeleti **EVRİM**dir. Jürilerin "aşılansın" dediği fikirler e
 | K33 | Kod adları | Yeni Python dosyaları komşularıyla tutarlı Türkçe (`olay_durumu.py`, `bekci.py`); DB sütunları, olay kodları, `.env` değerleri, metrik adları İngilizce | Kod tabanı Türkçe tanımlayıcı kullanıyor; CLAUDE.md'nin kendi §5 klasör/dosya düzeni de Türkçe (`ayarlar.py`, `analiz/`, `olaylar/`, `egitim/`) | §8 "kod içi isimler İngilizce" ile gerilim; öncelik kuralından bilerek sapma, gerekçe Ç27 (S26) |
 | K34 | Olay klibi | Yok. Yol haritasında (ADR-009, docs/07 #1) | Kanıt fotoğrafı MVP akışına yeter; RAM, kodlayıcı, disk, KVKK hacmi | Altın kural |
 
+**Uygulamada ayrılanlar (24.09.2026):** K3'ün kodda sabit kimlikli katalog 0-6'sı
+(`SINIF_KATALOGU`) yazılmadı; sınıf listesi yine `TANINAN_SINIFLAR`'dır (§4.1). K18'de kuyruk ve
+işçi kanal satırına değil çıkışa (ses çıkışı ya da IP hoparlör adresi) bağlıdır ve
+`AnonsYoneticisi`'nin yanında yeni modüllerdedir (`olaylar/dagitici.py`, `kanal_sagligi.py`,
+`teslim.py`; §7.1). K24'e yedek olarak üretilmiş uyarı tonu eklendi: WAV'ı olmayan ya da
+bulunamayan mesajda ve mesajı seçilmemiş kuralda ses çıkışı onu çalar (§16, 23.09.2026). K30'un
+GPU gereksinim dosyası ve imajı yapılmadı (S1 bekleniyor, §12.4). K31'e operatör isteğiyle
+`011_uyari_kaydi_arsivi.sql` eklendi (§8.3, §16).
+
 ---
 
 ## 2. Gereksinim ↔ CLAUDE.md çelişkileri ve çözümleri (tablo; operatöre bırakılanlar işaretli)
@@ -160,7 +175,7 @@ Bu belgenin iskeleti **EVRİM**dir. Jürilerin "aşılansın" dediği fikirler e
 | Ç28 | CLAUDE.md §4 Python 3.12 | `.venv` 3.11.15; ORT 1.19.2'nin 3.13+ tekerleği yok | Hedef 3.12; launcher üst sınırı `<3.13` (ORT sürümünden bağımsız); 3.13+ ancak tam paket orada yeşil koşunca açılır | docs/16: 1.30.0 ORT engelini kaldırır ama öteki paketler sınanmadı | S19 |
 | Ç29 | CLAUDE.md §4 "fabrikada tek container" | Ses/BT host soketi ister (R36); GPU ayrı paket ister (E12) | Tek container korunur. Ses için varsayılan **(A)**: imaja `pulseaudio-utils`, host ses soketi bağlanır (§7.6); `/run/dbus:ro` yalnız BT bekçisi yazılırsa. GPU ayrı imaj değişkeni. systemd/host kurulumu varsayılan **değildir**: CLAUDE.md §4 değişikliği gerektirir, operatör kararıdır | CLAUDE.md §4 ve docs/09 #4 sabit; host'ta venv + systemd birimi + ayrı güncelleme yolu imaja tek apt paketi eklemekten fazla parçadır | **S1, S29** |
 | Ç30 | docs/09 "CPU ile 3-4 kamera bile KKD için yetersiz" | Ölçüm: `tiny` 4 × 6 fps'i %100 karşılıyor | GPU gerekçesi `s` modeline ve KKD maliyetine bağlanır; KKD maliyeti ölçülecek | AUDIT-OLCUM §1.3 | S1 |
-| Ç31 | CLAUDE.md §5 `egitim/` ve `modeller.py` var diyor | İkisi de yok | `egitim/` Faz 3'te açılır; `modeller.py` açılmaz, CLAUDE.md düzeltilir | - | - |
+| Ç31 | CLAUDE.md §5 `egitim/` ve `modeller.py` var diyor | İkisi de yok | `egitim/` Faz 3'te açılır; `modeller.py` açılmaz, CLAUDE.md düzeltilir. **Uygulandı:** `backend/app/egitim/` açıldı; `modeller.py` açılmadı | - | - |
 | Ç32 | §4.9 saklama varsayılanı 30 gün | `.env` 180/90 (`ayarlar.py:272-275`); KVKK'da sabit gün yok (docs/16 P28) | Varsayılan değişmez | Gün sayısını müşteri ve avukat belirler | S5 |
 | Ç33 | §6 `tests/fixtures/videos` altında saha klipleri | KVKK ve Rev.02 (docs/00:63-64) | Sentetik video + senaryolu sahte dedektör; saha klibi depoya girmez | - | - |
 | Ç34 | §4.5 `RESTRICTED_ENTRY` ≥1 sn | Hazır kural şema varsayılanı 2 sn (`parametreler.py:25`); `test_hazir_kurallar.py:109-112` | 2 sn kalır; 1 sn gölge ölçümüne bağlı | Yanlış alarm disiplini (docs/00:20-22) | S25 |
@@ -201,7 +216,18 @@ olur mu" (CLAUDE.md §3) cevaplanmıştır.
 | `analiz/bekci.py`, `rules/olay_kodu.py`, `rules/olay_durumu.py`, `egitim/` | Yeni Python dosyası (stdlib) | Ürün | Bekçi: hayır (R5); olay kodu/durumu: hayır (§4.5 olay sözlüğü ve yaşam döngüsü); `egitim/`: veri seti ve rapor için | - |
 | sema 007-010 | SQL betiği | Ürün | Hayır (olay yaşam döngüsü, kanal, KVKK izleri) | Her göç onu kullanan fazla gelir |
 
-Yeni pip paketi yalnız GPU imajındadır; CPU ürünü yeni kütüphane almaz.
+Yeni pip paketi yalnız GPU imajında olacaktı; o imaj yapılmadı (S1). Sunucu bağımlılıkları
+(`backend/requirements.txt`) yeni kütüphane almadı.
+
+**Uygulandı (24.09.2026):** `pulseaudio-utils` fabrika imajına girdi (imaj derlenmediği için
+paket adı hâlâ DOĞRULANMADI, §7.6); `bluez` bekçisi ve YuNet kodlanmadı (S9, S27). Yeni Python
+dosyaları bu dördünden fazladır, hepsi stdlib ya da zaten kurulu paketlerle: ayrıca
+`olaylar/dagitici.py`, `ekran.py`, `kanal_sagligi.py`, `kanallar.py`, `teslim.py`, `ton.py`,
+`uyari_arsivi.py`, `web/kaynak_denetimi.py`, `erisim_izi.py`, `kkd_karnesi.py` ve
+`app/csv_yazici.py`; `egitim/` ürün içinde `backend/app/egitim/`'dir. Plan dışında iki parça daha
+geldi: forklift eğitim hattı (`egitim/forklift/`, GitHub Actions'ın CPU makinesi; ürün dışı,
+CLAUDE.md §4 istisnası, §12.3) ve yalnız paketli masaüstü uygulamasına giren `pywebview` (§16,
+CLAUDE.md §4 istisnası). Eğitim ortamı satırındaki "uzman makinesi" KKD eğitimi içindir.
 
 ### 3.2 Bileşen diyagramı
 
@@ -250,6 +276,12 @@ Disk: veri/dalsan.db (WAL, veritabani.py:64) · veri/goruntuler/ · veri/sesler/
 
 İş parçacığı sayısı bugün sınırsızdır, çünkü her anons yeni bir daemon açar. v2'de sınırlıdır.
 
+**Uygulandı (4a-3, 4b):** işçi kanal satırına değil çıkışa bağlıdır (`uyari-<tür>-<sıra>`,
+ör. `uyari-ses_karti-1`; `olaylar/dagitici.py` `CikisIscisi`): iki satır aynı hoparlörü
+gösteriyorsa tek işçi ve tek kuyruk vardır ve ses bir kez çalar. Teslim kayıtları ayrıca tek bir `uyari-kayit` iş parçacığından yazılır
+(`olaylar/teslim.py`). `anons-saglik` `AnonsYoneticisi`'nin içindedir; yoklama ve durum makinesi
+`olaylar/kanal_sagligi.py`'dedir.
+
 ### 3.4 Bir ihlalin yolculuğu
 
 | # | Adım | Bugün (dosya:satır) | v2 değişikliği | Faz |
@@ -257,7 +289,7 @@ Disk: veri/dalsan.db (WAL, veritabani.py:64) · veri/goruntuler/ · veri/sesler/
 | 1 | Okuma | `kamera.py:279` `read()`; son kare + monotonic zaman `:306-310` | `VideoCapture(url, CAP_FFMPEG, [OPEN_TIMEOUT_MSEC, 5000, READ_TIMEOUT_MSEC, 10000])` `.env`'den (docs/16 §8). Kazanç: donan akışta `read()` FFmpeg'in 30 sn varsayılanı yerine 10 sn'de döner ve yeniden bağlanma erken başlar; "çevrimdışı" kararı zaten zamana bağlıdır (`kamera.py:119-136`) | F2 |
 | 2 | Örnekleme, geri basınç | `supervizor.py:516-524`, aynı kare atlanır | değişmez (§4.9 geri basınç zaten var) | - |
 | 3 | Tespit + takip | `boru_hatti.py:181-185`; `takip.py:32` | `lost_track_buffer = int(TAKIP_HAFIZA_SN × 30)` | F2 |
-| 4 | KKD gözlemi | `boru_hatti.py:286-310`; model yok → `:293` döner | ORT çıkarımı; kadans `.env KKD_KARE_ARALIGI` (bugün sabit `:49`); kırpık netliği | F3 |
+| 4 | KKD gözlemi | `boru_hatti.py:286-310`; model yok → `:293` döner | ORT çıkarımı; kadans `.env KKD_KARE_ARALIGI` (bugün sabit `:49`; `.env`'e taşınması uygulanmadı, §3.7); kırpık netliği | F3 |
 | 5 | Kural | `supervizor.py:528` → `boru_hatti.py:189` → `motor.py:106-132` | kurala `simdi` yerine kare zamanı (R29); motor ayrıca `gecisleri_al()` verir: `acildi / hatirlatma / kapandi` | F2 |
 | 6 | Kayıt | `supervizor.py:546` → `yazici.py:22-61` (fotoğraf önce) | `event_code`, `severity`; `kapandi` → `UPDATE events SET resolved_at`; hata olursa CRITICAL günlük ve adım 7 yine çalışır | F2 |
 | 7 | Uyarı | gölge `supervizor.py:555`; `duyur` `:563` → `anons.py:307` | F4: dağıtıcı → bölümün TÜM kanalları → geri düşüş → `alert_deliveries` | F2/F4 |
@@ -293,6 +325,11 @@ v2 sırası:
 5. `_ihlali_kaydet(baglanti, hat, ihlal, simdi)` ve `duyur(kamera_id, kamera_alani, zaman_s,
    mesaj)` imzaları korunur; yeni bilgi (olay kodu, önem, olay id, aşama) yalnız isteğe bağlı
    anahtar kelime argümanı `olay=None` olarak geçer (§7.1).
+
+**Uygulandı (2d-1):** iki çağrı tipli hata listesiyle değil her istisnayla yakalanır
+(`except Exception`, CRITICAL günlük): hangi türde olursa olsun kayıt hatası uyarıyı
+susturmamalı. `olay_yazilamadi` bir sonraki başarılı kayıtta kalkar. `duyur`'a yeni bilgi
+`olay: OlayBilgisi | None = None` anahtar kelimesiyle geçer.
 
 ### 3.6 Bekçi (watchdog) tasarımı
 
@@ -357,6 +394,17 @@ o zaman bluez sink'lerinde hep çalışır; açma anahtarı gereksiz parça).
 Sayım: bugün 33 anahtar (`.env.example`). Koşulsuz 19 yeni, 3 emekli → **49**; koşullu 6'nın
 hepsi açılırsa 55.
 
+**Uygulandı (24.09.2026):** `KKD_KARE_ARALIGI` `.env`'e taşınmadı: kadans
+`analiz/boru_hatti.py`'deki `_KKD_KARE_ARALIGI = 5` sabitidir. `DISK_DUR_GB` yazılmadı (S35
+açık). `KKD_MODEL_DOSYASI`'nın varsayılanı boş değil `models/kkd.onnx`'tir; dosya yoksa KKD
+kuralı olay üretmez. `KAMERA_UP_KARARLILIK_SN`, `RTSP_ACILIS_ZAMAN_ASIMI_MS` ve
+`RTSP_OKUMA_ZAMAN_ASIMI_MS` yalnız `.env`'dedir, Ayarlar sayfasında satırları yoktur;
+`tests/test_ayarlar.py`'nin iki yönlü eşitliği kodun okuduğu anahtarlarla `.env.example`
+arasındadır. Operatör isteğiyle `UYARI_KAYDI_ARSIV_GUN` (15) ve `UYARI_KAYDI_ARSIV_KLASORU`
+(boş) eklendi (§16). `.env.example`'daki anahtar sayısı 49'dur: 33 + 17 yeni (planın 19'undan
+`KKD_KARE_ARALIGI` ve `DISK_DUR_GB` yok) - 3 emekli + 2 arşiv anahtarı. F4'ün üç anahtarı ve
+`KKD_MODEL_DOSYASI` dataclass'a varsayılansız alan olarak eklendi.
+
 ### 3.8 Dosya değişiklik haritası
 
 | Dosya | Değişiklik | Faz |
@@ -400,6 +448,20 @@ hepsi açılırsa 55.
 | `masaustu/dalsan_launcher.py` | Python üst sınırı `(3,12) <= v < (3,13)` (`:209`); `hazir=false` / `uyari_garantisi` satırı | F2 |
 | `docs/03`, `docs/04`, `docs/06`, `docs/07`, `docs/14`, `docs/kkd-politika.md`, `docs/18-KVKK.md`, `CLAUDE.md` | §13'te fazına göre | F2-F5 |
 
+**Uygulandı (24.09.2026), tablodan ayrılanlar:** `rules/tipler.py` `SINIF_KATALOGU`'nu,
+`analiz/takip.py` katalog kimliğini almadı (§4.1); `analiz/boru_hatti.py` KKD kadansını
+`.env`'den okumaz (§3.7). Host izin listesi ve köken denetimi `web/kaynak_denetimi.py`'ye yazıldı,
+`uygulama.py` onu ara katman olarak ekler; bekçi ve `SYSTEM_STARTED/STOPPED` lifespan'de değil
+süpervizördedir. `olaylar/anons.py`'nin F4 işi yeni modüllere dağıldı: çıkış işçisi ve kuyruk
+`olaylar/dagitici.py`, kanal sağlığı `kanal_sagligi.py`, `.env`'den tek seferlik aktarım
+`kanallar.py`, teslim kaydı `teslim.py`, ekran istemci sayacı `ekran.py`; kanal adaptörlerinde
+`saglik()` yöntemi yoktur (§7.1). Olay kodu ve önem adları `web/ortak.py`'de değil
+`rules/olay_kodu.py`'dedir. `olaylar/yazici.py`'de bitişi yazan işlevler `olay_kapat()` ve
+`acik_olaylari_kapat()`'tır. Tabloda olmayan yeni dosyalar: `olaylar/ton.py`,
+`olaylar/uyari_arsivi.py`, `web/erisim_izi.py`, `web/kkd_karnesi.py`, `app/csv_yazici.py`,
+`web/static/sistem_seridi.js`, `docker-compose.ses.yml`. GPU imajı ve R32 (root olmayan
+kullanıcı) yapılmadı (S1).
+
 ---
 
 ## 4. Sınıflar ve bölgeler (kapalı sınıf listesi ve id'ler; bölge tipleri; ayak noktası; saklama yeri)
@@ -425,6 +487,14 @@ Arayüz (kural formu, renk anahtarı) yalnız **aktif modelin ürettiği** sın�
 kullanıcı hiç görünmeyecek bir sınıfa kural kuramaz. `web/ortak.py:45` (`SINIFLAR`),
 `tespit.py` `SINIF_TR` ve `SINIF_OVERLAY` Türkçe/ASCII adları katalogla bir testle eşit tutulur.
 Arayüz, model ayırana kadar "Tır/Araç" demeye devam eder.
+
+**Uygulanmadı (24.09.2026):** `SINIF_KATALOGU` yazılmadı. Tanınan sınıflar yine `rules/tipler.py`
+`TANINAN_SINIFLAR`'dır (person, truck, forklift) ve takip numarası bu sıradan türer
+(`analiz/takip.py`); modelin hangi sınıfları ürettiği üst veriden okunur (§4.2). Kural formunun
+sınıf kutuları sabit `web/ortak.py` `SINIFLAR`'dan (İnsan, Forklift, Tır/Araç) gelir, renk
+anahtarı (`templates/renk_anahtari.html`) da üç sınıfı her zaman gösterir; çalışan modele uymayan
+araç kuralını kurulum listesinin 10. adımı söyler (§12.3-5).
+`SINIFLAR`, `SINIF_TR` ve `SINIF_OVERLAY`'i eşit tutan bir test yok.
 
 ### 4.2 Model → sınıf eşlemesi
 
@@ -645,7 +715,7 @@ karar belirsize dönerse olayın kapandığını (süresinin ihlal olarak uzamad
   `.env`'de **değil**: `.env` restart ister (`ayarlar.py:39` `frozen=True`, `ayar_rotalari.py:18`)
   ve Docker'da salt okunurdu (R27); `.env`'de dursaydı operatör toplamayı "kapattığında"
   yeniden başlatmaya kadar kırpık toplanmaya devam ederdi (KVKK açığı). Açmak için `/kkd`
-  sayfasında "Rev.02 ek protokolü imzalandı, çalışan aydınlatması yapıldı" onayı istenir;
+  sayfasında "Rev.02 ek protokolü imzalandı ve çalışanlara aydınlatma yapıldı" onayı istenir;
   açılış ve kapanış `PPE_COLLECTION_CHANGED` sistem olayı (Faz 5'ten sonra ayrıca
   `access_log`) olarak kaydedilir. `_kkd_ornekle` (`supervizor.py:582`) örnek yazmadan hemen önce
   satırı okur (saatte en çok `KKD_ORNEK_SAAT_LIMIT` kez, ucuz); kapatma **gecikmesizdir**.
@@ -662,6 +732,9 @@ karar belirsize dönerse olayın kapandığını (süresinin ihlal olarak uzamad
   `ppe_samples.hard_case` ile işaretlenir. Etiketleme mevcut üç düğmeyle.
 - **Bölme:** kamera + yerel gün grupları; rastgele bölme yasak (docs/04 §5.4).
   `egitim/veri_seti.py` bunu zorlar; bir test "aynı kamera ve gün iki kümede olamaz" der.
+  **Uygulandı (F3b):** bölmenin birimi yerel gündür: bir günün bütün kameraları aynı kümeye
+  düşer, günler kronolojik ayrılır; kamera × gün grubu da böylece iki kümeye bölünmez
+  (`backend/app/egitim/veri_seti.py`).
 - **Dışa aktarım:** stdlib `zipfile`; kırpıklar + etiket CSV'si + bölme + sha256 manifest.
 - **Eğitim (ürün dışı, Ç37):** ayrı venv, PyTorch, GPU'lu makine; operatör dışı, uzman işi,
   tek seferlik (S11, S31). Adımları docs/04 §6'ya runbook olarak yazılır; CLAUDE.md §5'teki
@@ -693,7 +766,8 @@ karar belirsize dönerse olayın kapandığını (süresinin ihlal olarak uzamad
 ### 5.10 Operatörün göreceği
 
 - Kamera önizlemesinde kişi kutusu yeşil (uyumlu), kırmızı (eksik) ya da gri (belirsiz).
-- Olay listesinde "Baret yok - Yüksek - gölge" satırları.
+- Olay listesinde "Baret yok" başlığı ve "Yüksek" önem hapı; gölge işareti ("gölge mod - anons
+  çalmadı") İnceleme ekranındadır.
 - Model dosyası yoksa KKD sayfası "Model yüklü değil: KKD kuralı olay üretmez" der; varsa model
   adı ve sürümü görünür.
 - KKD sayfasının üstünde "Veri toplama: KAPALI - Rev.02 onayı bekleniyor" ya da "AÇIK" satırı;
@@ -720,12 +794,13 @@ Durum: `exists` (var, yalnız kod verilir) · `rename` (var, adı ve önemi v2'y
 | `PERSON_IN_LOADING_AREA` | inside, person, `loading_area` (`ortak.py:359-370`) | rename | medium |
 | `VEHICLE_OUT_OF_POSITION` | outside, truck, `truck_parking` (`ortak.py:372-383`) | rename | low |
 | `VEHICLE_OVERSPEED` | `vehicle_speed` (`hiz.py`, `sema/005`) | rename | high; kalibrasyon şart (`motor.py:36`) |
-| `ZONE_INTRUSION` | sözlüğe uymayan `zone_intrusion` birleşimi | new (yedek kod) | önem kural satırından; bölge tipi `details`'te |
+| `ZONE_INTRUSION` | sözlüğe uymayan `zone_intrusion` birleşimi | new (yedek kod) | önem kural satırından; bölge tipi `details`'te. **Uygulandı:** varsayılan önem medium; kural satırında açık önem varsa o geçerlidir (bütün satırlar `warning` olduğundan "kural satırından" bir değer çıkmıyordu) |
 | `CAMERA_DOWN` | sistem olayı "Kamera çevrimdışı" (`supervizor.py:662-669`); eşik `kamera.py:50` (60 sn) | rename | system. Kamera bir kez çevrimiçi olduktan sonra 10 sn; ilk bağlantıda 60 sn tolerans. `resolved_at`, UP gelince yazılır |
 | `CAMERA_UP` | "Kamera tekrar çevrimiçi" (`supervizor.py:670-672`) | rename | system; 5 sn kesintisiz kare şartı; anlık (`resolved_at = occurred_at`) |
 | `VIDEO_FINISHED` | "Video analizi tamamlandı" (`supervizor.py:656-661`) | rename | system, anlık; yalnız tek geçişlik video |
-| `DISK_LOW` | "Disk azalıyor" (`supervizor.py:748-753`) | rename | system. Faz 5: `DISK_DUR_GB` altında kanıt fotoğrafı yazımı durur, olay kaydı sürer |
+| `DISK_LOW` | "Disk azalıyor" (`supervizor.py:748-753`) | rename | system. Faz 5: `DISK_DUR_GB` altında kanıt fotoğrafı yazımı durur, olay kaydı sürer (uygulanmadı, S35 açık) |
 | `MODEL_LOAD_FAILED` | "Tespit modeli yüklenemedi" (`supervizor.py:292`, tipli hata yolu). Genel istisna yolu (`:222-233`) bugün olay yazmıyor | rename + genişletme | system. İki yol da bu kodu yazar. KKD modeli ve sha256 uyuşmazlığı da bu kod. Veritabanı açılamazsa (`:209-220`) olay yazılamaz; yalnız günlük + `/saglik` sorunu |
+| `MODEL_FALLBACK` | yok (plan dışı; 24.09.2026'da eklendi) | new | system; seçili forklift modeli inmez ya da açılamazsa sistem tabanındaki hazır modelle çalışır (§12.3-8). Ayrıntıda sebep yazar, indirme adresi ve dosya yolu yazmaz; `/saglik` `model_yedekte` (`hazir`'ı bozmaz) |
 | `INFERENCE_DEVICE_FALLBACK` | `cihaz_uyarisi` sistem olayı (`supervizor.py:274-277`) | rename | system; CUDA istenip CPU'ya düşülünce |
 | `ANALYSIS_STALLED` | yok (bekçi yok, R5) | new | system; `bekci.py` (§3.6) |
 | `ANALYSIS_DEGRADED` | yok (kare işleme hatası yalnız günlükte, `supervizor.py:529-532`) | new | system; işlenen fps `FPS_UYARI_ORANI` (mevcut, 0,6) × hedefin altında `ANALIZ_YAVAS_SURE_SN` (öneri 60) kalırsa ya da kamera hattı ardışık hata sayısı `ANALIZ_HATA_ESIGI`'ni (öneri 30) aşarsa |
@@ -752,7 +827,7 @@ sistem şeridi, günlük ve (F4, S4 "evet" ise) webhook'a gider.
 | `track_id` | `details.takip_idler` (`yazici.py:50-54`); mesafede iki iz | var (details'te) |
 | `type` | `events.event_code` (007); 007 öncesi olayda kural tipi | yeni |
 | `severity` | `events.severity` (007) | yeni |
-| `confidence` | `details.guven`: tespit güveni ortalaması; KKD'de karar penceresindeki sınıflandırıcı güveni ortalaması. **Modelin skorudur, ölçülmüş doğruluk değildir**; ekranda "model güveni" diye yazılır | yeni (F2, KKD kısmı F3) |
+| `confidence` | `details.guven`: tespit güveni ortalaması; KKD'de karar penceresindeki sınıflandırıcı güveni ortalaması. **Modelin skorudur, ölçülmüş doğruluk değildir**; ekranda "model güveni" diye yazılır | yeni (F2, KKD kısmı F3); **uygulanmadı**: olaylarda `details.guven` yok, KKD olayında yalnız kalem kararının `mean_conf`'u var (`details.ppe`) |
 | `zone` | `events.rule_snapshot` içindeki `zone_id` (kural satırının anlık görüntüsü, `yazici.py:51`; bölgenin adı/poligonu değil) | var (kimlik olarak) |
 | `started_at` | `events.occurred_at` | var |
 | `resolved_at` | `events.resolved_at` (007) | yeni |
@@ -778,7 +853,7 @@ sistem şeridi, günlük ve (F4, S4 "evet" ise) webhook'a gider.
 | Kopukluk eşiği (`kamera.py:50`, 60) | `.env KAMERA_KOPUK_ESIGI_SN` (10) | CAMERA_DOWN üretir |
 | İlk bağlantı toleransı (aynı sabitten ayrılır, 60) | belgelenmiş sabit `ILK_BAGLANTI_TOLERANSI_SN` | Yalnız hiç bağlanmamış kameranın ilk dakikası; ekranda "bağlanıyor" görünür |
 | CAMERA_UP kararlılığı (yeni, 5 sn) | `.env KAMERA_UP_KARARLILIK_SN` | UP olayı ve olay seli (S18) |
-| KKD kare aralığı (`boru_hatti.py:49`, 5) | `.env KKD_KARE_ARALIGI` | KKD kararının hızı ve CPU |
+| KKD kare aralığı (`boru_hatti.py:49`, 5) | `.env KKD_KARE_ARALIGI` (**uygulanmadı**: `boru_hatti.py`'de `_KKD_KARE_ARALIGI = 5` sabiti kaldı) | KKD kararının hızı ve CPU |
 | Kayıp toleransı (`bolge_ihlali.py:20`, `hiz.py:41`, `sayim.py:40`, 5) | süpervizör `TAKIP_HAFIZA_SN`'den türetip geçirir (§6.3) | Kalış sayacı |
 | Kamera formu örnekleme hızı (`kameralar.py:98` `Form(6)`) | `.env KARE_ORNEKLEME_FPS` okunur (bugün okunmuyor) | Hata düzeltmesi |
 | `ANALYSIS_DEGRADED` süresi ve hata sayısı (yeni) | `.env ANALIZ_YAVAS_SURE_SN`, `ANALIZ_HATA_ESIGI` | Olay üretir |
@@ -827,6 +902,15 @@ class OlayGecisi:
     ihlal: Ihlal | None
     sebep: str = ""  # kapandi: kosul_bitti | belirsiz | iz_kayboldu | kural_degisti | kapanis | yeniden_baslama
 ```
+
+**Uygulandı (2c-3):** `rules/olay_durumu.py` taslaktan şu noktalarda ayrılır: `guncelle` kural
+sözlüğü yerine `bitis_sureleri` (kural id → `bitis_s`), `belirsizler` (KKD'de kararı belirsize
+dönen anahtarlar) ve `gorulen_izler` alır; `aktif_anahtarlar()` argümansızdır ve KKD
+değerlendiricisi ayrıca `belirsiz_anahtarlar()` verir; `OlayGecisi` kapanışta koşulun son
+görüldüğü anı (`son_aktif_s`) taşır ve bitiş odur. Kapanış sebeplerine `kamera_degisti`,
+`kamera_koptu`, `hat_yenilendi` ve `kanal_degisti` eklendi (`rules/olay_kodu.py`
+`KAPANIS_SEBEPLERI`). `bitis_s`'in varsayılanı 3 sn, `histerezis_m`'nin 0,5 m'dir
+(`rules/parametreler.py`).
 
 - **Açılış:** değerlendiricinin ürettiği `Ihlal` için anahtar açık değilse `acildi` → yeni olay
   satırı.
@@ -890,7 +974,7 @@ class OlayGecisi:
   birine bir test.
 - R21 düzeltmesi: mesafe kuralı pasif bölgeyi de denetler (`mesafe.py:34`). `hiz_mps=None`
   "duruyor" sayılmaya devam eder (`:60`); bu kaçırma yönünde bilinçli bir sapmadır ve docs/03'e
-  yazılır.
+  yazılır (24.09.2026'da henüz yazılmadı).
 
 ---
 
@@ -906,12 +990,19 @@ class OlayGecisi:
 | `AlertDispatcher` | `AnonsYoneticisi` (`anons.py:275`) | **aynı sınıf, aynı genel API** (`duyur`, `hemen_cal`, `bolge_sec`, `son_sonuc`, `ad`). Korunan iç noktalar: `duyur(kamera_id, kamera_alani, zaman_s, mesaj)` konumsal imzası (yeni bilgi yalnız `olay=None` anahtar kelimesiyle), `_cal_ve_kaydet` (tek kanal çal + kaydet). Değişen iç noktalar: `_anonscu` ve `_hedef_anonscu` (bugün yalnız HTTP adresini değiştirir, `:338-349`) kanal satırlarına geçer. **"Kırılmadan evrilir" iddiası geri alındı:** testlerin bir kısmı iç yapıya bağlı ve F2/F4'te bilinçli güncellenir (§4.6: `test_anons_baglama.py:116`, `test_uyari_ve_anons.py:196`, `test_platform_uyumu.py:195`, `test_komuta_uyari_ve_anons.py:405-456`) |
 | Hoparlör bölgeleri | `speaker_zones` + `bolge_sec` (`:245`, ilk eşleşeni döndürür); yalnız HTTP'de anlamlı (`:338-349`) | bölüm başına kanal satırı (`kind`, `device`); çoğul `bolgeleri_sec`; "Tüm fabrika" satırı (`area=''`) kurulumun varsayılan kanalıdır ve `.env ANONS*`'ın yerini alır (K22) |
 
+**Uygulandı (4a, 4b):** `cal(anahtar, metin, ses_dosyasi, kes=None)` isteğe bağlı `olay` değil
+kesme işareti (`kes`) alır (webhook kodlanmadı). Kanal sağlığı adaptörde `saglik()` yöntemiyle
+değil `olaylar/kanal_sagligi.py` `kanal_yokla()` ile üç değerli yoklanır. `AnonsYoneticisi` adını
+ve `duyur`, `hemen_cal`, `bolge_sec`, `son_sonuc`, `ad`'ı korur; `duyur`'a yeni bilgi
+`olay: OlayBilgisi | None = None` ile geçer; kuyruk ve işçi `olaylar/dagitici.py`'dedir.
+`_anonscu` kalktı, `_hedef_anonscu` kanal satırının adaptörünü döndürür.
+
 ### 7.2 Kanal listesi
 
 | Kanal | Bu turda mı | Sınıf | Sağlık sinyali |
 |---|---|---|---|
 | Ekran (dashboard) | **Evet**, her zaman açık, kapatılamaz; **garantiye sayılmaz** (§7.4) | SSE `olaylar_web.py:98` + `canli.js` + `uyari.js`; F2'de komuta kabuğu da yükler | ≥1 bağlı SSE istemcisi (üreteç açılışta sayacı artırır, `finally`'de azaltır); yalnız bilgi olarak gösterilir. Kontrol Paneli başlangıçta izleme penceresini kendisi açtığı için (`dalsan_launcher.py:990` → `/` → `ana_sayfa.html:124` `canli.js` → `canli.js:18` `EventSource`) bu sayaç simge durumundaki bir pencereyle de ≥1 olur; garantiye sayılmamasının nedeni budur. HTTP/1.1'de tarayıcı başına 6 bağlantı sınırı docs/06'ya yazılır |
-| Ses kartı: kablolu ya da Bluetooth sink | **Evet** | `SesKartiAnonscu(device)` | Linux: satırın **zorunlu** hedef sink'i (`device`) `pactl list short sinks`'te var mı (`ses_cihazlari.py:142-159`); bluez sink'inde adres deseniyle eşlenir (profil soneki yeniden bağlanmada değişebilir, DOĞRULANMADI). "Boş = varsayılan sink" seçeneği **kalkar**: `pactl get-default-sink` o anki etkin varsayılanı döndürdüğü için denetim totolojikti; Bluetooth hoparlör koparsa ses sunucusu varsayılanı dahili çıkışa ya da `auto_null`'a devredebilir (Ubuntu 24.04'te `module-switch-on-connect` yüklü, docs/16:319; hedef sunucuda DOĞRULANMADI) ve `paplay` "ok" dönerdi. Satır `paplay --device=<device>` ile yalnız o sink'e çalar; sink yoksa False. Eski boş kayıt (R37 öncesi) `None` ("beklenen çıkış bilinmiyor") olur, asla `True` değil. Çalıcı yoksa (container, R36) False. macOS/Windows: None (§7.7) |
+| Ses kartı: kablolu ya da Bluetooth sink | **Evet** | `SesKartiAnonscu(device)` | Linux: satırın **zorunlu** hedef sink'i (`device`) `pactl list short sinks`'te var mı (`ses_cihazlari.py:142-159`); bluez sink'inde adres deseniyle eşlenir (profil soneki yeniden bağlanmada değişebilir, DOĞRULANMADI). "Boş = varsayılan sink" seçeneği **kalkar**: `pactl get-default-sink` o anki etkin varsayılanı döndürdüğü için denetim totolojikti; Bluetooth hoparlör koparsa ses sunucusu varsayılanı dahili çıkışa ya da `auto_null`'a devredebilir (Ubuntu 24.04'te `module-switch-on-connect` yüklü, docs/16:319; hedef sunucuda DOĞRULANMADI) ve `paplay` "ok" dönerdi. Satır `paplay --device=<device>` ile yalnız o sink'e çalar; sink yoksa False. Eski boş kayıt (R37 öncesi) `None` ("beklenen çıkış bilinmiyor") olur, asla `True` değil. Çalıcı yoksa (container, R36) ya da ses sunucusuna bağlanılamıyorsa (4e) False. macOS: varsayılan çıkışa bakar, Windows: None (§7.7) |
 | IP hoparlör | **Evet** | `HttpAnonscu(address)` | Adresin host:port'una TCP bağlantısı ≤3 sn (belgelenmiş sabit; ses çalmaz; `kamera.py` `_on_kontrol` deseni) + son gönderimin sonucu. Adres önce R30 doğrulamasından geçer (F4a; loopback/link-local reddi). "Ulaşılabilir" duyuldu demek değildir |
 | Webhook | **Yalnız S4 "alıcı sistem var" ise** kodlanır; yoksa docs/07 | yeni `WebhookAnonscu`: JSON gövde (olay kodu, önem, kamera id, bölüm, zaman, olay id, aşama), `X-Dalsan-Zaman` ve `X-Dalsan-Imza: sha256=HMAC(sır, zaman + "." + gövde)`; stdlib `hmac`/`hashlib`; `http_gonder` (`anons.py:197`) yeniden kullanılır; sır yalnız `.env` ve günlüğe yazılmaz; adres R30 doğrulamasından geçer | Son gönderimin sonucu |
 | Mesajlaşma (e-posta/SMS/Telegram) | Hayır | - | docs/07 #4 |
@@ -932,10 +1023,15 @@ kalır; bu sınır §15'e yazılıdır.
    kez oluşturulur (hiç "Tüm fabrika" satırı yoksa ve `ANONS != null` ise; aktarım günlüğe
    yazılır); böylece bugünkü kurulumun duyulur davranışı aynen sürer ve kanal bilgisinin tek yeri
    `speaker_zones` olur (K22). Geri düşülecek satır da yoksa `/saglik` `yedek_ses_kanali_yok`;
-   hiç sesli kanal yoksa `sesli_kanal_yok` (Ç39).
+   hiç sesli kanal yoksa `sesli_kanal_yok` (Ç39). **Uygulandı (4a-2a):** `ANONS=null` ya da
+   `ses_karti` iken o güne dek kullanılmayan açık hoparlör satırları kapalı aktarılır (duyulan
+   davranış değişmesin); aktarım bir kez yapılır ve `sema_surumu`'na adım olarak yazılır
+   (`olaylar/kanallar.py`).
 2. **Kanal başına tek işçi:** her kanalın bir `queue.PriorityQueue`'su ve tek işçi iş parçacığı
    var. Aynı çıkışta aynı anda tek ses çalar; farklı bölümlerin hoparlörleri birbirini beklemez.
-   Sıra: önem (critical 0 … low 3), sonra kuyruğa giriş zamanı.
+   Sıra: önem (critical 0 … low 3), sonra kuyruğa giriş zamanı. **Uygulandı (4a-3):** işçi
+   kanal satırına değil çıkışa bağlıdır; aynı hoparlörü gösteren iki satır tek kuyruğu paylaşır.
+   Deneme ve test sesi en sona girer.
 3. **CRITICAL kesme:** ses kartı çalıcısı `subprocess.run` (`anons.py:140`) yerine `Popen` +
    100 ms `poll`. Kuyruğa CRITICAL düşünce çalan düşük öncelikli ses `terminate` edilir.
    Windows'ta `winsound.PlaySound(None, 0)`. HTTP isteği kesilemez; yalnız sıra öne alınır
@@ -962,7 +1058,9 @@ kalır; bu sınır §15'e yazılıdır.
 9. **Gölge mod** değişmez (`supervizor.py:555`): olay yazılır, dağıtıcıya gitmez; yalnız
    `alert_deliveries.result='shadow'` yazılır ki "anons çalsaydı" sayısı bilinsin.
 10. **Kayıt:** her deneme `alert_deliveries`'e (009) yazılır; bu docs/07 #16'yı kapatır.
-    `_son_anonsu_yaz` (`anons.py:368`) gibi kendi kısa bağlantısını açar.
+    `_son_anonsu_yaz` (`anons.py:368`) gibi kendi kısa bağlantısını açar. **Uygulandı (4a-3):**
+    kayıtlar ayrı, tek bir yazıcı iş parçacığından (`uyari-kayit`, `olaylar/teslim.py`) yazılır;
+    `_son_anonsu_yaz` da oradan geçer.
 11. **Kapanış:** süreç kapanırken kuyruk boşaltılır (en fazla birkaç saniye beklenir,
     critical önce).
 
@@ -978,8 +1076,9 @@ BAGLI ──False──▶ SUPHELI ──(kesintisiz False ≥ ANONS_KOPUK_ESIGI
 None ──▶ BILINMIYOR   olay YOK · ekranda gri · garanti göstergesinde sağlıklı SAYILMAZ · gönderim yine DENENİR
 ```
 
-Sonuç `speaker_zones.health` sütununa yazılır. Mac/Windows geliştirme makinesi `None` döndüğü
-için sahte arıza üretmez.
+Sonuç `speaker_zones.health` sütununa yazılır. Windows her zaman, Mac beklenen çıkış yazılmamışsa
+ya da varsayılan çıkış okunamıyorsa `None` döndüğü için sahte arıza üretmez; Mac'te beklenen
+çıkış yazılmış ve varsayılan başka bir cihazsa sonuç False'tur (§7.7).
 
 **Garanti (iki parça):**
 
@@ -1072,6 +1171,14 @@ varsayılanı (A), seçim operatörün (S29):
   birimi ve imajdan ayrı bir güncelleme yolu, imaja tek apt paketi eklemekten fazla parçadır.
   CLAUDE.md §4 değişikliği gerektirir; yalnız operatör açıkça isterse (S1, S29).
 
+**Uygulandı (4e-1, S29 yol A):** imaja `pulseaudio-utils` girdi (`Dockerfile`); ses yolu isteğe
+bağlı `docker-compose.ses.yml` ile açılır: host'un PulseAudio/PipeWire soketi bağlanır,
+`PULSE_SERVER` tanımlanır, container soketin sahibinin numarasıyla (`DALSAN_UID`) çalışır.
+`privileged`, host ağı, `NET_ADMIN`/`NET_RAW`, `/dev/snd` ve `/run/dbus` verilmez
+(`tests/test_kapsayici_ses.py`); ana compose'daki `/dev/snd` önerisi kalktı. Bekçi yazılmadığı
+için D-Bus bağlanmaz. Ses sunucusuna bağlanılamıyorsa ses çıkışı kanalı "koptu" sayılır. İmaj
+bu ortamda derlenmedi: paket adı ve yol hedef sunucuda hâlâ DOĞRULANMADI.
+
 ### 7.7 Windows / macOS
 
 - Eşleştirme ve yeniden bağlanma işletim sistemindedir. Windows'ta programatik eşleştirmede
@@ -1088,7 +1195,8 @@ varsayılanı (A), seçim operatörün (S29):
 
 ### 7.8 Test sesi
 
-- Kanal tablosunda her satırda kendi "Test sesi" düğmesi; ses o kanaldan çıkar.
+- Kanal tablosunda her satırda kendi "Test sesi" düğmesi; ses o kanaldan çıkar. **Uygulandı
+  (4a-2c):** düğmenin adı "▶ Dene"dir, Komuta → Anons'taki "Uyarı kanalları" listesinde.
 - R39 düzeltmesi: test sesi bellekteki eski ayara değil formdaki/satırdaki cihaza çalar
   (bugün `anons_web.py:119` eski çıkışa çalıyor).
 - Sonuç ekranda "yazılım gecikmesi: … ms" olarak gösterilir (§7.10) ve `alert_deliveries`'e
@@ -1153,6 +1261,9 @@ uygulandı: on sürüm kaydı, bölge 3 / kural 4, kural bağı korundu, `foreig
 olay 0, mesaj 8, kapı satırı `(1, 0)`, `event_code` NULL test satırı yazılabildi, CASCADE yerinde;
 `EXPLAIN QUERY PLAN` hem `resolved_at > ?` hem `resolved_at IS NULL` için
 `idx_events_resolved`'ı kullanıyor.
+
+**Uygulandı (2c-1):** `backend/sema/007_olay_yasam_dongusu.sql` bu taslaktır; S7 cevaplanmadığı
+için 4. blok (`camera_calibrations` kontrol ölçümü sütunları) betiğe girmedi.
 
 ```sql
 -- 007_olay_yasam_dongusu.sql  (Faz 2)
@@ -1344,6 +1455,12 @@ ALTER TABLE cameras ADD COLUMN privacy_checked_at TEXT;
 
 Kullanılmayacak sütun bugünden açılmaz (CLAUDE.md §7): her göç, onu kullanan fazla birlikte gelir.
 
+**Uygulandı:** `008_kkd_veri.sql`, `009_uyari_kanallari.sql` ve `010_kvkk_izleri.sql` bu
+taslaklardır. Webhook (S4) ile dakika sınırı ve birleştirme (S23) kodlanmadığı için 009'un
+yorumlarında `channel` listesinde `webhook`, `result` listesinde `rate_limited` ve `coalesced`
+yoktur. Operatörün uyarı kayıtları isteğiyle (§16) `011_uyari_kaydi_arsivi.sql` eklendi:
+`purge_log.alerts_archived` ve `purge_log.alert_archive_file`.
+
 ### 8.4 Göç güvenliği
 
 - **Otomatik yedek:** `veritabani.semayi_uygula` (`:85`) işaret satırı (`YABANCI_ANAHTAR_KAPALI`,
@@ -1413,9 +1530,18 @@ kanallara bakar (§7.4).
   yeniden başlatmayı bekçi yapar.
 - Kontrol Paneli `hazir=false` ya da `uyari_garantisi=false` olunca durum satırında kırmızı,
   `uyari_garantisi=null` olunca gri Türkçe bir satır gösterir; `bizim_sunucumuz_mu` değişmez.
+  **Uygulandı (2d-3b):** bu, "Sistem durumu" satırının altındaki ayrı "Analiz" satırıdır;
+  "Sistem durumu" yine "ÇALIŞIYOR" der.
 - `okunan_fps` bugünkü `measured_fps`'tir (okuma hızı, `kamera.py:312-315`); `islenen_fps` yeni
   sayaçtır. Bugün kılavuz "işlenen" der ama okunanı gösterir (R12, `kilavuz.py:71-72`); ikisi
   ayrılır.
+
+**Uygulandı (2d-3a, 4a-3, 4b):** `hazir`'ı bozan sorunlar yalnız `analiz_takildi`, `analiz_olu`,
+`model_yuklenemedi`, `veritabani_acilamadi`, `olay_yazilamadi` ve `uyari_ulasmiyor`'dur;
+öbürleri listede görünür ama `hazir`'ı ve Docker healthcheck'ini bozmaz (`web/rotalar.py`
+`HAZIRLIGI_BOZAN_SORUNLAR`). Oturumlu ayrıntı örnekteki alanlara ek olarak `uyari_gecikmesi`
+(yazılım gecikmesi p50/p90 ve teslim oranı, son 24 saat), `ekran_istemci` ve `uyari_kuyrugu`
+taşır; kamera satırlarında ayrıca `hedef_fps` ve `yavas` vardır.
 
 ### 9.2 Metrik biçimi
 
@@ -1448,12 +1574,12 @@ dağıtımında bu kod yazılmaz (docs/07).
 | Madde | Karar | Faz |
 |---|---|---|
 | Kayıtların analiz iş parçacığındaki maliyeti (R11) | F2'de `ihlal_yaz` süresi de sayaçlara girer. Yazıcı kuyruğu **yalnız ölçüm gerektirirse** F5'te yazılır (en az parça) | F2 ölç, F5 karar |
-| Disk koruması | Bugün yalnız uyarı (`supervizor.py:748-753`). F5: `DISK_DUR_GB` (öneri 1; `DISK_UYARI_GB`=5'in altında, SQLite WAL ve günlük dönüşüne pay bırakır; S35) altında kanıt fotoğrafı ve KKD kırpığı yazımı durur; olay satırı yazılmaya devam eder. Varsayılan "kapalı" değildir: §4.9 disk doluluk korumasını ister | F5 |
+| Disk koruması | Bugün yalnız uyarı (`supervizor.py:748-753`). F5: `DISK_DUR_GB` (öneri 1; `DISK_UYARI_GB`=5'in altında, SQLite WAL ve günlük dönüşüne pay bırakır; S35) altında kanıt fotoğrafı ve KKD kırpığı yazımı durur; olay satırı yazılmaya devam eder. Varsayılan "kapalı" değildir: §4.9 disk doluluk korumasını ister | F5 (uygulanmadı, S35 açık) |
 | NTP | Kod değil belge: docs/06'ya chrony / systemd-timesyncd adımı; saat kaymasının kanıt zamanını bozduğu yazılır | F5 |
 | Düzgün kapanış | Kapanışta: kamera iş parçacıkları → açık olaylar `kapanis` ile kapanır → `SYSTEM_STOPPED` → anons kuyruğu boşaltılır | F2/F4 |
 | Sıcak yükleme | Restart'sız istenen her ayar SQLite'ta (5 sn damga); `.env` restart ister (bugünkü düzen, Ayarlar sayfası söyler) | - |
 | `sample_fps` değişince hat sıfırlanması (R34) | Takipçi yeniden kurulmadan fps güncellenir | F5 |
-| `_canli_sayim` kilitsiz okuma (R28) | `list(...)` kopyası | F2 |
+| `_canli_sayim` kilitsiz okuma (R28) | `list(...)` kopyası (uygulandı 24.09.2026: `toplam_canli_sayim` kopyayı dolaşır) | F2 |
 
 ---
 
@@ -1475,7 +1601,7 @@ E8 gereği dosya adı `docs/KVKK.md` değil `docs/18-KVKK.md`. Tek sayfalık uyu
 | Ses işlenmez | 2020/212; 2023/2007; 8770 | `cv2.VideoCapture` ses okumaz; belgeye "sistem ses işlemez" yazılır |
 | Amaç sınırı | 8770 (sürekli gözetim, performans/disiplin takibi meşru amaç değil); docs/00 "hukuki" maddesi | Yalnız İSG olayları; kişi bazlı rapor ve "en çok ihlal yapan" yok; uyarılar bölge/konum bazlı |
 | İnsan onayı | m.11/1-g (yalnız otomatik analize itiraz) | Kişi aleyhine sonuç doğmadan İSG uzmanı incelemesi şartı aydınlatma metnine yazılır; ürün yalnız "inceleme" işaretleri sunar |
-| Çalışan görüşü | 6331 m.18/1-b | Kurulum listesine "İSG kurulu / çalışan temsilcisine danışıldı" maddesi (uygulanabilirliği avukata sorulur) |
+| Çalışan görüşü | 6331 m.18/1-b | Kurulum listesine "İSG kurulu / çalışan temsilcisine danışıldı" maddesi (uygulanabilirliği avukata sorulur; bu yüzden eklenmedi, docs/18) |
 | Saklama | m.4/2-d, m.7; Silme Yönetmeliği (6 ayda bir periyodik imha; imha kaydı ≥3 yıl); sabit gün yok (P28) | `.env` 180/90/30/90 (`ayarlar.py:272-275`) değişmez, gün sayısını müşteri+avukat belirler (S5); bakım günlük; `purge_log` (F5) |
 | Olay dondurma | 8770 ("hukuki süreçte yalnız ilgili kayıt") | `events.hold` ve "Dondur" düğmesi (F5); bakım dondurulmuşa dokunmaz |
 | Erişim ve güvenlik | m.12; 2018/10; 8770 yetki matrisi | Tek şifre + `access_log` (F5); Faz 2a güvenlik düzeltmeleri |
@@ -1527,7 +1653,7 @@ taşıyabilecek bir sütun olmadığını doğrulayan test F2'de eklenir.
 |---|---|---|---|---|
 | R7 | Kilit adresi koşulsuz `X-Forwarded-For`'un ilk değerinden | `web/giris.py:87-97` | Doğrudan bağlantı adresi (`istek.client.host`); vekil arkasında uvicorn `--proxy-headers --forwarded-allow-ips=<vekil>` | F2a |
 | R9 | Yönetici şifresi `type="text"` ve değeriyle basılıyor | `templates/komuta_ayarlar.html:48`; `web/ayar_rotalari.py:95-100` | Alan türü `sifre`: `type="password"`, değer basılmaz, boş gönderim şifreyi değiştirmez | F2a |
-| R8 | CSRF / Origin / Host denetimi yok | `uygulama.py:97-104` | Tek ara katman, iki kural. (1) **Host izin listesi** (AUDIT R8'in önerisi): her istekte `Host` (portsuz) `127.0.0.1`, `localhost`, `SUNUCU_ADRESI` ya da `.env IZINLI_SUNUCU_ADLARI` içinde değilse 421. Origin'i `Host`'la karşılaştırmak DNS rebinding'de hiçbir şey engellemez: saldırganın alan adı sunucunun adresine yeniden çözüldüğünde `Origin` ve `Host` aynı sahte adı taşır, `Sec-Fetch-Site` `same-origin` olur. (2) Durum değiştiren isteklerde (POST) `Origin` (yoksa `Referer`) host'u izin listesinde değilse, `Origin: null` ise ya da `Sec-Fetch-Site: cross-site` ise 403. **Üç başlığın üçü de yoksa istek geçer**: CSRF vektörü her zaman bir tarayıcıdır ve güncel tarayıcılar POST'ta `Origin`'i, sayfanın bastıramayacağı `Sec-Fetch-Site`'ı gönderir; başlıksız istek tarayıcı dışı istemcidir (curl, Starlette `TestClient`; `istemci.post` 25 test dosyasında kullanılıyor ve TestClient bu başlıkları göndermiyor). Uzaktan erişimde kullanılan adlar (docs/15) listeye yazılmalıdır, yoksa 421 (§15 risk 23) | F2a |
+| R8 | CSRF / Origin / Host denetimi yok | `uygulama.py:97-104` | Tek ara katman, iki kural. (1) **Host izin listesi** (AUDIT R8'in önerisi): her istekte `Host` (portsuz) `127.0.0.1`, `localhost`, `SUNUCU_ADRESI` ya da `.env IZINLI_SUNUCU_ADLARI` içinde değilse 421. Origin'i `Host`'la karşılaştırmak DNS rebinding'de hiçbir şey engellemez: saldırganın alan adı sunucunun adresine yeniden çözüldüğünde `Origin` ve `Host` aynı sahte adı taşır, `Sec-Fetch-Site` `same-origin` olur. (2) Durum değiştiren isteklerde (POST) `Origin` (yoksa `Referer`) host'u izin listesinde değilse, `Origin: null` ise ya da `Sec-Fetch-Site: cross-site` ise 403. **Üç başlığın üçü de yoksa istek geçer**: CSRF vektörü her zaman bir tarayıcıdır ve güncel tarayıcılar POST'ta `Origin`'i, sayfanın bastıramayacağı `Sec-Fetch-Site`'ı gönderir; başlıksız istek tarayıcı dışı istemcidir (curl, Starlette `TestClient`; `istemci.post` 25 test dosyasında kullanılıyor ve TestClient bu başlıkları göndermiyor). Uzaktan erişimde kullanılan adlar (docs/15) listeye yazılmalıdır, yoksa 421 (§15 risk 23). **Uygulandı:** `web/kaynak_denetimi.py`; plandan bir adım sıkı: `Sec-Fetch-Site: same-site` de 403 alır (aynı makinenin başka portundaki sayfa izinli `Origin` taşıyabilirdi) | F2a |
 | - | FastAPI `/docs`, `/redoc`, `/openapi.json` kimliksiz açık (kod okuması; çalıştırılarak doğrulanmadı, AUDIT §11 #15) | `uygulama.py:93` | `FastAPI(..., docs_url=None, redoc_url=None, openapi_url=None)` | F2a |
 | R4 | RTSP açılış/okuma zaman aşımı yok | `analiz/kamera.py:223` | `CAP_PROP_OPEN_TIMEOUT_MSEC` / `CAP_PROP_READ_TIMEOUT_MSEC` (5000/10000) | F2b |
 | - | Windows PowerShell `-Command` metni dosya yolundan kuruluyor (hafifletilmiş enjeksiyon yüzeyi) | `olaylar/anons.py:72-83` | stdlib `winsound` | F2a |
@@ -1542,7 +1668,7 @@ taşıyabilecek bir sütun olmadığını doğrulayan test F2'de eklenir.
 | R18 | RTSP şifresi formda açık; HTTP anons adresi günlükte | `kamera_detay.html:320`; `anons.py:217` | Maskeli form ve günlük | F5 (günlük kısmı F2) |
 | R30 | SSRF | `web/hoparlorler.py:32-45` | Loopback / link-local reddi; F4'ün sunucu tarafı TCP sağlık yoklaması (10 sn'de bir) ve (varsa) webhook da aynı doğrulamadan geçer. Yüzey düzeltmeden önce büyümesin diye **dağıtıcıdan önce** | **F4a** (önceden F5). **Uygulandı (F4a-1):** `anons.hoparlor_adresini_dogrula`; form ve her `http_gonder` çağrısı; ad yazılmışsa çözülen her adres denetlenir |
 | R31 | CSV formül enjeksiyonu | `web/olaylar_web.py:145`; `web/rapor.py` | Hücre ön eki | F5 |
-| R32 | Root kullanıcı; gereksiz `ffmpeg` apt paketi | `Dockerfile:10-14` | `USER`; `ffmpeg` RTSP provasından sonra kaldırılır | F5 |
+| R32 | Root kullanıcı; gereksiz `ffmpeg` apt paketi | `Dockerfile:10-14` | `USER`; `ffmpeg` RTSP provasından sonra kaldırılır | F5; **ertelendi** (S1): mevcut Docker kurulumlarında `veri/` sahipliği değişmeli ve imaj burada derlenemedi |
 
 ---
 
@@ -1561,19 +1687,19 @@ betikler) bütün şablonlardaki `?v=N` birlikte artırılır; yoksa tarayıcı 
 | Sayfa / dosya | Değişiklik | Faz |
 |---|---|---|
 | Komuta kabuğu `templates/komuta_temel.html` | `canli.js` + `uyari.js` + `#canli-durum` yüklenir (bugün yalnız `kilavuz.js:156`, `onay.js:164`); **sistem şeridi**: 5 sn'de bir `/saglik`; kırmızı = analiz yok / kamera koptu / sesli uyarı kanalı yok (`uyari_garantisi=false`, `sesli_kanal_yok`, `tek_kanal_bluetooth`) / kritik kural pasif, gri = sağlık doğrulanamıyor (`uyari_garantisi=null`). Ekranın kendisi garantiye sayılmadığı için şerit, bakan tarayıcının varlığıyla "yeşile" dönmez | F2 |
-| `static/uyari.js` | Önem rengi; critical bandı 8 sn'de (`:94`) kapanmaz, olay bitene ya da tıklanana kadar durur; sistem olayları için ayrı bant (bugün `:104` yalnız `violation`); boş `catch`'ler (`:67`, `:77`) yerine ekranda "Sesli uyarı çalışmıyor" çipi (R41); ses kapalıyken kalıcı "Sesli uyarı KAPALI - açmak için tıklayın" çipi | F2 |
+| `static/uyari.js` | Önem rengi; critical bandı 8 sn'de (`:94`) kapanmaz, olay bitene ya da tıklanana kadar durur; sistem olayları için ayrı bant (bugün `:104` yalnız `violation`); boş `catch`'ler (`:67`, `:77`) yerine ekranda "Sesli uyarı çalışmıyor" çipi (R41); ses kapalıyken kalıcı "Bu ekranda sesli uyarı KAPALI - açmak için tıklayın" çipi | F2 |
 | Olaylar `olaylar.html`, `olaylar_web.py` | Olay kodu, önem, "sürüyor / bitti" rozeti ve filtresi; süre; eski olaylarda kural tipi adı | F2 |
 | Kamera detayı `kamera_detay.html`, `kamera_detay.js`, `stil.css` | Bölge tipi listesinde "Yaya-araç geçidi" ve "KKD muaf alan" (iki yeni renk değişkeni); "yaya yolunda araç kuralı ekle", "araç yolunda yaya kuralı ekle" ek düğmeleri (gölge modda kurulur); kalibrasyon kontrol ölçümü alanı (S7 "evet" ise); kamera formunda örnekleme hızı varsayılanı `.env`'den | F2 |
-| Kural formu `kural_form.html`, `kurallar.py` | Önem seçimi ("Varsayılan" = olay kodunun önemi; varsayılanın altına indirmek sarı uyarıyla onay ister ve F5'ten sonra `access_log`'a düşer); `bitis_s`, `gecit_haric`, `histerezis_m`; sınıf kutuları katalog + aktif modelden; varsayılanlar şemadan (R25) | F2 |
+| Kural formu `kural_form.html`, `kurallar.py` | Önem seçimi ("Varsayılan" = olay kodunun önemi; varsayılanın altına indirmek sarı uyarıyla onay ister ve F5'ten sonra `access_log`'a düşer); `bitis_s`, `gecit_haric`, `histerezis_m`; sınıf kutuları katalog + aktif modelden (uygulanmadı: kutular sabit, §4.1); varsayılanlar şemadan (R25) | F2 |
 | Komuta → Sağlık (`komuta.py:756`) | Okunan ve işlenen fps ayrı; `isle()` p90; analiz durumu | F2 |
 | Komuta → Olay rengi (`komuta.py:275`) | Önemden; inceleme durumu rozet olur | F2 |
-| Ayarlar `komuta_ayarlar.html` | Şifre alanı; yeni `.env` anahtarları gruplar hâlinde (Takip, Kamera, Bekçi, KKD, Uyarı, Gizlilik) | F2-F5 |
+| Ayarlar `komuta_ayarlar.html` | Şifre alanı; yeni `.env` anahtarları gruplar hâlinde (Takip, Kamera, Bekçi, KKD, Uyarı, Gizlilik). **Uygulandı:** yeni anahtarlar "Güvenlik", "Anons (hoparlör)", "Takip ve kamera bağlantısı", "Analiz sağlığı", "KKD anons kapısı" ve "Saklama süreleri ve disk" (uyarı kaydı arşivi) gruplarındadır; `KAMERA_UP_KARARLILIK_SN` ve RTSP zaman aşımları sayfada yok (§3.7); KVKK kayıtları ayrı bölümdedir (aşağıda) | F2-F5 |
 | KKD `kkd.html`, `kkd_web.py` | Toplama kapısı (SQLite, restart'sız) + Rev.02 onayı; "Veri setini dışa aktar"; model adı/sürümü/sha256; gölge mod karnesi (olay sayısı, incelenen, **inceleme kapsamı %**, N, precision, kapı durumu ve hangi şartın eksik olduğu); zor örnek seçimi | F2 (kapı), F3 |
-| Anons `anons.html`, `anons_web.py`; komuta anons `komuta_anons.html` | Kanal tablosu: tür, cihaz, üç durumlu rozet (yeşil "Bağlı" / kırmızı "Koptu" / gri "Bilinmiyor", R38); satır başına "Test sesi" (R39); son 24 saatte teslim oranı; kare→ses (yazılım) p50/p90; "Bluetooth tek sesli kanal" uyarısı; "Tüm fabrika" satırı bugünkü ses çıkışı seçiminin yerini alır. Aynı tablo komuta ekranında (R40: `ses_cikisi_baglami` → `anons_baglami`, `komuta.py:1211`) | F4 |
+| Anons `anons.html`, `anons_web.py`; komuta anons `komuta_anons.html` | Kanal tablosu: tür, cihaz, üç durumlu rozet (yeşil "Bağlı" / kırmızı "Koptu" / gri "Bilinmiyor", R38); satır başına "Test sesi" (R39); son 24 saatte teslim oranı; kare→ses (yazılım) p50/p90; "Bluetooth tek sesli kanal" uyarısı; "Tüm fabrika" satırı bugünkü ses çıkışı seçiminin yerini alır. Aynı tablo komuta ekranında (R40: `ses_cikisi_baglami` → `anons_baglami`, `komuta.py:1211`). **Uygulandı:** kanal listesi Komuta → Anons'taki "Uyarı kanalları"dır, eski `/anons` sayfası kanal özetini gösterir; analiz açıkken rozetler "bağlı / koptu / bilinmiyor / denetleniyor"dur, satır düğmesi "▶ Dene"; tek Bluetooth uyarısı sistem şeridinde ve kurulum listesindedir | F4 |
 | Hoparlörler (`hoparlorler.py`) | Tür (IP hoparlör / ses kartı-Bluetooth) ve cihaz (bağlı sink listesinden, Linux'ta zorunlu, varsayılan sink önceden seçili) alanları | F4 |
-| Kurulum listesi (`kilavuz.py:339`) | "Sesli kanal tanımlı değil", "Bluetooth tek sesli kanal olamaz", "Etkin mesafe/hız kuralı kalibrasyon bekliyor" kırmızı maddeleri; "mahremiyet alanı kontrolü" maddesi | F2/F4/F5 |
+| Kurulum listesi (`kilavuz.py:339`) | "Sesli kanal tanımlı değil", "Bluetooth tek sesli kanal olamaz", "Etkin mesafe/hız kuralı kalibrasyon bekliyor" kırmızı maddeleri; "mahremiyet alanı kontrolü" maddesi. **Uygulandı:** adım olarak: 6 "Sesli anons kuruldu mu?" (kanal yoksa ya da ses yalnız Bluetooth'a dayanıyorsa kırmızı), 8 "Mesafe ve hız kuralları çalışıyor mu?" ("Kalibrasyon bekleniyor"), 9 "Kamera görüş alanlarında mahremiyet alanı yok mu?"; ayrıca 10 "Araç kuralları tanıma modeline uyuyor mu?" (§12.3-5) | F2/F4/F5 |
 | Rapor `komuta_rapor.html`, `rapor.py` | Olay kodu başına yanlış alarm oranı ve inceleme kapsamı %; kamera × gün başına yanlış alarm / analiz saati yalnız inceleme kapsamı tam dilimlerde (§14), eksikse "ölçülemedi"; analiz edilen süre %; teslim istatistiği | F2/F4 |
-| Olay detayı `olay_detay.html` | "Dondur (hukuki süreç)" düğmesi; kapanış sebebi | F5 |
+| Olay detayı `olay_detay.html` | "Hukuki süreç" bölümünde sebepli "Dondur" düğmesi; kapanış sebebi | F5 |
 | Ayarlar → KVKK | Erişim günlüğü listesi; imha günlüğü | F5 |
 | Kontrol Paneli (`dalsan_launcher.py`) | `hazir=false` / `uyari_garantisi=false` kırmızı satırı | F2 |
 
@@ -1637,8 +1763,14 @@ makinede bütün ağın ince ayarı, COCO alt kümesiyle) yerini alır.
    Eğitim GitHub Actions'ın CPU makinesinde (`.github/workflows/forklift-egit.yml`); veri,
    başlangıç ağırlıkları ve YOLOX kaynak kodu SHA-256 ya da commit ile sabitlenir. Her aday
    ürünün kendi tespit motoruyla ölçülür (`egitim/forklift/degerlendir.py`) ve adaylar bir ön
-   sürüm (GitHub Release) olarak yayımlanır. Eğitim `main`'e gönderimle başlar:
-   `egitim/forklift/istek.json` değişirse tam eğitim, başka değişiklikte kısa duman sınaması.
+   sürüm (GitHub Release) olarak yayımlanır. 6 saatlik iş sınırı yüzünden eğitim bacaklara
+   bölünür; her bacak ara kaydını kendi adlı yapıtına yazar (`calisma-<varyant>-b<N>`,
+   24.09.2026'dan beri). Sonraki bacak ve ölçüm en son bacağınkini seçer; ara kayıt yoksa iş
+   durur, kayıt başka bir iş denemesinden geliyorsa uyarı yazar
+   (`.github/workflows/forklift-egit-bacak.yml`, `forklift-egit.yml`). Eğitim `main`'e gönderimle başlar:
+   `egitim/forklift/istek.json` değişirse tam eğitim; iş akışının izlediği öteki dosyalardan
+   (eğitim klasörü, iki iş akışı, forklift testleri, tespit motoru, `backend/requirements.txt`,
+   `.env.example`, `models/indir.sh`, `models/SHA256SUMS`) biri değişirse kısa duman sınaması.
    **Saha görüntüsü bu hatta ASLA girmez** (iş kayıtları ve yayınlar herkese açıktır, KVKK);
    sahadan ince ayar ayrı ve kapalı yapılır.
 4. Sınıf sırası ve üst veri: çıktı sütunları `person, forklift, truck, pallet_jack, car, bus`;
@@ -1661,6 +1793,14 @@ makinede bütün ağın ince ayarı, COCO alt kümesiyle) yerini alır.
    günüdür (§14); kutu etiketlemeyi kimin yapacağı S11.
 7. Sürücü: mesafe kuralında sürücü muafiyeti yoktur; forklifti daha iyi tanıyan model,
    hareket eden forkliftin kendi sürücüsüyle eşleşmesini de daha sık görebilir (S38).
+8. **Yedeğe düşme (24.09.2026).** Seçili forklift modeli inmezse (internetsiz saha) ya da
+   açılamazsa (bozuk, uyumsuz dosya) süpervizör kayıttaki tabanına (`FORKLIFT_TABANI`, ör.
+   `yolox_tiny.onnx`) kendiliğinden geçer: insan ve araç tespiti sürer, forklift ayrı sınıf
+   olarak tanınmaz ve yalnız "Forklift" seçili kurallar uyarı vermez. Ekranda sebep satırı,
+   Olaylar'da `MODEL_FALLBACK`, `/saglik`'ta `model_yedekte` görünür. Seçim değişmez: her
+   açılışta önce forklift modeli denenir. Taban da açılamazsa sistem modelsiz kalır ve ilk
+   hatanın sebebiyle `MODEL_LOAD_FAILED` yazılır (`analiz/supervizor.py` `_secili_modeli_ac`,
+   `analiz/model_indir.py` `forklift_yedegi`).
 8. **Kapılar, karar ve kayıt.** Aday ancak `egitim/forklift/esikler.json`'daki kapıların
    hepsini geçerse kayda girer: insan ve araç kaybı, forkliftlerin araç (forklift ya da tır)
    olarak bulunma oranındaki artış, forklift bulma oranı (en az 0,60), görüntü başına yanlış
@@ -1689,7 +1829,8 @@ makinede bütün ağın ince ayarı, COCO alt kümesiyle) yerini alır.
   `torch.onnx.export(..., dynamo=False)` olarak yamalanır.
 - **ORT sürümü:** 1.19.2 → 1.30.0 (S19). Gerekçe: gömülü `onnx` CVE-2026-14647; aynı makinede
   `session.run` ~%25 hızlı (docs/16 §5, yerel ölçüm, hedef donanım değil). Intel Mac geliştirici
-  varsa 1.23.2 (x86_64 macOS tekerleği olan son sürüm; CVE durumu DOĞRULANMADI).
+  varsa 1.23.2 (x86_64 macOS tekerleği olan son sürüm; CVE durumu DOĞRULANMADI). **Uygulandı
+  (2a):** `backend/requirements.txt` 1.30.0 kurar, Intel Mac'te ortam işaretçisiyle 1.23.2.
 - **GPU:** ayrı `backend/requirements-gpu.txt` (yalnız `onnxruntime-gpu[cuda,cudnn]`), Dockerfile
   `ARG` ile ayrı imaj; kurulum önce `pip uninstall -y onnxruntime` çalıştırır; açılışta
   `importlib.metadata` iki paket birlikteyse uyarır. 1.27+ CUDA 13 ister; sürücü CUDA 12'de
@@ -1698,10 +1839,12 @@ makinede bütün ağın ince ayarı, COCO alt kümesiyle) yerini alır.
   `hasattr(onnxruntime, "preload_dlls")` → False, yerelde denendi); S19 "yükseltme yapılmasın"
   derse koşulsuz çağrı GPU açılışını `AttributeError` ile düşürürdü. GPU imajı pratikte ORT ≥ 1.21'e
   bağlıdır (S1, S19). Kurulumda tek karelik gerçek çıkarım duman testi; `get_providers()` tek
-  başına yetmez.
+  başına yetmez. **Uygulanmadı:** `backend/requirements-gpu.txt` ve GPU imajı S1'i bekliyor;
+  yalnız iki ORT paketi uyarısı yazıldı (`/saglik` `ort_paket_cakismasi`).
 - **TensorRT, OpenVINO, INT8:** MVP dışı (Ç24). INT8 denenecekse yalnız geliştirici makinesinde ve
   önce `lscpu | grep -i vnni`.
-- **supervision** 0.25.1'de kalır; 0.31'e geçişte `trackers.ByteTrackTracker` (docs/07'ye satır).
+- **supervision** 0.25.1'de kalır; 0.31'e geçişte `trackers.ByteTrackTracker` (docs/07'ye satır;
+  24.09.2026'da henüz yazılmadı).
 
 ### 12.5 Model kartı ve bütünlük
 
@@ -1712,7 +1855,9 @@ makinede bütün ağın ince ayarı, COCO alt kümesiyle) yerini alır.
   yazılır (değerleri bu belgede yok, uydurulmaz). KKD modeli sha256'sı yüklemede doğrulanır;
   uyuşmazsa model yüklenmez ve `MODEL_LOAD_FAILED` yazılır.
 - `LICENSE-THIRD-PARTY`'ye: LOCO CC0, YuNet MIT, koşullu setlerin lisans kanıtları, reddedilen
-  TTS ve veri setleri (tekrar denenmesin diye).
+  TTS ve veri setleri (tekrar denenmesin diye). **Uygulandı:** dosyada LOCO (5. madde) ve
+  masaüstü penceresinin bileşenleri (6. madde: pywebview, WebView2 SDK) var; YuNet (S27
+  kodlanmadı), koşullu setler (kullanılmadı) ve reddedilen TTS ile veri setleri yazılmadı.
 
 ---
 
@@ -1723,25 +1868,47 @@ bölünür). Kural mantığına dokunan her adımdan sonra `pytest tests/rules -
 operatöre gösterilir. Her fazın sonunda tam paket ve `ruff` yeşil olur; §4.6'daki testler
 bilinçli güncellenir. Fazdan önce Kontrol Paneli → Yedekle.
 
+**Uygulama durumu (24.09.2026):** Faz 2-5'in alt adımları 23.09.2026'da uygulandı; her adımın
+ekrana ve teste yansıyan hâli docs/ILERLEME.md'dedir. Aşağıdaki tablo uygulamadan önce yazılmış
+plandır; "Operatör ne görecek" sütunundaki metinler ekrandakinden ayrıldığı yerde düzeltildi.
+Yapılmayanlar:
+
+- açık soruya bağlı: GPU imajı ve hedef donanımda duman testi (5a, S1); systemd bildirimi (5b,
+  S1); `DISK_DUR_GB` (5b, S35); R32 root olmayan kullanıcı (5d, S1); kalibrasyon kontrol ölçümü
+  (2c, S7); yüz bulanıklaştırma (5c, S27); `/metrics` (S13);
+- varsayılanla kodlanmayan koşullu maddeler (§16): webhook (4c), dakika sınırı ve birleştirme,
+  Bluetooth yeniden bağlanma bekçisi ve uygulama içi eşleştirme (4d), dışlama kipi, KKD uyum
+  istatistiği;
+- plandan düşenler: `SINIF_KATALOGU` ve modele göre sınıf kutuları (§4.1), `KKD_KARE_ARALIGI`
+  (§3.7), olaylarda `details.guven` (§6.1); R28 (§9.5) sonradan, 24.09.2026'da yapıldı;
+- belgeye yazılacağı söylenip yazılmayanlar: docs/04 §6'da adım adım eğitim runbook'u (bölüm
+  yöntemi ve teslim sözleşmesini anlatır; Ç37, §5.8), docs/04 §5'te "tespit kutuları" alt
+  bölümü (Ç45), docs/04 §6.2'de yağmur (Ç46), docs/03'te `hiz_mps=None` notu (§6.4),
+  docs/06'da SSE'nin 6 bağlantı sınırı (§7.2), docs/07'de ışıklı kule ve
+  `trackers.ByteTrackTracker` satırları (§7.2, §12.4);
+- sahaya bağlı: 5e'nin ölçümleri (tespit doğruluğu, hedef donanımda hız ve gecikme, KKD
+  precision, yanlış alarm / saat) saha verisi bekliyor, ölçüm araçları yazıldı (§14); `ffmpeg`
+  imajdan RTSP provasından sonra kalkacak (R32).
+
 | Faz | Kapsam | Testler | Operatör ne görecek |
 |---|---|---|---|
-| **2a** Güvenlik tabanı | §10.5'teki F2a satırları (R7, R9, R8 Host izin listesi + Origin, `/docs`, PowerShell → winsound, R14, R15, R17, R26, R10 `<3.13`, **R13** container'da şifresiz açılış reddi, **R27** `.env` dizin bağlama); ORT sabiti (S19 cevabına göre); iki ORT paketi uyarısı; `tespit.py:103-117` EP hatası / bozuk dosya ayrımı; `?v=N` artırımı | `tests/test_guvenlik.py`: sahte XFF ile 6. deneme yine kilitli; yabancı Origin'li POST 403, aynı origin 303; `Host: evil.example` + aynı adlı Origin → 421 (DNS rebinding); `Origin: null` → 403; Origin/Referer/Sec-Fetch-Site'ın üçü de yok → geçer (tarayıcı dışı istemci); Ayarlar HTML'inde şifre değeri yok; boş şifre alanı eski şifreyi korur; `ş` içeren şifreyle giriş 500 değil 303; `\n` içeren `.env` değeri reddedilir; `/docs` 404; container kipinde şifresiz açılış reddedilir; `.env` sembolik bağla dizindeyken Ayarlar kaydı hedef dosyayı değiştirir. `test_ses_cikisi.py:88-93` ve `test_platform_uyumu.py:200-212` winsound'a göre yeniden yazılır. sha256 uyuşmazlığında Türkçe `ModelHatasi` | Ayarlar'da şifre kutusu noktalı ve boş; boş bırakıp Kaydet'e basınca eski şifreyle girilebilir. Tarayıcıda `/docs` açılmaz. Kontrol Paneli ve tüm sayfalar eskisi gibi açılır. Başka bir makineden sunucunun IP'siyle açmak isterseniz o adresi Ayarlar → İzinli sunucu adları'na yazmanız gerekir, yazılmamışsa sayfa "izin verilmeyen adres" der |
+| **2a** Güvenlik tabanı | §10.5'teki F2a satırları (R7, R9, R8 Host izin listesi + Origin, `/docs`, PowerShell → winsound, R14, R15, R17, R26, R10 `<3.13`, **R13** container'da şifresiz açılış reddi, **R27** `.env` dizin bağlama); ORT sabiti (S19 cevabına göre); iki ORT paketi uyarısı; `tespit.py:103-117` EP hatası / bozuk dosya ayrımı; `?v=N` artırımı | `tests/test_guvenlik.py`: sahte XFF ile 6. deneme yine kilitli; yabancı Origin'li POST 403, aynı origin 303; `Host: evil.example` + aynı adlı Origin → 421 (DNS rebinding); `Origin: null` → 403; Origin/Referer/Sec-Fetch-Site'ın üçü de yok → geçer (tarayıcı dışı istemci); Ayarlar HTML'inde şifre değeri yok; boş şifre alanı eski şifreyi korur; `ş` içeren şifreyle giriş 500 değil 303; `\n` içeren `.env` değeri reddedilir; `/docs` 404; container kipinde şifresiz açılış reddedilir; `.env` sembolik bağla dizindeyken Ayarlar kaydı hedef dosyayı değiştirir. `test_ses_cikisi.py:88-93` ve `test_platform_uyumu.py:200-212` winsound'a göre yeniden yazılır. sha256 uyuşmazlığında Türkçe `ModelHatasi` | Ayarlar'da şifre kutusu noktalı ve boş; boş bırakıp Kaydet'e basınca eski şifreyle girilebilir. Tarayıcıda `/docs` açılmaz. Kontrol Paneli ve tüm sayfalar eskisi gibi açılır. Başka bir makineden sunucunun IP'siyle açmak isterseniz o adresi Ayarlar → İzinli sunucu adları'na yazmanız gerekir, yazılmamışsa sayfa "Bu adrese izin verilmiyor" der |
 | **2b** Takip ve kamera | `TAKIP_HAFIZA_SN`; kayıp toleransı kurucu parametresi; RTSP zaman aşımları; kopukluk eşiği ikiye ayrılır; UP kararlılığı süpervizörde (`KAMERA_UP_KARARLILIK_SN`); R29; `kameralar.py:98` örnekleme hızı `.env`'den; işlenen fps, `isle()` ve `ihlal_yaz` süre sayaçları | `lost_track_buffer` formülü (6 fps × 2 sn = 12 kare); `VideoCapture`'a zaman aşımı parametreleri geçiyor (sahte cv2); sahte saatle çevrimiçi → 10 sn → çevrimdışı, ilk bağlantıda 60 sn tolerans; `_durumlari_yaz` UP olayını 5 sn kesintisiz kareden önce yazmaz; `test_kamera_kaynagi.py:32-39` iki ayrı eşikle güncellenir (§4.6); `tests/rules` 85 test değişmeden yeşil | Çalışan kameranın kablosunu çekin: ~10 sn içinde kamera "çevrimdışı" görünür ve Olaylar'a "Kamera çevrimdışı" düşer. Kabloyu takın: birkaç saniye sonra "tekrar çevrimiçi" |
 | **2c** Şema 007 ve olay modeli | Otomatik yedek (yalnız kurulu veritabanında); 007 (üç mesaj tohumu, `ppe_collection_gate`, kısmi olmayan `resolved_at` indeksi dahil); `olay_kodu.py`, `olay_durumu.py`, `aktif_anahtarlar`, `gecisleri_al`; bölge tipi kodları `rules/tipler.py`'de; önem; geçit istisnası (`Baglam` değişmez); bağlamsal önem; mesafe histerezisi ve R21; kalibrasyon kontrol ölçümü (yalnız S7 "evet"); `kritik_kural_pasif`; `yazici` kod/önem/bitiş; açılış/kapanış kapatma; kodlu sistem olayları (`MODEL_LOAD_FAILED` iki yoldan, `SYSTEM_STARTED/STOPPED`); `crossing`, `ppe_exempt`; `EK_HAZIR_KURALLAR` (`HazirKural.golge`, INSERT `shadow_mode` yazar, yeni mesajlara bağlanır); `anons_web.py:159` `updated_at`; SSE yükü; olay rengi | `tests/rules/test_olay_durumu.py` (aç, hatırlat, kapat; `bitis_s`; kapanış sonrası cooldown; kayıp toleransı içinde kısa örtülmede olay bitmez; sınırda titreşen kişi tek olay; **KKD olayı gözlemler belirsize dönünce `belirsiz` sebebiyle kapanır, hatırlatma üretmez**); `test_olay_kodu.py` (sözlüğün tamamı); `rules/tipler` ↔ `web/ortak` bölge tipi anahtar eşitliği; geçitte ihlal yok; araç varken high; histerezis; `test_veritabani` 007 göç testi ve düzeltilmiş `_eski_kurulum` (§8.4); boş veritabanında yedek oluşmaz; ek hazır kural `shadow_mode=1` ve `announcement_id` dolu doğar; mesaj metni değişince süpervizör 5 sn içinde yeni metni kullanır; yeniden kalibrasyonda `check_*` NULL olur (S7); §4.6 test güncellemeleri (mesaj sayısı 5→8 şemadan türetilir); `test_saflik` yeşil | Güncellemeden önce ve sonra Kameralar'daki bölge ve kural sayısı aynı. Bölge tipi listesinde iki yeni seçenek. Yasak alana giren test videosunda Olaylar'da **tek** satır: "Yasak alana giriş - Yüksek - sürüyor"; kişi çıkınca "bitti" ve süresi. Anons kişi içerideyken kuralın bekleme süresi dolunca bir kez tekrarlar. Mesafe kuralı olan ama kalibrasyonu olmayan kamerada kurulum listesinde kırmızı "kalibrasyon bekleniyor" |
 | **2d** Görünür arıza ve sağlık | Fail-safe sıra (§3.5, bellek kural haritası); `bekci.py`; `/saglik` genişler (kimliksiz dar gövde, `?ayrinti=1` + oturum), `?hazirlik=1`; compose healthcheck; uvicorn JSON günlüğü; komuta kabuğu `canli.js` + `uyari.js` + sistem şeridi; `uyari.js` R41; `ANALYSIS_DEGRADED` (`ANALIZ_YAVAS_SURE_SN`, `ANALIZ_HATA_ESIGI`); `analysis_hours`; launcher kırmızı/gri satırı | Sahte saatle bekçi takılmayı yakalar, masaüstü kipinde süreçten çıkmaz, sunucu kipinde `os._exit` çağrılır (monkeypatch); `/saglik` her durumda 200 ve `durum=calisiyor`, `bizim_sunucumuz_mu` bozulmaz; kimliksiz yanıtta `kameralar`/`kanallar` yok; `?hazirlik=1` 503; `ihlal_yaz` istisna fırlatınca `duyur` yine çağrılır; **kural satırı okunamazken (`_kural_kaydi` istisnası) de `duyur` çağrılır ve gölgedeki kural bellekten tanınıp susar**; `uvicorn.access` satırı JSON; `komuta_temel.html` iki betiği yüklüyor | `models/` içindeki model dosyasının adını değiştirip sistemi yeniden başlatın: her komuta ekranında kırmızı "Analiz yapılmıyor - model yüklenemedi" şeridi ve Olaylar'da bir sistem olayı. Tarayıcıda `http://127.0.0.1:8080/saglik?ayrinti=1`: her kamera için `islenen_fps` ve `isle_p90_ms`. Kontrol Paneli durum satırı yine "ÇALIŞIYOR". Komuta ekranlarında artık uyarı bandı çıkar |
-| **2e** KVKK tabanı ve ölçüm | `ppe_collection_gate` kapısı (SQLite, `_kkd_ornekle` her örnekten önce okur) + piksel sınırı `min_person_height_px`'ten; `ppe_exempt` içindeki kişiden örnek alınmaz; `PPE_COLLECTION_CHANGED`; "saklanmayanlar" testi; sentetik senaryo takımı (`tests/fixtures/` + `tests/test_uctan_uca_olaylar.py`: sentetik mp4 + senaryolu sahte dedektör → beklenen olay JSON'u, kod/önem/başlangıç/bitiş ± tolerans); rapora yanlış alarm / analiz saati (yalnız inceleme kapsamı tam dilimler); docs/03, docs/06, docs/07 güncellemeleri | Kapı kapalıyken `ppe_samples`'a satır eklenmez; kapı kapatıldıktan sonraki **ilk** örnek denemesinde satır yazılmaz (gecikme yok); eşik altı boyda örnek alınmaz; `ppe_exempt` içindeki kişiden `ppe_samples` satırı yazılmaz; şemada yüz/gömme/personel sütunu yok; uçtan uca senaryolar geçer. Sahadan gelen her yanlış alarm buraya regresyon senaryosu olarak eklenir | KKD sayfasının üstünde "Veri toplama: KAPALI - Rev.02 onayı bekleniyor". Kutuyu işaretleyip açınca, yeniden başlatmadan, Olaylar'a "KKD veri toplama açıldı" düşer; kapatınca toplama hemen durur. Rapor'da her kamera için "analiz edilen saat" ve "yanlış alarm / saat" (inceleme eksikse "ölçülemedi") |
+| **2e** KVKK tabanı ve ölçüm | `ppe_collection_gate` kapısı (SQLite, `_kkd_ornekle` her örnekten önce okur) + piksel sınırı `min_person_height_px`'ten; `ppe_exempt` içindeki kişiden örnek alınmaz; `PPE_COLLECTION_CHANGED`; "saklanmayanlar" testi; sentetik senaryo takımı (`tests/fixtures/` + `tests/test_uctan_uca_olaylar.py`: sentetik mp4 + senaryolu sahte dedektör → beklenen olay JSON'u, kod/önem/başlangıç/bitiş ± tolerans); rapora yanlış alarm / analiz saati (yalnız inceleme kapsamı tam dilimler); docs/03, docs/06, docs/07 güncellemeleri | Kapı kapalıyken `ppe_samples`'a satır eklenmez; kapı kapatıldıktan sonraki **ilk** örnek denemesinde satır yazılmaz (gecikme yok); eşik altı boyda örnek alınmaz; `ppe_exempt` içindeki kişiden `ppe_samples` satırı yazılmaz; şemada yüz/gömme/personel sütunu yok; uçtan uca senaryolar geçer. Sahadan gelen her yanlış alarm buraya regresyon senaryosu olarak eklenir | KKD sayfasının üstünde "Veri toplama: KAPALI - Rev.02 onayı bekleniyor". Kutuyu işaretleyip açınca, yeniden başlatmadan, Olaylar'a "KKD veri toplama açıldı" düşer; kapatınca toplama hemen durur. Rapor'da her kamera için "Analiz edilen" süre ve "Yanlış alarm / saat" (inceleme eksikse "ölçülemedi") |
 | **3a** KKD kapıları | Rev.02 teyidi; `docs/kkd-politika.md`; S3 (kapsam, sürücü) | - (belge) | Politika belgesini İSG ile birlikte doldurursunuz |
 | **3b** KKD verisi | 008; örnekle kişi boyu/netlik; zor örnek etiketi; `egitim/veri_seti.py` (kamera+gün bölmesi, zip, manifest) | Aynı kamera ve gün iki kümede olamaz; manifest sha256 tutarlı | KKD sayfasında Var/Yok/Belirsiz + "zor örnek" seçimi; "Veri setini dışa aktar" zip indirir; içinde train/val/test kamera ve güne göre ayrılmış |
 | **3c** KKD modeli | Ürün dışı eğitim (ayrı ortam); `kkd_siniflandirici.py` ORT; `KKD_MODEL_DOSYASI`; sha256; netlik ve örtüşme ölçümü; `hiz_kiyas`'a sınıflandırıcı turu | Sahte ORT oturumuyla başlar → `KkdGozlem`; görünmüyor / düşük olasılık / bulanık → belirsiz; model dosyası yoksa gözlem yok; sha256 uyuşmazlığı → model yüklenmez | Model konunca KKD sayfasında "Model: kkd-<sürüm>, doğrulandı". Önizlemede kutular yeşil / kırmızı / gri |
-| **3d** KKD kararı | Kalem başına olay; `surucu_muaf`; `ppe_exempt` oyma (kural ve `kkd_bolgesinde_mi`); `max_kisi_ortusmesi` (None = kapalı); belirsizde kapanış; KKD hazır kuralı gölgeyle doğar; model sürümü değişince gölgeye dönüş (`approved_model_version`, `PPE_MODEL_CHANGED`); `kapsam=muaf_disi` **yalnız S3 dışlama kipini seçerse** | `tests/rules`: belirsiz asla olay üretmez (korunur); yalnız yelek yoksa yalnız `PPE_NO_VEST`; ikisi yoksa iki olay, iki cooldown; araç kutusundaki kişi → belirsiz; `ppe_exempt` içindeki kişi atlanır; örtüşme None iken `test_kkd.py` değişmez; onaylı sürümden farklı model yüklenince kural `shadow_mode=1` olur ve bir `PPE_MODEL_CHANGED` yazılır, cooldown sıfırlanmaz; (S3 seçerse) `muaf_disi` kipinde bölgesiz kural çalışır | Baretsiz yürüyen test kişisi 10-15 sn sonra Olaylar'da "Baret yok (gölge)"; hoparlör **çalmaz**. Forklift/tır içindeki kişi için olay çıkmaz. Kişi arkasını dönüp uzaklaşınca olay "bitti" olur, "sürüyor" kalmaz |
+| **3d** KKD kararı | Kalem başına olay; `surucu_muaf`; `ppe_exempt` oyma (kural ve `kkd_bolgesinde_mi`); `max_kisi_ortusmesi` (None = kapalı); belirsizde kapanış; KKD hazır kuralı gölgeyle doğar; model sürümü değişince gölgeye dönüş (`approved_model_version`, `PPE_MODEL_CHANGED`); `kapsam=muaf_disi` **yalnız S3 dışlama kipini seçerse** | `tests/rules`: belirsiz asla olay üretmez (korunur); yalnız yelek yoksa yalnız `PPE_NO_VEST`; ikisi yoksa iki olay, iki cooldown; araç kutusundaki kişi → belirsiz; `ppe_exempt` içindeki kişi atlanır; örtüşme None iken `test_kkd.py` değişmez; onaylı sürümden farklı model yüklenince kural `shadow_mode=1` olur ve bir `PPE_MODEL_CHANGED` yazılır, cooldown sıfırlanmaz; (S3 seçerse) `muaf_disi` kipinde bölgesiz kural çalışır | Baretsiz yürüyen test kişisi 10-15 sn sonra Olaylar'da "Baret yok" (İnceleme ekranında "gölge mod - anons çalmadı"); hoparlör **çalmaz**. Forklift/tır içindeki kişi için olay çıkmaz. Kişi arkasını dönüp uzaklaşınca olay "bitti" olur, "sürüyor" kalmaz |
 | **3e** KKD ölçümü | `egitim/degerlendirme.py` tek komutla HTML rapor; gölge karnesi (N, kapsama %); kapı (precision + gün + en az olay + incelenmemiş olay yok) | Rapor üreteci sahte tahminlerle beklenen karışıklık tablosunu verir; precision 0,89'da kapı kapalı; **1 doğru olay, %100 precision ama N < `KKD_KAPI_EN_AZ_OLAY` → kapı kapalı**; incelenmemiş olay varken kapı kapalı; model sürümü değişince sayaç sıfırlanır. Metrikler yalnız saha verisiyle ölçülür | Rapor'da baret ve yelek için ayrı yanlış alarm oranı; KKD karnesinde "Precision: ölçülen değer (N incelenmiş olay, kapsama %, model vX)". Şartlardan biri eksikse "Anonsu aç" hangi şartın eksik olduğunu yazarak gri |
 | **4a** Dağıtıcı | (ilk alt adım) `.env ANONS*`'a bağlı testlerin kanal satırı fikstürüne geçirilmesi (§4.6); R30 SSRF reddi (dağıtıcıdan önce); 009; `.env ANONS*` → "Tüm fabrika" satırı tek seferlik aktarımı; `AnonsYoneticisi` evrimi (§7.3; `duyur` imzası ve `_cal_ve_kaydet` korunur); `saglik()`; `alert_deliveries`; `shadow` ve `suppressed_cooldown` kaydı; ekran kanalı istemci sayacı; kapanışta boşaltma | `tests/test_uyari_dagitici.py`: öncelik; aynı çıkışta eşzamanlı iki ses yok; critical çalan medium'u keser (sahte Popen); bayat öğe atılır; başarısız çalmada bastırma tükenmez; **aynı kamerada ikinci ayrı critical açılış bastırılmaz**, bastırılan medium `suppressed_cooldown` yazar; geri düşüş "Tüm fabrika" satırına; aktarım bir kez yapılır ve bugünkü `ANONS=ses_karti`/`http` kurulumunda aynı çıkış çalar; loopback hoparlör adresi reddedilir; olay satırı yazılamadığında teslim `event_id=NULL`. Mevcut anons testleri §4.6'daki bilinçli güncellemelerle yeşil | Aynı anda bir yakınlık (Kritik) ve bir yelek (Orta) ihlalinde önce yakınlık anonsu duyulur. Anons sayfasında son 24 saatte teslim oranı. Güncellemeden önce anonsun çaldığı çıkış, güncellemeden sonra "Tüm fabrika" satırında görünür ve aynı yerden çalar |
-| **4b** Kanal sağlığı ve garanti | `anons-saglik`; DOWN/UP; `ALERT_UNDELIVERED` (`ULASMAYAN_UYARI_ARALIGI_SN`); R37 (sink zorunlu, boş = None), R38, R39, R40; `/saglik` `kanallar`, üç değerli `uyari_garantisi` (yalnız sesli/uzak kanallar), `sesli_kanal_yok`, `yedek_ses_kanali_yok`, `tek_kanal_bluetooth`; kurulum listesi maddeleri | Sahte saatle 29 sn False'ta olay yok, 30 sn'de tek DOWN; 2 True sonra UP; None olay üretmez ama garanti `null`; boş seçim → None (`test_ses_cikisi.py:160` güncellenir), asla True; **seçili bluez sink listeden kalktı, varsayılan alsa çıkışına geçti → False**; container benzetimi (çalıcı yok) = False; HTTP TCP reddi = False; hiç sesli kanal yokken `sesli_kanal_yok` ve ihlalde hız sınırlı `ALERT_UNDELIVERED` + CRITICAL günlük; **SSE istemcisi bağlıyken bile sesli kanallar ölüyse garanti `false`**; tek sesli kanal Bluetooth ise `tek_kanal_bluetooth` | Anons sayfasında her kanal için rozet. Hoparlörü kapatın: ~30-40 sn sonra rozet kırmızı ve Olaylar'a "Ses kanalı koptu: <ad>"; bu sırada ihlal olursa ses aynı bölümün başka kanalından ya da "Tüm fabrika" çıkışından gelir. Bütün hoparlörleri kapatıp ihlal üretin: izleme penceresi açık olsa da Kontrol Paneli'nde ve sistem şeridinde kırmızı "Uyarı hiçbir sesli kanala ulaşamadı" |
+| **4b** Kanal sağlığı ve garanti | `anons-saglik`; DOWN/UP; `ALERT_UNDELIVERED` (`ULASMAYAN_UYARI_ARALIGI_SN`); R37 (sink zorunlu, boş = None), R38, R39, R40; `/saglik` `kanallar`, üç değerli `uyari_garantisi` (yalnız sesli/uzak kanallar), `sesli_kanal_yok`, `yedek_ses_kanali_yok`, `tek_kanal_bluetooth`; kurulum listesi maddeleri | Sahte saatle 29 sn False'ta olay yok, 30 sn'de tek DOWN; 2 True sonra UP; None olay üretmez ama garanti `null`; boş seçim → None (`test_ses_cikisi.py:160` güncellenir), asla True; **seçili bluez sink listeden kalktı, varsayılan alsa çıkışına geçti → False**; container benzetimi (çalıcı yok) = False; HTTP TCP reddi = False; hiç sesli kanal yokken `sesli_kanal_yok` ve ihlalde hız sınırlı `ALERT_UNDELIVERED` + CRITICAL günlük; **SSE istemcisi bağlıyken bile sesli kanallar ölüyse garanti `false`**; tek sesli kanal Bluetooth ise `tek_kanal_bluetooth` | Anons sayfasında her kanal için rozet. Hoparlörü kapatın: ~30-40 sn sonra rozet kırmızı ve Olaylar'a "Ses kanalı koptu: <ad>"; bu sırada ihlal olursa ses aynı bölümün başka kanalından ya da "Tüm fabrika" çıkışından gelir. Bütün hoparlörleri kapatıp ihlal üretin: izleme penceresi açık olsa da Olaylar'a "Uyarı hiçbir sesli kanala ulaşamadı" düşer, Kontrol Paneli'nde ve sistem şeridinde kırmızı "Son uyarı hiçbir hoparlöre ulaşmadı" |
 | **4c** Webhook (**yalnız S4 "alıcı sistem var" ise**; yoksa docs/07) | `WebhookAnonscu`; adres R30 doğrulamasından geçer | İmza alıcı tarafında doğrulanır; sır günlüğe düşmez; adres boşken kanal yok | `WEBHOOK_ADRESI` girilince test alıcısında imzalı JSON görülür |
 | **4d** Bluetooth | Sink seçimi (zorunlu, varsayılan önceden seçili); MAC çözümü; kopma algısı; Linux yeniden bağlanma bekçisi **yalnız S9 (kendiliğinden bağlanmıyor) ve S29 ((A) ya da host) koşulları sağlanırsa**, yoksa docs/07; S8 "evet" ise tara/eşleştir ekranı ayrı adım | Sink adı iki önekte de bulunur ve adres deseniyle eşlenir; (bekçi yazılırsa) sahte `bluetoothctl` çıktılarıyla `Connected` ayrıştırma, geri çekilme 60 sn'de tavan, Linux dışında bekçi çalışmaz | Linux'ta Bluetooth hoparlörü kapatın: rozet kırmızı ve "Ses kanalı koptu". Açın: hoparlör kendiliğinden bağlanıyorsa (S9) ya da bekçi yazıldıysa en geç ~1 dk içinde rozet yeşile döner ve "Ses kanalı tekrar bağlandı" gelir |
 | **4e** Container ses yolu, Türkçe WAV, saha ses testi | S29'a göre compose/Dockerfile (varsayılan (A): `pulseaudio-utils` + host ses soketi; `/run/dbus:ro` yalnız bekçi yazıldıysa); WAV'lar `veri/sesler/`'e; docs/14 (kanal tablosu, trust şartı, bağlama, sınırlar, lisans notu); gecikme prosedürü | Statik: compose ses bloğunda `--privileged` yok. Saha: docs/06 kabul listesi | Her bölümde test anonsunu duyarsınız; Anons sayfasında "kare→ses (yazılım) p90"; telefon videosu yöntemiyle hoparlör gecikmesini not edersiniz |
 | **5a** Çalışma zamanı | GPU imajı (S1); tek paket kuralı; duman testi; `.venv` ve testler 3.12 | Hedef donanımda `get_providers()` CUDA içerir ve tek kare çıkarım başarılı (bu ortamda GPU yok, DOĞRULANMADI olarak işaretlenir); ORT çakışma uyarısı | "Sistem GPU'da çalışıyor" satırı; ya da "GPU istendi, CPU kullanılıyor" olayı |
-| **5b** Güvenilirlik | `BEKCI_TEPKISI`; `DISK_DUR_GB` (öneri 1); NTP belgesi; R34; kayıt kuyruğu yalnız 2b ölçümü gerektirirse; systemd bildirimi **yalnız S1 "systemd" ise** (`Type=simple` + `WatchdogSec` + `NotifyAccess=main`, §3.6), yoksa docs/07 | disk eşiğinde fotoğraf yazılmaz, olay yazılır; (S1 systemd ise) sd_notify sahte soket `WATCHDOG=1` alır ve birim dosyası `Type=notify` içermez | Sunucuyu yeniden başlatın: sistem kendiliğinden açılır, `/saglik` "hazir: true". Olaylar'da "Sistem durdu" / "Sistem başladı" ve açık kalmış olayların "sistem durdu" sebebiyle kapandığı |
+| **5b** Güvenilirlik | `BEKCI_TEPKISI`; `DISK_DUR_GB` (öneri 1); NTP belgesi; R34; kayıt kuyruğu yalnız 2b ölçümü gerektirirse; systemd bildirimi **yalnız S1 "systemd" ise** (`Type=simple` + `WatchdogSec` + `NotifyAccess=main`, §3.6), yoksa docs/07 | disk eşiğinde fotoğraf yazılmaz, olay yazılır; (S1 systemd ise) sd_notify sahte soket `WATCHDOG=1` alır ve birim dosyası `Type=notify` içermez | Sunucuyu yeniden başlatın: sistem kendiliğinden açılır, `/saglik` "hazir: true". Olaylar'da "Sistem durdu" / "Sistem başladı" ve açık kalmış olayların "Sistem durduruldu" sebebiyle kapandığı |
 | **5c** KVKK | 010; Dondur düğmesi; `purge_log`; `access_log`; ağ bölümlendirmesi belgesi; `docs/18-KVKK.md`; mahremiyet kontrol maddesi; yüz bulanıklaştırma **yalnız S27 "evet" ise** | `hold=1` olay saklama süresi geçse de silinmez; her bakım koşusu `purge_log`'a bir satır; kanıt görüntüleme `access_log`'a düşer ve şifre/çerez içermez; (S27 evet ise) bulanıklaştırma açıkken KKD kanıtı değişmez, dışa aktarılan KKD dışı kanıtta yüz bölgesi değişir | Dondurulan olay süre dolsa da listede kalır; Ayarlar → KVKK'da "adres, saat, olay #123 görüntülendi" satırları ve imha günlüğü |
 | **5d** Kalan güvenlik | R16, R18, R31, R32 (R13 ve R27 F2a'ya, R30 F4a'ya taşındı) | `=` ile başlayan CSV hücresi kaçışlı; RTSP şifresi formda maskeli; container root değil | - |
 | **5e** Saha kabulü | Hedef donanımda `tests/hiz_kiyas`; tespit doğruluk takımı (`tests/dogruluk_kiyas/`, pytest kapısı değil, veri depoya girmez); uzun süreli çalışma provası (süre operatörle belirlenir); docs/06 saha kabul listesi | Ölçüm tabloları çalıştırılan komut + ham çıktıyla (GÖREV §9); hedef tutmazsa gerçek sayı, neden ve sonraki adım | Listeyi sahada madde madde işaretlersiniz: kamera açısı ve mahremiyet alanı, bölgelerin yerine oturması, kalibrasyon kontrol ölçümü, her bölümde anonsun duyulması, kamerayı kapatıp 10 sn'de olayı görmek, Bluetooth'u kapatıp yedek çıkışı duymak, 3 günlük gölge karnesi, yedekten geri yükleme ve yeniden başlatma provası |
@@ -1755,6 +1922,13 @@ Mevcut ölçüm altyapısı: `tests/hiz_kiyas` (hız; elle koşulur, AUDIT-OLCUM
 (`sema/002`), `tests/nesne_kiyas` (doğruluk takımı için yöntem şablonu). Eklenecekler: işlenen fps
 ve `isle()` sayaçları (F2), `analysis_hours` (F2), `alert_deliveries.frame_to_start_ms` (F4),
 `tests/dogruluk_kiyas` (F3/F5), `egitim/degerlendirme.py` (F3).
+
+**Uygulandı (24.09.2026):** eklenecek araçların hepsi yazıldı: işlenen fps ile `isle()` p50/p90
+`/saglik?ayrinti=1`'dedir, olay yazma süresi (`ihlal_yaz_p90_ms`) kamera durum yanıtındadır
+(`/kameralar/{id}/durum.json`); `analysis_hours`, `alert_deliveries.frame_to_start_ms`,
+`tests/dogruluk_kiyas` ve `backend/app/egitim/degerlendirme.py` var. Tablonun "Bugün" sütunu
+390adf5'tir; sahada ölçülecek hedefler saha verisi olmadığı için henüz ölçülmedi (docs/ILERLEME,
+5e).
 
 | Ölçüt | §4.8 hedefi | Bu tasarımdaki hedef / koşul | Nasıl ölçülecek | Bugün |
 |---|---|---|---|---|
@@ -1792,7 +1966,7 @@ Hedef tutmazsa gerçek sayı, nedeni ve sonraki adım yazılır (GÖREV §4.8); 
 | 11 | Kanal sağlığı yoklaması kendisi yanlış alarm üretebilir (`pactl`'in anlık okunamaması, `auto_null` sink, uykuya giren hoparlör - DOĞRULANMADI) | Sahte "koptu" | 30 sn eşik; None olay üretmez; hedef sunucuda sınanır |
 | 12 | "Ok" teslim "duyuldu" değildir; A2DP uykudan uyanırken ilk sesi yutabilir (ölçülmedi) | Garanti kâğıt üstünde kalır | Saha ses testi; Bluetooth tek sesli kanal olamaz uyarısı |
 | 13 | Windows ve kısmen macOS'ta ses kanalı sağlığı "bilinmiyor" | `uyari_garantisi` bu platformlarda hep `null` (gri); ekran garantiye sayılmadığı için "sağlandı" denemez | Dürüst gri rozet; sahada Linux + kablolu/IP hoparlör önerisi |
-| 14 | Fabrika container'ında ses yolu yok (R36); varsayılan (A) (`pulseaudio-utils` + host ses soketi) imaj derlenmeden ve hedef sunucuda sınanmadan DOĞRULANMADI. S29 "hayır" (B1) derse Bluetooth hoparlör fabrikada **hiç kullanılamaz**: operatörün doğrudan isteği varsayılan Docker dağıtımında karşılanmaz | Sesli uyarı yok ya da yalnız IP hoparlör | v2 bunu 30 sn'de görünür kılar (`AUDIO_CHANNEL_DOWN`, `sesli_kanal_yok`); S29; IP hoparlör yolu; Ç35'te açıkça yazılı |
+| 14 | Fabrika container'ında ses yolu yok (R36); varsayılan (A) (`pulseaudio-utils` + host ses soketi; 4e'de yazıldı, isteğe bağlı `docker-compose.ses.yml`, §7.6) imaj derlenmeden ve hedef sunucuda sınanmadan DOĞRULANMADI. S29 "hayır" (B1) derse Bluetooth hoparlör fabrikada **hiç kullanılamaz**: operatörün doğrudan isteği varsayılan Docker dağıtımında karşılanmaz | Sesli uyarı yok ya da yalnız IP hoparlör | v2 bunu 30 sn'de görünür kılar (`AUDIO_CHANNEL_DOWN`, `sesli_kanal_yok`); S29; IP hoparlör yolu; Ç35'te açıkça yazılı |
 | 15 | Bluetooth container'da: host ses soketi, aynı UID, ekransız WirePlumber ayarı (bekçi yazılırsa host D-Bus); paket adları DOĞRULANMADI. Bluez sink adı yeniden bağlanmada profil sonekiyle değişebilir (DOĞRULANMADI) | Kurulum karmaşık; sahte "koptu" | Sink adres deseniyle eşlenir; bekçi yalnız S9/S29 gerektirirse; IP hoparlör alternatifi; systemd/host yalnız operatör CLAUDE.md §4'ü değiştirirse |
 | 16 | Bekçinin yanlış alarmı (model indirme, uzun bakım) | Gereksiz yeniden başlatma | Açılış evresinde devre dışı; eşik okuma zaman aşımından uzun; varsayılan tepki "uyar"; masaüstünde asla çıkış yok |
 | 17 | Kalıcılık tek analiz iş parçacığında (R11); olay güncellemeleri yazım sayısını artırır | Bütün kameralar kısa süre kör | F2 sayaçları ölçer; yazıcı kuyruğu F5'te koşullu |

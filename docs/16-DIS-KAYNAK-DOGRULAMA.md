@@ -2,6 +2,8 @@
 
 **Tarih:** 2026-09-22 · **Depo durumu:** `4a36997` · **Girdi olduğu iş:** Faz 1 tasarımı (`docs/17-V2-TASARIM.md`) · **Dayandığı metin:** [`GOREV-TANIMI-V2.md`](GOREV-TANIMI-V2.md) §4.2-§4.11 ve EK A
 
+> **24.09.2026 notu (`8f322d7`):** Dış kaynaklardaki olgular 22.09.2026'da okunduğu gibi duruyor. Projenin kendisine dair cümleler ve yerel satır atıfları `4a36997`'yi anlatır; sonradan değişenlerin yanına "*24.09.2026*" notu düşüldü (ör. onnxruntime sabiti, `models/indir.sh`'in SHA-256 denetimi, systemd birimi, takip hafızası, RTSP zaman aşımı). Sondaki "Depo içi tutarsızlıklar" tablosuna durum sütunu eklendi. Öteki belgeler için verilen durum `8f322d7`'deki metinlerine aittir; o belgeler sonradan düzeltilmiş olabilir.
+
 ## Bu belge ne için yazıldı
 
 `GOREV-TANIMI-V2.md` DALSAN deposu okunmadan yazıldı. Dış dünya hakkında pek çok iddia içeriyor: veri seti lisansları, kütüphane sürümleri, Bluetooth ve TTS davranışı, ONNX Runtime paketleri, KVKK yükümlülükleri. Faz 1 tasarımı bu iddialara yaslanmadan önce her birini kaynağından kontrol ettik. Bu belge o kontrolün ham sonucudur. Karar vermez, karar için kanıt sunar.
@@ -33,12 +35,12 @@ Yöntem iki geçişten oluştu:
 2. **Forklift verisi:** LOCO (TUM) **CC0 1.0** lisanslı; forklift, pallet truck (transpalet) ve palet sınıflarını içeriyor. Lisansı en temiz açık kaynak bu, ama §4.7'de yok. `loader` sınıfı için hiçbir açık kaynakta etiket yok.
 3. **TTS:** `piper-tts` artık **GPL-3.0-or-later**. Tek Türkçe Piper sesi olan `tr_TR-dfki-medium`'un verisi CC BY-NC-SA ve ses, ticari sentezi dışlayan lessac tabanından ince ayarlanmış, yani **ticari kullanılamaz.** DALSAN dinamik metni zaten tarayıcı TTS'i ve HTTP anons cihazıyla karşılıyor.
 4. **Bluetooth:** BlueZ ses taşımaz; A2DP için PipeWire ya da PulseAudio şart. `bleak` A2DP yapamaz. `bluetoothctl` etkileşimsiz modda `-a` bayrağını yok sayar, `-t` verilince çıkış kodu hep 0'dır. Konteynerde `--privileged` gereksizdir.
-5. **ONNX Runtime:** `onnxruntime-gpu` ayrı bir pakettir. CPU paketiyle aynı ortama kurulursa CUDA sessizce kaybolur. 1.27 ve sonrası CUDA 13 ister. 1.19.2'den 1.30.0'a geçiş iki açıdan anlamlı: gömülü `onnx` sürümü (CVE-2026-14647) ve bu makinede ölçülen yaklaşık %25 CPU hızı.
-6. **supervision:** `sv.ByteTrack` 0.28'de deprecated oldu, 0.31'de kaldırılıyor; 0.25.1'de kalınmalı. `docs/03`'teki `track_buffer` parametre adı yanlış, doğrusu `lost_track_buffer`. Ayrıca DALSAN'da kayıp iz ömrü yalnız **1 saniye.**
+5. **ONNX Runtime:** `onnxruntime-gpu` ayrı bir pakettir. CPU paketiyle aynı ortama kurulursa CUDA sessizce kaybolur. 1.27 ve sonrası CUDA 13 ister. 1.19.2'den 1.30.0'a geçiş iki açıdan anlamlı: gömülü `onnx` sürümü (CVE-2026-14647) ve bu makinede ölçülen yaklaşık %25 CPU hızı. *24.09.2026:* geçildi; sabit 1.30.0, Intel Mac'te 1.23.2 (`47e39d0`).
+6. **supervision:** `sv.ByteTrack` 0.28'de deprecated oldu, 0.31'de kaldırılıyor; 0.25.1'de kalınmalı. `docs/03`'teki `track_buffer` parametre adı yanlış, doğrusu `lost_track_buffer`. Ayrıca DALSAN'da kayıp iz ömrü yalnız **1 saniye.** *24.09.2026:* supervision yine 0.25.1'e sabit; kayıp iz ömrü artık `.env TAKIP_HAFIZA_SN` (varsayılan 2 sn, `f42183c`); `docs/03`'teki eski ad `8f322d7`'de duruyordu.
 7. **KVKK:** "Yüz tanıma yapılmaz" kararı doğru. Ama dayanağı 2026/921 değildir, çünkü o karar yalnız mesai takibini kapsar. Dayanak m.4 ölçülülük ilkesi ve Kurul'un 2022/797 kararıdır. Kamera kaydı için sabit bir saklama süresi yoktur; ilke "mümkün olan en kısa süre ve otomatik imha"dır.
-8. **Bekçi (watchdog):** Docker "unhealthy" durumdaki container'ı yeniden başlatmaz. Belgedeki systemd birimi bugün hiç başlamıyor (`app.main:uygulama`). "Takılınca süreçten çık" deseni Docker ve systemd'de işe yarar, ama paketlenmiş masaüstü uygulamasında Kontrol Paneli'ni de öldürür.
+8. **Bekçi (watchdog):** Docker "unhealthy" durumdaki container'ı yeniden başlatmaz. Belgedeki systemd birimi bugün hiç başlamıyor (`app.main:uygulama`). "Takılınca süreçten çık" deseni Docker ve systemd'de işe yarar, ama paketlenmiş masaüstü uygulamasında Kontrol Paneli'ni de öldürür. *24.09.2026:* birim `app.main:app` olarak düzeltildi (`e8e2f98`); bekçi `analiz/bekci.py`'de ve paketlenmiş uygulamada yalnız uyarır (`8f37f73`).
 9. **Metrik:** Prometheus metin biçimi elle üretilebilir. Prometheus 3 `Content-Type` başlığını zorunlu tutar. `prometheus_client` paketine gerek yok.
-10. **OpenCV:** FFmpeg arka ucunda `read()` varsayılan olarak **30 saniyeye kadar** bloklayabilir. `CAP_PROP_BUFFERSIZE` bu arka uçta hiçbir şey yapmaz. Zaman aşımı yalnız açılışta, parametreyle verilebilir.
+10. **OpenCV:** FFmpeg arka ucunda `read()` varsayılan olarak **30 saniyeye kadar** bloklayabilir. `CAP_PROP_BUFFERSIZE` bu arka uçta hiçbir şey yapmaz. Zaman aşımı yalnız açılışta, parametreyle verilebilir. *24.09.2026:* DALSAN bunu artık açılışta veriyor (5000/10000 ms, `f42183c`).
 
 ---
 
@@ -81,7 +83,7 @@ Ticari kullanıma açık görünen (CC BY 4.0 / CC0 / Public Domain) Roboflow, M
 | İddia: "Roboflow 100 içindeki 100 setin tamamı CC BY 4.0." **Doğrusu:** Birincil kaynaklar bunu desteklemiyor. Benchmark README'sinde lisans geçmiyor, LICENSE yalnız kodun MIT lisansı. Geçerli lisans, her setin orijinal Universe yüklemesinin lisansıdır (`construction-safety-gsnvb` → `computer-vision/worker-safety`). | ÇÜRÜTÜLDÜ | [RF100 README](https://raw.githubusercontent.com/roboflow/roboflow-100-benchmark/main/README.md) (lisans ifadesi yok) |
 | İddia: "Roboflow Construction Site Safety'de 10 sınıf var (Hardhat … vehicle)." **Doğrusu:** Bu liste Kaggle aynasının eski sürümüne ait. Güncel projede 25 sınıf var ve proje çok sürümlü (v1 'original_raw-images' … v30). İndirilecek sürüm numarası sabitlenmeli. | ÇÜRÜTÜLDÜ (özet) | [Universe projesi](https://universe.roboflow.com/roboflow-universe-projects/construction-site-safety) (engelli; arama özeti) |
 | İddia: "Mendeley `zkzghjvpn2` setinde 3.212 görüntü var ve Google Images da kaynaklar arasında." **Doğrusu:** Bu v2'ye ait bir bilgi. Güncel v6'da 2.286 görüntü var ve kaynaklar "GitHub, Kaggle, and Roboflow" olarak yazılı. Verinin lisans satırı okunamadı. | ÇÜRÜTÜLDÜ (özet) | [Mendeley v6](https://data.mendeley.com/datasets/zkzghjvpn2/6) (engelli; arama özeti) |
-| DALSAN'ın mevcut planı kamu setini yalnız ön eğitim için kullanıyor. İnce ayar ve değerlendirme DALSAN verisiyle yapılıyor; kamu verisindeki başarı müşteriye raporlanmıyor. | DOĞRULANDI (yerel) | [04-KKD-BARET-YELEK.md](04-KKD-BARET-YELEK.md) satır 179: "değerlendirmeyi yalnızca DALSAN verisiyle yap." |
+| DALSAN'ın mevcut planı kamu setini yalnız ön eğitim için kullanıyor. İnce ayar ve değerlendirme DALSAN verisiyle yapılıyor; kamu verisindeki başarı müşteriye raporlanmıyor. | DOĞRULANDI (yerel) | [04-KKD-BARET-YELEK.md](04-KKD-BARET-YELEK.md) §4.4 (`4a36997`'de satır 179-180): "değerlendirmeyi yalnızca DALSAN verisiyle yap." |
 
 **Önemli sonuç:** Bu oturumda baret **ve** yelek içeren, lisansı birincil kaynaktan doğrulanmış, ticari kullanıma açık bir KKD seti bulunamadı. Aşağıdaki "DOĞRULANMADI" listesindeki adaylar ancak operatör tarayıcıda lisans satırını okuyup kaydettikten sonra kullanılabilir.
 
@@ -220,7 +222,7 @@ DALSAN zaten "önceden kaydedilmiş WAV çal" mimarisinde. Dinamik metin için d
 | İddia: "piper 2024'ten beri bakımsız." **Doğrusu:** Halef paket aktif. 1.5.0'dan 1.8.0'a kadar dört sürüm Temmuz-Eylül 2026'da çıktı; 1.8.0'ın tarihi 4 Eyl 2026. Ancak sınıflandırıcı "Development Status :: 3 - Alpha" diyor ve README bakımcı arıyor. | ÇÜRÜTÜLDÜ | [PyPI piper-tts JSON](https://pypi.org/pypi/piper-tts/json): "version": "1.8.0", upload "2026-09-04" |
 | `piper-tts` paketinin lisansı **GPL-3.0-or-later**, MIT değil. | DOĞRULANDI | [PyPI piper-tts](https://pypi.org/project/piper-tts/): "License: GPL-3.0-or-later" |
 | `piper-tts` Python 3.12'yi destekliyor. Her platform için tek bir `cp39-abi3` wheel'i var: Linux x86_64/aarch64, Windows x64, macOS Intel ve ARM. | DOĞRULANDI | [PyPI 1.8.0 JSON](https://pypi.org/pypi/piper-tts/1.8.0/json): "Programming Language :: Python :: 3.12" |
-| Çekirdek bağımlılıklar `onnxruntime<2,>=1` ve `pathvalidate`. DALSAN'ın `onnxruntime==1.19.2` sabitiyle çakışma yok. | DOĞRULANDI | [PyPI JSON](https://pypi.org/pypi/piper-tts/json): "onnxruntime<2,>=1" |
+| Çekirdek bağımlılıklar `onnxruntime<2,>=1` ve `pathvalidate`. DALSAN'ın `onnxruntime==1.19.2` sabitiyle çakışma yok. *24.09.2026:* sabit artık 1.30.0, Intel Mac'te 1.23.2 (`47e39d0`); ikisi de bu aralıkta. | DOĞRULANDI | [PyPI JSON](https://pypi.org/pypi/piper-tts/json): "onnxruntime<2,>=1" |
 | espeak-ng paketin içine statik olarak gömülü; sistemde ayrıca espeak-ng kurulu olması gerekmiyor. | DOĞRULANDI | [piper1-gpl CMakeLists.txt](https://raw.githubusercontent.com/OHF-Voice/piper1-gpl/main/CMakeLists.txt): "-DBUILD_SHARED_LIBS:BOOL=OFF" |
 | İddia: "Türkçe Piper sesleri dfki, fahrettin ve fettah; üçü de medium kalitede." **Doğrusu:** Bu liste arşivlenmiş depodaki v1.0.0 anlık görüntüsüne ait. Güncel `VOICES.md` ses listesi içermiyor. Bugün yalnız `tr_TR-dfki-medium` mevcut görünüyor: `piper-samples` altında tr_TR için yalnız dfki var, sherpa-onnx fahrettin ve fettah'ı "# removed" diye işaretlemiş. | ÇÜRÜTÜLDÜ (bayat) | [rhasspy/piper VOICES.md](https://raw.githubusercontent.com/rhasspy/piper/master/VOICES.md) · [sherpa-onnx generate.py](https://raw.githubusercontent.com/k2-fsa/sherpa-onnx/master/scripts/piper/generate.py) |
 | Kalite seviyeleri: low 16.000 Hz, medium ve high 22.050 Hz. Türkçe ses medium seviyesinde. | DOĞRULANDI | [TRAINING.md](https://raw.githubusercontent.com/rhasspy/piper/master/TRAINING.md): "medium = 22,050 Hz sample rate" |
@@ -239,7 +241,7 @@ DALSAN zaten "önceden kaydedilmiş WAV çal" mimarisinde. Dinamik metin için d
 | Windows'ta Türkçe "Microsoft Tolga" sesi var (ikincil kaynak). OneCore sesleri klasik SAPI5 listesinde görünmüyor. | DOĞRULANDI | [voices.json](https://raw.githubusercontent.com/daijro/camoufox/main/pythonlib/camoufox/voices.json) · [pyttsx3 #397](https://github.com/nateshmbhat/pyttsx3/issues/397): "Speech_OneCore\\Voices\\Tokens" |
 | macOS'ta Türkçe `say` sesi "Yelda" (tr_TR). Kaynak 2014 tarihli; 2024'te kaldırılan sesler listesinde Yelda yok. | DOĞRULANDI | [gist](https://gist.github.com/mculp/4b95752e25c456d425c6): "Yelda tr_TR" |
 | Python stdlib'deki `winsound.PlaySound` Windows'ta WAV çalabiliyor. | DOĞRULANDI | [winsound.rst](https://raw.githubusercontent.com/python/cpython/main/Doc/library/winsound.rst): "SND_FILENAME: The sound parameter is the name of a WAV file." |
-| DALSAN zaten "WAV → subprocess" mimarisinde: `anons.py` WAV dosyasını afplay, paplay, aplay ya da PowerShell SoundPlayer ile çalıyor. | DOĞRULANDI (yerel) | [anons.py](../backend/app/olaylar/anons.py): `shutil.which("afplay") or shutil.which("paplay") or shutil.which("aplay")` |
+| DALSAN zaten "WAV → subprocess" mimarisinde: `anons.py` WAV dosyasını afplay, paplay, aplay ya da PowerShell SoundPlayer ile çalıyor. *24.09.2026:* Windows'ta PowerShell yerine stdlib `winsound` kullanılır, süreç açılmaz (`e8e2f98`); mesaja WAV bağlı değilse ya da bulunamazsa üretilmiş uyarı tonu çalar (`olaylar/ton.py`, `982f245`). | DOĞRULANDI (yerel) | [anons.py](../backend/app/olaylar/anons.py): `shutil.which("afplay") or shutil.which("paplay") or shutil.which("aplay")` |
 | DALSAN dinamik metni **zaten** iki yoldan seslendiriyor: tarayıcıda `speechSynthesis` ile `tr-TR` (`uyari.js:70-78`) ve HTTP anons cihazının kendi TTS'i (`docs/14` §3.3). `docs/14` §8'e göre sunucuda TTS bilerek yapılmadı; `01-MVP-KAPSAM:99`'da TTS "NICE" önceliğinde. | DOĞRULANDI (yerel) | [uyari.js](../backend/app/web/static/uyari.js) · [14-ANONS-SISTEMI-BAGLAMA.md](14-ANONS-SISTEMI-BAGLAMA.md) |
 
 ### DOĞRULANMADI
@@ -407,9 +409,9 @@ Başlıca bulgular şunlar:
 | Resmi 0.1.1rc0 ONNX dosyaları: opset 11, IR 6, "pytorch 1.7". Çıktılar ham grid biçiminde (tiny için `[1,3549,85]`, s için `[1,8400,85]`). Decode ve NMS işi `tespit.py`'de yapılıyor. Dosyalar ORT 1.30 ile açılıyor. | DOĞRULANDI (yerel deney) | [onnx_inference.py](https://github.com/Megvii-BaseDetection/YOLOX/blob/main/demo/ONNXRuntime/onnx_inference.py): `demo_postprocess(output[0], input_shape)` |
 | INT8 kuantizasyonu: CNN'ler için statik QDQ S8S8 öneriliyor. Kazanç VNNI ya da dot-product komutlu donanımda görülüyor; VNNI'siz AVX2/AVX512'de U8S8 doygunluk sorunu yaşayabiliyor. `onnxruntime.quantization` modülü `onnx` paketi olmadan import edilemiyor. | DOĞRULANDI | [quantization.md](https://github.com/microsoft/onnxruntime/blob/gh-pages/docs/performance/model-optimizations/quantization.md): "static quantization for CNN models" |
 | İş parçacığı ayarı: `intra_op_num_threads = 0` fiziksel çekirdek sayısı kadar iş parçacığı açar ve çekirdek yakınlığını (affinity) etkinleştirir. N verilirse affinity kapanır. Spin varsayılanı derleme bayrağına bağlı. | DOĞRULANDI | [threading.md](https://github.com/microsoft/onnxruntime/blob/gh-pages/docs/performance/tune-performance/threading.md): "there will be no affinity set to any of the created thread" |
-| DALSAN'daki durum: `onnxruntime==1.19.2`. `tespit.py` sağlayıcıyı seçiyor ve `get_providers()` ile "CUDA seçili ama CPU'da çalışıyor" uyarısı veriyor. Oturum oluştururken çıkan **her** istisna "dosyası bozuk" mesajına çevriliyor (`tespit.py:102-114`). | DOĞRULANDI (yerel) | [tespit.py](../backend/app/analiz/tespit.py) |
+| DALSAN'daki durum: `onnxruntime==1.19.2`. `tespit.py` sağlayıcıyı seçiyor ve `get_providers()` ile "CUDA seçili ama CPU'da çalışıyor" uyarısı veriyor. Oturum oluştururken çıkan **her** istisna "dosyası bozuk" mesajına çevriliyor (`tespit.py:102-114`). *24.09.2026:* sabit 1.30.0 (Intel Mac'te 1.23.2); açılış hatası artık ayrılır: CUDA oturumu kurulamazsa CPU'da devam edilir ve uyarı GPU çalıştırıcısını söyler, CPU'da da açılmayan dosyanın özeti resmi yayınla tutuyorsa kurulum sorunu, tutmuyorsa bozuk dosya denir (`47e39d0`). | DOĞRULANDI (yerel) | [tespit.py](../backend/app/analiz/tespit.py) |
 | Aynı test makinesinde ORT 1.19.2'den 1.30.0'a geçiş: yolox_tiny ~25,5 ms'den ~18,8 ms'ye, yolox_s ~82 ms'den ~60-69 ms'ye indi. Ölçüm yalnız `session.run` süresi; hedef donanım değil. | DOĞRULANDI (yerel ölçüm) | 4 çekirdek Xeon, 40 koşunun ortancası; bkz. [AUDIT-OLCUM.md](AUDIT-OLCUM.md) |
-| `models/indir.sh` indirilen modeli SHA-256 ile doğrulamıyor. | DOĞRULANDI (yerel) | `curl -L --fail … -o "$ad.part"` (hash kontrolü yok) |
+| `models/indir.sh` indirilen modeli SHA-256 ile doğrulamıyor. *24.09.2026:* artık doğruluyor: her dosya `models/SHA256SUMS`'taki özetle karşılaştırılır (`sha256sum` ya da `shasum`), uygulamanın indirmesi ve Docker derlemesi de aynı özeti denetler (`e8e2f98`). | DOĞRULANDI (yerel) | `curl -L --fail … -o "$ad.part"` (hash kontrolü yok) |
 
 ### DOĞRULANMADI
 
@@ -433,6 +435,8 @@ Başlıca bulgular şunlar:
 8. **İş parçacığı ayarlarına dokunulmaz.** 0 = otomatik kalır. `session.intra_op.allow_spinning=0` ancak ölçümle denenir.
 9. **Export.** Resmi ONNX dosyaları yeterli. Kendi modelimiz export edilecekse decode kapalı, opset 11 ve batch 1 kullanılır. PyTorch 2.4 ya da daha eski bir sürüm sabitlenir, ya da çağrı `torch.onnx.export(..., dynamo=False)` olarak yamalanır.
 10. **`models/indir.sh`'e SHA-256 kontrolü eklenir.** `sha256sum -c` ya da stdlib `hashlib` ile sabit bir hash karşılaştırılır. Bu tek satır, model yükleme açıklarına karşı ucuz bir savunma.
+
+*24.09.2026 durumu:* 2 (1.30.0 sabiti, Intel Mac'te 1.23.2), 4 (hata ayrımı) ve 10 (SHA-256) uygulandı, 1'den yalnız iki paketin birlikte kurulduğunu söyleyen uyarı var (günlük ve `/saglik` `ort_paket_cakismasi`) (`47e39d0`, `e8e2f98`, `e766a69`). GPU yolu (3) S1'i bekliyor; kurulum betiğinin GPU paketi seçmesi yapılmadı; 5-7 MVP dışında kaldı. 8'de iş parçacığı sayısı yine 0 (otomatik), `allow_spinning=0` ise ölçülerek uygulandı (`2748ddf`).
 
 ### Açık sorular
 
@@ -462,9 +466,9 @@ Başlıca bulgular şunlar:
 |---|---|---|
 | supervision 0.25.1'de `sv.ByteTrack` yapıcısı: `track_activation_threshold=0.25`, `lost_track_buffer=30`, `minimum_matching_threshold=0.8`, `frame_rate: int = 30`, `minimum_consecutive_frames=1`. | DOĞRULANDI | [0.25.1 sdist](https://files.pythonhosted.org/packages/4c/87/3daaa3aec1766f93d4c07d33f933a5ded0a6243a099b6b399b6268053bfe/supervision-0.25.1.tar.gz) (`tracker/byte_tracker/core.py`; DALSAN .venv ile bayt bayt aynı) |
 | Kayıp iz ömrü `int(frame_rate / 30 × lost_track_buffer)` kare. `det_thresh` değeri `track_activation_threshold + 0.1`. | DOĞRULANDI | aynı dosya: `self.max_time_lost = int(frame_rate / 30.0 * lost_track_buffer)` |
-| DALSAN `frame_rate` olarak örnekleme hızını (`KARE_ORNEKLEME_FPS=6`) veriyor. Varsayılan ayarla kayıp iz ömrü 6 kare, yani **1,0 saniye.** `int()` kırpması yüzünden 6 fps'te `lost_track_buffer` 5'ten küçük verilirse ömür 0 kare olur. | DOĞRULANDI (yerel) | [boru_hatti.py](../backend/app/analiz/boru_hatti.py):120 `Takipci(fps)` |
+| DALSAN `frame_rate` olarak örnekleme hızını (`KARE_ORNEKLEME_FPS=6`) veriyor. Varsayılan ayarla kayıp iz ömrü 6 kare, yani **1,0 saniye.** `int()` kırpması yüzünden 6 fps'te `lost_track_buffer` 5'ten küçük verilirse ömür 0 kare olur. *24.09.2026:* `Takipci` artık `lost_track_buffer = TAKIP_HAFIZA_SN × 30` verir (varsayılan 2 sn → 60; 6 fps'te 12 kare = 2 sn; `takip.py` `kayip_iz_tamponu`, `f42183c`). | DOĞRULANDI (yerel) | [boru_hatti.py](../backend/app/analiz/boru_hatti.py):120 `Takipci(fps)` |
 | `update_with_detections` yalnız bir izle eşleşen tespitleri döndürüyor. Henüz geçerli sayılmayan izler (`NO_ID = -1`) de eleniyor. `confidence` alanı zorunlu. | DOĞRULANDI | [0.25.1 sdist](https://files.pythonhosted.org/packages/4c/87/3daaa3aec1766f93d4c07d33f933a5ded0a6243a099b6b399b6268053bfe/supervision-0.25.1.tar.gz): `return detections[detections.tracker_id != -1]` |
-| `docs/03` §5'teki "ByteTrack `track_buffer`" parametresi 0.23.0'da kaldırıldı; doğru adı `lost_track_buffer`. `takip.py:30`'daki yorum da eski adı kullanıyor ve "yüksek tut" diyor, ama kod bu parametreyi hiç vermiyor. | DOĞRULANDI | [deprecated.md](https://github.com/roboflow/supervision/blob/develop/docs/deprecated.md): "removed as of supervision-0.23.0. Use lost_track_buffer" |
+| `docs/03` §5'teki "ByteTrack `track_buffer`" parametresi 0.23.0'da kaldırıldı; doğru adı `lost_track_buffer`. `takip.py:30`'daki yorum da eski adı kullanıyor ve "yüksek tut" diyor, ama kod bu parametreyi hiç vermiyor. *24.09.2026:* `takip.py` düzeldi, parametre veriliyor (`f42183c`); `docs/03`'teki eski ad `8f322d7`'de duruyordu. | DOĞRULANDI | [deprecated.md](https://github.com/roboflow/supervision/blob/develop/docs/deprecated.md): "removed as of supervision-0.23.0. Use lost_track_buffer" |
 | `PolygonZone(polygon, triggering_anchors=(BOTTOM_CENTER,))` piksel koordinatı istiyor ve değerleri tam sayıya çeviriyor. `frame_resolution_wh` yapıcı parametresi değil. | DOĞRULANDI | 0.25.1 `polygon_zone.py`: `self.polygon = polygon.astype(int)` |
 | `trigger()` bütün tetik noktaları bölgenin içindeyse True döndürüyor. `require_all_anchors` parametresi 0.30.0'da eklendi (kartta 0.30.5 yazıyordu). | DOĞRULANDI (küçük düzeltmeyle) | 0.25.1 ve 0.30.0 sdist karşılaştırması: `np.all(is_in_zone, axis=1)` |
 | `BOTTOM_CENTER` noktası `((x1+x2)/2, y2)` ve DALSAN'ın `ayak_noktasi()` fonksiyonuyla aynı formül. `import supervision` tek başına cv2'yi yüklediği için `rules/` katmanında supervision'ın tamamı yasak. | DOĞRULANDI | 0.25.1 `detection/core.py` · [tipler.py](../backend/app/rules/tipler.py) |
@@ -507,6 +511,8 @@ Başlıca bulgular şunlar:
 7. **Belge düzeltmeleri:** `docs/05` şöyle düzeltilir: "ByteTrack (yalnız)", "saf numpy homografi", `rules/kalibrasyon.py`.
 8. **Dockerfile'daki `ffmpeg` apt paketi** bir RTSP provasından sonra kaldırılabilir.
 9. **Geliştirme ortamı hedefe çekilir.** .venv Python 3.12 ile yeniden kurulur, testler 3.12'de koşar. numpy için alt ve üst sınır konması değerlendirilir.
+
+*24.09.2026 durumu:* 3 `TAKIP_HAFIZA_SN` adıyla ve 4'teki açılış zaman aşımı uygulandı (`f42183c`); supervision 0.25.1'de kaldı (1). 7'deki `docs/05` düzeltmesi ve 8'deki `ffmpeg` kaldırma `8f322d7`'de yapılmamıştı. 9: tam takım ayrıca Python 3.12'de koşuldu (docs/ILERLEME.md 5a), ama bu konteynerin `.venv`'i yine 3.11.15 ve numpy yine sabitsiz.
 
 ### Açık sorular
 
@@ -607,7 +613,7 @@ Ses kaydı, görüntünün yettiği yerde ölçülülük ilkesine aykırı bulun
 - **Metrik:** Prometheus metin biçimi elle üretilebilir; Prometheus 3 geçerli bir `Content-Type` başlığını zorunlu tutuyor.
 - **systemd bekçisi:** Protokolü stdlib `socket` ile yazılabiliyor (systemd'nin kendi MIT-0 örneği var).
 - **Docker:** Sağlık kontrolü yalnız durumu değiştirir, container'ı yeniden başlatmaz. Açılışta çöken bir container ise yeniden başlatma döngüsüne girer; ilk karttaki "10 saniye" iddiası yanlış.
-- **Belgedeki systemd birimi:** Bugün hiç başlamıyor. Paketlenmiş masaüstü uygulamasında "takılınca çık" deseni Kontrol Paneli'ni de öldürür.
+- **Belgedeki systemd birimi:** Bugün hiç başlamıyor. Paketlenmiş masaüstü uygulamasında "takılınca çık" deseni Kontrol Paneli'ni de öldürür. *24.09.2026:* birim `app.main:app` olarak düzeltildi (`e8e2f98`).
 - **SSE:** Proje SSE'yi ek paket olmadan kullanıyor. FastAPI 0.135 ve sonrasında yerleşik SSE var.
 - **OpenCV:** FFmpeg arka ucunda `read()` varsayılan olarak 30 saniyeye kadar bloklayabilir. `CAP_PROP_BUFFERSIZE` bu arka uçta işlevsiz.
 
@@ -634,16 +640,16 @@ Ses kaydı, görüntünün yettiği yerde ölçülülük ilkesine aykırı bulun
 | WebSocket için `websockets` ya da `wsproto` paketi gerekiyor. `uvicorn[standard]` extras'ı `websockets>=13.0` getiriyor; .venv'de 17.1 kurulu. | DOĞRULANDI | [uvicorn auto.py](https://raw.githubusercontent.com/Kludex/uvicorn/main/uvicorn/protocols/websockets/auto.py) |
 | GOREV §4.11 "REST + WebSocket" istiyor; E7 ve `01-MVP-KAPSAM:94` bunu SSE lehine kapattı. Metrik isteği §4.9'da (§4.10'da değil) ve uç adı `/healthz`; DALSAN'daki uç ise `/saglik`. | DOĞRULANDI (yerel) | [GOREV-TANIMI-V2.md](GOREV-TANIMI-V2.md) §4.9, §4.11, E7 |
 | Python 3.12'de `distutils`, `asynchat`, `asyncore` ve `imp` kaldırıldı; venv artık setuptools kurmuyor. `utcnow()` ve sqlite3'ün varsayılan adaptörleri deprecated. Çok iş parçacıklı bir süreçte `os.fork()` DeprecationWarning veriyor. `get_event_loop()` da uyarı veriyor. DALSAN'da bunların hiçbiri kullanılmıyor (grep boş döndü); `zaman.py` metin kullanıyor. | DOĞRULANDI | [3.12 whatsnew](https://raw.githubusercontent.com/python/cpython/3.12/Doc/whatsnew/3.12.rst): "The distutils package has been removed" |
-| Sabitlenmiş bağımlılıkların Python 3.12 wheel'leri var. ORT 1.19.2'nin 3.13 ve sonrası için wheel'i ve sdist'i yok. Masaüstü başlatıcı yalnız "≥3.11" alt sınırını koyuyor (`dalsan_launcher.py:209`). | DOĞRULANDI (yerel ve PyPI) | [PyPI ORT 1.19.2](https://pypi.org/pypi/onnxruntime/1.19.2/json) |
+| Sabitlenmiş bağımlılıkların Python 3.12 wheel'leri var. ORT 1.19.2'nin 3.13 ve sonrası için wheel'i ve sdist'i yok. Masaüstü başlatıcı yalnız "≥3.11" alt sınırını koyuyor (`dalsan_launcher.py:209`). *24.09.2026:* sabit 1.30.0 (`47e39d0`); başlatıcı yalnız 3.12 kabul eder, başlatma betikleri önce 3.12'yi arar (`becb2e2`). | DOĞRULANDI (yerel ve PyPI) | [PyPI ORT 1.19.2](https://pypi.org/pypi/onnxruntime/1.19.2/json) |
 | opencv-python'ın PyPI'deki "en son" sürümü 5.0.0.93; sürüm sabitlenmezse OpenCV 5 gelir. supervision 0.25.1 `opencv-python>=4.5.5.64` istiyor. | DOĞRULANDI | [PyPI opencv-python-headless](https://pypi.org/pypi/opencv-python-headless/json) |
 | `VideoCapture` API'si bloklayıcı; her kamera için ayrı bir iş parçacığı gerekiyor. OpenCV nesneleri iş parçacığı güvenli değil. | DOĞRULANDI | [opencv #12077](https://github.com/opencv/opencv/issues/12077): "call to VideoCapture::read … will block calling thread" |
 | Belgeye göre `grab()` kareyi yakalar, `retrieve()` çözer. Ancak FFmpeg arka ucunda çözme işi `grab()`'de yapılıyor; `retrieve()` yalnız renk dönüşümü yapıyor. | DOĞRULANDI | [videoio.hpp](https://raw.githubusercontent.com/opencv/opencv/4.x/modules/videoio/include/opencv2/videoio.hpp) · [cap_ffmpeg_impl.hpp](https://raw.githubusercontent.com/opencv/opencv/4.x/modules/videoio/src/cap_ffmpeg_impl.hpp) |
 | `CAP_PROP_BUFFERSIZE` FFmpeg, GStreamer ve DShow arka uçlarında hiç ele alınmıyor. V4L2'de (1-10 arası, varsayılan 4) ve DC1394'te destekleniyor; MSMF false döndürüyor. | DOĞRULANDI | [cap_v4l.cpp](https://raw.githubusercontent.com/opencv/opencv/4.x/modules/videoio/src/cap_v4l.cpp): `#define DEFAULT_V4L_BUFFERS 4` |
-| FFmpeg arka ucunda açma ve okuma zaman aşımı varsayılan olarak 30.000 ms. `CAP_PROP_OPEN_TIMEOUT_MSEC` ve `CAP_PROP_READ_TIMEOUT_MSEC` yalnız açılışta parametre olarak verilebiliyor. `kamera.py:223` bunları vermiyor. | DOĞRULANDI | [cap_ffmpeg_impl.hpp 4.x](https://raw.githubusercontent.com/opencv/opencv/4.x/modules/videoio/src/cap_ffmpeg_impl.hpp): `#define LIBAVFORMAT_INTERRUPT_READ_DEFAULT_TIMEOUT_MS 30000` |
-| `/saglik` ucu her zaman 200 döndürüyor ve analiz döngüsünün gerçekten ilerleyip ilerlemediğini ölçmüyor. Compose sağlık kontrolü `curl` kullanıyor; Dockerfile'daki `curl` sırf bunun için kurulmuş. | DOĞRULANDI (yerel) | [rotalar.py](../backend/app/web/rotalar.py):129-142 |
-| `docs/06`'daki systemd biriminde `ExecStart=… app.main:uygulama` yazıyor, ama modüldeki sembolün adı `app`. **Birim bugün başlamıyor** (AUDIT R26). | DOĞRULANDI (yerel) | [06-OPERASYON.md](06-OPERASYON.md):83 · `backend/app/main.py:63` `app = uygulamayi_kur()` |
+| FFmpeg arka ucunda açma ve okuma zaman aşımı varsayılan olarak 30.000 ms. `CAP_PROP_OPEN_TIMEOUT_MSEC` ve `CAP_PROP_READ_TIMEOUT_MSEC` yalnız açılışta parametre olarak verilebiliyor. `kamera.py:223` bunları vermiyor. *24.09.2026:* artık veriyor (`.env RTSP_ACILIS_ZAMAN_ASIMI_MS` / `RTSP_OKUMA_ZAMAN_ASIMI_MS`, 5000/10000; `f42183c`). | DOĞRULANDI | [cap_ffmpeg_impl.hpp 4.x](https://raw.githubusercontent.com/opencv/opencv/4.x/modules/videoio/src/cap_ffmpeg_impl.hpp): `#define LIBAVFORMAT_INTERRUPT_READ_DEFAULT_TIMEOUT_MS 30000` |
+| `/saglik` ucu her zaman 200 döndürüyor ve analiz döngüsünün gerçekten ilerleyip ilerlemediğini ölçmüyor. Compose sağlık kontrolü `curl` kullanıyor; Dockerfile'daki `curl` sırf bunun için kurulmuş. *24.09.2026:* `/saglik` yine 200 döner, ama `hazir` alanı ve sorun kodları taşır (analizin takılması bekçiden gelir, `8f37f73`); `?hazirlik=1` hazır değilse 503 döner ve compose sağlık kontrolü onu `curl` ile çağırır (`e766a69`). | DOĞRULANDI (yerel) | [rotalar.py](../backend/app/web/rotalar.py):129-142 |
+| `docs/06`'daki systemd biriminde `ExecStart=… app.main:uygulama` yazıyor, ama modüldeki sembolün adı `app`. **Birim bugün başlamıyor** (AUDIT R26). *24.09.2026:* birim `app.main:app` olarak düzeltildi (`e8e2f98`). | DOĞRULANDI (yerel) | [06-OPERASYON.md](06-OPERASYON.md):83 · `backend/app/main.py:63` `app = uygulamayi_kur()` |
 | Paketlenmiş masaüstü uygulamasında uvicorn Tk Kontrol Paneli ile **aynı süreçte** çalışıyor; `os._exit` paneli de kapatır. Geliştirme kipinde alt süreç çıkınca onu yeniden başlatan bir döngü yok. | DOĞRULANDI (yerel) | [dalsan_launcher.py](../masaustu/dalsan_launcher.py):975-979 |
-| `kamera.py` her kamera için bir daemon iş parçacığı açıyor ve son kareyi kilit altında tutuyor. 60 saniye kare gelmezse kamera çevrimdışı sayılıyor; yeniden deneme bekleme süresi 1'den 30 saniyeye üstel artıyor. | DOĞRULANDI (yerel) | [kamera.py](../backend/app/analiz/kamera.py) |
+| `kamera.py` her kamera için bir daemon iş parçacığı açıyor ve son kareyi kilit altında tutuyor. 60 saniye kare gelmezse kamera çevrimdışı sayılıyor; yeniden deneme bekleme süresi 1'den 30 saniyeye üstel artıyor. *24.09.2026:* akan görüntü kesilince eşik `.env KAMERA_KOPUK_ESIGI_SN` (varsayılan 10 sn); 60 sn artık yalnız ilk bağlantı toleransı (`f42183c`). | DOĞRULANDI (yerel) | [kamera.py](../backend/app/analiz/kamera.py) |
 
 ### DOĞRULANMADI
 
@@ -662,6 +668,8 @@ Ses kaydı, görüntünün yettiği yerde ölçülülük ilkesine aykırı bulun
 5. **OpenCV.** Açılışta `cv2.VideoCapture(url, cv2.CAP_FFMPEG, [cv2.CAP_PROP_OPEN_TIMEOUT_MSEC, 5000, cv2.CAP_PROP_READ_TIMEOUT_MSEC, 10000])` kullanılır. `CAP_PROP_BUFFERSIZE` ayarlanmaz. Bir VideoCapture nesnesine yalnız ait olduğu kameranın iş parçacığı dokunur. Bekçi eşiği okuma zaman aşımından uzun tutulur.
 6. **WebSocket reddedilir, SSE'de kalınır.** `docs/05:22` "Starlette `StreamingResponse` (ek paket yok)" olarak düzeltilir. `fastapi.sse`'ye geçmek zorunlu değil; geçilirse `fastapi>=0.135` alt sınırı konur. Belgeye şu not düşülür: HTTP/1.1'de aynı tarayıcıda 6'dan fazla izleme sekmesi açılmamalı.
 7. **Python 3.12'de kalınır.** ORT 1.19.2 kalacaksa başlatıcıya `<3.13` üst sınırı **zorunlu** olarak eklenir; 1.30.0'a geçilirse bu engel ORT'den kalkar ama diğer paketler test edilmeli. Geliştirme .venv'i 3.12'ye çekilir. Her kamera için ayrı süreç açılmaz (E6; ayrıca 3.12'de çok iş parçacıklı süreçte fork uyarı veriyor). `opencv-python==4.10.0.84` sabiti korunur.
+
+*24.09.2026 durumu:* 2 `analiz/bekci.py` ile uygulandı (`BEKCI_ESIGI_SN` 90, `BEKCI_TEPKISI`; paketlenmiş uygulamada yalnız uyarır; `8f37f73`), 4 `?hazirlik=1` ile (`e766a69`), 5 5000/10000 ms ile (`f42183c`), 3'teki `ExecStart` düzeltmesi yapıldı (`e8e2f98`), 7'de başlatıcı yalnız 3.12 kabul eder (`becb2e2`) ve OpenCV sabiti duruyor. `/metrics` (1) ve `WatchdogSec` (3) koşullu kaldı (docs/07 #26, #27); 6'daki `docs/05:22` düzeltmesi `8f322d7`'de yapılmamıştı; bu konteynerin `.venv`'i yine 3.11.15.
 
 ### Açık sorular
 
@@ -722,7 +730,7 @@ Karar, **lisansa ve ticari fabrika kurulumuna** göre verildi. "Koşullu" satır
 
 | Kütüphane / araç | Lisans (doğrulama) | Karar | Not |
 |---|---|---|---|
-| `onnxruntime` (CPU) | MIT (PyPI, DOĞRULANDI) | **KULLANILABİLİR** | Sabitin 1.30.0'a yükseltilmesi öneriliyor (§5) |
+| `onnxruntime` (CPU) | MIT (PyPI, DOĞRULANDI) | **KULLANILABİLİR** | Sabitin 1.30.0'a yükseltilmesi öneriliyor (§5). *24.09.2026:* yükseltildi (`47e39d0`) |
 | `onnxruntime-gpu` | MIT (PyPI, DOĞRULANDI) | **KULLANILABİLİR** | Yalnız GPU sunucusunda ve CPU paketinin **yerine** |
 | `onnxruntime-openvino` | MIT (DOĞRULANDI) | Lisans uygun; **MVP'de eklenmez** | Aynı dizine kuruluyor, 6 alt sürüm geride |
 | TensorRT | NVIDIA lisansı (bu belgede incelenmedi) | **MVP dışında** | - |
@@ -783,18 +791,18 @@ Bu bölüm, `GOREV-TANIMI-V2.md`'nin yanlış ya da eksik olduğu noktaları lis
 | P18 | "Model adayları: … YOLOX (Apache-2.0)" | Lisans doğru. Eksik: YOLOX'un PyPI sürümü 2022'den kalma, son commit Haziran 2025. Export betiği PyTorch 2.5'te kaldırılan `torch.onnx._export`'u kullanıyor; eğitim ortamında PyTorch 2.4 ya da öncesi sabitlenmeli veya betik yamalanmalı. Ultralytics'in hazır **veri setleri** de AGPL lisanslı (Construction-PPE). | §2, §5 |
 | P19 | "Dışa aktarım: ONNX → TensorRT / OpenVINO" | Eksik ve kısmen yanlış. (a) `onnxruntime-gpu` ayrı bir paket; CPU paketiyle aynı ortama kurulursa CUDA sessizce kaybolur. (b) 1.27 ve sonrası CUDA 13 istiyor; 1.30'un TensorRT EP'si libnvinfer 10 ve CUDA 13 kütüphanelerine bağlı. (c) Jetson'da PyPI wheel'i çalışmıyor, JetPack'e özel wheel gerekiyor. (d) OpenVINO ayrı bir paket (`onnxruntime-openvino`), 6 alt sürüm geride ve aynı dizine kuruluyor; ölçülen kazanç ~%10-15, YOLOv5n'de daha yavaş olduğu da raporlanmış. (e) YOLOX README, OpenVINO için opset 10 öneriyor, resmi ONNX dosyaları ise opset 11. | §5 |
 | P20 | "uç cihazda INT8 kalibrasyonlu" | INT8 kazancı ancak VNNI ya da dot-product komutları olan donanımda görülüyor. VNNI'siz AVX2/AVX512'de U8S8 doygunluk riski var. Kuantizasyon `onnx` paketini gerektiriyor; bu iş yalnız geliştirici makinesinde yapılmalı. Prompt donanım koşulunu yazmıyor. | §5 |
-| P21 | "Model kayıt defteri … sha256" | Doğru. Ancak bugünkü `models/indir.sh` hash doğrulaması yapmıyor. CVE-2026-14647 (model yükleme yolu) bağlamında bu eksiklik önemli. | §5 |
-| P22 | Prompt ORT sürümünden hiç söz etmiyor | 1.19.2'nin gömülü `onnx` 1.16.1'i CVE-2026-14647 kapsamında. Python 3.13 ve sonrası için wheel'i yok. Bu makinede 1.30.0 yaklaşık %25 daha hızlı çıktı. Sürüm yükseltmesi Faz 1'de ele alınmalı. | §5 |
+| P21 | "Model kayıt defteri … sha256" | Doğru. Ancak bugünkü `models/indir.sh` hash doğrulaması yapmıyor. CVE-2026-14647 (model yükleme yolu) bağlamında bu eksiklik önemli. *24.09.2026:* `indir.sh` artık SHA-256 ile doğruluyor (`e8e2f98`). | §5 |
+| P22 | Prompt ORT sürümünden hiç söz etmiyor | 1.19.2'nin gömülü `onnx` 1.16.1'i CVE-2026-14647 kapsamında. Python 3.13 ve sonrası için wheel'i yok. Bu makinede 1.30.0 yaklaşık %25 daha hızlı çıktı. Sürüm yükseltmesi Faz 1'de ele alınmalı. *24.09.2026:* Faz 2a'da 1.30.0'a geçildi (`47e39d0`). | §5 |
 
 ### Diğer bölümler (kartlarda bulunanlar)
 
 | # | Bölüm ve ifade | Doğrusu / eksik olan |
 |---|---|---|
-| P23 | §4.4 "ByteTrack ya da BoT-SORT" | `sv.ByteTrack` 0.28'de deprecated, 0.31'de kaldırılıyor; 0.25.1'de kalınmalı. DALSAN'daki kalıcılık ayarı (`lost_track_buffer`) varsayılan olarak 1 saniye; `docs/03`'teki `track_buffer` adı yanlış. |
+| P23 | §4.4 "ByteTrack ya da BoT-SORT" | `sv.ByteTrack` 0.28'de deprecated, 0.31'de kaldırılıyor; 0.25.1'de kalınmalı. DALSAN'daki kalıcılık ayarı (`lost_track_buffer`) varsayılan olarak 1 saniye; `docs/03`'teki `track_buffer` adı yanlış. *24.09.2026:* varsayılan artık 2 sn (`TAKIP_HAFIZA_SN`, `f42183c`). |
 | P24 | §4.2 ayak noktası | Kural doğru. `sv.Position.BOTTOM_CENTER` ile aynı formül; DALSAN bunu `rules/` katmanında stdlib ile zaten uyguluyor. PolygonZone gerekmiyor, zaten `rules/` içinde kullanılamaz (cv2 yasağı). |
 | P25 | §4.9 "`/healthz`, Prometheus metrikleri" | DALSAN'daki uç `/saglik`. Prometheus 3 `Content-Type` başlığını zorunlu tutuyor. `prometheus_client` gerekmiyor (E7 ile uyumlu). |
-| P26 | §4.9 "bekçi; çökünce otomatik yeniden başlatma" | Docker "unhealthy" container'ı yeniden başlatmıyor; açılışta çöken container ise döngüye giriyor. `docs/06`'daki systemd birimi bugün başlamıyor (`app.main:uygulama`). Paketlenmiş masaüstünde süreçten çıkmak Kontrol Paneli'ni de kapatır. Bekçinin tepkisi dağıtım yoluna göre tasarlanmalı. |
-| P27 | §4.9 "RTSP kopunca üstel geri çekilme" | Bu zaten var. Eksik olan: FFmpeg `read()` varsayılan olarak 30 saniye bloklayabiliyor; `CAP_PROP_READ_TIMEOUT_MSEC` yalnız açılışta verilebiliyor. `CAP_PROP_BUFFERSIZE` FFmpeg'de işlevsiz. |
+| P26 | §4.9 "bekçi; çökünce otomatik yeniden başlatma" | Docker "unhealthy" container'ı yeniden başlatmıyor; açılışta çöken container ise döngüye giriyor. `docs/06`'daki systemd birimi bugün başlamıyor (`app.main:uygulama`). Paketlenmiş masaüstünde süreçten çıkmak Kontrol Paneli'ni de kapatır. Bekçinin tepkisi dağıtım yoluna göre tasarlanmalı. *24.09.2026:* birim düzeltildi (`e8e2f98`); bekçi paketlenmiş uygulamada yalnız uyarır (`8f37f73`). |
+| P27 | §4.9 "RTSP kopunca üstel geri çekilme" | Bu zaten var. Eksik olan: FFmpeg `read()` varsayılan olarak 30 saniye bloklayabiliyor; `CAP_PROP_READ_TIMEOUT_MSEC` yalnız açılışta verilebiliyor. `CAP_PROP_BUFFERSIZE` FFmpeg'de işlevsiz. *24.09.2026:* DALSAN zaman aşımını artık açılışta veriyor (`f42183c`). |
 | P28 | §4.9 "saklama süresi … varsayılan 30 gün" | KVKK'da sabit bir gün sayısı yok. Kurum "mümkün olan en kısa süre ve otomatik imha" diyor (8770). 30 gün müşteri ve avukat tarafından gerekçelendirilmeli; periyodik imha en geç 6 ayda bir yapılmalı. |
 | P29 | §4.9 "kamera başına ayrı işçi süreci" | E6. Ek olarak Python 3.12'de çok iş parçacıklı süreçte `fork` DeprecationWarning veriyor; OpenCV ve ONNX ile fork güvensiz. |
 | P30 | §4.10 "Yüz tanıma … YAPILMAZ" | Doğru. Dayanağı m.4 ölçülülük ilkesi ve 2022/797 olarak yazılmalı. 2026/921 yalnız mesai takibini kapsıyor (27.08.2026 duyurusu). "Açık rıza gerekir" ifadesi 2024 öncesinin hukuku. |
@@ -807,24 +815,24 @@ Bu bölüm, `GOREV-TANIMI-V2.md`'nin yanlış ya da eksik olduğu noktaları lis
 
 ## Depo içi tutarsızlıklar (dış doğrulama sırasında bulunan)
 
-Bu belge yalnız kendisini değiştirebildiği için aşağıdaki düzeltmeler **yapılmadı.** Faz 1'e girdi olarak listeleniyor.
+Bu belge yalnız kendisini değiştirebildiği için aşağıdaki düzeltmeler **yapılmadı.** Faz 1'e girdi olarak listeleniyor. Dosya:satır sütunu `4a36997`'yi, son sütun 24.09.2026'daki (`8f322d7`) durumu gösterir.
 
-| Dosya:satır | Sorun | Doğrusu |
-|---|---|---|
-| `docs/03-KURAL-MOTORU.md:171` | "ByteTrack `track_buffer`" | `lost_track_buffer` (0.23'te yeniden adlandırıldı); saniye × 30 |
-| `backend/app/analiz/takip.py:30` | Yorum "`track_buffer`'ı yüksek tut" diyor, kod parametreyi vermiyor | Yorum düzeltilmeli ya da parametre `.env`'den verilmeli |
-| `docs/05-TEKNOLOJI-KARARLARI.md:19` | "ByteTrack, PolygonZone" | "ByteTrack (yalnız)" |
-| `docs/05-TEKNOLOJI-KARARLARI.md:20` | "OpenCV homografi", `rules/calibration.py` | "saf numpy homografi", `rules/kalibrasyon.py` |
-| `docs/05-TEKNOLOJI-KARARLARI.md:22` | "SSE (`sse-starlette`)" | "Starlette `StreamingResponse` (ek paket yok)" |
-| `docs/06-OPERASYON.md:83` | `ExecStart=… app.main:uygulama` | `app.main:app`. Birim bugün başlamıyor. |
-| `Dockerfile:8-11` | apt `ffmpeg` "RTSP çözmek için" kuruluyor | cv2 kendi FFmpeg'ini kullanıyor; RTSP provasından sonra kaldırma adayı |
-| `Dockerfile:9-12` | `curl` yalnız healthcheck için kurulmuş | İsteğe bağlı: `python -c` kullanılabilir |
-| `models/indir.sh` | SHA-256 doğrulaması yok | Sabit hash ile `sha256sum -c` |
-| `backend/app/analiz/tespit.py:102-114` | Her oturum hatası "dosyası bozuk" diye raporlanıyor | EP hatası ile dosya hatası ayrıştırılmalı |
-| `masaustu/dalsan_launcher.py:209` | Python için yalnız alt sınır (≥3.11) var | ORT 1.19.2 kalacaksa `<3.13` üst sınırı |
-| `.venv` | Python 3.11.15 | Hedef 3.12 (Dockerfile ve CLAUDE.md) |
-| `backend/requirements.txt` | `numpy` ve `fastapi` sabitlenmemiş | En azından alt sınır konmalı (`fastapi.sse` kullanılacaksa ≥0.135) |
-| `docs/14-ANONS-SISTEMI-BAGLAMA.md` §2.3 madde 2 | "Bilgisayarın kendi seslendirmesi" | Ticari bağlamda lisans riski notu eklenmeli (macOS SLA, Windows koşulları doğrulanmadı) |
+| Dosya:satır | Sorun | Doğrusu | Durum (24.09.2026) |
+|---|---|---|---|
+| `docs/03-KURAL-MOTORU.md:171` | "ByteTrack `track_buffer`" | `lost_track_buffer` (0.23'te yeniden adlandırıldı); saniye × 30 | `8f322d7`'de sürüyordu (eski ad §5'te) |
+| `backend/app/analiz/takip.py:30` | Yorum "`track_buffer`'ı yüksek tut" diyor, kod parametreyi vermiyor | Yorum düzeltilmeli ya da parametre `.env`'den verilmeli | düzeltildi: parametre `.env TAKIP_HAFIZA_SN`'den (`f42183c`) |
+| `docs/05-TEKNOLOJI-KARARLARI.md:19` | "ByteTrack, PolygonZone" | "ByteTrack (yalnız)" | `8f322d7`'de sürüyordu |
+| `docs/05-TEKNOLOJI-KARARLARI.md:20` | "OpenCV homografi", `rules/calibration.py` | "saf numpy homografi", `rules/kalibrasyon.py` | `8f322d7`'de sürüyordu |
+| `docs/05-TEKNOLOJI-KARARLARI.md:22` | "SSE (`sse-starlette`)" | "Starlette `StreamingResponse` (ek paket yok)" | `8f322d7`'de sürüyordu |
+| `docs/06-OPERASYON.md:83` | `ExecStart=… app.main:uygulama` | `app.main:app`. Birim bugün başlamıyor. | düzeltildi: docs/06'daki birim `app.main:app` (`e8e2f98`) |
+| `Dockerfile:8-11` | apt `ffmpeg` "RTSP çözmek için" kuruluyor | cv2 kendi FFmpeg'ini kullanıyor; RTSP provasından sonra kaldırma adayı | sürüyor (AUDIT R32 ertelendi) |
+| `Dockerfile:9-12` | `curl` yalnız healthcheck için kurulmuş | İsteğe bağlı: `python -c` kullanılabilir | sürüyor (compose sağlık kontrolü `curl` ile `?hazirlik=1`'i çağırır) |
+| `models/indir.sh` | SHA-256 doğrulaması yok | Sabit hash ile `sha256sum -c` | düzeltildi: `models/SHA256SUMS` (`e8e2f98`) |
+| `backend/app/analiz/tespit.py:102-114` | Her oturum hatası "dosyası bozuk" diye raporlanıyor | EP hatası ile dosya hatası ayrıştırılmalı | düzeltildi: GPU çalıştırıcısı, kurulum ve bozuk dosya ayrı (`47e39d0`) |
+| `masaustu/dalsan_launcher.py:209` | Python için yalnız alt sınır (≥3.11) var | ORT 1.19.2 kalacaksa `<3.13` üst sınırı | düzeltildi: yalnız 3.12 (`becb2e2`); ORT de 1.30.0 (`47e39d0`) |
+| `.venv` | Python 3.11.15 | Hedef 3.12 (Dockerfile ve CLAUDE.md) | sürüyor (bu konteynerde; tam takım ayrıca 3.12'de koşuldu, docs/ILERLEME.md 5a) |
+| `backend/requirements.txt` | `numpy` ve `fastapi` sabitlenmemiş | En azından alt sınır konmalı (`fastapi.sse` kullanılacaksa ≥0.135) | sürüyor |
+| `docs/14-ANONS-SISTEMI-BAGLAMA.md` §2.3 madde 2 | "Bilgisayarın kendi seslendirmesi" | Ticari bağlamda lisans riski notu eklenmeli (macOS SLA, Windows koşulları doğrulanmadı) | düzeltildi: §2.3'te "yalnız DENEME içindir" notu (`8a44bbd`) |
 
 ---
 
