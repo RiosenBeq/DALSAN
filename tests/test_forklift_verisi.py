@@ -308,9 +308,11 @@ def test_disa_aktarim_loco_duzeninde(baglanti, test_ayarlari, tmp_path):
     assert ozet_tutuyor
     assert manifest["kumeler"]["egitim"]["forklift_kutusu"] == 1
     assert manifest["kumeler"]["test"]["kare"] == 1
-    # tek test karesi kutulu: yanlış alarm ölçülemez, yalnız bu söylenir
-    assert len(manifest["uyarilar"]) == 1
-    assert "forkliftsiz (boş) kare yok" in manifest["uyarilar"][0]
+    # tek test karesi kutulu: yanlış alarm ölçülemez; test günlerinde tek forklift
+    # kutusu var. Yalnız bu ikisi söylenir.
+    assert len(manifest["uyarilar"]) == 2
+    assert "forkliftsiz (boş) kare yok" in manifest["uyarilar"][1]
+    assert "yalnız 1 forklift kutusu var (en az 50" in manifest["uyarilar"][0]
 
 
 def test_tek_gun_ve_forkliftsiz_veri_uyarilir(baglanti, test_ayarlari, tmp_path):
@@ -333,6 +335,33 @@ def test_test_gunlerinde_bos_kare_yoksa_uyarilir(baglanti, test_ayarlari, tmp_pa
     kareler = fv.etiketli_kareler(baglanti)
     uyarilar = fv.uyarilar(kareler, fv.gun_bolmesi(k.gun for k in kareler))
     assert not any("forkliftsiz (boş) kare yok" in u for u in uyarilar)
+
+
+def test_test_gunlerinde_az_forklift_kutusu_uyarilir():
+    """Forklift bulma oranı test günlerindeki kutularla ölçülür: 50'nin altı uyarılır."""
+
+    def kare(no: int, gun: str, forklift: int) -> fv.Kare:
+        return fv.Kare(
+            id=no,
+            kamera_id=1,
+            alinma_utc=f"{gun}T09:00:00+00:00",
+            gun=gun,
+            dosya=f"{fv.KLASOR}/{no}.jpg",
+            genislik=64,
+            yukseklik=48,
+            etiketler=({"kutu": [0, 0, 10, 10], "sinif": "forklift"},) * forklift,
+        )
+
+    def az_kutu_uyarisi(kareler: list[fv.Kare]) -> list[str]:
+        bolme = fv.gun_bolmesi(k.gun for k in kareler)
+        return [u for u in fv.uyarilar(kareler, bolme) if "forklift kutusu var (en az" in u]
+
+    egitim = kare(1, "2026-10-01", 3)  # iki gün: 2. gün test
+    (uyari,) = az_kutu_uyarisi([egitim, kare(2, "2026-10-02", fv.AZ_TEST_KUTUSU - 1)])
+    assert f"yalnız {fv.AZ_TEST_KUTUSU - 1} forklift kutusu" in uyari
+    assert not az_kutu_uyarisi([egitim, kare(2, "2026-10-02", fv.AZ_TEST_KUTUSU)])
+    # hiç forklift yoksa "forklift kutusu yok" uyarısı yeter; ikincisi yazılmaz
+    assert not az_kutu_uyarisi([kare(1, "2026-10-01", 0), kare(2, "2026-10-02", 0)])
 
 
 def test_diskte_olmayan_kare_eksik_sayilir(baglanti, test_ayarlari, tmp_path):

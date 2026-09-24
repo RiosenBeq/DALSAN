@@ -1666,7 +1666,11 @@ def birlestir(loco: Path, saha: Path, hedef: Path, *, saha_tekrar: int = 3) -> d
                     "alarmı ölçülemez ve o kapı kalır. Test günlerinin boş karelerini de "
                     "“Forklift yok” diye etiketleyin."
                 )
-            if saha_test["images"] and test_kutusu[FORKLIFT] < AZ_TEST_KUTUSU:
+            if (
+                saha_test["images"]
+                and test_kutusu[FORKLIFT] < AZ_TEST_KUTUSU
+                and not any("forklift kutusu var (en az" in u for u in uyarilar)
+            ):
                 uyarilar.append(
                     f"Fabrikanın test günlerinde yalnız {test_kutusu[FORKLIFT]} forklift kutusu "
                     f"var (en az {AZ_TEST_KUTUSU} önerilir): oranlar birkaç kutuyla ölçülür, "

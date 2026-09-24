@@ -54,6 +54,10 @@ EN_KUCUK_KUTU_PX = 4
 KLASOR = "forklift-ornekler"
 # Test kümesinin payı: kronolojik son günler (en az bir gün).
 _TEST_PAYI = 0.25
+# Test günlerindeki forklift kutusu bundan azsa uyarılır: oran birkaç kutuyla
+# ölçülür, kapının hangi yanında olduğu güvenle söylenemez
+# (egitim/forklift/veri.py AZ_TEST_KUTUSU ile aynı; test denetler).
+AZ_TEST_KUTUSU = 50
 MANIFEST_SURUMU = 1
 TOPLAMA_ONAY_METNI = (
     "Çalışanlara aydınlatma yapıldı ve bu kareleri forklift modeli eğitimi için saklamanın "
@@ -372,9 +376,17 @@ def uyarilar(kareler: list[Kare], bolme: dict[str, str]) -> list[str]:
             "Test kümesi boş: etiketli kareler tek günden. Model, eğitimde görmediği günlerde "
             "sınanabilsin diye en az iki ayrı günün karesini etiketleyin."
         )
-    if not any(any(e["sinif"] == "forklift" for e in k.etiketler) for k in kareler):
+    forklift_var = any(any(e["sinif"] == "forklift" for e in k.etiketler) for k in kareler)
+    if not forklift_var:
         notlar.append("Hiçbir karede forklift kutusu yok; bu veriyle forklift öğrenilemez.")
     test_kareleri = [k for k in kareler if bolme.get(k.gun) == "test"]
+    test_kutusu = sum(e["sinif"] == "forklift" for k in test_kareleri for e in k.etiketler)
+    if forklift_var and test_kareleri and test_kutusu < AZ_TEST_KUTUSU:
+        notlar.append(
+            f"Test günlerinde yalnız {test_kutusu} forklift kutusu var (en az "
+            f"{AZ_TEST_KUTUSU} önerilir): forklift bulma oranı bu kadar az kutuyla güvenle "
+            "ölçülemez. Daha çok günün karesini etiketleyin."
+        )
     if test_kareleri and all(k.etiketler for k in test_kareleri):
         # degerlendir.py fk_fp_goruntu_basi: paydası kutusuz karedir; sıfırsa
         # ölçülmez ve ölçülmeyen metrik kapıyı kaldırır.

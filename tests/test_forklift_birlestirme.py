@@ -327,6 +327,7 @@ def test_saha_paketi_sozlesmesi_uygulamayla_ayni():
     """Uygulamanın yazdığı paket, eğitim betiğinin beklediğiyle aynı sözleşmede."""
     assert fv.MANIFEST_SURUMU == veri.SAHA_MANIFEST_SURUMU
     assert fv.SINIFLAR == ortak.EK_SINIFLAR
+    assert fv.AZ_TEST_KUTUSU == veri.AZ_TEST_KUTUSU
     assert veri._SAHA_DOSYA_ADI.fullmatch(_kare(123456789, "2026-10-01").cikti_adi)
     assert veri._SAHA_DOSYA_ADI.fullmatch(_kare(7, "2026-10-01").cikti_adi)
     varsayilan = veri._ayristirici().parse_args(["hazirla", "--kaynak", "a", "--hedef", "b"])
@@ -386,3 +387,31 @@ def test_test_gunlerinde_bos_kare_yoksa_uyarir(tmp_path):
     rapor = veri.birlestir(loco, saha, tmp_path / "birlesik")
     bos = [u for u in rapor["uyarilar"] if "forkliftsiz (boş) kare yok" in u]
     assert len(bos) == 1, "paketin uyarısı varken ikinci kez yazılmaz"
+
+
+def _uyarisiz_kopya(zip_yolu: Path, hedef: Path) -> Path:
+    """Aynı paket, manifest'inde uyarı olmadan (uyarıları yazmayan eski sürümün paketi)."""
+    with zipfile.ZipFile(zip_yolu) as eski, zipfile.ZipFile(hedef, "w") as yeni:
+        for ad in eski.namelist():
+            icerik = eski.read(ad)
+            if ad == veri.SAHA_MANIFESTI:
+                manifest = json.loads(icerik)
+                manifest["uyarilar"] = []
+                icerik = json.dumps(manifest, ensure_ascii=False).encode("utf-8")
+            yeni.writestr(ad, icerik)
+    return hedef
+
+
+def test_az_test_kutusu_bir_kez_uyarilir(ornek, tmp_path):
+    """Forklift sayfası 50'nin altını pakete yazar; eğitim ikinci kez yazmaz ama
+    uyarıyı taşımayan eski pakette kendisi söyler."""
+    loco, saha = ornek  # test gününde 1 forklift kutusu
+
+    def az_kutu(rapor: dict) -> list[str]:
+        return [u for u in rapor["uyarilar"] if "forklift kutusu var (en az" in u]
+
+    (paketin,) = az_kutu(veri.birlestir(loco, saha, tmp_path / "b1"))
+    assert paketin.startswith("Test günlerinde yalnız 1 forklift kutusu")
+    eski = _uyarisiz_kopya(saha, tmp_path / "eski.zip")
+    (egitimin,) = az_kutu(veri.birlestir(loco, eski, tmp_path / "b2"))
+    assert egitimin.startswith("Fabrikanın test günlerinde yalnız 1 forklift kutusu")
