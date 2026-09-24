@@ -20,7 +20,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 
-from app.analiz.model_adi import MARKA, gorunen_model_adi
+from app.analiz.model_adi import HAZIR_MODELE_DONUS, MARKA, gorunen_model_adi
 from app.hatalar import DalsanHata
 from app.loglama import log_al
 from app.rules.tipler import SINIF_FORKLIFT, SINIF_INSAN, SINIF_TIR, TANINAN_SINIFLAR
@@ -68,8 +68,7 @@ def sinif_eslemesi(ust_veri: dict[str, str]) -> tuple[dict[int, str], list[str]]
         raise ModelHatasi(
             "Tespit modelinin sınıf listesi okunamadı. Kendi eğittiğiniz modeli "
             "kullanıyorsanız program klasöründeki veri/loglar/sistem.log dosyasını "
-            "destek ekibine iletin; hazır modele dönmek için .env'deki MODEL_DOSYASI "
-            "satırını .env.example'daki gibi düzeltin.",
+            f"destek ekibine iletin. {HAZIR_MODELE_DONUS}",
             f"ONNX üst verisi {UST_VERI_SINIF_ANAHTARI} çözülemedi: {ham!r} ({hata})",
         ) from hata
     esleme: dict[int, str] = {}
@@ -82,8 +81,7 @@ def sinif_eslemesi(ust_veri: dict[str, str]) -> tuple[dict[int, str], list[str]]
     if not esleme:
         raise ModelHatasi(
             "Tespit modeli insan, forklift ya da tır sınıflarından hiçbirini tanımıyor; "
-            "bu modelle güvenlik kuralları çalışamaz. Hazır modele dönmek için .env'deki "
-            "MODEL_DOSYASI satırını .env.example'daki gibi düzeltin.",
+            f"bu modelle güvenlik kuralları çalışamaz. {HAZIR_MODELE_DONUS}",
             f"ONNX üst verisi {UST_VERI_SINIF_ANAHTARI}: {ham!r}",
         )
     return esleme, bilinmeyen
@@ -156,13 +154,9 @@ def _acilamadi(model_dosyasi: Path, hata: Exception) -> ModelHatasi:
 def _uyumsuz_model(model_dosyasi: Path, teknik: str) -> ModelHatasi:
     """Model açıldı ama uygulamanın beklediği biçimde değil: hazır modele dönüş yolu."""
     return ModelHatasi(
-        f"{gorunen_model_adi(model_dosyasi.name)} bu sistemle uyumlu değil. Hazır "
-        "modele dönmek için: program klasöründeki .env dosyasını bir metin "
-        "düzenleyiciyle açın, MODEL_DOSYASI ile başlayan satırı yanındaki "
-        ".env.example dosyasında yazdığı gibi düzeltip kaydedin, sonra Kontrol "
-        "Paneli'nde Durdur'a ve Sistemi Başlat'a basın. Kendi eğittiğiniz modeli "
-        "kullanmak istiyorsanız program klasöründeki veri/loglar/sistem.log "
-        "dosyasını destek ekibine iletin.",
+        f"{gorunen_model_adi(model_dosyasi.name)} bu sistemle uyumlu değil. "
+        f"{HAZIR_MODELE_DONUS} Kendi eğittiğiniz modeli kullanmak istiyorsanız "
+        "program klasöründeki veri/loglar/sistem.log dosyasını destek ekibine iletin.",
         teknik,
     )
 

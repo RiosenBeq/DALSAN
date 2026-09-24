@@ -240,7 +240,7 @@ def test_sozlesmeye_uymayan_model_acilista_reddedilir(model, monkeypatch, oturum
     with pytest.raises(ModelHatasi) as hata:
         Tespitci(model, "cpu")
     assert "uyumlu değil" in hata.value.kullanici_mesaji
-    assert "MODEL_DOSYASI" in hata.value.kullanici_mesaji
+    assert "Ayarlar'daki “Tanıma modeli” listesinden" in hata.value.kullanici_mesaji
     assert sebep in hata.value.teknik_ayrinti
 
 

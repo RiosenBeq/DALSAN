@@ -27,6 +27,14 @@ GORUNEN_ADLAR: dict[str, str] = {
 # Tanınmayan dosya: kullanıcı kendi eğittiği modeli koymuş olabilir.
 OZEL_MODEL_ADI = f"{MARKA} (özel model)"
 
+# Model hatalarının ortak çözüm cümlesi. Model Ayarlar'dan seçilir (.env'i
+# elle düzenletmek yok: paketlenmiş programda o dosya program klasöründe
+# bile değildir); web arayüzü model çalışmasa da açılır.
+HAZIR_MODELE_DONUS = (
+    "Hazır modele dönmek için Ayarlar'daki “Tanıma modeli” listesinden bir hazır "
+    "model seçip kaydedin, sonra Kontrol Paneli'nde Durdur'a ve Sistemi Başlat'a basın."
+)
+
 
 def gorunen_model_adi(dosya_adi: str) -> str:
     """Model dosyasının adından, kullanıcıya gösterilecek adı üretir.

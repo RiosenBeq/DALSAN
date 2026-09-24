@@ -16,7 +16,7 @@ import urllib.request
 from collections.abc import Callable
 from pathlib import Path
 
-from app.analiz.model_adi import MARKA, gorunen_model_adi
+from app.analiz.model_adi import HAZIR_MODELE_DONUS, gorunen_model_adi
 from app.hatalar import DalsanHata
 
 # ADR-002: Apache-2.0 lisanslı YOLOX resmi yayınları (models/indir.sh ile aynı)
@@ -96,11 +96,8 @@ def ozel_model_hatasi(model_dosyasi: Path) -> ModelIndirmeHatasi:
     return ModelIndirmeHatasi(
         f"{gorunen_model_adi(model_dosyasi.name)} kendiliğinden inemez: seçili model, "
         f"hazır modellerden ({hazir_adlar}) biri değil. Kendi eğittiğiniz bir modeli "
-        "kullanıyorsanız, model dosyanızı .env ayar dosyasındaki MODEL_DOSYASI "
-        "satırında yazan yere koyun. Hazır modele dönmek için: program klasöründeki "
-        ".env dosyasını bir metin düzenleyiciyle açın, MODEL_DOSYASI ile başlayan "
-        "satırı yanındaki .env.example dosyasında yazdığı gibi düzeltip kaydedin, "
-        "sonra Kontrol Paneli'nde Durdur'a ve Sistemi Başlat'a basın.",
+        "kullanıyorsanız, model dosyanızı ayar dosyasındaki MODEL_DOSYASI satırında "
+        f"yazan yere koyun. {HAZIR_MODELE_DONUS}",
         f"Otomatik indirme atlandı: {model_dosyasi} bilinen yayın dosyalarından "
         f"({', '.join(BILINEN_MODELLER)}) biri değil.",
     )
@@ -132,11 +129,12 @@ def modeli_indir(model_dosyasi: Path, ilerleme: Callable[[int, int], None] | Non
         if ozet.hexdigest() != BILINEN_MODELLER[model_dosyasi.name]:
             gecici.unlink(missing_ok=True)
             raise ModelIndirmeHatasi(
-                f"{MARKA} indirildi ama doğrulanamadı: dosya eksik, bozuk ya da yolda "
-                "değiştirilmiş. Kullanılmadı ve silindi. İnternet bağlantısını kontrol "
-                "edip Kontrol Paneli'nde Durdur'a, sonra Sistemi Başlat'a basın. Sorun "
-                "sürerse bilgi işlem birimine haber verin: şirket ağındaki bir güvenlik "
-                "cihazı indirilen dosyayı değiştiriyor olabilir.",
+                f"{gorunen_model_adi(model_dosyasi.name)} indirildi ama doğrulanamadı: "
+                "dosya eksik, bozuk ya da yolda değiştirilmiş. Kullanılmadı ve silindi. "
+                "İnternet bağlantısını kontrol edip Kontrol Paneli'nde Durdur'a, sonra "
+                "Sistemi Başlat'a basın. Sorun sürerse bilgi işlem birimine haber verin: "
+                "şirket ağındaki bir güvenlik cihazı indirilen dosyayı değiştiriyor "
+                f"olabilir.{_hazir_modele_donus_onerisi(model_dosyasi)}",
                 f"SHA-256 tutmadı: {adres} → {gecici} | beklenen "
                 f"{BILINEN_MODELLER[model_dosyasi.name]} | inen {ozet.hexdigest()} "
                 f"({inen} bayt)",
@@ -147,6 +145,24 @@ def modeli_indir(model_dosyasi: Path, ilerleme: Callable[[int, int], None] | Non
         gecici.unlink(missing_ok=True)
         kullanici_mesaji, teknik_ayrinti = _indirme_hata_metinleri(adres, model_dosyasi, hata)
         raise ModelIndirmeHatasi(kullanici_mesaji, teknik_ayrinti) from hata
+
+
+def _hazir_modele_donus_onerisi(model_dosyasi: Path) -> str:
+    """Bu deponun yayınından inen (forklift) model inmediyse: hazır modele dönüş.
+
+    Hazır model zaten diskte olabilir ve internetsiz de çalışır; kullanıcı
+    seçtiği forklift modeli inene kadar insan ve araç tespitinden olmamalı.
+    Kendiliğinden geçilmez: seçim kullanıcınındır, Ayarlar'dan döner.
+    """
+    if model_dosyasi.name not in DALSAN_MODELLERI:
+        return ""
+    taban = FORKLIFT_TABANI.get(model_dosyasi.name)
+    hedef = f"“{gorunen_model_adi(taban)}” modeline" if taban else "bir hazır modele"
+    return (
+        f" Beklemeden çalıştırmak için Ayarlar'daki “Tanıma modeli” listesinden {hedef} "
+        "dönüp Kontrol Paneli'nde Durdur'a, sonra Sistemi Başlat'a basın (forklift o "
+        "zaman ayrı sınıf olarak tanınmaz)."
+    )
 
 
 def _saat_hatasi_mi(hata: Exception) -> bool:
@@ -179,6 +195,7 @@ def _indirme_hata_metinleri(adres: str, model_dosyasi: Path, hata: Exception) ->
     Sebebe göre DOĞRU çözümü söyler - "internetinizi kontrol edin" her zaman
     doğru teşhis değildir.
     """
+    ad = gorunen_model_adi(model_dosyasi.name)
     sebep = getattr(hata, "reason", hata)
     sertifika_hatasi = isinstance(sebep, ssl.SSLCertVerificationError) or (
         "CERTIFICATE_VERIFY_FAILED" in str(hata)
@@ -190,7 +207,7 @@ def _indirme_hata_metinleri(adres: str, model_dosyasi: Path, hata: Exception) ->
         # yanlış yerde uğraştırır - üstelik o dosya Windows'ta hiç yoktur.
         # Doğru çözüm tek satırdır: saati düzelt.
         kullanici_mesaji = (
-            f"{MARKA} indirilemedi: bu bilgisayarın tarih/saat ayarı yanlış olduğu için "
+            f"{ad} indirilemedi: bu bilgisayarın tarih/saat ayarı yanlış olduğu için "
             "güvenlik sertifikası geçersiz görünüyor. Çözüm: bilgisayarın tarih, saat ve "
             "saat dilimi ayarını açıp 'otomatik ayarla' seçeneğini işaretleyin (Windows: "
             "Ayarlar → Saat ve dil → Tarih ve saat; Mac: Sistem Ayarları → Genel → Tarih "
@@ -198,7 +215,7 @@ def _indirme_hata_metinleri(adres: str, model_dosyasi: Path, hata: Exception) ->
         )
     elif sertifika_hatasi:
         kullanici_mesaji = (
-            f"{MARKA} indirilemedi: güvenlik sertifikaları doğrulanamadı. "
+            f"{ad} indirilemedi: güvenlik sertifikaları doğrulanamadı. "
             "Mac'te python.org'dan kurulan Python'da bu sık görülür. Çözüm: Uygulamalar → "
             "Python 3.x klasöründeki 'Install Certificates.command' dosyasına çift tıklayın, "
             "sonra Kontrol Panelinden yeniden başlatın. Şirket ağındaysanız internet "
@@ -210,15 +227,18 @@ def _indirme_hata_metinleri(adres: str, model_dosyasi: Path, hata: Exception) ->
         # (yayın kaldırılmış ya da taşınmış). "İnterneti kontrol edin" burada
         # yanlış yere yollar; başka modele geçmek sistemi hemen çalıştırır.
         kullanici_mesaji = (
-            f"{MARKA} indirilemedi: model dosyası yayın yerinde bulunamadı (internet "
+            f"{ad} indirilemedi: model dosyası yayın yerinde bulunamadı (internet "
             "bağlantısı çalışıyor). Ayarlar'daki “Tanıma modeli” listesinden başka bir "
             "model seçip Kontrol Panelinden yeniden başlatın ve destek ekibine haber verin."
         )
     else:
         kullanici_mesaji = (
-            f"{MARKA} indirilemedi. İnternet bağlantısını kontrol edip "
+            f"{ad} indirilemedi. İnternet bağlantısını kontrol edip "
             "Kontrol Panelinden yeniden başlatın."
         )
+    if not (isinstance(hata, urllib.error.HTTPError) and hata.code in (404, 410)):
+        # 404/410 metni zaten başka modele geçmeyi söyler
+        kullanici_mesaji += _hazir_modele_donus_onerisi(model_dosyasi)
     teknik_ayrinti = (
         f"{kullanici_mesaji} | indirme adresi: {adres} | hedef dosya: {model_dosyasi} "
         f"| özgün hata: {hata!r}"
