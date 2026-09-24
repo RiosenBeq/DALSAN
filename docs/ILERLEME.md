@@ -28,7 +28,11 @@ hatalar ve 29 belgenin kodla karşılaştırılması.
   olarak açılıyor; sayfalardaki belge göndermeleri bağlantı oldu.
 - **Eğitim bacaklarının ara kaydı ayrı adla** (`a75d445`): her bacak
   `calisma-<varyant>-b<N>` yapıtına yazar, sonraki bacak ve ölçüm en sonuncuyu seçer;
-  kayıt yoksa iş durur, başka bir iş denemesinden geliyorsa uyarı yazar.
+  kayıt yoksa iş durur, başka bir iş denemesinden geliyorsa uyarı yazar. GitHub'daki ilk
+  duman sınamasında ikinci bacak kaydı bulamadı: indirme eylemi desene uyan TEK yapıtı alt
+  klasör açmadan çıkarıyor, testler ise hep alt klasör varsayıyordu. Seçim adımı artık iki
+  düzeni de tanıyor (tek kayıtta hangi bacağın olduğu BACAK dosyasından okunur) ve testler
+  gerçek düzeni taklit ediyor.
 - **IP hoparlör adresinde kullanıcı adı ve şifre** (`6512db7`). Hiç çalışmıyordu (urllib
   adresteki kimliği göndermez) ve portsuz adreste şifre hata metnine maskesiz girip son
   anons satırına, teslim kaydına, arşive ve günlüğe düşüyordu; analiz kapalıyken aynı
@@ -53,7 +57,8 @@ hatalar ve 29 belgenin kodla karşılaştırılması.
   paketleme notları tek dosyalık uygulama anlatıyordu; ZIP'ten açılmış klasörde
   "Güncelle" artık ne yapılacağını söylüyor.
 
-3.11'de 2150'yi aşkın test ve ruff temiz; her ara commit ayrıca doğrulandı.
+Son hal 3.11'de 2147 test geçti (24'ü bu ortamda atlanır), 3.12'de 2165 (6 atlanır); ruff
+temiz; 23 commit'in her biri ayrıca tam takımla doğrulandı.
 
 **Belgeler.** Sekiz ayrı denetim 29 belgeyi koda karşı okudu; her düzeltme bir
 `dosya:satır`a dayanıyor. Başlıcaları: docs/02 var olmayan bir mimari anlatıyordu (iki
@@ -70,8 +75,10 @@ alıntıları) değiştirilmedi; kodun ayrıldığı yerlere tarihli not düşü
 
 **Açık kalanlar:**
 
-- **Forklift modeli:** 7. eğitim koşusunun ölçümü bu kayıt yazılırken sürüyordu; sonuç
-  aşağıdaki forklift bölümünde.
+- **Forklift modeli:** 7. eğitim koşusunun altı adayı da kapılardan kaldı (forklift bulma
+  oranı %23-25, kesinlik %9-15; insan ve araç kaybı 0). Darboğaz artık veri çeşitliliği;
+  sıradaki adım operatörün kararı (saha görüntüsü ya da Open Images). Ayrıntı ve adayların
+  yayımlanamamasının sebebi (düzeltildi) aşağıdaki forklift bölümünde.
 - **Operatör kararı bekleyenler:** S1 (sunucu donanımı: GPU imajı R3, Docker'da root
   kullanıcı R32), S5 (saklama günleri), S27 (yüz bulanıklaştırma, R23), docs/18'deki
   hukuki metinlerin avukat onayı, `docs/kkd-politika.md`'nin boş cevapları ve KKD veri
@@ -271,6 +278,32 @@ eğit"*. Karar kaydı ve lisans çerçevesi docs/17 §16, yöntem §12.3.
   verdi. Ölçüm artık görüntü başına model başına bir ham çıkarımla AP'yi, bu görünümü ve tanıyı
   birlikte çıkarır.
 - **İkinci tam eğitim istendi:** tiny-v3 (50 devir) ve s-v3 (30 devir).
+- **İkinci tam eğitim (çalıştırma 7, 24.09.2026): altı adayın hiçbiri geçmedi, ama darboğaz
+  değişti.** tiny-v3 ve s-v3, k = 0, 1, 2; 7 saat 18 dakika sürdü. LOCO testinde (2277
+  görüntü) forklift bulma oranı 0'dan %23-25'e, forklift AP50 0,011'den 0,09-0,10'a çıktı;
+  insan ve araç kaybı yine 0, gecikme resmi modelin 1,15-1,16 katı. Kalan kapılar: forklift
+  bulma oranı (en az 0,60; s'de 0,248) ve kesinlik (en az 0,50; s'de 0,15), tiny'de ayrıca
+  forkliftsiz görüntüde yanlış forklift (sınır 0,05; 0,051-0,054).
+- **Tanı:** v3'te kutu artık sorun değil: test forkliftlerinin %98'inde IoU'su 0,5 üstü bir
+  aday kutu var (resmi modelde %82-87). Sorun puan: doğru kutudaki forklift puanının
+  ortancası s'de 0,09, tiny'de 0,13; algılama eşiği 0,35. Ek baş eğitim depolarındaki
+  (LOCO 2, 3, 5) forkliftleri öğreniyor, test depolarındakine (1, 4) genellemiyor: 474
+  kutuluk, tek kaynaklı eğitim verisi az. Hiçbir aday kaydedilmedi, varsayılan model
+  değişmedi.
+- **Adaylar yayımlanamadı (HTTP 403, "Resource not accessible by integration").** Eğitim
+  sürerken main iş akışı dosyası değiştiren commit'ler aldı. GitHub'ın iş akışı jetonu
+  (GITHUB_TOKEN) dalın ucundaki commit dışında bir commit'e etiket koyamıyor; bunun için
+  gereken "workflows" izni ona verilemiyor. Çalıştırma 5'te main ilerlememişti, yayın geçti.
+  Yayın artık etiketi main'in o anki ucuna koyuyor; eğitim commit'i notlarda ve her modelin
+  kartında (`git_sha`) duruyor. Çalıştırma 7'nin adayları (geçmediler) 30 gün çalıştırmanın
+  yapıtlarında durur.
+- **Sıradaki adım (operatör kararı).** LOCO ile bir tur daha eğitmenin kapıları geçirmesi
+  beklenmiyor. Seçenekler: (1) müşterinin kendi kameralarından etiketli forklift görüntüsü:
+  hedef ortamın kendisi; KVKK gereği herkese açık bu hatta girmez, kapalı bir makinede
+  eğitilir; etiketlemeyi kimin yapacağı S11. (2) Open Images'in forklift etiketli
+  fotoğraflarını eğitime eklemek: görüntüler CC BY 2.0, etiketler CC BY 4.0, atıf gerekir;
+  lisans kararı S20. (3) Bu arada hazır modelle devam: forklift araç (tır) olarak görünür ve
+  güvenli mesafe kuralı onu araç sayar.
 
 ## Hata avı ve uygulama üretim hattı (23.09.2026)
 

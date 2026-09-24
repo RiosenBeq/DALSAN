@@ -53,7 +53,7 @@ onu kamera gibi izler. Kamera sayfasındaki durum satırı bağlanamama sebebini
 | Giriş şifresi (`YONETICI_SIFRESI`) | ✅ varsayılanda boş (giriş sorulmaz); ağa açarken ve fabrika kurulumundan önce doldurulur (docs/07 #0) |
 | KKD (baret/yelek) veri toplama + uygulama içi etiketleme | ✅ |
 | KKD modeli | ⏳ saha verisiyle eğitilecek (eğitim ürün dışı, docs/04 §6); gölge mod, onaylı sürüm ve anons kapısı hazır |
-| Forklift'e özel sınıf | ⏳ forklift tanıyan model eğitim hattında (açık LOCO veri seti, GitHub Actions); geçitleri geçen aday Ayarlar'da seçilebilir olur. Bugün kayıtlı forklift modeli yok: forklift araç (tır) olarak görünür (docs/12 §5) |
+| Forklift'e özel sınıf | ⏳ eğitim hattı hazır (açık LOCO veri seti, GitHub Actions); iki tam eğitimin adayları geçitleri geçemedi, sıradaki adım daha çeşitli veri (saha görüntüsü ya da Open Images). Geçen aday Ayarlar'da seçilebilir olur. Bugün kayıtlı forklift modeli yok: forklift araç (tır) olarak görünür (docs/12 §5) |
 
 ## Mimari (kısaca)
 

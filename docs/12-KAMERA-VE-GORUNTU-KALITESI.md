@@ -120,8 +120,11 @@ model Ayarlar → "Tanıma modeli"nde seçilebilir olur; varsayılan model saha
 tanıdığı model dosyasının içinden okunur (`dalsan_classes`,
 `backend/app/analiz/tespit.py`): yeni model için kod değişmez.
 
-**Bugün kayıtlı forklift modeli yok**; eğitim sürüyor, sonuçlar
-`docs/ILERLEME.md`'de.
+**Bugün kayıtlı forklift modeli yok.** İki tam eğitimin adayları geçitleri geçemedi.
+İkincisinde (24.09.2026) forklift kutuları doğru bulundu ama başka depolardaki
+forkliftlerin ancak dörtte biri tanındı (geçit en az %60). Sıradaki adım daha çeşitli
+veri: sahadaki kameraların etiketli görüntüsü ya da lisansı onaylanırsa Open Images
+(docs/ILERLEME.md).
 
 Seçilen forklift modeli inmezse ya da açılamazsa sistem durmaz: tabanındaki
 hazır modelle insan ve araç tespitine devam eder, ana sayfada sebebini yazar ve
