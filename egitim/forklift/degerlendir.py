@@ -28,6 +28,18 @@ LOCO'daki arac_kaybi bunu kayıp saymaz (forklift de araçtır), tr_fk ise
 LOCO'da çoğunlukla DOĞRU dönüşümdür (resmi modelin "truck" dediği gerçek
 forklift). Bu yüzden ayrı bir sette ölçülür.
 
+Araç koruması (arac_kaybi, tr_fk, arac_kazanci; video ve araç setindeki
+karşılıkları) adayın ETİKET görünümüyle ölçülür: adayın ham çıktısında kutu
+sütunları resmi modelinkiyle değiştirilip uygulamanın son işlemesinden
+geçirilir. v1 ve v2'de kutu zaten resmi kutudur, görünüm adayın kendi
+tespitleriyle aynıdır. v3'te forkliftin kazandığı çapada kutu ek baştan gelir:
+resmi modelin gevşek sardığı bir aracı doğru yeniden etiketleyen aday, kutu
+oynadı diye araç "kaybetmiş" sayılmasın; bir tırı forklifte çeviren aday da
+kutusu oynadı diye tr_fk'den kaçmasın. İnsan koruması ve forklift metrikleri
+uygulamanın gerçek tespitleriyle ölçülür. AP tespitleri, etiket görünümü ve
+tanının ham kutuları aynı iki ham çıktıdan (aday ve resmi, birer çıkarım)
+türetilir.
+
 Eşleştirme COCO usulüdür: tespitler puana göre büyükten küçüğe gezilir; her
 tespit, henüz alınmamış gerçek kutular arasında IoU'su en az 0,5 olan en
 yüksek kutuya bağlanır (bir kutuya bir tespit; en iyi kutusu alınmışsa eşiği
@@ -61,6 +73,7 @@ Metrikler (aksi yazılmadıkça uygulamanın çalışma noktasında):
                         karşılığı olmayanların oranı
   arac_kaybi            resmi modelin araçlarından ("truck": COCO car, bus,
                         truck) adayda truck ya da forklift karşılığı olmayanlar
+                        (adayın etiket görünümüyle, yukarıya bakın)
   tr_fk                 resmi araçlardan karşılığı forklift olanlar
   insan_kazanci,        adayın resmi karşılığı olmayan tespitleri / resmi sayı
   arac_kazanci
@@ -394,8 +407,13 @@ def goruntuyu_olc(
     aday_ap: Sequence[Tespit],
     resmi_ap: Sequence[Tespit],
     girdi: int,
+    aday_arac: Sequence[Tespit] | None = None,
 ) -> GoruntuSonucu:
-    """Bir görüntünün ölçümü: çalışma noktası tespitleri ve AP için güven 0,01 tespitleri."""
+    """Bir görüntünün ölçümü: çalışma noktası tespitleri ve AP için güven 0,01 tespitleri.
+
+    aday_arac: araç korumasında kullanılacak aday tespitleri (etiket görünümü,
+    modül belgesi); verilmezse aday.
+    """
     yoksay = [
         not degerlendirilir_mi(k, gercek.genislik, gercek.yukseklik, girdi)
         for k in gercek.forkliftler
@@ -420,7 +438,7 @@ def goruntuyu_olc(
         fk_dogru=sum(1 for j in eslestir(fk, gercek.forkliftler) if j >= 0),
         bos=not gercek.forkliftler and not gercek.transpaletler,
         insan=koruma(resmi, aday, {INSAN}, {INSAN}),
-        arac=koruma(resmi, aday, {TIR}, ARAC),
+        arac=koruma(resmi, aday if aday_arac is None else aday_arac, {TIR}, ARAC),
         ap_fk=tuple(ap_isaretleri(_sinifta(aday_ap, {FORKLIFT}), gercek.forkliftler, yoksay)),
         ap_vg=tuple(ap_isaretleri(_sinifta(aday_ap, ARAC), gercek.forkliftler, yoksay)),
         ap_vg_resmi=tuple(ap_isaretleri(_sinifta(resmi_ap, ARAC), gercek.forkliftler, yoksay)),
@@ -614,11 +632,16 @@ class KareSonucu:
     forklift_var: bool
 
 
-def kareyi_olc(aday: Sequence[Tespit], resmi: Sequence[Tespit]) -> KareSonucu:
-    """Etiketsiz bir video karesi: koruma ve forklift yanlış alarmı."""
+def kareyi_olc(
+    aday: Sequence[Tespit], resmi: Sequence[Tespit], aday_arac: Sequence[Tespit] | None = None
+) -> KareSonucu:
+    """Etiketsiz bir kare (video, araç seti): koruma ve forklift yanlış alarmı.
+
+    aday_arac: araç korumasının etiket görünümü (goruntuyu_olc gibi); verilmezse aday.
+    """
     return KareSonucu(
         insan=koruma(resmi, aday, {INSAN}, {INSAN}),
-        arac=koruma(resmi, aday, {TIR}, ARAC),
+        arac=koruma(resmi, aday if aday_arac is None else aday_arac, {TIR}, ARAC),
         forklift_var=any(t.sinif == FORKLIFT for t in aday),
     )
 
@@ -1000,6 +1023,49 @@ def tespitleri_cevir(sonuc: tuple[np.ndarray, np.ndarray, np.ndarray]) -> list[T
     ]
 
 
+def etiket_gorunumu(aday_ham: np.ndarray, resmi_ham: np.ndarray) -> np.ndarray:
+    """Adayın ham çıktısı, kutu sütunları (0-3) resmi modelinkiyle (modül belgesi)."""
+    gorunum = np.array(aday_ham, copy=True)
+    gorunum[:, :4] = resmi_ham[:, :4]
+    return gorunum
+
+
+def ham_kutular(
+    cikti: np.ndarray, oran_: float, genislik: int, yukseklik: int, girdi: int
+) -> np.ndarray:
+    """Ham çıktının bütün çapa kutuları: xyxy, özgün piksel, kareye kırpılmış.
+
+    Izgara çözümü ve kırpma uygulamanın Tespitci._son_isle'siyle aynıdır (üs
+    taşmasın diye log boyut 20'de kesilir; kırpma sonucu aynı kalır).
+    """
+    izgaralar, adimlar = [], []
+    for adim in (8, 16, 32):
+        kenar = girdi // adim
+        xv, yv = np.meshgrid(np.arange(kenar), np.arange(kenar))
+        izgaralar.append(np.stack((xv, yv), 2).reshape(-1, 2))
+        adimlar.append(np.full((kenar * kenar, 1), adim))
+    izgara, adim_dizisi = np.concatenate(izgaralar), np.concatenate(adimlar)
+    cikti = np.asarray(cikti, dtype=np.float64)
+    merkez = (cikti[:, :2] + izgara) * adim_dizisi / oran_
+    boyut = np.exp(np.minimum(cikti[:, 2:4], 20.0)) * adim_dizisi / oran_
+    kutular = np.concatenate([merkez - boyut / 2, merkez + boyut / 2], 1)
+    kutular[:, [0, 2]] = kutular[:, [0, 2]].clip(0, genislik)
+    kutular[:, [1, 3]] = kutular[:, [1, 3]].clip(0, yukseklik)
+    return kutular
+
+
+@dataclass(frozen=True)
+class HamSonuc:
+    """Bir görüntünün iki ham çıktısından türetilenler (Olcer.ham_ciktilar)."""
+
+    aday_ap: list[Tespit]
+    resmi_ap: list[Tespit]
+    aday_arac: list[Tespit]  # etiket görünümü: adayın sınıfları, resmi kutular
+    aday_kutular: np.ndarray  # [A, 4] xyxy özgün piksel, kırpılmış
+    aday_puanlar: np.ndarray  # [A, sütun] nesne x sınıf
+    resmi_kutular: np.ndarray
+
+
 class Olcer:
     """Aday ve resmi model; her biri çalışma noktasında ve AP için güven 0,01'de."""
 
@@ -1042,39 +1108,49 @@ class Olcer:
             (self.aday_sureleri if ad == "aday" else self.resmi_sureleri).append(sure)
         return tespitleri_cevir(sonuclar["aday"]), tespitleri_cevir(sonuclar["resmi"])
 
-    def ap_icin(self, kare: np.ndarray) -> tuple[list[Tespit], list[Tespit]]:
-        return (
-            tespitleri_cevir(self.aday_ap.tespit_et(kare)),
-            tespitleri_cevir(self.resmi_ap.tespit_et(kare)),
-        )
+    @staticmethod
+    def _ham_calistir(tespitci, kare: np.ndarray) -> tuple[np.ndarray, float]:
+        """Uygulamanın ön işlemesi ve oturumuyla ham çıktı [A, 5 + sınıf] ve letterbox oranı.
 
-    def ham(self, kare: np.ndarray, resmi: bool = False) -> tuple[np.ndarray, np.ndarray]:
-        """Adayın (ya da resmi modelin) ham çıktısı (tanı): (kutular xyxy özgün piksel,
-        puanlar nesne x sınıf). Ön işleme ve ızgara çözümü uygulamanın Tespitci'siyle
-        aynıdır; iki modelin girdi boyu aynıdır (kurucu denetler).
+        İki modelin girdi boyu aynıdır (kurucu denetler): oran ikisinde de aynıdır.
         """
-        tespitci = self.resmi if resmi else self.aday
         girdi, oran_ = tespitci._on_isle(kare)
         with tespitci._kilit:
             cikti = tespitci._oturum.run(None, {tespitci._girdi_adi: girdi})[0]
-        cikti = np.asarray(cikti[0], dtype=np.float64)
-        izgaralar, adimlar = [], []
-        for adim in (8, 16, 32):
-            kenar = self.girdi // adim
-            xv, yv = np.meshgrid(np.arange(kenar), np.arange(kenar))
-            izgaralar.append(np.stack((xv, yv), 2).reshape(-1, 2))
-            adimlar.append(np.full((kenar * kenar, 1), adim))
-        izgara, adim_dizisi = np.concatenate(izgaralar), np.concatenate(adimlar)
-        merkez = (cikti[:, :2] + izgara) * adim_dizisi
-        boyut = np.exp(np.minimum(cikti[:, 2:4], 20.0)) * adim_dizisi
-        kutular = np.concatenate([merkez - boyut / 2, merkez + boyut / 2], 1) / oran_
-        return kutular, cikti[:, 4:5] * cikti[:, 5:]
+        return cikti[0], oran_
+
+    def ham_ciktilar(self, kare: np.ndarray) -> HamSonuc:
+        """Aday ve resmi model birer kez çalışır; AP tespitleri (güven 0,01 örneklerinin
+        son işlemesiyle), araç korumasının etiket görünümü ve tanının ham kutuları bu iki
+        çıktıdan türetilir."""
+        aday_ham, oran_ = self._ham_calistir(self.aday, kare)
+        resmi_ham, _ = self._ham_calistir(self.resmi, kare)
+        genislik, yukseklik = kare.shape[1], kare.shape[0]
+        gorunum = etiket_gorunumu(aday_ham, resmi_ham)
+        return HamSonuc(
+            aday_ap=tespitleri_cevir(self.aday_ap._son_isle(aday_ham, oran_, genislik, yukseklik)),
+            resmi_ap=tespitleri_cevir(
+                self.resmi_ap._son_isle(resmi_ham, oran_, genislik, yukseklik)
+            ),
+            aday_arac=tespitleri_cevir(self.aday._son_isle(gorunum, oran_, genislik, yukseklik)),
+            aday_kutular=ham_kutular(aday_ham, oran_, genislik, yukseklik, self.girdi),
+            aday_puanlar=np.asarray(aday_ham[:, 4:5], np.float64) * aday_ham[:, 5:],
+            resmi_kutular=ham_kutular(resmi_ham, oran_, genislik, yukseklik, self.girdi),
+        )
 
     def kare(self, kare: np.ndarray) -> KareSonucu:
-        """Video karesi (süre ölçülmez)."""
+        """Video ya da araç seti karesi (süre ölçülmez): modeller birer kez çalışır."""
+        aday_ham, oran_ = self._ham_calistir(self.aday, kare)
+        resmi_ham, _ = self._ham_calistir(self.resmi, kare)
+        genislik, yukseklik = kare.shape[1], kare.shape[0]
         return kareyi_olc(
-            tespitleri_cevir(self.aday.tespit_et(kare)),
-            tespitleri_cevir(self.resmi.tespit_et(kare)),
+            tespitleri_cevir(self.aday._son_isle(aday_ham, oran_, genislik, yukseklik)),
+            tespitleri_cevir(self.resmi._son_isle(resmi_ham, oran_, genislik, yukseklik)),
+            tespitleri_cevir(
+                self.aday._son_isle(
+                    etiket_gorunumu(aday_ham, resmi_ham), oran_, genislik, yukseklik
+                )
+            ),
         )
 
 
@@ -1171,7 +1247,7 @@ def olc(secenekler: argparse.Namespace) -> dict:
     for sira, goruntu in enumerate(goruntuler):
         kare = _kare_oku(goruntu)
         aday, resmi = olcer.calisma_noktasi(kare, sira)
-        aday_ap, resmi_ap = olcer.ap_icin(kare)
+        ham = olcer.ham_ciktilar(kare)
         gercek = Gercek(
             goruntu.alt_kume,
             kare.shape[1],
@@ -1179,17 +1255,20 @@ def olc(secenekler: argparse.Namespace) -> dict:
             goruntu.forkliftler,
             goruntu.transpaletler,
         )
-        sonuclar.append(goruntuyu_olc(gercek, aday, resmi, aday_ap, resmi_ap, olcer.girdi))
+        sonuclar.append(
+            goruntuyu_olc(
+                gercek, aday, resmi, ham.aday_ap, ham.resmi_ap, olcer.girdi, ham.aday_arac
+            )
+        )
         if goruntu.forkliftler and olcer.forklift_sutunu is not None:
             yoksay = [
                 not degerlendirilir_mi(k, gercek.genislik, gercek.yukseklik, olcer.girdi)
                 for k in goruntu.forkliftler
             ]
-            kutular, puanlar = olcer.ham(kare)
             tani.extend(
                 forklift_tanisi(
-                    kutular,
-                    puanlar,
+                    ham.aday_kutular,
+                    ham.aday_puanlar,
                     goruntu.forkliftler,
                     yoksay,
                     olcer.forklift_sutunu,
@@ -1197,8 +1276,7 @@ def olc(secenekler: argparse.Namespace) -> dict:
                     ayar.guven_esigi,
                 )
             )
-            resmi_kutular, _ = olcer.ham(kare, resmi=True)
-            resmi_tavanlari.extend(kutu_tavanlari(resmi_kutular, goruntu.forkliftler, yoksay))
+            resmi_tavanlari.extend(kutu_tavanlari(ham.resmi_kutular, goruntu.forkliftler, yoksay))
         _ilerleme("goruntu", sira + 1, len(goruntuler), baslangic)
 
     metrikler, sayilar, alt_kumeler = ozetle(sonuclar)

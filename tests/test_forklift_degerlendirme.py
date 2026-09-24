@@ -517,6 +517,22 @@ def sahte_oturum(monkeypatch):
     monkeypatch.setattr(onnxruntime, "InferenceSession", _SahteOturum)
 
 
+# v3: forklift kazanınca kutu ek baştan gelir. Resmi model aracı gevşek sarar (TG),
+# aday aynı çapada onu sıkı kutuyla (FD) forklift yapar: IoU(TG, FD) = 0,25.
+RENK_D = 200
+TG = (48.0, 48.0, 112.0, 112.0)
+FD = (64.0, 64.0, 96.0, 96.0)
+
+
+@pytest.fixture
+def v3_senaryosu(monkeypatch):
+    monkeypatch.setitem(
+        SENARYO,
+        RENK_D,
+        {"resmi": [(TG, {"truck": 0.85})], "aday": [(FD, {"forklift": 0.9, "truck": 0.3})]},
+    )
+
+
 def _duz_kare(renk: int) -> np.ndarray:
     return np.full((KARE, KARE, 3), renk, dtype=np.uint8)
 
@@ -614,6 +630,69 @@ def _calistir(g, *ek: str) -> list[str]:
         str(g.cikti),
         *ek,
     ]
+
+
+def test_arac_korumasi_etiket_gorunumuyle(sahte_oturum, sahte_girdiler, v3_senaryosu):
+    """Aracı doğru yeniden etiketleyen v3 adayı, kutusu oynadı diye araç kaybetmiş
+    sayılmaz ve dönüşüm tr_fk'de sayılır (video ve araç seti karesi)."""
+    olcer = degerlendir.Olcer(
+        sahte_girdiler.aday, sahte_girdiler.resmi, degerlendir.uygulama_ayarlari()
+    )
+    kare = _duz_kare(RENK_D)
+    sonuc = olcer.kare(kare)
+    assert sonuc.arac == degerlendir.Koruma(resmi=1, kayip=0, fazla=0, forklift=1)
+    assert sonuc.forklift_var
+    # Uygulamanın gerçek tespitinde kutu FD'dir; onunla eşleştirilseydi araç kayıp sayılırdı
+    aday = degerlendir.tespitleri_cevir(olcer.aday.tespit_et(kare))
+    resmi = degerlendir.tespitleri_cevir(olcer.resmi.tespit_et(kare))
+    assert [t.sinif for t in aday] == [degerlendir.FORKLIFT]
+    assert aday[0].kutu == pytest.approx(FD, abs=1e-3)
+    assert degerlendir.kareyi_olc(aday, resmi).arac == degerlendir.Koruma(
+        resmi=1, kayip=1, fazla=1, forklift=0
+    )
+
+
+def test_butun_akis_arac_korumasi_etiket_gorunumuyle(sahte_oturum, v3_senaryosu, tmp_path):
+    """LOCO döngüsü de araç korumasını etiket görünümüyle, forklift metriklerini ve
+    tanıyı uygulamanın gerçek kutusuyla ölçer."""
+    veri = _veri_seti(tmp_path / "veri", [(_duz_kare(RENK_D), "subset-1", [FD], [])])
+    aday, resmi, cikti = tmp_path / "aday.onnx", tmp_path / "resmi.onnx", tmp_path / "o.json"
+    aday.write_bytes(b"sahte aday")
+    resmi.write_bytes(b"sahte resmi")
+    argumanlar = ["--model", str(aday), "--resmi", str(resmi), "--veri", str(veri)]
+    assert degerlendir.main([*argumanlar, "--cikti", str(cikti)]) == 0
+    olcum = json.loads(cikti.read_text(encoding="utf-8"))
+    m, s = olcum["metrikler"], olcum["sayilar"]
+    assert (s["resmi_arac"], s["kaybolan_arac"], s["forklifte_donen_arac"]) == (1, 0, 1)
+    assert m["arac_kaybi"] == 0.0 and m["tr_fk"] == 1.0
+    assert m["fk_r"] == 1.0 and m["vg_r_resmi"] == 0.0
+    # Tanı: adayın kutusu forklifti sarar, resmi modelin en iyi çapası IoU 0,25'te kalır
+    assert m["fk_kutu_tavani"] == 1.0 and m["fk_kutu_tavani_resmi"] == 0.0
+
+
+def test_ham_kutular_uygulama_gibi_kareye_kirpilir():
+    girdi, oran_ = 64, 0.5
+    cikti = np.zeros((sum((girdi // a) ** 2 for a in (8, 16, 32)), 6), np.float32)
+    cikti[0, 2:4] = 1.0  # adım 8, hücre (0, 0): kutu kare dışına taşar
+    cikti[-1, 2:4] = 3.0  # adım 32, hücre (1, 1): kareden büyük kutu
+    cikti[-2, 2:4] = 100.0  # üs taşmaz, kutu bütün kare olur
+    cikti[9, :4] = [0.5, 0.25, 0.0, 0.0]  # adım 8, hücre (1, 1): içerde, kırpılmaz
+    kutular = degerlendir.ham_kutular(cikti, oran_, 128, 100, girdi)
+    yari = 8 * math.e / oran_ / 2
+    assert kutular[0] == pytest.approx([0.0, 0.0, yari, yari])
+    assert kutular[-1] == pytest.approx([0.0, 0.0, 128.0, 100.0])
+    assert kutular[-2] == pytest.approx([0.0, 0.0, 128.0, 100.0])
+    # merkez ((0,5 + 1) x 8, (0,25 + 1) x 8) / 0,5 = (24, 20), kenar 8 / 0,5 = 16
+    assert kutular[9] == pytest.approx([16.0, 12.0, 32.0, 28.0])
+
+
+def test_etiket_gorunumu_yalniz_kutulari_degistirir():
+    aday = np.arange(12, dtype=np.float32).reshape(2, 6)
+    resmi = -np.arange(12, dtype=np.float32).reshape(2, 6)
+    gorunum = degerlendir.etiket_gorunumu(aday, resmi)
+    assert np.array_equal(gorunum[:, :4], resmi[:, :4])
+    assert np.array_equal(gorunum[:, 4:], aday[:, 4:])
+    assert np.array_equal(aday, np.arange(12, dtype=np.float32).reshape(2, 6))  # kopya
 
 
 def test_butun_akis_elle_hesaplanan_metrikler(sahte_oturum, sahte_girdiler, capsys):
