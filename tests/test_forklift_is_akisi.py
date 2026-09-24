@@ -765,7 +765,7 @@ def test_plan_yeniden_calistirmada_yeni_etiket(ana, tmp_path, deneme, etiket):
 @pytest.mark.parametrize(
     "bozuk",
     [
-        {"varyantlar": ["tiny-v3"]},
+        {"varyantlar": ["tiny-v9"]},
         {"varyantlar": []},
         {"varyantlar": ["tiny-v1", "tiny-v1"]},
         {"devir": {"tiny": 0, "s": 20}},
@@ -823,6 +823,30 @@ def test_bacak_is_var_mi(bacak, tmp_path, no, dosyalar, beklenen):
     else:
         assert sonuc.returncode == 0, sonuc.stdout + sonuc.stderr
         assert _ciktilar(ortam) == {"egit": beklenen}
+
+
+@arac_gerekli
+@pytest.mark.parametrize("varyant", sorted(GECERLI_VARYANTLAR))
+def test_bacak_plandaki_her_varyanti_kabul_eder(bacak, tmp_path, varyant):
+    # Plan varyant adlarını ortak.py'den denetler; bacağın biçim denetimi
+    # plandan geçen hiçbir adı geri çevirmemeli (v1 ve v2'ye sabit eski denetim v3'ü
+    # çevirirdi).
+    ortam = _ortam(tmp_path, VARYANT=varyant, MOD="tam", BACAK="1", DEVIR="30")
+    sonuc = _calistir(_adim(bacak, "egit", "Girdileri denetle")["run"], tmp_path, ortam)
+    assert sonuc.returncode == 0, sonuc.stdout + sonuc.stderr
+    boy, kip = varyant.split("-")
+    satirlar = Path(ortam["GITHUB_ENV"]).read_text(encoding="utf-8").splitlines()
+    assert satirlar == [f"BOY={boy}", f"KIP={kip}"]
+
+
+@arac_gerekli
+@pytest.mark.parametrize("varyant", ["tiny", "m-v1", "tiny-v1 ", "tiny-v1;x", "tiny-v10", "s-w1"])
+def test_bacak_bozuk_varyanti_geri_cevirir(bacak, tmp_path, varyant):
+    ortam = _ortam(tmp_path, VARYANT=varyant, MOD="tam", BACAK="1", DEVIR="30")
+    sonuc = _calistir(_adim(bacak, "egit", "Girdileri denetle")["run"], tmp_path, ortam)
+    assert sonuc.returncode != 0
+    assert "::error title=Geçersiz varyant::" in sonuc.stdout
+    assert not Path(ortam["GITHUB_ENV"]).exists()
 
 
 def _coco(goruntu: int) -> dict:

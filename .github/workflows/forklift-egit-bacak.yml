@@ -69,10 +69,11 @@ jobs:
       - name: İşin başlangıç saati
         run: echo "DALSAN_IS_BASLANGICI=$(date +%s)" >> "$GITHUB_ENV"
 
-      # Adlar plan işinde ortak.py'ye göre denetlendi; burada yalnız biçim.
+      # Adlar plan işinde ortak.py'ye göre denetlendi; burada yalnız biçim
+      # (kip adı "v" + rakam: yeni bir kip bu satıra dokunmadan geçer).
       - name: Girdileri denetle
         run: |
-          if [[ ! "$VARYANT" =~ ^(tiny|s)-(v1|v2)$ ]]; then
+          if [[ ! "$VARYANT" =~ ^(tiny|s)-v[1-9]$ ]]; then
             echo "::error title=Geçersiz varyant::$VARYANT"
             exit 1
           fi
