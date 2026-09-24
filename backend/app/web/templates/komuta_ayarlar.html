@@ -19,8 +19,9 @@
   </span>
   <span>
     <b>Burada yaptığınız değişiklik, sistem yeniden başlatılınca geçerli olur.</b>
-    Kaydettikten sonra Kontrol Paneli'nde önce <b>Durdur</b>'a, sonra
-    <b>Sistemi Başlat</b>'a basın. Kamera adresleri, bölgeler ve kurallar bu
+    {% if sunucu_kurulumu_mu() %}Kaydettikten sonra sistemi sunucuda yeniden
+    başlatın.{% else %}Kaydettikten sonra Kontrol Paneli'nde önce <b>Durdur</b>'a,
+    sonra <b>Sistemi Başlat</b>'a basın.{% endif %} Kamera adresleri, bölgeler ve kurallar bu
     sayfada değil kendi sayfalarındadır ve anında geçerli olur.
   </span>
 </section>

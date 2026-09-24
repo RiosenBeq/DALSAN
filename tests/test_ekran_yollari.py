@@ -357,3 +357,16 @@ def test_sunucuda_hata_mesajlari_kontrol_panelini_anmaz(monkeypatch, tmp_path):
     assert "Kontrol Panel" not in indirme and "sistemi sunucuda yeniden başlatın" in indirme
     hazir = tespit._uyumsuz_model(Path("yolox_tiny.onnx"), "teknik").kullanici_mesaji
     assert "Kontrol Paneli" not in hazir
+
+
+def test_sunucu_kurulumunda_sayfalar_kontrol_panelini_anlatmaz(istemci, monkeypatch):
+    monkeypatch.setenv("DALSAN_HIZMET", "1")
+    kilavuz = istemci.get("/komuta/kilavuz").text
+    assert "Sistem sunucuda <b>hizmet olarak</b> çalışır" in kilavuz
+    assert "Baslat-Mac.command" not in kilavuz and "İlk Kurulumu Yap" not in kilavuz
+    # "Kontrol Paneli penceresi yoktur" dışında Kontrol Paneli'ne yollayan metin yok
+    assert kilavuz.count("Kontrol Paneli") == 1
+    ayarlar = istemci.get("/ayarlar").text
+    assert "Kaydettikten sonra sistemi sunucuda yeniden" in ayarlar
+    assert "<b>Durdur</b>" not in ayarlar
+    assert "Kontrol Paneli" not in istemci.get("/komuta/anons").text

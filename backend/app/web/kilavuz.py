@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import json
 
+from app import kaynaklar
 from app.analiz.model_adi import gorunen_model_adi
 from app.analiz.model_indir import FORKLIFT_TABANI
 from app.olaylar.kanallar import kanal_sagligi_ozeti
@@ -308,10 +309,7 @@ def _model_adimi(supervizor, ayarlar, baglanti=None) -> dict:
         **ortak,
         "tamam": False,
         "hal": "calisiyor",
-        "aciklama": (
-            "Analiz henüz başlatılmadı. Kontrol Paneli penceresinde "
-            "“Sistemi Başlat” düğmesine basın."
-        ),
+        "aciklama": (f"Analiz henüz başlatılmadı. {kaynaklar.baslatma_tarifi(yeniden=False)}."),
     }
 
 

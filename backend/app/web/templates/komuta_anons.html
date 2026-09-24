@@ -218,8 +218,9 @@
     {{ anons_bekleme_sn }} saniye dolmadan tekrar çalınmaz, bu yüzden gerçek anons
     sayısı bu sayıdan azdır. Gölge moddaki kuralın ihlalleri hiç sayılmaz.</p>
   {% if not analiz_calisiyor %}
-  <p class="panel-notu">Analiz çalışmıyor, bu yüzden "Dene" düğmeleri gizli. Kontrol
-    Paneli'nde <b>Sistemi Başlat</b>'a basınca geri gelir.</p>
+  <p class="panel-notu">Analiz çalışmıyor, bu yüzden "Dene" düğmeleri gizli.
+    {% if sunucu_kurulumu_mu() %}Sistem sunucuda başlatılınca{% else %}Kontrol
+    Paneli'nde <b>Sistemi Başlat</b>'a basınca{% endif %} geri gelir.</p>
   {% elif son_sonuc %}
   <p class="panel-notu">{{ son_sonuc }}</p>
   {% endif %}

@@ -136,7 +136,7 @@ def mesaj_dene(
     supervizor = getattr(istek.app.state, "supervizor", None)
     if supervizor is None:
         raise DogrulamaHatasi(
-            "Analiz çalışmıyor; anons denenemez. Kontrol Paneli'nden sistemi başlatın."
+            f"Analiz çalışmıyor; anons denenemez. {kaynaklar.baslatma_tarifi(yeniden=False)}."
         )
     supervizor._anons.hemen_cal(dict(satir))
     return RedirectResponse(DONUS_YOLLARI[donus], status_code=303)

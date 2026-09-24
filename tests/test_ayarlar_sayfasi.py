@@ -23,7 +23,7 @@ from fastapi.testclient import TestClient
 
 from app.ayarlar import env_guncelle
 from app.uygulama import uygulama_olustur
-from app.web.ayar_rotalari import BEKLEYEN_MESAJI
+from app.web.ayar_rotalari import bekleyen_mesaji
 
 ORNEK_ENV = """\
 # DALSAN İSG - Ayarlar
@@ -288,13 +288,13 @@ def test_kaydedilen_ama_gecerli_olmayan_secim_sayfada_kalir(kurulu_istemci):
     yapılan ikinci bir kayıt (başka bir eşik) eski modeli dosyaya geri yazar,
     ilk seçimi sessizce silerdi."""
     istemci, ayarlar = kurulu_istemci
-    assert BEKLEYEN_MESAJI not in _metin(istemci, "/ayarlar")  # dosya = çalışan
+    assert bekleyen_mesaji() not in _metin(istemci, "/ayarlar")  # dosya = çalışan
     istemci.post(
         "/ayarlar/kaydet", data=_form(MODEL_DOSYASI="models/yolox_s.onnx"), follow_redirects=False
     )
     govde = istemci.get("/ayarlar").text
     assert _secili_secenek(govde, "MODEL_DOSYASI") == "NextGen AI İsabetli"
-    assert BEKLEYEN_MESAJI in html.unescape(govde)  # sistem hâlâ eski modelle çalışıyor
+    assert bekleyen_mesaji() in html.unescape(govde)  # sistem hâlâ eski modelle çalışıyor
 
     # İkinci kayıt: tarayıcı formu sayfadaki değerlerle gönderir
     form = _form(TESPIT_GUVEN_ESIGI="0.4")
@@ -313,11 +313,11 @@ def test_kayit_yeniden_baslatilinca_bekleyen_uyarisi_kalkar(kurulu_istemci, tmp_
     istemci, _ = kurulu_istemci
     istemci.post("/ayarlar/kaydet", data=_form(DISK_UYARI_GB="9"), follow_redirects=False)
     assert "Ayarlar kaydedildi." in _metin(istemci, "/ayarlar?sonuc=kaydedildi")
-    assert BEKLEYEN_MESAJI not in _metin(istemci, "/ayarlar?sonuc=kaydedildi")  # tek mesaj
-    assert BEKLEYEN_MESAJI in _metin(istemci, "/ayarlar")
+    assert bekleyen_mesaji() not in _metin(istemci, "/ayarlar?sonuc=kaydedildi")  # tek mesaj
+    assert bekleyen_mesaji() in _metin(istemci, "/ayarlar")
     yeniden = uygulama_olustur(ayarlari_yukle(tmp_path), analiz=False)
     with TestClient(yeniden, base_url="http://127.0.0.1") as yeni:
-        assert BEKLEYEN_MESAJI not in _metin(yeni, "/ayarlar")
+        assert bekleyen_mesaji() not in _metin(yeni, "/ayarlar")
 
 
 def test_bozuk_ayar_dosyasinda_calisan_degerler_gosterilir(kurulu_istemci):

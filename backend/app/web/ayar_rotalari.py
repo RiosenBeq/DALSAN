@@ -28,6 +28,7 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from app import ayarlar as ayarlar_modulu
+from app import kaynaklar
 from app.analiz.model_adi import OZEL_MODEL_ADI, gorunen_model_adi
 from app.analiz.model_indir import BILINEN_MODELLER, FORKLIFT_TABANI
 from app.hatalar import AyarHatasi, DogrulamaHatasi
@@ -587,20 +588,24 @@ AYAR_GRUPLARI: tuple[AyarGrubu, ...] = (
 
 TUM_ALANLAR: tuple[AyarAlani, ...] = tuple(alan for grup in AYAR_GRUPLARI for alan in grup.alanlar)
 
+
 # Kaydedildikten sonra gösterilen tek satırlık geri bildirim. Ham yol değil
 # anahtar alınır (anons_web.py DONUS_YOLLARI ile aynı desen).
-SONUC_MESAJLARI = {
-    "kaydedildi": (
-        "Ayarlar kaydedildi. Geçerli olması için Kontrol Paneli'nde Durdur'a, "
-        "sonra Sistemi Başlat'a basın."
-    ),
-}
-# Sayfa sonradan açıldığında: kaydedilmiş ama henüz geçerli olmayan ayar var
-BEKLEYEN_MESAJI = (
-    "Kaydedilen ayarların bir kısmı henüz geçerli değil: sistem hâlâ eski değerlerle "
-    "çalışıyor. Geçerli olması için Kontrol Paneli'nde Durdur'a, sonra Sistemi "
-    "Başlat'a basın."
-)
+# Yeniden başlatma tarifi kuruluma göre değişir (app/kaynaklar.py): metinler
+# sayfa çizilirken kurulur.
+def sonuc_mesaji(sonuc: str) -> str:
+    if sonuc == "kaydedildi":
+        tarif = kaynaklar.baslatma_tarifi(cumle_basi=False)
+        return f"Ayarlar kaydedildi. Geçerli olması için {tarif}."
+    return ""
+
+
+def bekleyen_mesaji() -> str:
+    """Sayfa sonradan açıldığında: kaydedilmiş ama henüz geçerli olmayan ayar var."""
+    return (
+        "Kaydedilen ayarların bir kısmı henüz geçerli değil: sistem hâlâ eski değerlerle "
+        f"çalışıyor. Geçerli olması için {kaynaklar.baslatma_tarifi(cumle_basi=False)}."
+    )
 
 
 @router.get("/ayarlar", response_class=HTMLResponse)
@@ -618,8 +623,8 @@ def ayarlar_sayfasi(istek: Request, sonuc: str = "", baglanti=Depends(baglanti_a
                 if alan.tur == "secim"
             },
             "yonetici_sifresi_kurulu": bool(kayitli.yonetici_sifresi),
-            "sonuc_mesaji": SONUC_MESAJLARI.get(sonuc, "")
-            or (BEKLEYEN_MESAJI if _bekleyen_degisiklik_var(ayarlar, kayitli) else ""),
+            "sonuc_mesaji": sonuc_mesaji(sonuc)
+            or (bekleyen_mesaji() if _bekleyen_degisiklik_var(ayarlar, kayitli) else ""),
             # KVKK: erişim izi ve imha kaydı (docs/17 §10, §11 "Ayarlar → KVKK")
             "kvkk": erisim_izi.kayitlar(baglanti),
             "uyari_arsivi": {

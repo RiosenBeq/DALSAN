@@ -66,6 +66,7 @@ sablonlar.env.globals["sifre_kurulu"] = _sifre_kurulu
 # türü: sayfalar paketlenmiş programda "program klasörü" demez (app/kaynaklar.py).
 # Çağrılabilir verilir; değer sayfa çizilirken hesaplanır.
 sablonlar.env.globals["kurulum_turu"] = kaynaklar.kurulum_turu
+sablonlar.env.globals["sunucu_kurulumu_mu"] = kaynaklar.sunucu_kurulumu_mu
 sablonlar.env.globals["gunluk_dosyasi"] = kaynaklar.gunluk_dosyasi
 sablonlar.env.globals["ayar_dosyasi"] = kaynaklar.ayar_dosyasi
 sablonlar.env.globals["ekran_yolu"] = kaynaklar.ekran_yolu
