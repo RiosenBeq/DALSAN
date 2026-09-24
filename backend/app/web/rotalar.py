@@ -61,6 +61,15 @@ def _sifre_kurulu(istek) -> bool:
 
 sablonlar.env.globals["sifre_kurulu"] = _sifre_kurulu
 
+# Dosyaların ekrandaki yeri (günlük, ayar dosyası, sesler, yedekler) ve kurulum
+# türü: sayfalar paketlenmiş programda "program klasörü" demez (app/kaynaklar.py).
+# Çağrılabilir verilir; değer sayfa çizilirken hesaplanır.
+sablonlar.env.globals["kurulum_turu"] = kaynaklar.kurulum_turu
+sablonlar.env.globals["gunluk_dosyasi"] = kaynaklar.gunluk_dosyasi
+sablonlar.env.globals["ayar_dosyasi"] = kaynaklar.ayar_dosyasi
+sablonlar.env.globals["ekran_yolu"] = kaynaklar.ekran_yolu
+sablonlar.env.globals["kok_klasoru_adi"] = kaynaklar.kok_klasoru_adi
+
 # Öğe dili (web/ortak.py → OGELER): her şablon aynı tablodan okur, böylece
 # forklift her ekranda aynı simge ve renkle görünür. Bileşen makroları
 # templates/bilesen.html'dedir.
@@ -148,7 +157,9 @@ def ana_sayfa(istek: Request, yedek: str = "", baglanti=Depends(baglanti_al)):
             "model_adi": gorunen_model_adi(ayarlar.model_dosyasi.name),
             "anons_durumu": anons_durumu,
             "son_yedek": _son_yedek(ayarlar),
-            "yedek_sonucu": "Yedek alındı: veri/yedekler/ klasörüne kaydedildi."
+            "yedek_sonucu": (
+                f"Yedek alındı: {kaynaklar.ekran_yolu('veri', 'yedekler')} klasörüne kaydedildi."
+            )
             if yedek == "ok"
             else "",
         },

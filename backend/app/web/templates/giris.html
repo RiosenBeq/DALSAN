@@ -34,7 +34,10 @@
       <button type="submit" class="dugme" {% if kilit_sn %}disabled{% endif %}>Giriş</button>
     </form>
 
-    <p class="not">Şifre, program klasöründeki <b>.env</b> dosyasında
+    {# Dosyanın yeri kuruluma göre değişir: paketlenmiş programda kullanıcı
+       klasöründedir, Docker'da sunucudaki ayar/.env'dir (app/kaynaklar.py). #}
+    {% set ayar = ayar_dosyasi() %}
+    <p class="not">Şifre, {{ ayar.onek }}<b>{{ ayar.yol }}</b> dosyasında
       <b>YONETICI_SIFRESI</b> satırında yazılıdır. Unuttuysanız o satırı
       değiştirip sistemi yeniden başlatın.</p>
   </main>

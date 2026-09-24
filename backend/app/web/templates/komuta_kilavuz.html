@@ -9,6 +9,12 @@
 {% extends "komuta_temel.html" %}
 {% from "bilesen.html" import oge_rozeti, durum_hapi, onem_hapi %}
 {% block icerik %}
+{# Belgeler (docs/) Başlat betikleriyle kurulan sistemde program klasöründedir;
+   Windows ve Mac uygulamasının içinde gelmezler (paketleme/paketleme_ortak.py):
+   orada belgenin nereden isteneceği söylenir. #}
+{% set paket = kurulum_turu() == "paket" %}
+{% set belge_yeri = "" if paket else "program klasöründeki " %}
+{% set belge_notu = " (uygulamayla gelmez, destek ekibinden isteyin)" if paket else "" %}
 
 <div class="kilavuz-duzen">
 
@@ -74,21 +80,33 @@
       <p>Sistem, bilgisayarda açık duran <b>Kontrol Paneli</b> penceresinden yönetilir.
         Terminal ya da komut yazmanız gerekmez.</p>
       <ol>
+        {# Windows ve Mac uygulamasında (docs/13) Başlat betiği ve "İlk Kurulumu
+           Yap" düğmesi yoktur: parçalar uygulamanın içinde gelir. #}
+        {% if paket %}
+        <li><b>Başlatmak için:</b> <b>NextGen Detector</b> uygulamasına
+          <b>çift tıklayın</b>. Kontrol Paneli penceresi açılır ve sistem kendiliğinden
+          başlar; birkaç saniye sonra izleme ekranı kendi penceresinde açılır ve bu
+          ekranlar gelir. Başlamazsa sebebi pencerenin günlüğünde yazar; düzeltip
+          <b>“Sistemi Başlat”</b> düğmesine basın.</li>
+        {% else %}
         <li><b>Başlatmak için:</b> program klasöründeki <b>Baslat-Mac.command</b>
           (Mac) ya da <b>Baslat-Windows.bat</b> (Windows) dosyasına <b>çift tıklayın</b>.
           Kontrol Paneli penceresi açılır.</li>
         <li>Pencerede <b>“Sistemi Başlat”</b> düğmesine basın. Birkaç saniye
-          sonra tarayıcı kendiliğinden açılır ve bu ekranlar gelir.</li>
+          sonra izleme ekranı kendi penceresinde açılır ve bu ekranlar gelir.</li>
+        {% endif %}
         <li><b>Durdurmak için:</b> aynı penceredeki <b>“Durdur”</b> düğmesine
           basın. <b>Kontrol Paneli penceresini kapatırsanız sistem de durur</b> - izleme
           sürsün istiyorsanız pencereyi açık bırakın.</li>
-        <li>Tarayıcı sekmesini yanlışlıkla kapattıysanız panik yok: sistem çalışmaya
-          devam eder. Ekranı geri getirmek için <b>“İzleme Ekranını Aç”</b>
+        <li>İzleme ekranının penceresini yanlışlıkla kapattıysanız panik yok: sistem
+          çalışmaya devam eder. Ekranı geri getirmek için <b>“İzleme Ekranını Aç”</b>
           düğmesine basın.</li>
       </ol>
+      {% if not paket %}
       <p class="kilavuz-alinti">İlk açılışta pencerede <b>“İlk Kurulumu Yap”</b>
         düğmesi de vardır. Bu düğme yalnızca bir kez, gerekli parçalar bilgisayara
         kurulurken kullanılır ve birkaç dakika sürebilir.</p>
+      {% endif %}
       <p class="kilavuz-bag"><a href="/">Sistem durumunu (teşhis ekranı) aç →</a></p>
     </section>
 
@@ -413,7 +431,9 @@
         <li>Ayarlar sayfasında anons yolunu <b>ses kartı</b> yapıp sistemi
           yeniden başlatın.</li>
         <li>Her mesaj için bir <b>.wav</b> dosyası hazırlayın (MP3 çalışmaz).
-          Telefonla kaydedip dosyayı program klasörüne koymanız yeter.</li>
+          {% set sesler = ekran_yolu("veri", "sesler") %}
+          Telefonla kaydedip dosyayı {{ sesler.onek }}<b>{{ sesler.yol }}</b>
+          klasörüne koymanız yeter.</li>
         <li>Anons sayfasında her mesajın yanına dosya yolunu yazın ve
           <b>“Dene”</b> düğmesiyle sınayın.</li>
       </ol>
@@ -466,15 +486,15 @@
       <p>Fabrika <b>dışından</b> (evden) erişim ayrı bir karardır: fabrika
         içindeki insanların görüntüsünü dışarı taşımak demektir ve KVKK
         açısından hukuk biriminin onayını ister. Sistemi doğrudan internete
-        açmak <b>önerilmez</b>; doğru yol VPN'dir. Adım adım anlatım program
-        klasöründeki <b>docs/15-UZAKTAN-ERISIM.md</b> belgesindedir.</p>
+        açmak <b>önerilmez</b>; doğru yol VPN'dir. Adım adım anlatım
+        {{ belge_yeri }}<b>docs/15-UZAKTAN-ERISIM.md</b> belgesindedir{{ belge_notu }}.</p>
       <p class="kilavuz-alinti">Uzaktan <b>“Durdur / Başlat”</b> düğmesi bilerek
         yoktur: yanlış bir tıklama fabrikayı izlemesiz bırakırdı. O iki düğme
         sunucunun başındaki Kontrol Paneli'nde kalır.</p>
 
       <p>Kablo, adres, cihaz soruları ve anons firmanıza soracaklarınızın listesi
-        için program klasöründeki <b>docs/14-ANONS-SISTEMI-BAGLAMA.md</b>
-        belgesine bakın.</p>
+        için {{ belge_yeri }}<b>docs/14-ANONS-SISTEMI-BAGLAMA.md</b>
+        belgesine bakın{{ belge_notu }}.</p>
       <p class="kilavuz-bag"><a href="/komuta/anons">Anons sistemine git →</a></p>
     </section>
 
@@ -638,16 +658,21 @@
             <li>Kontrol Paneli'nde önce <b>“Durdur”</b>, sonra
               <b>“Sistemi Başlat”</b> düğmesine basın; indirme baştan denenir.</li>
             <li>Bilgisayarın internete çıktığından emin olun.</li>
+            {# Uygulamanın Python'u paketin içindedir; bu dosya yalnız python.org
+               kurulumunda vardır (analiz/model_indir.py). #}
+            {% if not paket %}
             <li><b>Mac'te “sertifika doğrulanamadı” diyorsa:</b>
               Uygulamalar klasöründeki Python sürümünün içindeki
               <b>Install Certificates.command</b> dosyasına bir kez çift tıklayın ve
               sistemi yeniden başlatın.</li>
+            {% endif %}
           </ul>
         </div>
 
         <div class="komuta-kutu">
           <span class="satir-adi">Hiçbiri işe yaramadıysa</span>
-          <p>Program klasöründeki <b>veri/loglar/sistem.log</b> dosyasını açın, en
+          {% set gunluk = gunluk_dosyasi() %}
+          <p>Günlük dosyasını açın ({{ gunluk.onek }}<b>{{ gunluk.yol }}</b>), en
             alttaki satırları kopyalayın ve şu üç cümleyle birlikte iletin:
             <b>ne yapmaya çalıştığınızı</b>, <b>ne olmasını beklediğinizi</b>,
             <b>onun yerine ne olduğunu</b>. Ekrandaki hata cümlesini de olduğu gibi

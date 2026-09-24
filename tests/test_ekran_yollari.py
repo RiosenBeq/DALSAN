@@ -8,6 +8,9 @@ programın klasöründe aranan dosya yoktur.
 
 from __future__ import annotations
 
+import ast
+import dataclasses
+import re
 import ssl
 import sys
 import urllib.error
@@ -160,3 +163,156 @@ def test_sertifika_hatasinda_python_org_tarifi_yalniz_kaynak_kurulumda(monkeypat
     # Uygulamanın Python'u paketin içindedir: o dosya orada yoktur
     assert "Install Certificates" not in paket
     assert "güvenlik duvarı" in paket
+
+
+# ------------------------------------------------- elle yazılmış yer yakalayıcı
+
+# Kullanıcıya gidebilecek metinde bir dosyanın yerini elle söyleyen kalıplar.
+# Yer app/kaynaklar.py'den gelir; "veri/sesler/baret.wav" gibi Anons
+# formuna YAZILACAK göreli yol örneği yer iddiası değildir, serbesttir.
+_ELLE_YER_KALIPLARI = (
+    re.compile(r"(program|proje|kök) klasör\w*\s+(veri\b|\.env)"),
+    re.compile(r"proje klasör"),
+    re.compile(r"veri/(loglar|yedekler)"),
+)
+
+
+def _kullaniciya_giden_metin(yol: Path) -> str:
+    """.py'de belge dizesi dışındaki metin sabitleri, şablonda yorum dışı
+    metin; kalın yazı etiketleri atılır ("klasöründeki <b>veri/...</b>")."""
+    kaynak = yol.read_text(encoding="utf-8")
+    if yol.suffix == ".py":
+        agac = ast.parse(kaynak)
+        belge_dizeleri = set()
+        for dugum in ast.walk(agac):
+            if isinstance(
+                dugum, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)
+            ):
+                ilk = dugum.body[0] if dugum.body else None
+                if isinstance(ilk, ast.Expr) and isinstance(ilk.value, ast.Constant):
+                    belge_dizeleri.add(id(ilk.value))
+        metin = "\n".join(
+            d.value
+            for d in ast.walk(agac)
+            if isinstance(d, ast.Constant)
+            and isinstance(d.value, str)
+            and id(d) not in belge_dizeleri
+        )
+    else:
+        metin = re.sub(r"\{#.*?#\}", "", kaynak, flags=re.S)
+    return re.sub(r"</?b>", "", metin)
+
+
+def test_dosya_yerleri_tek_yerden_soylenir():
+    """Yeni bir metin yeri elle yazarsa uygulamada yine yanlış olur."""
+    for yol in sorted((KOK / "backend" / "app").rglob("*")):
+        if yol.suffix not in {".py", ".html", ".js"} or yol.name == "kaynaklar.py":
+            continue
+        metin = _kullaniciya_giden_metin(yol)
+        for kalip in _ELLE_YER_KALIPLARI:
+            eslesme = kalip.search(metin)
+            assert eslesme is None, f"{yol.relative_to(KOK)}: {eslesme.group(0)!r}"
+
+
+def test_yakalayici_eski_metinleri_gercekten_yakalar(tmp_path):
+    """Kalıplar bu değişiklikten önceki metinlerin her birini yakalamalı."""
+    ornekler = {
+        "a.py": 'x = ("Sorun sürerse program klasöründeki "\n     "veri/loglar/sistem.log")\n',
+        "b.html": "<p>Şifre, program klasöründeki <b>.env</b> dosyasında</p>",
+        "c.html": "Bu ayarlar için kök klasördeki .env dosyasını düzenleyin",
+        "d.py": 'y = f"Ses dosyası proje klasörünün dışında: {1}"\n',
+        "e.py": 'z = "Yedek alındı: veri/yedekler/ klasörüne kaydedildi."\n',
+    }
+    for ad, icerik in ornekler.items():
+        dosya = tmp_path / ad
+        dosya.write_text(icerik, encoding="utf-8")
+        metin = _kullaniciya_giden_metin(dosya)
+        assert any(k.search(metin) for k in _ELLE_YER_KALIPLARI), ad
+
+
+# ------------------------------------------------------------------ sayfalar
+
+
+def _paketlenmis_gibi(monkeypatch):
+    """Sayfaları Mac uygulamasındaki gibi çizdirir.
+
+    `sys._MEIPASS` kurulmaz: kaynak dosyaların (şablon, şema) yeri değişir ve
+    çalışan uygulamanın kendisi bozulurdu; yalnız kurulum türü ve veri
+    klasörünün metni değişir.
+    """
+    monkeypatch.setattr(kaynaklar, "paketlenmis_mi", lambda: True)
+    monkeypatch.setattr(kaynaklar, "veri_klasoru_metni", lambda: MAC_KLASORU)
+
+
+@pytest.fixture
+def sifreli_istemci(test_ayarlari):
+    from fastapi.testclient import TestClient
+
+    from app.uygulama import uygulama_olustur
+
+    ayarlar = dataclasses.replace(test_ayarlari, yonetici_sifresi="dalsan2026")
+    with TestClient(uygulama_olustur(ayarlar, analiz=False)) as istemci:
+        yield istemci
+
+
+def test_giris_sayfasi_ayar_dosyasinin_yerini_kuruluma_gore_soyler(sifreli_istemci, monkeypatch):
+    sayfa = sifreli_istemci.get("/giris").text
+    assert "program klasöründeki <b>.env</b> dosyasında" in sayfa
+
+    _paketlenmis_gibi(monkeypatch)
+    sayfa = sifreli_istemci.get("/giris").text
+    assert f"<b>{MAC_KLASORU}/.env</b> dosyasında" in sayfa
+    assert "program klasörü" not in sayfa
+
+
+def test_kilavuz_gelistirme_kurulumunda_baslat_betigini_anlatir(istemci):
+    sayfa = istemci.get("/komuta/kilavuz").text
+    assert "Baslat-Mac.command" in sayfa
+    assert "İlk Kurulumu Yap" in sayfa
+    assert "Install Certificates.command" in sayfa
+    assert "program klasöründeki <b>veri/loglar/sistem.log</b>" in sayfa
+    assert "program klasöründeki <b>docs/15-UZAKTAN-ERISIM.md</b> belgesindedir." in sayfa
+    # Ekran tarayıcı sekmesinde değil, kendi penceresinde açılır (docs/11)
+    assert "izleme ekranı kendi penceresinde açılır" in sayfa
+    assert "Tarayıcı sekmesini" not in sayfa
+
+
+def test_kilavuz_uygulamada_betik_ve_ilk_kurulum_anlatmaz(istemci, monkeypatch):
+    """Windows ve Mac uygulamasında Başlat betiği ve "İlk Kurulumu Yap"
+    düğmesi yoktur, sistem kendiliğinden başlar (masaustu/dalsan_launcher.py);
+    belgeler ve python.org'un sertifika dosyası pakete girmez."""
+    _paketlenmis_gibi(monkeypatch)
+    sayfa = istemci.get("/komuta/kilavuz").text
+
+    assert "<b>NextGen Detector</b> uygulamasına" in sayfa
+    assert "sistem kendiliğinden" in sayfa
+    assert "Baslat-Mac.command" not in sayfa
+    assert "İlk Kurulumu Yap" not in sayfa
+    assert "Install Certificates" not in sayfa
+    assert f"<b>{MAC_KLASORU}/veri/loglar/sistem.log</b>" in sayfa
+    assert f"<b>{MAC_KLASORU}/veri/sesler</b>" in sayfa
+    assert (
+        "<b>docs/15-UZAKTAN-ERISIM.md</b> belgesindedir (uygulamayla gelmez, destek "
+        "ekibinden isteyin)." in sayfa
+    )
+    assert "program klasörü" not in sayfa
+
+
+def test_teshis_sayfasi_ayar_dosyasini_ve_yedek_klasorunu_dogru_soyler(istemci, monkeypatch):
+    sayfa = istemci.get("/").text
+    assert "program klasöründeki <b>.env</b> dosyasını düzenleyip" in sayfa
+    assert "program klasöründeki <b>veri</b> klasörünü harici diske" in sayfa
+
+    _paketlenmis_gibi(monkeypatch)
+    sayfa = istemci.get("/?yedek=ok").text
+    assert f"<b>{MAC_KLASORU}/.env</b> dosyasını düzenleyip" in sayfa
+    assert f"<b>{MAC_KLASORU}/veri</b> klasörünü harici diske" in sayfa
+    assert f"Yedek alındı: {MAC_KLASORU}/veri/yedekler klasörüne kaydedildi." in sayfa
+    assert "kök klasör" not in sayfa
+
+
+def test_anons_sayfasi_ses_yolunun_neye_gore_oldugunu_soyler(istemci, monkeypatch):
+    assert "program klasörüne göredir" in istemci.get("/anons").text
+
+    _paketlenmis_gibi(monkeypatch)
+    assert f"{MAC_KLASORU} klasörüne göredir" in istemci.get("/anons").text
