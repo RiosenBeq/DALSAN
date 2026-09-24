@@ -115,17 +115,29 @@ jobs:
       - name: Önceki bacağın kaydını seç (yoksa DURUR)
         if: inputs.bacak > 1
         run: |
+          # download-artifact desene uyan TEK yapıtı alt klasör açmadan
+          # "indirilen"in kendisine, birden çoğunu yapıt adlı alt klasörlere
+          # açar. İkinci bacakta yalnız b1 vardır: dosyaları doğrudan
+          # "indirilen"dedir ve hangi bacağın olduğu BACAK dosyasından okunur.
+          kaynak=""
           for n in $(seq $((BACAK - 1)) -1 1); do
             if [ -d "indirilen/calisma-$VARYANT-b$n" ]; then
-              mkdir -p "$(dirname "$W")"
-              mv "indirilen/calisma-$VARYANT-b$n" "$W"
+              kaynak="indirilen/calisma-$VARYANT-b$n"
               break
             fi
           done
-          if [ ! -d "$W" ]; then
+          if [ -z "$kaynak" ] && [ -f indirilen/BACAK ]; then
+            yazan=$(cat indirilen/BACAK)
+            if [[ "$yazan" =~ ^[0-9]+$ ]] && [ "$yazan" -lt "$BACAK" ]; then
+              kaynak=indirilen
+            fi
+          fi
+          if [ -z "$kaynak" ]; then
             echo "::error title=Ara kayıt eksik::$VARYANT: önceki bacakların hiçbirinin çalışma klasörü yok. Eğitim sıfırdan başlatılmaz."
             exit 1
           fi
+          mkdir -p "$(dirname "$W")"
+          mv "$kaynak" "$W"
           deneme=$(cat "$W/DENEME" 2>/dev/null || echo bilinmiyor)
           if [ "$deneme" != "$GITHUB_RUN_ATTEMPT" ]; then
             echo "::warning title=Önceki denemenin kaydı::$VARYANT: kayıt $deneme. denemenin, bu çalıştırma $GITHUB_RUN_ATTEMPT. deneme. Yalnız düşen işler yeniden çalıştırıldıysa beklenen budur; bütün işler yeniden çalıştırıldıysa önceki bacak bu denemede kayıt bırakmadı."

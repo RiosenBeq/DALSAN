@@ -433,16 +433,25 @@ jobs:
 
       - name: Son bacağın kaydını seç
         run: |
+          # Tek yapıt alt klasörsüz, birden çoğu yapıt adlı alt klasörlere iner
+          # (download-artifact); tek bacakta biten varyantın kaydı doğrudan
+          # "indirilen"dedir ve BACAK dosyasını taşır.
+          kaynak=""
           for n in 3 2 1; do
             if [ -d "indirilen/calisma-$VARYANT-b$n" ]; then
-              mv "indirilen/calisma-$VARYANT-b$n" "$W"
+              kaynak="indirilen/calisma-$VARYANT-b$n"
               break
             fi
           done
-          if [ ! -d "$W" ]; then
+          if [ -z "$kaynak" ] && [ -f indirilen/BACAK ]; then
+            kaynak=indirilen
+          fi
+          if [ -z "$kaynak" ]; then
             echo "::error title=$VARYANT kaydı yok::Hiçbir bacak çalışma klasörü yüklemedi; eğitim bacaklarının günlüğüne bakın."
             exit 1
           fi
+          mkdir -p "$(dirname "$W")"
+          mv "$kaynak" "$W"
           deneme=$(cat "$W/DENEME" 2>/dev/null || echo bilinmiyor)
           if [ "$deneme" != "$GITHUB_RUN_ATTEMPT" ]; then
             echo "::warning title=Önceki denemenin kaydı::$VARYANT: ölçülen kayıt $deneme. denemenin, bu çalıştırma $GITHUB_RUN_ATTEMPT. deneme."
@@ -713,7 +722,7 @@ jobs:
             echo "**Ön sürüm (aday):** kapıları geçen aday uygulamada Ayarlar'dan seçilebilir yapılır; sahada ölçülüp operatör onaylamadan varsayılan model yapılmaz."
             echo
             echo "- Çalıştırma: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
-            echo "- Commit: $GITHUB_SHA"
+            echo "- Eğitim commit'i: $GITHUB_SHA (etiket, yayın anındaki main'i gösterir)"
             echo "- İstek notu: $(jq -r '.not' <<<"$ISTEK")"
             echo "- Yöntem: resmi YOLOX COCO modeli (Apache-2.0) donuk; forklift ek başı LOCO (TU München, CC0 1.0) ile eğitildi."
             echo
@@ -763,9 +772,15 @@ jobs:
       - name: Ön sürümü yayınla
         if: env.MOD == 'tam'
         run: |
+          # Etiket eğitim commit'ine DEĞİL, main'in o anki ucuna konur (hedef
+          # commit verilmez): eğitim saatler sürer, main bu arada iş akışı dosyası
+          # değiştiren bir commit alırsa GITHUB_TOKEN eski commit'e etiket
+          # koyamaz ("workflows" izni ona verilemez). Çalıştırma 7 böyle HTTP 403
+          # ile düştü. Eğitim commit'i notlarda ve her modelin kartında
+          # (git_sha) durur.
           gh release create "$ETIKET" yayin/* --prerelease \
             --title "NextGen AI Forklift adayları ${ETIKET#forklift-}" \
-            --notes-file notlar.md --target "$GITHUB_SHA"
+            --notes-file notlar.md
           # Yayındaki her dosya yereldekiyle aynı mı: GitHub'ın kendi ölçtüğü
           # SHA-256 (digest) ile. Özet henüz yoksa yalnız adlar karşılaştırılır.
           gh api "repos/$GH_REPO/releases/tags/$ETIKET" \

@@ -278,8 +278,11 @@ def test_yayinla_depo_kodu_calistirmaz(ana):
     assert is_["env"]["GH_TOKEN"] == "${{ github.token }}"
     olustur = _adim(ana, "yayinla", "Ön sürümü yayınla")
     assert _ifade(olustur["if"]) == "env.MOD == 'tam'"
-    for parca in ("gh release create", "--prerelease", "--target", "--notes-file", "--title"):
+    for parca in ("gh release create", "--prerelease", "--notes-file", "--title"):
         assert parca in olustur["run"], parca
+    # Etiket eski eğitim commit'ine konmaz: main iş akışı dosyası değiştiren bir
+    # commit aldıysa GITHUB_TOKEN oraya etiket koyamaz (çalıştırma 7, HTTP 403)
+    assert "--target" not in olustur["run"]
     # Sürüm oluşturan başka adım yok: duman kipinde hiçbir şey yayımlanmaz
     olusturanlar = [a for a in is_["steps"] if "gh release create" in a.get("run", "")]
     assert olusturanlar == [olustur]
@@ -853,6 +856,21 @@ def test_bacak_is_var_mi(bacak, tmp_path, no, dosyalar, beklenen):
         assert _ciktilar(ortam) == {"egit": beklenen}
 
 
+def _indir(tmp_path: Path, varyant: str, yuklenen: list[int], deneme: str = "1") -> None:
+    """actions/download-artifact@v8'in desenle indirmesi: desene uyan TEK yapıt alt
+    klasör açmadan hedefin kendisine, birden çoğu yapıt adlı alt klasörlere iner
+    (GitHub'da görüldü, duman çalıştırması 4490d5a). Eskiden testler her durumda
+    alt klasör kuruyordu; gerçekte ikinci bacak kaydı bulamayıp düşüyordu."""
+    for n in yuklenen:
+        if len(yuklenen) == 1:
+            klasor = tmp_path / "indirilen"
+        else:
+            klasor = tmp_path / "indirilen" / f"calisma-{varyant}-b{n}"
+        klasor.mkdir(parents=True, exist_ok=True)
+        (klasor / "BACAK").write_text(f"{n}\n", encoding="utf-8")
+        (klasor / "DENEME").write_text(f"{deneme}\n", encoding="utf-8")
+
+
 @arac_gerekli
 @pytest.mark.parametrize(
     ("no", "yuklenen", "secilen"),
@@ -862,14 +880,11 @@ def test_bacak_is_var_mi(bacak, tmp_path, no, dosyalar, beklenen):
         (3, [1], 1),  # 1. bacakta biten varyantın 2. bacağı yüklemez
         (2, [], None),
         (3, [], None),
+        (2, [2], None),  # tek kayıt bu bacağın kendisininse sürdürülmez
     ],
 )
 def test_bacak_en_yeni_onceki_kaydi_secer(bacak, tmp_path, no, yuklenen, secilen):
-    for n in yuklenen:
-        klasor = tmp_path / "indirilen" / f"calisma-tiny-v3-b{n}"
-        klasor.mkdir(parents=True)
-        (klasor / "BACAK").write_text(f"{n}\n", encoding="utf-8")
-        (klasor / "DENEME").write_text("1\n", encoding="utf-8")
+    _indir(tmp_path, "tiny-v3", yuklenen)
     calisma = tmp_path / "calisma" / "tiny-v3"
     ortam = _ortam(
         tmp_path, BACAK=str(no), W=str(calisma), VARYANT="tiny-v3", GITHUB_RUN_ATTEMPT="1"
@@ -889,10 +904,7 @@ def test_bacak_en_yeni_onceki_kaydi_secer(bacak, tmp_path, no, yuklenen, secilen
 def test_baska_denemenin_kaydindan_surdurmek_uyari_yazar(bacak, tmp_path):
     """Bütün işler yeniden çalıştırılır ve 1. bacak bu kez yükleyemezse 2. bacak
     önceki denemenin kaydını bulur: sessiz kalmaz, uyarır."""
-    klasor = tmp_path / "indirilen" / "calisma-s-v3-b1"
-    klasor.mkdir(parents=True)
-    (klasor / "BACAK").write_text("1\n", encoding="utf-8")
-    (klasor / "DENEME").write_text("1\n", encoding="utf-8")
+    _indir(tmp_path, "s-v3", [1])
     ortam = _ortam(
         tmp_path,
         BACAK="2",
@@ -918,11 +930,7 @@ def test_bacak_kaydina_denemeyi_yazar(bacak):
 def test_olc_son_bacagin_kaydini_olcer(ana, tmp_path, yuklenen, secilen):
     indir = _adim(ana, "olc", "Varyantın bacak kayıtları")
     assert indir["with"]["pattern"] == "calisma-${{ matrix.varyant }}-b*"
-    for n in yuklenen:
-        klasor = tmp_path / "indirilen" / f"calisma-s-v3-b{n}"
-        klasor.mkdir(parents=True)
-        (klasor / "BACAK").write_text(f"{n}\n", encoding="utf-8")
-        (klasor / "DENEME").write_text("1\n", encoding="utf-8")
+    _indir(tmp_path, "s-v3", yuklenen)
     ortam = _ortam(tmp_path, W="calisma", VARYANT="s-v3", GITHUB_RUN_ATTEMPT="1")
     sonuc = _calistir(_adim(ana, "olc", "Son bacağın kaydını seç")["run"], tmp_path, ortam)
     if secilen is None:
@@ -1317,7 +1325,8 @@ def test_yayinla_tam_kipte_tek_on_surum(ana, tmp_path):
     cagri = olusturma[0]
     assert cagri[2] == "forklift-r7"
     assert "--prerelease" in cagri
-    assert cagri[cagri.index("--target") + 1] == ortam["GITHUB_SHA"]
+    assert "--target" not in cagri
+    assert f"- Eğitim commit'i: {ortam['GITHUB_SHA']}" in notlar
     assert cagri[cagri.index("--title") + 1] == "NextGen AI Forklift adayları r7"
     assert "::notice title=Ön sürüm yayınlandı::" in sonuclar[-1].stdout
 
