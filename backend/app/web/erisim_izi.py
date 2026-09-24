@@ -161,6 +161,8 @@ def kayitlar(baglanti: sqlite3.Connection, erisim_sayisi: int = 200, imha_sayisi
                 "olay": satir["events_deleted"],
                 "foto": satir["photos_deleted"],
                 "ornek": satir["samples_deleted"],
+                # 012: silinen etiketsiz forklift eğitim karesi
+                "forklift": satir["forklift_samples_deleted"],
                 "donmus": satir["held_skipped"],
                 "politika": " · ".join(
                     f"{ad} {politika[anahtar]} gün"
@@ -169,6 +171,7 @@ def kayitlar(baglanti: sqlite3.Connection, erisim_sayisi: int = 200, imha_sayisi
                         ("sistem_olay_gun", "sistem olayı"),
                         ("goruntu_gun", "fotoğraf"),
                         ("kkd_ham_veri_gun", "KKD örneği"),
+                        ("forklift_ham_veri_gun", "forklift karesi"),
                         ("uyari_kaydi_gun", "uyarı kaydı arşivi"),
                     )
                     if anahtar in politika

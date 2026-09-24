@@ -113,11 +113,11 @@
   <h3>İmha günlüğü <span class="not">(son 50 bakım; periyodik imha kaydı en az 3 yıl saklanır)</span></h3>
   {% if kvkk.imhalar %}
   <table class="liste">
-    <tr><th>Zaman</th><th>Silinen olay</th><th>Fotoğraf</th><th>KKD örneği</th><th>Dondurulduğu için kalan</th><th>Arşivlenen uyarı kaydı</th><th>O günkü saklama süreleri</th></tr>
+    <tr><th>Zaman</th><th>Silinen olay</th><th>Fotoğraf</th><th>KKD örneği</th><th>Forklift karesi</th><th>Dondurulduğu için kalan</th><th>Arşivlenen uyarı kaydı</th><th>O günkü saklama süreleri</th></tr>
     {% for i in kvkk.imhalar %}
     <tr>
       <td>{{ i.zaman }}</td><td>{{ i.olay }}</td><td>{{ i.foto }}</td><td>{{ i.ornek }}</td>
-      <td>{{ i.donmus }}</td>
+      <td>{{ i.forklift }}</td><td>{{ i.donmus }}</td>
       <td>{{ i.uyari }}{% if i.uyari_dosyasi %} <code>{{ i.uyari_dosyasi }}</code>{% endif %}</td>
       <td>{{ i.politika }}</td>
     </tr>

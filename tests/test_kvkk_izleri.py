@@ -322,6 +322,25 @@ def test_ayarlar_kvkk_bolumu_erisim_ve_imha_kayitlarini_gosterir(istemci, baglan
     assert "Hukuki süreç için dondurulmuş olay: <b>1</b>" in metin
 
 
+def test_imha_gunlugu_silinen_forklift_karesini_gosterir(istemci, baglanti, test_ayarlari):
+    """Şema 012: etiketsiz forklift karesi de imha edilir; imha günlüğü sayısını
+    ve o günkü saklama süresini gösterir."""
+    gun = test_ayarlari.forklift_ham_veri_saklama_gun
+    baglanti.execute(
+        "INSERT INTO forklift_samples (captured_at, frame_path, width, height) "
+        "VALUES (?, 'forklift-ornekler/eski.jpg', 64, 48)",
+        (zaman.gun_once_utc(gun + 1),),
+    )
+    baglanti.commit()
+    _bakim(test_ayarlari, baglanti)
+    (imha,) = erisim_izi.kayitlar(baglanti)["imhalar"]
+    assert imha["forklift"] == 1
+    assert f"forklift karesi {gun} gün" in imha["politika"]
+    metin = istemci.get("/ayarlar").text
+    assert "<th>Forklift karesi</th>" in metin
+    assert f"forklift karesi {gun} gün" in metin
+
+
 def test_hedef_metinleri():
     assert erisim_izi.hedef_metni("event:12 hold=0") == ("olay #12 çözüldü", "/olaylar/12")
     assert erisim_izi.hedef_metni("rule:3,4 golge=0") == ("kural #3, #4 anonsu açıldı", None)
