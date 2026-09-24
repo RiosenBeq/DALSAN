@@ -5,16 +5,16 @@
 | # | Risk | Etki | Yaklaşım |
 |---|---|---|---|
 | **R1** | **Forklift sınıfı hazır modellerde yok.** COCO'da forklift yok; "truck" olarak yanlış sınıflanır ya da hiç görülmez (Open Images'teki 104 forklift fotoğrafında hazır model forkliftlerin ~%40'ını araç olarak bile bulmadı). | Yüksek → **azaltılıyor (23.09.2026)** | Forklift ayrı sınıf olarak eğitiliyor: donuk resmi model + LOCO (CC0) ile eğitilen ek baş, insan/araç tanıma yapı gereği aynı (docs/17 §12.3). Eğitim hattı kuruldu; ilk tam eğitimin adayları geçmedi (LOCO testinde doğru forklift tespiti yok), kutu dalını da öğrenen v3 kipiyle yeniden eğitiliyor; sonuç docs/ILERLEME. Kalan: LOCO el kamerasıyla çekilmiştir, fabrika kameraları sabit ve yüksektir; **saha görüntüsüyle ölçüm (ve gerekirse kapalı ince ayar) hâlâ şart**. Bu, teklifin "kapsam dışı: yeni senaryolar" maddesine girmez - taahhüt edilen sınıfın kendisidir. |
-| **R2** | **Dedektör lisansı** (ADR-002). Ultralytics AGPL-3.0. | Orta-yüksek | 1. haftada karar. Öneri: Apache-2.0 alternatif. `Detector` arayüzü arkasında izole. |
+| **R2** | **Dedektör lisansı** (ADR-002). Ultralytics AGPL-3.0. | Orta-yüksek → **kapandı** | 1. haftada karar. Öneri: Apache-2.0 alternatif. `Detector` arayüzü arkasında izole. **Karar uygulandı:** YOLOX (Apache-2.0), ONNX Runtime ile; Ultralytics ve torch üründe yok (`analiz/tespit.py` → `Tespitci`). Operatör docs/17 §16 S2'nin varsayılanını 23.09.2026'da kabul etti. |
 | **R3** | **Anons altyapısı entegre edilemeyebilir.** Teklif koşula bağlamış. | **Düşük** *(azaltıldı)* | Üç yol da kodda hazır: ses kartı (analog amfi), IP hoparlör için **üç ayrı HTTP biçimi** (`json`/`form`/`get`) ve adres yer tutucuları. Sahadaki cihaz öğrenilince kod değil AYAR değişir. Bağlama tarifi, cihaz soruları ve sorun giderme tablosu: `14-ANONS-SISTEMI-BAGLAMA.md`. Kapalı/özel bir sisteme hâlâ bağlanılamayabilir; MVP anonssuz da kabul edilebilir (K6). |
 | **R4** | **Yanlış alarm yükü.** Sistem gereğinden hassassa güven kaybeder. | Yüksek | Tasarımda: kalış süresi, ardışık kare, cooldown, "araç hareketliyken", KKD zamansal oylaması. Süreçte: 7. hafta ölçüme dayalı ayarlama; olay durumu alanı oranı ölçülebilir kılar. |
 | **R5** | **Kamera açıları analiz için elverişsiz olabilir.** Mevcut kameralar güvenlik için konumlandırılmış. | Yüksek | 1. hafta keşfinin birincil çıktısı kamera-bölge uygunluk tablosudur. Mesafe kuralı zemin görünürlüğü ister; **KKD piksel eşiği ister** (R9). Uygun olmayan kamera yazılı olarak kapsam dışı bırakılır. |
 | **R6** | **Sunucu donanımı kapsam dışı.** GPU'lu sunucu yoksa proje başlayamaz. | Yüksek | Gereksinim 1. haftada yazılı iletilir; tedarik DALSAN'da; termin bu koşula bağlı (teklifin varsayımlar bölümü bunu zaten kapsıyor). |
 | **R7** | Kamera saatleri senkron değilse zaman damgaları tutarsız. | Düşük | Zaman damgası **sunucuda** üretilir; sunucuda NTP. Runbook'ta not. |
 | **R8** | Disk dolması (snapshot birikimi). | Orta | Retention + disk kullanımı loglaması; eşik altında sistem olayı. |
-| **R15** | **Sistem ağa açılırsa yetkisiz erişim.** Kural değiştirebilen, kamera silebilen, anons yaptırabilen arayüz. | **Düşük** *(azaltıldı)* | `.env` → `YONETICI_SIFRESI` ile tek yönetici şifresi + imzalı çerez (`web/giris.py`). Boşken giriş sorulmaz (tek makinelik kurulum); ŞİFRESİZKEN kurulum listesi ve Ayarlar sayfası açıkça uyarır - sessiz açık bırakılmaz. Kalan risk: kullanıcı uyarıyı görmezden gelip sistemi ağa açarsa. |
+| **R15** | **Sistem ağa açılırsa yetkisiz erişim.** Kural değiştirebilen, kamera silebilen, anons yaptırabilen arayüz. | **Düşük** *(azaltıldı)* | `.env` → `YONETICI_SIFRESI` ile tek yönetici şifresi + imzalı çerez (`web/giris.py`). Boşken giriş sorulmaz (tek makinelik kurulum); ŞİFRESİZKEN kurulum listesi ve Ayarlar sayfası açıkça uyarır - sessiz açık bırakılmaz. Ağa açık (`SUNUCU_ADRESI` yerel değil) ve şifresiz kurulum açılışta reddedilir; Docker'da şifre zorunludur (`app/ayarlar.py`). Kalan risk: zayıf şifre (sistem yalnız 6 karakterin altını reddeder) ve fabrika dışına açma (`15-UZAKTAN-ERISIM.md`). |
 | **R9** | **KKD piksel eşiği sağlanamayabilir.** Kişi 120 px altındaysa baret kararı güvenilmez. | **Yüksek - KKD'nin varlık şartı** | 1. haftada her aday bölge için ölçüm (`04-KKD` §3). Sağlanamıyorsa bölge küçültülür veya o kamerada baret kuralı devre dışı bırakılır. Sonuç Rev.02'ye kamera-bölge tablosu olarak yazılır. |
-| **R10** | **KKD negatif veri kıtlığı.** Uyumlu fabrikada "baretsiz" görüntü yok. | **Yüksek** | 2. haftada İSG refakatinde planlı çekim seansı (`04-KKD` §4.2). Kamu veri setiyle ön eğitim. Seans gecikirse KKD 8 haftaya sığmaz - ek protokolde DALSAN yükümlülüğü olarak yazılır. |
+| **R10** | **KKD negatif veri kıtlığı.** Uyumlu fabrikada "baretsiz" görüntü yok. | **Yüksek** | 2. haftada İSG refakatinde planlı çekim seansı (`04-KKD` §4.2). Kamu veri setiyle ön eğitim *(bugün beklemede: lisansı doğrulanmış, ticari kullanıma açık bir KKD veri seti bulunamadı - `16-DIS-KAYNAK-DOGRULAMA.md` §1; hukuk görüşü gelene kadar kamu veri seti kullanılmaz - docs/17 §16 S20)*. Seans gecikirse KKD 8 haftaya sığmaz - ek protokolde DALSAN yükümlülüğü olarak yazılır. |
 | **R11** | **KKD politika belirsizliği.** Mont yelek sayılır mı, kabindeki operatör kapsamda mı vb. | Orta-yüksek | Etiketlemeden **önce** 10 soruluk liste DALSAN İSG'ye sorulur (`04-KKD` §5.3); cevaplar `docs/kkd-politika.md`. Yanlış cevapla etiketlenen veri seti baştan bozuktur. |
 | **R12** | **KKD'nin disiplin aracı olarak algılanması.** Çalışan direnci, kameradan kaçma, açı bozma. | Orta-yüksek | Konumlandırma: "hatırlatma", ceza değil. Çalışan bilgilendirmesi devreye almadan önce. Gölge mod. Sistem çıktısının disiplin süreçlerinde kullanılmayacağının yazılı olması. |
 | **R13** | **KVKK uyumu.** Çalışan görüntüsünden davranışsal çıkarım. | Yüksek | DALSAN veri sorumlusu, NextGen veri işleyen. Aydınlatma metni, levhalar, işleme şartı, saklama süreleri, veri işleyen sözleşmesi - DALSAN hukuk birimince teyit edilir (`00-PROJE-BAGLAMI.md`). |
@@ -37,6 +37,13 @@
 
 10 numara diğerlerinin kabıdır: 2, 3, 5 ve 9'un sonuçları ek protokole yazılır.
 
+**Durum (24.09.2026):** 1 kapandı - YOLOX (Apache-2.0); operatör docs/17 §16 S2'nin
+varsayılanını 23.09.2026'da kabul etti (ADR-002). 7 (sunucu donanımı, S1) ve 9
+(saklama süreleri, S5) docs/17 §16'da hâlâ açık; sistem bugün `.env` varsayılanlarıyla
+çalışır (180/90/30/90 gün). 4'ün taslağı `docs/kkd-politika.md`'de, İSG cevapları boş.
+Diğerlerinin kapandığına dair bu depoda kayıt yok; KKD veri toplama kapısı Rev.02
+onayı bekleyerek kapalı durur.
+
 ## 3. Kabul edilmiş sınırlar (risk değil, tasarım kararı)
 
 Bunlar "sonra düzeltilecek eksik" değildir; bilinçli takaslardır ve müşteriye
@@ -44,7 +51,8 @@ bu şekilde anlatılır:
 
 - Bölgeden 2-3 saniyede geçen ihlal **kaçırılabilir** (zamansal oylama gereği)
 - Kameraya uzak kişi için KKD kararı **verilmez** (`unknown`)
-- Kalibre edilmemiş kamerada mesafe kuralı **çalışmaz** (yaklaşık sonuç üretmez)
+- Kalibre edilmemiş kamerada mesafe (ve hız) kuralı **çalışmaz** (yaklaşık sonuç üretmez)
 - Track ID değişirse aynı kişi için tekrar uyarı üretilebilir
-- Ham video **saklanmaz** - yalnızca olay anı görüntüsü
+- Ham video **saklanmaz** - yalnızca olay anı görüntüsü (KKD veri toplama kapısı
+  açıkken ayrıca KKD bölgesindeki kişilerin kırpıkları, `04-KKD-BARET-YELEK.md` §4.3)
 - Sistem kesin tespit taahhüdü içermez; İSG prosedürlerinin yerine geçmez

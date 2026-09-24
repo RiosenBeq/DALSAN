@@ -64,9 +64,9 @@ Kamera (RTSP) → Kare örnekleme → Tespit (insan/forklift/tır) → Takip (ka
 | Forklift tespiti | ✅ | MUST | Senaryo 2. Hazır modellerde sınıf yok → fine-tuning (Risk R1). | Hayır |
 | Tır / ağır araç tespiti | ✅ | MUST | Senaryo 3. | Hayır |
 | Nesne takibi (kalıcı track ID) | ✅ | MUST | Senaryo 4 + tekrar uyarıyı bastırmanın + KKD zamansal oylamasının ön koşulu. | Hayır |
-| **Baret sınıflandırma (var/yok/belirsiz)** | ✅ | MUST | Yeni KKD kuralı. İki aşamalı: insan crop → sınıflandırıcı. | Hayır |
+| **Baret sınıflandırma (var/yok/belirsiz)** | ✅ | MUST | Yeni KKD kuralı. İki aşamalı: insan crop → sınıflandırıcı. *Bugün (baret ve yelek): sınıflandırıcı kodu hazır, model henüz eğitilmedi; `KKD_MODEL_DOSYASI` yokken KKD kuralı olay üretmez.* | Hayır |
 | **Yelek sınıflandırma (var/yok/belirsiz)** | ✅ | MUST | Baretten teknik olarak daha kolay (büyük yüzey + hi-vis renk). | Hayır |
-| Kare örnekleme (5-8 fps) + GPU'da batch çıkarım | ✅ | MUST | 4 kamerayı tek GPU'da rahat taşır. | Hayır |
+| Kare örnekleme (5-8 fps) + GPU'da batch çıkarım | ✅ | MUST | 4 kamerayı tek GPU'da rahat taşır. *Uygulanan: kamera başına `sample_fps` (varsayılan 6); tek ONNX oturumu, kareler kilitle sırayla - toplu (batch) çıkarım yok. Varsayılan CPU; GPU için `CIKARIM_CIHAZI=cuda` + `onnxruntime-gpu`.* | Hayır |
 | Basit hız/yön tahmini | ⚠️ | SHOULD | "Araç hareket halinde mi" koşulu için; birkaç satır. | Kısmen |
 | Yüz bulanıklaştırma (snapshot'ta) | ❌ | NICE | KVKK açısından değerli ama zorunlu değil; ham video zaten saklanmıyor. | Evet → Phase 2 |
 | Düşme / hareketsizlik tespiti | ❌ | FUTURE | Ayrı model, ayrı veri, ayrı bedel. | Evet |
@@ -76,7 +76,7 @@ Kamera (RTSP) → Kare örnekleme → Tespit (insan/forklift/tır) → Takip (ka
 | Özellik | MVP? | Öncelik | Neden? | Geleceğe bırakılabilir mi? |
 |---|---|---|---|---|
 | Poligon bölge tanımı (yaya yolu, sevkiyat/yükleme, tır alanı, **KKD zorunlu alan**) | ✅ | MUST | Üç kural tipinin de dayanağı. | Hayır |
-| Bölge çizim editörü (son kare üzerine poligon) | ⚠️ | SHOULD | JSON ile de olur ama her saha ayarı geliştirici gerektirir. Yalın SVG editörü 1-2 gün. | Kısmen |
+| Bölge çizim editörü (son kare üzerine poligon) | ⚠️ | SHOULD | JSON ile de olur ama her saha ayarı geliştirici gerektirir. Yalın SVG editörü 1-2 gün. *Uygulanan: HTML canvas üzerinde editör (`static/kamera_detay.js`); ayrıca zemindeki boyadan alan önerisi, dikdörtgen kipi, köşe sürükleme.* | Kısmen |
 | **Kural tipi 1 - Bölge ihlali** | ✅ | MUST | Senaryo 5, 6, 7'yi tek tip karşılıyor. | Hayır |
 | **Kural tipi 2 - Güvenli mesafe** | ✅ | MUST | Senaryo 8. | Hayır |
 | **Kural tipi 3 - KKD ihlali** | ✅ | MUST | Yeni kapsam. Bölgeye bağlı, zamansal oylamalı, üç durumlu. | Hayır |
@@ -92,11 +92,11 @@ Kamera (RTSP) → Kare örnekleme → Tespit (insan/forklift/tır) → Takip (ka
 |---|---|---|---|---|
 | Uyarı üretimi + cooldown (kamera+kural+track bazlı) | ✅ | MUST | Cooldown'sız sistem dakikada yüzlerce uyarı üretir ve kullanılmaz olur. | Hayır |
 | SSE ile ekrana anlık uyarı | ✅ | MUST | "İlgili ekranlara iletilmesi". Tek yön → WebSocket gereksiz. | Hayır |
-| Anons adaptör arayüzü (Null / Ses kartı / HTTP) | ✅ | MUST | Bir arayüz + Null implementasyon; somut entegrasyonu keşfe bırakır. | Hayır |
+| Anons adaptör arayüzü (Null / Ses kartı / HTTP) | ✅ | MUST | Bir arayüz + Null implementasyon; somut entegrasyonu keşfe bırakır. *Bugün: ayrı Null sınıfı yok - kanal tanımlı değilse ses çalmaz; kanallar `speaker_zones` satırlarıdır (ses çıkışı / HTTP, docs/02 §7).* | Hayır |
 | Anons somut entegrasyonu | ⚠️ | SHOULD | Teklif teslimatı ama "altyapı uygunluğu koşuluyla" (Risk R3). | Koşullu |
 | Anons mesaj yönetimi + **KKD mesajları** ("Lütfen baretinizi takınız") | ⚠️ | SHOULD | Anons varsa şart. Anons cooldown'u ekrandan uzun olmalı. | Anonsla birlikte |
 | E-posta / SMS / push bildirim | ❌ | FUTURE | Teklifte yok. | Evet → Phase 2 |
-| TTS | ❌ | NICE | 4-5 sabit mesaj için kayıtlı WAV yeterli. | Evet |
+| TTS | ❌ | NICE | 4-5 sabit mesaj için kayıtlı WAV yeterli. *Sunucuda TTS yok; izleme ekranı ihlali (kural ve kamera adı) isteğe bağlı olarak tarayıcının kendi Türkçe seslendirmesiyle okur (`static/uyari.js`).* | Evet |
 
 ### 3.5 Olay kaydı ve izleme ekranı
 
@@ -104,28 +104,28 @@ Kamera (RTSP) → Kare örnekleme → Tespit (insan/forklift/tır) → Takip (ka
 |---|---|---|---|---|
 | Olay kaydı (zaman, kamera, kural, sınıf/track, ölçülen değer, bölge) | ✅ | MUST | Senaryo 11. | Hayır |
 | Overlay'li snapshot (bbox + bölge + KKD etiketi) | ✅ | MUST | Kare zaten elde. Yanlış alarm ayıklaması ve KKD doğrulaması bunsuz yapılamaz. | Hayır |
-| Olay listesi + filtre (tarih, kamera, kural tipi, durum, **alan**) | ✅ | MUST | Senaryo 12. | Hayır |
+| Olay listesi + filtre (tarih, kamera, kural tipi, durum, **alan**) | ✅ | MUST | Senaryo 12. *Uygulanan filtreler: tarih, kamera, alan, olay tipi (ihlal / sistem), önem, durum, süren / biten; kural tipine göre filtre yok (kural tipi kırılımı Komuta → Rapor'da).* | Hayır |
 | Olay detayı (snapshot + meta) | ✅ | MUST | Listeyle aynı ekranda panel. | Hayır |
 | Olay durumu: Yeni / İncelendi / Yanlış alarm + not | ⚠️ | SHOULD | Tek alan + tek buton. **K11'in ölçüm aracı** ve KKD veri geri beslemesinin kaynağı. | Hayır - KKD varsa şart |
 | CSV dışa aktarma | ⚠️ | SHOULD | ~30 satır; "veriye dayalı izleme"nin en ucuz aracı. | Evet ama dahil |
 | Kamera durum paneli | ⚠️ | SHOULD | Operatör "sistem çalışıyor mu" sorusunu ekrandan cevaplamalı. | Kısmen |
 | Sistem olayları (kamera düştü/geldi) aynı listede | ⚠️ | SHOULD | Kamera 3 gün kapalıysa İSG bilmeli. Aynı tablo, `system` tipi. | Kısmen |
-| Dashboard / grafik / periyodik rapor | ❌ | NICE | Olay tablosu "zemin"dir; rapor katmanı sonra. | Evet → Phase 2 |
+| Dashboard / grafik / periyodik rapor | ❌ | NICE | Olay tablosu "zemin"dir; rapor katmanı sonra. *Sonradan kısmen yapıldı: Komuta ekranları ve Komuta → Rapor (dönem raporu, kırılımlar, günlük ve saatlik dağılım; `07-YOL-HARITASI.md` §1.1). Zamanlanmış / gönderilen periyodik rapor yok.* | Evet → Phase 2 |
 | Isı haritası | ❌ | FUTURE | Teklifte yok. | Evet |
 
 ### 3.6 Güvenlik, erişim, işletim
 
 | Özellik | MVP? | Öncelik | Neden? | Geleceğe bırakılabilir mi? |
 |---|---|---|---|---|
-| Tek yönetici şifresi (env, oturum çerezi) | ⏸ | MUST (fabrika) | Kural değiştirebilen ve anons tetikleyen sistem LAN'da bile şifresiz olmaz. **Geliştirme aşamasında kullanıcı kararıyla kapatıldı (02.09.2026):** sistem tek makinede, yalnızca 127.0.0.1'e bağlı çalışıyor. Fabrika sunucusuna çıkmadan önce geri eklenir → `07` #0. | Fabrika kurulumuna kadar |
+| Tek yönetici şifresi (env, oturum çerezi) | ✅ | MUST (fabrika) | Kural değiştirebilen ve anons tetikleyen sistem LAN'da bile şifresiz olmaz. **Geliştirme aşamasında kullanıcı kararıyla kapatıldı (02.09.2026):** sistem tek makinede, yalnızca 127.0.0.1'e bağlı çalışıyor. Fabrika sunucusuna çıkmadan önce geri eklenir → `07` #0. **Sonra geri eklendi (`07` §1.1, #0 kapandı):** `.env` → `YONETICI_SIFRESI`; boşken giriş sorulmaz, ağa açık kurulumda ve Docker'da şifresiz açılış reddedilir. | Fabrika kurulumuna kadar |
 | Kullanıcı yönetimi / roller | ❌ | FUTURE | Tek ekip. Auth tek dependency'de; sonradan kullanıcı tablosuyla değişir. | Evet → Phase 2 |
 | RTSP kimlik bilgisi maskeleme | ✅ | MUST | Temel hijyen. | Hayır |
 | Retention (olay N gün, snapshot M gün, otomatik silme) | ✅ | MUST | Disk dolunca sistem durur. **Ayrıca KVKK gereği.** | Hayır |
-| Backup/restore script + prova | ✅ | MUST | K7. Test edilmemiş yedek yedek değildir. | Hayır |
+| Backup/restore script + prova | ✅ | MUST | K7. Test edilmemiş yedek yedek değildir. *Uygulanan: betik değil düğme - ana sayfada "Veritabanını Yedekle", Kontrol Paneli'nde "Yedekten Geri Yükle"; prova adımları `06-OPERASYON.md` §1.2.2.* | Hayır |
 | Docker Compose + healthcheck + restart policy | ✅ | MUST | K8. | Hayır |
 | JSON yapılandırılmış log | ✅ | MUST | Teşhis çoğunlukla uzaktan log üstünden yapılacak. | Hayır |
 | HTTPS / reverse proxy | ❌ | NICE | LAN içi tek istemci; gerekirse Caddy ile 1 saat. | Evet |
-| Audit log (kim neyi değiştirdi) | ❌ | FUTURE | Tek kullanıcı varken anlamsız; `updated_at` + config log yeterli. | Evet |
+| Audit log (kim neyi değiştirdi) | ❌ | FUTURE | Tek kullanıcı varken anlamsız; `updated_at` + config log yeterli. *Sonradan kısmen: KVKK erişim izi (`access_log`, şema 010) ayar ve kural değişikliğini, dışa aktarımı ve kanıt görüntülemeyi istemci adresiyle yazar; kullanıcı kimliği yok (tek şifre).* | Evet |
 | Çoklu tesis / multi-tenant | ❌ | FUTURE | Tek tesis. | Evet |
 | PLC / SCADA / ERP | ❌ | FUTURE | Teklifte açıkça kapsam dışı. | Evet |
 | Alçı Stokholü modülü | ❌ | FUTURE | Teklif Bölüm 11: ayrı faz, ayrı keşif. | Evet |
@@ -135,12 +135,12 @@ Kamera (RTSP) → Kare örnekleme → Tespit (insan/forklift/tır) → Takip (ka
 | Gelecek özellik | Bugün yapılan hazırlık (ek kod değil, tasarım kararı) |
 |---|---|
 | Kullanıcı/rol sistemi | Auth tek FastAPI dependency'sinde |
-| Bildirim kanalları | `EventSink` arayüzü var; yeni sink = yeni sınıf |
-| Video klip | `CameraSource` son N kareyi tutabilecek yapıda ama ring buffer yazılmıyor |
-| Raporlama | Olay tablosu indeksli, UTC, JSONB detay → her rapor SQL ile üretilebilir |
+| Bildirim kanalları | `EventSink` yazılmadı. Uyarı kanalları `speaker_zones.kind` ile seçilen adaptör sınıflarıdır (`olaylar/anons.py` → `kanal_anonscu`: `SesKartiAnonscu`, `HttpAnonscu`); yeni kanal = yeni sınıf + yeni `kind` |
+| Video klip | `CameraSource` (kodda `analiz/kamera.py` → `KameraKaynagi`) son N kareyi tutabilecek yapıda ama ring buffer yazılmıyor |
+| Raporlama | Olay tablosu indeksli, UTC, JSON detay (SQLite'ta metin) → her rapor SQL ile üretilebilir. *Sonradan yapıldı: Komuta → Rapor (`web/rapor.py`; gün/saat kovalaması Türkiye saatiyle Python'da)* |
 | Fabrika geneli yayılım | `cameras.area` alanı + analizörün "hangi kameralar" sorusunun **tek fonksiyonda** olması |
 | Yeni KKD sınıfları (gözlük, eldiven, ayakkabı) | KKD sınıflandırıcı **çok etiketli** tasarlanır; yeni etiket = yeni çıkış nöronu + veri |
-| Yeni tespit sınıfları | Sınıf listesi tek enum + model etiket eşleme tablosunda |
+| Yeni tespit sınıfları | Sınıf listesi tek yerde (`rules/tipler.py` → `TANINAN_SINIFLAR`) + model etiket eşleme tablosunda (`analiz/tespit.py` → `MODEL_SINIF_ESLEME`; kendi eğitilen modelde ONNX üst verisi `dalsan_classes`) |
 
 ## 5. 8 haftalık plana oturtma (güncel)
 
@@ -157,3 +157,20 @@ Kamera (RTSP) → Kare örnekleme → Tespit (insan/forklift/tır) → Takip (ka
 **Kritik yol:** 1. hafta saha erişimi → 2. hafta KKD çekim seansı → 3-4. hafta etiketleme.
 KKD veri toplama gecikirse KKD senaryosu 8 haftaya sığmaz. Bu, kapsam ek protokolünde
 DALSAN'ın yükümlülüğü olarak yazılmalıdır.
+
+**Durum (24.09.2026, koda göre):**
+
+- **Farklı yapıldı (09):** 1. haftanın "Docker + Postgres + Alembic iskeleti" yerine
+  tek program, SQLite ve sürümlü şema betikleri (`backend/sema/`); geliştirmede Docker yok.
+- **Yazılımı var:** kamera kaynağı + yeniden bağlanma + sağlık, kamera CRUD, tespit,
+  takip, bölge editörü, homografi kalibrasyonu, `rules/` + birim testleri, KKD etiketleme
+  sayfası, kural motoru (üç tip + sonradan araç hızı), cooldown, kural CRUD, restart'sız
+  konfigürasyon, olay + kanıt fotoğrafı, KKD kuralının hatta bağlanması, SSE + canlı uyarı,
+  anons kanalları ve mesajları, olay listesi/filtre/durum/CSV, kamera durum paneli,
+  retention, yedek/geri yükleme düğmeleri, runbook (`06-OPERASYON.md`) ve kullanım
+  kılavuzu.
+- **Yapılmadı:** KKD sınıflandırıcısının eğitimi (model yok; bu yüzden K11 ölçümü de
+  yapılamaz). Forklift ince ayarının durumu: `08-RISKLER-VE-ACIK-KARARLAR.md` R1.
+- **Bu depoda kaydı olmayan saha işleri:** saha keşfi, Rev.02 imzası, KKD çekim seansı,
+  anons saha denemesi, yedek provası, fabrika sunucusuna kurulum ve K1-K11 doğrulaması.
+  KKD veri toplama kapısı varsayılan olarak kapalıdır ("Rev.02 onayı bekleniyor").

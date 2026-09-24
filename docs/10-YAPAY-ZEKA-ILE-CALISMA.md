@@ -63,7 +63,7 @@ Cevap yeşilse devam. Kırmızıysa:
 
 ### İyi istek
 > "docs/03-KURAL-MOTORU.md dosyasındaki `ppe_violation` kuralını yaz.
-> Önce sadece `rules/ppe.py` dosyasını ve testlerini yap, kameraya bağlama.
+> Önce sadece `rules/kkd.py` dosyasını ve testlerini yap, kameraya bağlama.
 > Testleri çalıştırıp sonucu göster."
 
 Farkı yaratan üç şey:
@@ -87,7 +87,7 @@ Bu sıra tesadüfi değil. Her adım bir öncekinin üstüne kurulur; atlarsan g
 
 | Sıra | İş | Bittiğini nasıl anlarsın |
 |---|---|---|
-| 1 | Proje iskeleti + veritabanı + başlatıcı | Başlatıcıda "Sistem çalışıyor" yazısını görürsün |
+| 1 | Proje iskeleti + veritabanı + başlatıcı | Başlatıcıda (Kontrol Paneli) "Sistem durumu" satırında "ÇALIŞIYOR" yazısını görürsün |
 | 2 | Kamera ekleme + görüntü alma | Eklediğin kameranın görüntüsünü ekranda görürsün |
 | 3 | İnsan/forklift/tır tespiti | Görüntüde kutular çıkar |
 | 4 | Bölge çizme | Fare ile alan çizip kaydedebilirsin |
@@ -102,14 +102,20 @@ Bu sıra tesadüfi değil. Her adım bir öncekinin üstüne kurulur; atlarsan g
 
 **Kural:** Bir adım tam bitmeden sonrakine geçme. "Neredeyse çalışıyor" = çalışmıyor.
 
+**Durum (24.09.2026, koda göre):** 1-8 ve 11'in yazılımı var. 9'da KKD modeli henüz
+eğitilmedi (eğitim ürün dışıdır; HTML raporu üreten araç hazır:
+`backend/app/egitim/degerlendirme.py`); bu yüzden 10'daki KKD kuralı bugün olay
+üretmez. 12'de yedek alma ve geri yükleme düğmeleri var; fabrika kurulumunun bu
+depoda kaydı yok.
+
 ---
 
 ## 5. Bir şey bozulduğunda
 
 Sırasıyla:
 
-1. **Başlatıcıdaki günlük penceresine bak.** Kırmızı/`ERROR` satırlarını **olduğu gibi
-   kopyala.**
+1. **Başlatıcıdaki günlük penceresine bak.** `[HATA]` ve `[!]` ile başlayan satırları
+   **olduğu gibi kopyala.**
 2. Claude Code'a yapıştır ve şunu yaz:
    > "Şunu yapmaya çalıştım: [ne yaptın]. Bekliyordum: [ne olmalıydı].
    > Onun yerine bu oldu: [hata metni]. Düzelt."
@@ -146,7 +152,7 @@ Kanıt, senin ekranda görmendir.
 **Her hafta sonunda 15 dakika:**
 
 1. Sistemi baştan başlat, çalıştığını gör
-2. `veri/` klasörünü harici diske kopyala (yedek)
+2. `veri/` klasörünü ve ayar dosyasını (`.env`) harici diske kopyala (yedek; bkz. `06-OPERASYON.md` §4)
 3. Claude Code'a: "Bu hafta ne yaptık? docs/ILERLEME.md dosyasına yaz."
 4. Bir sonraki haftanın ilk işini not et
 

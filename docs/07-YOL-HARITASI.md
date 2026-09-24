@@ -13,12 +13,12 @@ Sıralama beklenen faydaya göre.
 | # | Başlık | Tetikleyici / gerekçe | Büyüklük |
 |---|---|---|---|
 | 1 | **Olay video klibi** (öncesi/sonrası 5+5 sn) | Yanlış alarm incelemesinde ve İSG eğitiminde snapshot'tan çok daha güçlü. En sık istenecek özellik. | Orta |
-| 2 | **KKD geri besleme döngüsü** | MVP'nin "Yanlış alarm" işaretleri + snapshot'ları zaten veri seti. Kalan iş: periyodik yeniden eğitim betiği + model sürüm yönetimi. Precision'ı zamanla yükseltir. | Orta |
+| 2 | **KKD geri besleme döngüsü** | MVP'nin "Yanlış alarm" işaretleri + snapshot'ları zaten veri seti. Kalan iş: periyodik yeniden eğitim betiği + model sürüm yönetimi. Precision'ı zamanla yükseltir. *Bugün kısmen var: sahadan toplanıp KKD sayfasında etiketlenen kırpıkların güne göre bölünmüş veri seti dışa aktarımı (`backend/app/egitim/veri_seti.py`), değerlendirme raporu (`backend/app/egitim/degerlendirme.py`) ve model sürümü başına anons kapısı (`rules.approved_model_version`, şema 008; model değişince KKD kuralı gölgeye alınır). "Yanlış alarm" işaretli olaylar veri setine kendiliğinden girmez; yeniden eğitim ürün dışıdır (docs/04 §6).* | Orta |
 | 3 | **Raporlamanın kalanı: vardiya karşılaştırması ve eğilim** | Dönem raporu YAPILDI (aşağıdaki kapananlar). Açık kalan: vardiya (08-16 / 16-24 / 24-08) kırılımı ve dönemler arası eğilim ("geçen aya göre %18 azaldı"). İkisi de vardiya tanımını sisteme sokmayı gerektirir; bugün sistemde vardiya kavramı YOK ve uydurulmadı. | Orta |
 | 4 | **Bildirim kanalları** (e-posta, SMS/WhatsApp, mobil push, webhook) | Kritik ihlalin ekran başında kimse yokken duyulması. Webhook (imzalı JSON, adresi R30 denetiminden geçer) yalnız alıcı sistem varsa yazılır (docs/17 §7.2, 4c, S4); yazılırsa uyarı garantisine "uzak kanal" olarak girer. | Küçük-orta |
 | 5 | **Kullanıcı yönetimi ve roller** (İSG yöneticisi / operatör / izleyici) | Birden çok departman kullanmaya başladığında; kim neyi değiştirdi izlenebilirliği. Auth zaten tek dependency'de. | Orta |
 | 6 | **Yüz bulanıklaştırma** (snapshot'ta) | KVKK açısından değerli; KKD kapsamı genişledikçe önemi artar. Kişi bbox'ının üst bölgesine blur. | Küçük |
-| 7 | **Tarayıcıda canlı görüntü** (overlay'li) | Operatörün NVR istemcisi ile sistem arasında geçiş yapmasını bitirir. | Orta |
+| 7 | **Tarayıcıda canlı görüntü** (overlay'li) | Operatörün NVR istemcisi ile sistem arasında geçiş yapmasını bitirir. *Bugün kısmen var: kutulu ve bölgeli önizleme, saniyede bir yenilenen JPEG olarak kamera sayfasında ve Komuta → Duvar'da (`static/onizleme.js`). Akıcı video (WebRTC/HLS) yok.* | Orta |
 | 8 | **Yeni KKD sınıfları** (gözlük, eldiven, iş ayakkabısı, maske) | KKD sınıflandırıcı **çok etiketli** tasarlandı → yeni etiket = yeni çıkış + veri. Ama her yeni sınıf yeni veri toplama seansı demektir. | Orta (sınıf başına) |
 | 9 | **Vardiya/saat bazlı kural aktifliği** | Kurallar yalnızca üretim saatlerinde geçerli olsun istendiğinde. Kural tablosuna iki alan. | Küçük |
 | 10 | **Kural şablonları / çoklu kameraya uygulama** | 4 kamerada gereksiz, 40 kamerada zorunlu. Phase 3'ün ön koşulu. | Orta |
@@ -36,9 +36,9 @@ Sıralama beklenen faydaya göre.
 | 24 | **KKD dışlama kipi** (`kapsam=muaf_disi`, koşullu, docs/17 §5.5, S3) | KKD kuralı bugün yalnız "KKD zorunlu alan" bölgesinde çalışır. Dışlama kipinde kural bölgesiz çalışır, yalnız `ppe_exempt` alanlarını atlar; form, değerlendirici ve boru hattı birlikte değişir. Kırpık sayısı, CPU yükü ve işlenen kişisel veri artar (ölçülecek). S3 bu kipi seçerse yazılır. | Orta |
 | 25 | **Kalibrasyonun şeritle kontrol ölçümü** (koşullu, docs/17 §6.4, S7) | Operatör zeminde iki nokta seçip aralarını şeritle ölçer; sistem hatayı yüzde olarak kaydeder (`camera_calibrations.check_*`, ayrı göç) ve olaya `kalibrasyon_hatasi_yuzde` yazar. O zamana kadar mesafe ve hız "≈" ile gösterilir (K26). | Küçük |
 | 26 | **`/metrics` (Prometheus)** (koşullu, docs/17 §9.2, S13) | Müşteride Prometheus varsa elle üretilmiş metin biçimi ve `METRIK_ANAHTARI` (Bearer). Bugün metrikler `/saglik?ayrinti=1` JSON'undadır. | Küçük |
-| 27 | **systemd bildirimi** (koşullu, docs/17 §9.3, S1) | Kurulum Docker değil systemd ise `Type=simple` + `WatchdogSec=120` + `NotifyAccess=main` + stdlib `WATCHDOG=1`. Varsayılan Docker dağıtımında yazılmaz; bekçi bugün süreci kendisi yeniden başlatır. | Küçük |
+| 27 | **systemd bildirimi** (koşullu, docs/17 §9.3, S1) | Kurulum Docker değil systemd ise `Type=simple` + `WatchdogSec=120` + `NotifyAccess=main` + stdlib `WATCHDOG=1`. Varsayılan Docker dağıtımında yazılmaz. Bugün bekçi `BEKCI_TEPKISI=yeniden_baslat` ise süreci kapatır; Docker, systemd ya da (Başlat betiğiyle kurulan sistemde) Kontrol Paneli yeniden açar (docs/06 §1.2.1). | Küçük |
 | 28 | **KKD uyum istatistiği** (koşullu, docs/17 §5.9 ve Ç40, S34) | Vardiya/gün/hafta uyum oranı; yalnız kamera ve bölge bazında, kişi kırılımı olmadan (KVKK 8770). Bugün gölge karnesi ve olay kodu başına yanlış alarm var. | Orta |
-| 29 | **Olay yazıcı kuyruğu** (koşullu, docs/17 §15 risk 17) | Olaylar analiz iş parçacığında yazılır. Sahada `/saglik?ayrinti=1` içindeki `ihlal_yaz_p90_ms` kameraları yavaşlatacak kadar büyük çıkarsa yazmalar ayrı bir kuyruğa alınır. Ölçülmeden yazılmaz. | Küçük |
+| 29 | **Olay yazıcı kuyruğu** (koşullu, docs/17 §15 risk 17) | Olaylar analiz iş parçacığında yazılır. Sahada kamera durum yanıtındaki (`/kameralar/<id>/durum.json` → `olcum.ihlal_yaz_p90_ms`) olay yazma süresi kameraları yavaşlatacak kadar büyük çıkarsa yazmalar ayrı bir kuyruğa alınır. Ölçülmeden yazılmaz. | Küçük |
 
 ---
 
@@ -51,7 +51,7 @@ Sıralama beklenen faydaya göre.
 | Sunucu yeniden başlayınca otomatik açılış (K8) | **Kapandı:** Docker'da `restart: unless-stopped` hazırdı; Docker'sız kurulum için systemd birimi ve her ikisinin de PROVASI `06-OPERASYON.md` §1.2.1'e yazıldı. |
 | Anons uç noktasının somut biçimi (R3) | Kapandı: üç HTTP biçimi (`json`/`form`/`get`) ve adres yer tutucuları eklendi; hangi cihaz için hangisinin seçileceği `14-ANONS-SISTEMI-BAGLAMA.md`'de. Sahadaki cihaz öğrenilince kod DEĞİL, ayar değişir. |
 | Bölge çiziminin zahmeti | Kapandı: zemindeki boyadan otomatik alan önerisi, dikdörtgen kipi, köşe sürükleme ve ekran görüntüsü üzerine çizim. |
-| Paketlemenin doğrulanması | **Kapandı:** `.app`/`.exe` bu depoda üretilemez ama üretimin sınanabilir her parçası artık testte: iki tarif de sahte PyInstaller ile ÇALIŞTIRILIYOR (Mac tarifi eskiden `otool` yüzünden çalıştırılamıyordu), tarifin dediği paket geçici klasöre kurulup sistem ayrı süreçte AÇILIYOR, `.env.example` eksiksizliği kilitlendi. Ayrıntı `13-UYGULAMA-PAKETLEME.md` §8.1. |
+| Paketlemenin doğrulanması | **Kapandı:** `.app`/`.exe` bu depoda üretilemez ama üretimin sınanabilir her parçası artık testte: iki tarif de sahte PyInstaller ile ÇALIŞTIRILIYOR (Mac tarifi eskiden `otool` yüzünden çalıştırılamıyordu), tarifin dediği paket geçici klasöre kurulup sistem ayrı süreçte AÇILIYOR, `.env.example` eksiksizliği kilitlendi. Ayrıntı `13-UYGULAMA-PAKETLEME.md` §8.1. Ayrıca GitHub Actions (`.github/workflows/uygulama-uret.yml`) uygulamayı değiştiren her gönderimde Windows ve Mac paketlerini kendi makinelerinde üretir ve açarak sınar (`13-UYGULAMA-PAKETLEME.md` §3.2). |
 | Raporlama: PDF/Excel çıktı (#3'ün ana kısmı) | **Kapandı:** Komuta → Rapor. Kamera / kural / bölge / bölüm kırılımı, saatlik ve günlük dağılım. PDF için yeni kütüphane KURULMADI: sayfa yazdırmaya hazır (`@media print`), tarayıcının "PDF olarak kaydet" adımı yeterli. Excel çıktısı noktalı virgüllü + BOM'lu CSV. Kamera başına analiz edilen süre ve yanlış alarm / saat de raporda (Faz 2e-3; yalnız incelemesi tam günlerden, `17-V2-TASARIM.md` §14). Vardiya ve eğilim kırılımı hâlâ açık - #3. |
 | Dördüncü kural tipi: forklift hızı (#15) | **Kapandı:** `vehicle_speed`. Ertelemenin sebebi olan şema kısıtı `backend/sema/005_arac_hizi_kurali.sql` ile güvenli biçimde aşıldı - yabancı anahtar işlem dışında kapatılıp geri açılıyor ve `PRAGMA foreign_key_check` ile olay geçmişinin sağlam kaldığı doğrulanıyor. Karar mantığı `rules/hiz.py`, davranış tanımı `03-KURAL-MOTORU.md` §4. |
 | "Kaç kişi geçti" sorusu | Kısmen: bölge bazlı canlı sayım eklendi (`rules/sayim.py`). Kalıcı kayıt ve yön bilgisi hâlâ açık - #19 ve #20. |
@@ -93,7 +93,8 @@ kararların yarın yeniden yazım gerektirmemesini sağlamaktır.
 ### 3.2 Analizör bölümlendirmesi - bugünün hazırlığı
 
 **Bugün (ADR-008):** Analizör hangi kameralarla ilgileneceğini **tek bir fonksiyondan**
-öğrenir: `get_assigned_cameras()` → bugün "tüm aktif kameralar" döner.
+öğrenir: `get_assigned_cameras()` (kodda `analiz/supervizor.py` →
+`AnalizSupervizoru._atanmis_kameralar()`) → bugün "tüm aktif kameralar" döner.
 
 **O gün yapılacak iş:**
 1. `cameras.analyzer_group` alanı ekle (tek migrasyon)
@@ -101,7 +102,10 @@ kararların yarın yeniden yazım gerektirmemesini sağlamaktır.
 3. `docker-compose.yml`'e ikinci/üçüncü analizör servisi ekle, farklı env ile
 
 Toplam: ~15 satır. Broker yok, servis keşfi yok, koordinasyon yok - çünkü
-analizörler birbirini tanımaz, yalnızca DB'yi paylaşır.
+analizörler birbirini tanımaz, yalnızca DB'yi paylaşır. *(Bu plan, analizörlerin
+ortak bir veritabanı sunucusunu paylaşmasını varsayar. Bugün veritabanı tek
+dosyalık SQLite'tır ve analiz web ile aynı programdadır (09 #1-#2); 09 "Ne
+kaybettik" #1'e göre 40+ kamerada PostgreSQL'e geçiş gerekir.)*
 
 **Bugün bu alanı eklemiyoruz** çünkü tek analizör varken `analyzer_group` kullanılmayan
 konfigürasyondur ve her yeni kamerada doldurulması gereken anlamsız bir alandır.
@@ -130,7 +134,9 @@ tozlu/temiz, aydınlık/karanlık). İki seçenek:
 **Karar:** Tek model. Yeni bölüm devreye alınırken o bölümün verisi ortak veri setine
 eklenir ve model yeniden eğitilir. `events.details.model_version` bu yüzden MVP'den
 itibaren yazılır - hangi olayın hangi modelle üretildiği bilinmeden bölüm ekleme
-sonrası "model bozuldu mu" sorusu cevaplanamaz.
+sonrası "model bozuldu mu" sorusu cevaplanamaz. *(Kodda: yalnız KKD olaylarında,
+`details.ppe.model_version` olarak - `rules/kkd.py`. Bölge, mesafe ve hız
+olaylarına tespit modelinin sürümü yazılmaz.)*
 
 ### 3.5 KKD'nin fabrika genelinde yayılması
 
@@ -150,7 +156,8 @@ bir kurulum değil, kademeli bir programdır** - planlama buna göre yapılmalı
 Sistem İSG süreçlerinde kritik hale gelirse: yedek analizör düğümü, DB replikasyonu,
 izleme/alarm (sistem kendi kendini izler).
 
-Bugün gerekli değil: tek sunucu + Docker restart + günlük yedek yeterli.
+Bugün gerekli değil: tek sunucu + Docker restart + düzenli yedek yeterli (sistem
+zamanlanmış yedek almaz; yedek `06-OPERASYON.md` §4'teki gibi alınır).
 Bu, kameralar arttıkça değil, **sisteme bağımlılık arttıkça** gündeme gelir.
 
 ---
@@ -160,9 +167,9 @@ Bu, kameralar arttıkça değil, **sisteme bağımlılık arttıkça** gündeme 
 | Başlık | Neden hayır |
 |---|---|
 | Bulut senkronizasyonu | On-prem tek tesis; çalışan görüntüsü açısından bulut ek KVKK yükü |
-| Microservice ayrıştırması | Yük profili gerektirmiyor; iki süreç yeterli, sınırı analizör bölümlendirmesi çözer |
-| Kubernetes | Tek sunucu, üç container |
-| GraphQL | İstemci tek ve sabit; REST + OpenAPI yeterli |
+| Microservice ayrıştırması | Yük profili gerektirmiyor; tek program yeterli (09 #1), sınırı analizör bölümlendirmesi çözer |
+| Kubernetes | Tek sunucu, tek container (09 #4) |
+| GraphQL | İstemci tek ve sabit (sistemin kendi sayfaları); ayrı bir REST API de yok, OpenAPI uçları kapalı (`app/uygulama.py`, docs/17 §16 S13) |
 | Elasticsearch | Olay hacmi PostgreSQL'in çok altında |
 | Multi-tenancy | Tek şirket, tek tesis; fabrika geneli yayılım multi-tenancy değil, alan gruplamadır |
 | Programın Bluetooth hoparlörü KENDİ eşleştirmesi | Hoparlör eşleştirmesi (A2DP) `bleak`/`pybluez` ile zaten yapılamaz; her işletim sisteminde ayrı kütüphane ve izin ister. İşletim sistemi bunu zaten yapıyor - üstelik daha iyi. Sistem eşleştirilmiş cihazı listeler ve koptuğunda uyarır (`olaylar/ses_cihazlari.py`) |

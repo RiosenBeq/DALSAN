@@ -99,10 +99,16 @@ birimince teyit edilmeli - bu doküman hukuki görüş değildir):
 Sistem tarafındaki teknik karşılıklar (MVP'de uygulanır):
 
 - Snapshot ve olay kayıtları için **zorunlu saklama süresi** ve otomatik silme
-- Erişimin şifre ile sınırlanması
+  (hukuki süreç için dondurulan olay hariç; her temizlik koşusu sayılarıyla imha
+  kaydına yazılır)
+- Erişimin şifre ile sınırlanması (`YONETICI_SIFRESI`; yalnız bu bilgisayardan
+  açılan kurulumda boş bırakılabilir, ağa açık kurulumda ve Docker'da şifresiz
+  açılış reddedilir)
 - RTSP kimlik bilgilerinin API yanıtlarında maskelenmesi
 - Snapshot dizininin dışarıdan doğrudan erişime kapalı olması
-- Ham video **kaydedilmez** - yalnızca olay anı görüntüsü saklanır
+- Ham video **kaydedilmez** - yalnızca olay anı görüntüsü saklanır (KKD veri toplama
+  kapısı açıkken ayrıca KKD bölgesindeki kişilerin kırpıkları; etiketlenmeyenler
+  `KKD_HAM_VERI_SAKLAMA_GUN` sonunda silinir, etiketlenenler veri setidir)
 
 Phase 2 gizlilik seçeneği: snapshot'larda yüz bulanıklaştırma (bkz. `07-YOL-HARITASI.md`).
 

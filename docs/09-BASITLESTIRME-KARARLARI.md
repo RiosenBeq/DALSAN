@@ -37,7 +37,7 @@ Bir kişi için **anlamadığı 5 parça, anladığı 2 parçadan daha risklidir
 
 - Python + FastAPI
 - `rules/` klasörünün saf ve bağımsız kalması (yapay zekanın kural mantığını test edebilmesi için **daha da önemli**)
-- Üç kural tipi: bölge ihlali, güvenli mesafe, KKD
+- Üç kural tipi: bölge ihlali, güvenli mesafe, KKD *(sonradan dördüncü tip eklendi: araç hızı `vehicle_speed`, `07-YOL-HARITASI.md` §1.1)*
 - KKD'de üç durumlu karar (`var` / `yok` / `belirsiz`) ve zamansal oylama
 - KKD'nin gölge modda devreye alınması
 - Git kullanımı (bkz. `10-YAPAY-ZEKA-ILE-CALISMA.md` - "geri alma düğmesi")
@@ -66,7 +66,8 @@ Python 3.12                           Python 3.12
         └── models/       (yapay zeka modelleri)
 ```
 
-**Yedekleme artık şu:** `veri/` klasörünü kopyala. Hepsi bu.
+**Yedekleme artık şu:** `veri/` klasörünü ve ayar dosyasını (`.env`) kopyala. Hepsi bu.
+(Ayrıntı ve Docker'daki yeri: `06-OPERASYON.md` §4.)
 
 ## Fabrika sunucusu neden yine de Linux + ekran kartı
 
@@ -98,6 +99,12 @@ Dürüst olmak gerekirse üç şey:
 2. **Analiz çökerse ekran da gider** (tek program olduğu için). Karşılığında:
    sistem kendini otomatik yeniden başlatır ve hata günlüğü tek dosyada olur.
    Aslında **teşhis kolaylaşıyor.**
+   *Uygulanan (24.09.2026): program kapanırsa Docker (`restart: unless-stopped`)
+   ve systemd (`Restart=always`) yeniden açar. Analiz iş parçacığı takılır ya
+   da ölürse program açık kalır ve bekçi uyarır; `BEKCI_TEPKISI=yeniden_baslat`
+   ise program kendini kapatır ve Docker, systemd ya da (Başlat betiğiyle
+   kurulan sistemde) Kontrol Paneli yeniden açar. Paketlenmiş Windows/Mac
+   uygulamasında yalnız uyarılır (docs/06 §1.2.1).*
 
 3. **Arayüz React kadar zengin olmayacak.** MVP'nin ihtiyacı (tablo, form, çizim
    alanı, canlı liste) sade JavaScript ile fazlasıyla karşılanır.
