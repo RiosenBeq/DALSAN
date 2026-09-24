@@ -417,7 +417,10 @@ def test_ad_olmayan_izinli_deger_acilisi_durdurur(tmp_path, deger):
 
 
 def test_izinli_adlar_ayarlar_sayfasindan_yazilir(test_ayarlari):
-    with _istemci(test_ayarlari, "", "SUNUCU_ADRESI=127.0.0.1\n") as istemci:
+    # Sahadaki gibi: çalışan izin listesi (testserver) ayar dosyasında da yazılı;
+    # Ayarlar sayfası kayıtlı değeri gösterir.
+    env = "SUNUCU_ADRESI=127.0.0.1\nIZINLI_SUNUCU_ADLARI=testserver\n"
+    with _istemci(test_ayarlari, "", env) as istemci:
         sayfa = istemci.get("/ayarlar").text
         assert 'name="IZINLI_SUNUCU_ADLARI" value="testserver"' in sayfa
         istemci.post(

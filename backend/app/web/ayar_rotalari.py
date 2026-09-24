@@ -76,8 +76,9 @@ class AyarAlani:
     """Ekrandaki tek bir ayar kutusu.
 
     `anahtar` .env'deki ad, `alan` ise `Ayarlar` nesnesindeki karşılığıdır:
-    ekranda gösterilen değer dosyadan değil ÇALIŞAN SİSTEMDEN okunur, böylece
-    .env'de hiç yazmayan bir ayarın yerinde varsayılanı görünür.
+    ekranda gösterilen değer .env'den açılıştaki çözücüyle okunur, böylece
+    .env'de hiç yazmayan bir ayarın yerinde varsayılanı görünür
+    (bkz. `_kayitli_ayarlar`).
     """
 
     anahtar: str
@@ -594,23 +595,31 @@ SONUC_MESAJLARI = {
         "sonra Sistemi Başlat'a basın."
     ),
 }
+# Sayfa sonradan açıldığında: kaydedilmiş ama henüz geçerli olmayan ayar var
+BEKLEYEN_MESAJI = (
+    "Kaydedilen ayarların bir kısmı henüz geçerli değil: sistem hâlâ eski değerlerle "
+    "çalışıyor. Geçerli olması için Kontrol Paneli'nde Durdur'a, sonra Sistemi "
+    "Başlat'a basın."
+)
 
 
 @router.get("/ayarlar", response_class=HTMLResponse)
 def ayarlar_sayfasi(istek: Request, sonuc: str = "", baglanti=Depends(baglanti_al)):
     ayarlar = istek.app.state.ayarlar
+    kayitli = _kayitli_ayarlar(ayarlar)
     baglam = kabuk_baglami(istek, baglanti, "ayarlar")
     baglam.update(
         {
             "gruplar": AYAR_GRUPLARI,
-            "degerler": {alan.anahtar: _gosterilecek_deger(ayarlar, alan) for alan in TUM_ALANLAR},
+            "degerler": {alan.anahtar: _gosterilecek_deger(kayitli, alan) for alan in TUM_ALANLAR},
             "secenekler": {
-                alan.anahtar: _secenekler(ayarlar, alan)
+                alan.anahtar: _secenekler(kayitli, alan)
                 for alan in TUM_ALANLAR
                 if alan.tur == "secim"
             },
-            "yonetici_sifresi_kurulu": bool(ayarlar.yonetici_sifresi),
-            "sonuc_mesaji": SONUC_MESAJLARI.get(sonuc, ""),
+            "yonetici_sifresi_kurulu": bool(kayitli.yonetici_sifresi),
+            "sonuc_mesaji": SONUC_MESAJLARI.get(sonuc, "")
+            or (BEKLEYEN_MESAJI if _bekleyen_degisiklik_var(ayarlar, kayitli) else ""),
             # KVKK: erişim izi ve imha kaydı (docs/17 §10, §11 "Ayarlar → KVKK")
             "kvkk": erisim_izi.kayitlar(baglanti),
             "uyari_arsivi": {
@@ -626,6 +635,7 @@ def ayarlar_sayfasi(istek: Request, sonuc: str = "", baglanti=Depends(baglanti_a
 async def ayarlari_kaydet(istek: Request, baglanti=Depends(baglanti_al)):
     """Formu doğrular, geçerse .env'e yazar. Geçmezse dosyaya DOKUNMAZ."""
     ayarlar = istek.app.state.ayarlar
+    kayitli = _kayitli_ayarlar(ayarlar)
     form = await istek.form()
 
     degisiklikler: dict[str, str] = {}
@@ -646,8 +656,8 @@ async def ayarlari_kaydet(istek: Request, baglanti=Depends(baglanti_al)):
                         f"Geçersiz MODEL_DOSYASI seçimi: {deger!r}",
                     )
             if alan.maskeli:
-                # Kutudaki maske, kutuya yazılan (çalışan sistemin) değerinden çözülür
-                deger = maskeyi_coz(deger, str(getattr(ayarlar, alan.alan)))
+                # Kutudaki maske, kutuya yazılan (kayıtlı) değerden çözülür
+                deger = maskeyi_coz(deger, str(getattr(kayitli, alan.alan)))
             degisiklikler[alan.anahtar] = deger
     if not degisiklikler:
         raise DogrulamaHatasi("Kaydedilecek ayar bulunamadı. Sayfayı yenileyip tekrar deneyin.")
@@ -656,7 +666,7 @@ async def ayarlari_kaydet(istek: Request, baglanti=Depends(baglanti_al)):
     # açılışta kullandığı doğrulayıcı bu birleşik sözlüğü sınar.
     birlesik = ayarlar_modulu.env_degerlerini_oku(ayarlar.env_yolu)
     # Erişim izine değişen ayarın yalnız ADI yazılır; değer (şifre, adres) asla
-    degisen = _degisen_anahtarlar(ayarlar, birlesik, degisiklikler)
+    degisen = _degisen_anahtarlar(kayitli, birlesik, degisiklikler)
     birlesik.update(degisiklikler)
     try:
         ayarlar_modulu.env_degisikliklerini_dogrula(degisiklikler)
@@ -673,7 +683,7 @@ async def ayarlari_kaydet(istek: Request, baglanti=Depends(baglanti_al)):
 def _degisen_anahtarlar(ayarlar, dosyadaki: dict, degisiklikler: dict) -> list[str]:
     """Gerçekten değişen ayarların adları (erişim izi için; değerler yazılmaz).
 
-    Önceki değer dosyadaki değerdir; dosyada yoksa sistemin o an kullandığı
+    Önceki değer dosyadaki değerdir; dosyada yoksa sayfanın gösterdiği
     (varsayılan) değer. Form bütün alanları gönderir: yalnız dosyaya bakılsaydı
     hiç dokunulmamış varsayılanlar da "değişti" görünürdü. Şifre alanı yalnız
     kutuya yazılınca ya da "kaldır" işaretlenince gelir: her gelişi değişikliktir.
@@ -715,8 +725,33 @@ def _sifre_degisikligi(form, anahtar: str) -> str | None:
     return yeni or None
 
 
+def _kayitli_ayarlar(ayarlar):
+    """Ayar dosyasında KAYITLI değerler; sayfa bunları gösterir.
+
+    Kaydedilen ayar ancak yeniden başlatınca geçerli olur. Sayfa çalışan
+    sistemin değerlerini gösterseydi, yeniden başlatmadan yapılan ikinci kayıt
+    formdaki eski (çalışan) değerleri dosyaya geri yazar, ilk kaydı sessizce
+    silerdi (Tanıma modeli seçimi de). Açılıştaki çözücü kullanılır: .env'de
+    yazmayan ayarın yerinde yine varsayılanı görünür. Dosya yoksa ya da elle
+    bozulmuşsa çalışan sistemin değerleri gösterilir.
+    """
+    if not ayarlar.env_yolu.is_file():
+        return ayarlar
+    try:
+        return ayarlar_modulu.ayarlari_coz(
+            ayarlar.kok_dizin, ayarlar_modulu.env_degerlerini_oku(ayarlar.env_yolu)
+        )
+    except (AyarHatasi, OSError, ValueError):
+        return ayarlar
+
+
+def _bekleyen_degisiklik_var(ayarlar, kayitli) -> bool:
+    """Kaydedilmiş ama sistem yeniden başlatılmadığı için geçerli olmayan ayar var mı?"""
+    return any(getattr(kayitli, alan.alan) != getattr(ayarlar, alan.alan) for alan in TUM_ALANLAR)
+
+
 def _gosterilecek_deger(ayarlar, alan: AyarAlani) -> str:
-    """Çalışan sistemdeki değerin form kutusuna yazılacak hali.
+    """Ayar nesnesindeki değerin form kutusuna yazılacak hali.
 
     Şifre asla yazılmaz: sayfa kaynağında, tarayıcı önbelleğinde ya da bir
     ekran görüntüsünde görünmemeli.

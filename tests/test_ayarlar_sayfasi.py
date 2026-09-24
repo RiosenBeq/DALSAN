@@ -16,12 +16,14 @@ Testlerin koruduğu iki söz:
 from __future__ import annotations
 
 import dataclasses
+import html
 
 import pytest
 from fastapi.testclient import TestClient
 
 from app.ayarlar import env_guncelle
 from app.uygulama import uygulama_olustur
+from app.web.ayar_rotalari import BEKLEYEN_MESAJI
 
 ORNEK_ENV = """\
 # DALSAN İSG - Ayarlar
@@ -243,11 +245,13 @@ def test_tanima_modeli_kutusunda_urun_adi_yazar_dosya_adi_yazmaz(ayarli_istemci)
 
 
 def test_ozel_model_kurulu_ise_baska_ayar_kaydedilince_degismez(ayarli_istemci):
-    """Test ayarlarında listede olmayan (kendi eğitilmiş) bir model kurulu. Kutu
-    onu "özel model" diye gösterir; form olduğu gibi kaydedilince MODEL_DOSYASI
+    """.env'de listede olmayan (kendi eğitilmiş) bir model kurulu. Kutu onu
+    "özel model" diye gösterir; form olduğu gibi kaydedilince MODEL_DOSYASI
     yazılmaz. Yoksa başka bir eşiği değiştiren kullanıcının modeli sessizce
     hazır modelle değişirdi."""
     istemci, ayarlar = ayarli_istemci
+    ozel = "MODEL_DOSYASI=models/olmayan-model.onnx\n"
+    ayarlar.env_yolu.write_text(ORNEK_ENV + ozel, encoding="utf-8")
     govde = istemci.get("/ayarlar").text
     assert _secili_secenek(govde, "MODEL_DOSYASI") == "NextGen AI (özel model) - değiştirilmez"
     assert "olmayan-model.onnx" not in govde
@@ -258,7 +262,71 @@ def test_ozel_model_kurulu_ise_baska_ayar_kaydedilince_degismez(ayarli_istemci):
     )
     metin = ayarlar.env_yolu.read_text(encoding="utf-8")
     assert "TESPIT_GUVEN_ESIGI=0.4" in metin
-    assert "MODEL_DOSYASI" not in metin
+    assert metin.count("MODEL_DOSYASI") == 1 and ozel in metin
+
+
+@pytest.fixture
+def kurulu_istemci(tmp_path):
+    """Sahadaki gibi: çalışan ayarlar açılışta .env'den okunmuş."""
+    from app.ayarlar import ayarlari_yukle
+
+    (tmp_path / ".env").write_text(ORNEK_ENV, encoding="utf-8")
+    ayarlar = ayarlari_yukle(tmp_path)
+    istemci = TestClient(uygulama_olustur(ayarlar, analiz=False), base_url="http://127.0.0.1")
+    with istemci:
+        yield istemci, ayarlar
+
+
+def _metin(istemci, yol: str) -> str:
+    """Sayfanın kaçışları çözülmüş metni (Jinja kesme işaretini &#39; yazar)."""
+    return html.unescape(istemci.get(yol).text)
+
+
+def test_kaydedilen_ama_gecerli_olmayan_secim_sayfada_kalir(kurulu_istemci):
+    """Model seçilip kaydedildi, sistem henüz yeniden başlatılmadı. Sayfa kayıtlı
+    seçimi göstermeli: çalışan (eski) modeli gösterseydi, yeniden başlatmadan
+    yapılan ikinci bir kayıt (başka bir eşik) eski modeli dosyaya geri yazar,
+    ilk seçimi sessizce silerdi."""
+    istemci, ayarlar = kurulu_istemci
+    assert BEKLEYEN_MESAJI not in _metin(istemci, "/ayarlar")  # dosya = çalışan
+    istemci.post(
+        "/ayarlar/kaydet", data=_form(MODEL_DOSYASI="models/yolox_s.onnx"), follow_redirects=False
+    )
+    govde = istemci.get("/ayarlar").text
+    assert _secili_secenek(govde, "MODEL_DOSYASI") == "NextGen AI İsabetli"
+    assert BEKLEYEN_MESAJI in html.unescape(govde)  # sistem hâlâ eski modelle çalışıyor
+
+    # İkinci kayıt: tarayıcı formu sayfadaki değerlerle gönderir
+    form = _form(TESPIT_GUVEN_ESIGI="0.4")
+    form["MODEL_DOSYASI"] = govde.split('name="MODEL_DOSYASI"')[1].split(" selected>")[0]
+    form["MODEL_DOSYASI"] = form["MODEL_DOSYASI"].rsplit('value="', 1)[1].split('"')[0]
+    istemci.post("/ayarlar/kaydet", data=form, follow_redirects=False)
+    metin = ayarlar.env_yolu.read_text(encoding="utf-8")
+    assert "MODEL_DOSYASI=models/yolox_s.onnx" in metin
+    assert "TESPIT_GUVEN_ESIGI=0.4" in metin
+
+
+def test_kayit_yeniden_baslatilinca_bekleyen_uyarisi_kalkar(kurulu_istemci, tmp_path):
+    """Yeniden başlatılan sistem dosyayı okur: kayıtlı = çalışan, uyarı yok."""
+    from app.ayarlar import ayarlari_yukle
+
+    istemci, _ = kurulu_istemci
+    istemci.post("/ayarlar/kaydet", data=_form(DISK_UYARI_GB="9"), follow_redirects=False)
+    assert "Ayarlar kaydedildi." in _metin(istemci, "/ayarlar?sonuc=kaydedildi")
+    assert BEKLEYEN_MESAJI not in _metin(istemci, "/ayarlar?sonuc=kaydedildi")  # tek mesaj
+    assert BEKLEYEN_MESAJI in _metin(istemci, "/ayarlar")
+    yeniden = uygulama_olustur(ayarlari_yukle(tmp_path), analiz=False)
+    with TestClient(yeniden, base_url="http://127.0.0.1") as yeni:
+        assert BEKLEYEN_MESAJI not in _metin(yeni, "/ayarlar")
+
+
+def test_bozuk_ayar_dosyasinda_calisan_degerler_gosterilir(kurulu_istemci):
+    """Dosya elle bozulmuşsa sayfa kilitlenmez; çalışan değerleri gösterir."""
+    istemci, ayarlar = kurulu_istemci
+    ayarlar.env_yolu.write_text(ORNEK_ENV + "TESPIT_GUVEN_ESIGI=yuzde-kirk\n", encoding="utf-8")
+    yanit = istemci.get("/ayarlar")
+    assert yanit.status_code == 200
+    assert 'value="0.35"' in yanit.text
 
 
 def test_hazir_model_kuruluysa_kutuda_secili_gorunur(test_ayarlari):
