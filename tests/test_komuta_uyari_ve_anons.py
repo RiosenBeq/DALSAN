@@ -671,6 +671,8 @@ def test_ulasilamayan_hoparlor_turkce_hata_veriyor(istemci, monkeypatch):
         raise urllib.error.URLError(ConnectionRefusedError(111, "Connection refused"))
 
     monkeypatch.setattr(urllib.request, "urlopen", _reddet)
+    # Kimlikli adres kimlik işleyicili açıcıdan gider (anons._gonder)
+    monkeypatch.setattr(urllib.request.OpenerDirector, "open", _reddet)
     _hoparlor_ekle(istemci, "Deneme", adres="http://kullanici:parola@10.0.0.9:9/anons")
     yanit = istemci.post("/hoparlorler/1/dene")
     assert yanit.status_code == 400

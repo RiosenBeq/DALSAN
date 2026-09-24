@@ -234,7 +234,7 @@ def anons_gunlugu():
 @pytest.mark.parametrize(
     "adres",
     [
-        # Bağlantı reddedilir (URLError; aşağıda sahte urlopen, ağa çıkılmaz)
+        # Bağlantı reddedilir (URLError; aşağıda sahte gönderim, ağa çıkılmaz)
         "http://kul:anons-sifresi@10.0.0.9:9/anons",
         # urllib'in "unknown url type" hatası adresi OLDUĞU GİBİ yazar (ValueError)
         "//kul:anons-sifresi@10.0.0.9/anons",
@@ -250,6 +250,8 @@ def test_anons_hatasi_sifreyi_gunluge_ve_ekrana_yazmaz(adres, anons_gunlugu, mon
         raise urllib.error.URLError(ConnectionRefusedError(111, "Connection refused"))
 
     monkeypatch.setattr(urllib.request, "urlopen", _reddet)
+    # Kimlikli adres kimlik işleyicili açıcıdan gider (anons._gonder)
+    monkeypatch.setattr(urllib.request.OpenerDirector, "open", _reddet)
     with pytest.raises(anons.AnonsHatasi) as hata:
         anons.http_gonder(adres, "helmet", "Baret", "json")
     assert "anons-sifresi" not in str(hata.value)

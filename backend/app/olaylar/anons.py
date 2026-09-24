@@ -20,6 +20,7 @@ seçileceği docs/14-ANONS-SISTEMI-BAGLAMA.md'de tarif edilir.
 
 from __future__ import annotations
 
+import http.client
 import ipaddress
 import json
 import shutil
@@ -375,6 +376,42 @@ def _istek_hazirla(adres: str, anahtar: str, metin: str, bicim: str):
     )
 
 
+def _kimligi_ayir(adres: str) -> tuple[str, tuple[str, str] | None]:
+    """`http://kullanici:sifre@ip/yol` → (`http://ip/yol`, (kullanici, sifre)).
+
+    urllib adresteki kimliği GÖNDERMEZ: `kullanici:sifre@ip` kısmını sunucu
+    adı sanar. Port yazılmamışsa şifreyi port sanıp hata metnine bile koyardı
+    ("nonnumeric port: 'sifre@ip'"); o metin `//…@` biçiminde olmadığı için
+    adres maskesi de onu yakalamazdı. Kimlik bu yüzden adresten ayrılır ve
+    yalnız cihaz isterse (401) gönderilir. Yüzde kaçışlı karakterler (`%40`
+    = `@`) çözülür: şifrede özel karakter olan cihazlar da bağlanabilsin.
+    """
+    parca = urllib.parse.urlsplit(adres)
+    if "@" not in parca.netloc:
+        return adres, None
+    kimlik, _, sunucu = parca.netloc.rpartition("@")
+    kullanici, _, sifre = kimlik.partition(":")
+    temiz = urllib.parse.urlunsplit(parca._replace(netloc=sunucu))
+    return temiz, (urllib.parse.unquote(kullanici), urllib.parse.unquote(sifre))
+
+
+def _gonder(istek: urllib.request.Request, kimlik: tuple[str, str] | None):
+    """İsteği gönderir. Kimlik varsa cihazın 401 yanıtındaki isteğe göre
+    Basic ya da Digest ile yanıtlanır: IP hoparlör ve amfilerde ikisi de
+    yaygındır. Kimlik yalnız bu cihazın adresine verilir; başka sunucuya
+    yönlendirmede gönderilmez."""
+    if kimlik is None:
+        return urllib.request.urlopen(istek, timeout=5)
+    parca = urllib.parse.urlsplit(istek.full_url)
+    parolalar = urllib.request.HTTPPasswordMgrWithDefaultRealm()
+    parolalar.add_password(None, f"{parca.scheme}://{parca.netloc}/", *kimlik)
+    acici = urllib.request.build_opener(
+        urllib.request.HTTPBasicAuthHandler(parolalar),
+        urllib.request.HTTPDigestAuthHandler(parolalar),
+    )
+    return acici.open(istek, timeout=5)
+
+
 def http_gonder(adres: str, anahtar: str, metin: str, bicim: str = "json") -> None:
     """Tek bir anons adresine HTTP isteği atar; başarısızlıkta AnonsHatasi.
 
@@ -390,18 +427,30 @@ def http_gonder(adres: str, anahtar: str, metin: str, bicim: str = "json") -> No
     hoparlor_adresini_dogrula(adres)
     try:
         # İstek kurulumu da içeride: bozuk adresin ValueError'ı burada doğar
-        istek = _istek_hazirla(adres, anahtar, metin, bicim)
-        with urllib.request.urlopen(istek, timeout=5) as yanit:
+        temiz_adres, kimlik = _kimligi_ayir(adres)
+        istek = _istek_hazirla(temiz_adres, anahtar, metin, bicim)
+        with _gonder(istek, kimlik) as yanit:
             _log.info(f"Anons HTTP gönderildi ({yanit.status}): {metin}")
-    except (urllib.error.URLError, TimeoutError, ValueError) as hata:
-        # ValueError: adres biçimi bozuksa urllib bunu fırlatır - ve metnine
-        # adresi OLDUĞU GİBİ koyar ("unknown url type: 'htp://kul:sifre@…'").
-        # Adresteki kullanıcı adı/şifre ne günlüğe ne ekrana gider (R18): adres
-        # de sebep de maskelenir; çağıran taraf hangi hoparlör olduğunu maskeli
-        # adresle ekler. Zincir (`from`) kesilir: yığın izi günlüğe düşerse
-        # ham metin oradan sızardı.
+    except (OSError, ValueError, http.client.HTTPException) as hata:
+        # OSError: ulaşılamadı (URLError), zaman aşımı, bağlantı koptu.
+        # HTTPException: cihazın bozuk yanıtı ya da okunamayan adres
+        # (InvalidURL). ValueError: adres biçimi bozuksa urllib bunu fırlatır -
+        # ve metnine adresi OLDUĞU GİBİ koyar ("unknown url type:
+        # 'htp://kul:sifre@…'"). Adresteki kullanıcı adı/şifre ne günlüğe ne
+        # ekrana gider (R18): adres de sebep de maskelenir; çağıran taraf hangi
+        # hoparlör olduğunu maskeli adresle ekler. Zincir (`from`) kesilir:
+        # yığın izi günlüğe düşerse ham metin oradan sızardı.
         sebep = adres_maskele(str(hata))
         _log.error(f"Anons HTTP gönderilemedi ({adres_maskele(adres)}): {sebep}")
+        if isinstance(hata, urllib.error.HTTPError):
+            hata.close()
+            if hata.code in (401, 403):
+                # Cihaz yanıt verdi: ağ sorunu değil, kimlik sorunu
+                raise AnonsHatasi(
+                    f"Hoparlör isteği reddetti (HTTP {hata.code}): kullanıcı adı ya da "
+                    "şifre yanlış veya eksik. Adresi http://kullanici:sifre@ip/... "
+                    "biçiminde yazın (docs/14 §3.4)."
+                ) from None
         raise AnonsHatasi(
             f"Anons adresine ulaşılamadı. Sebep: {sebep}. "
             "Hoparlörün açık ve aynı ağda olduğunu doğrulayın."
@@ -1208,9 +1257,11 @@ class AnonsYoneticisi:
             _log.error(f"Anons çalınamadı: {hata}")
             return SONUC_BASARISIZ, str(hata)
         except Exception as hata:  # noqa: BLE001 - anons hatası sistemi durdurmaz
-            self.son_sonuc = f"Son anons ÇALINAMADI{nereye} - beklenmeyen hata: {hata}"
-            _log.error(f"Anons çalınamadı: {hata}", exc_info=hata)
-            return SONUC_BASARISIZ, f"beklenmeyen hata: {hata}"
+            # Metin ekrana, teslim kaydına ve arşive gider: adres kimliği maskelenir
+            sebep = adres_maskele(str(hata))
+            self.son_sonuc = f"Son anons ÇALINAMADI{nereye} - beklenmeyen hata: {sebep}"
+            _log.error(f"Anons çalınamadı: {sebep}", exc_info=hata)
+            return SONUC_BASARISIZ, f"beklenmeyen hata: {sebep}"
         self.son_sonuc = f"Son anons ÇALINDI{nereye}: {metin}"
         return SONUC_TAMAM, ""
 
