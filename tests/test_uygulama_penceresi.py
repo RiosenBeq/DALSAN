@@ -88,6 +88,8 @@ class _Pencere:
 
     def show(self):
         _kaydet("show")
+        if os.environ.get("SAHTE_GOSTER_HATA"):
+            raise RuntimeError("pencere bulunamadı")
 
     def restore(self):
         _kaydet("restore")
@@ -679,6 +681,7 @@ def test_uretim_hattinin_pencere_sinamasi_gecer(sahte_webview, tmp_path, monkeyp
     kütüphaneyle, gerçek süreçler ve borularla uçtan uca koşar."""
     sinama = _sinama_modulu()
     monkeypatch.setattr(sinama, "MOTOR_BEKLEMESI_SN", 0.2)  # sahte sayfa çizmez
+    monkeypatch.setattr(sinama, "MOTOR_RAPORU_ZORUNLU", False)
     sinama.pencere_sina(_program_sarici(tmp_path), None)
     assert [k[0] for k in _kayitlar(sahte_webview)][-2:] == ["show", "destroy"]
 
@@ -691,6 +694,88 @@ def test_uretim_hattinin_pencere_sinamasi_ie_motorunu_yakalar(sahte_webview, tmp
     sinama = _sinama_modulu()
     with pytest.raises(sinama.SinamaHatasi, match="HAZIR demeden 4"):
         sinama.pencere_sina(_program_sarici(tmp_path), None)
+
+
+@pytest.mark.skipif(sys.platform.startswith("win"), reason="sarıcı bir kabuk betiği")
+def test_uretim_hattinin_pencere_sinamasi_one_getirme_hatasini_yakalar(
+    sahte_webview, tmp_path, monkeypatch
+):
+    """Süreç ayakta kalıp "HATA pencere öne getirilemedi" yazarsa sınama geçmemeli:
+    eskiden yalnız sürecin yaşadığına bakılıyordu."""
+    monkeypatch.setenv("SAHTE_GOSTER_HATA", "1")
+    sinama = _sinama_modulu()
+    monkeypatch.setattr(sinama, "MOTOR_BEKLEMESI_SN", 0.2)
+    monkeypatch.setattr(sinama, "MOTOR_RAPORU_ZORUNLU", False)
+    with pytest.raises(sinama.SinamaHatasi, match="öne getirilemedi"):
+        sinama.pencere_sina(_program_sarici(tmp_path), None)
+
+
+@pytest.mark.skipif(sys.platform.startswith("win"), reason="sarıcı bir kabuk betiği")
+def test_uretim_hattinin_pencere_sinamasi_motor_bildirilmezse_gecmez(
+    sahte_webview, tmp_path, monkeypatch
+):
+    """Sayfanın betiği çalışmazsa canlı akış doğrulanamaz: uyarı yetmez."""
+    sinama = _sinama_modulu()
+    monkeypatch.setattr(sinama, "MOTOR_BEKLEMESI_SN", 0.2)  # sahte sayfa çizmez
+    with pytest.raises(sinama.SinamaHatasi, match="motorunu .* bildirmedi"):
+        sinama.pencere_sina(_program_sarici(tmp_path), None)
+
+
+def test_sinama_ile_pencere_ayni_hata_onekini_kullanir(pencere):
+    assert _sinama_modulu().HATA_ONEKI == pencere.HATA_ONEKI
+
+
+def test_windows_pencere_aramasi_kendi_surecini_saymaz(monkeypatch):
+    """PowerShell'in komut satırı aranan metni içerir; kendisini ($PID) dışarıda
+    bırakmazsa pencere hiç açılmasa da "var" der ve tam sınama hep geçerdi."""
+    sinama = _sinama_modulu()
+    komutlar = []
+
+    def calistir(komut, **_):
+        komutlar.append(komut)
+        return subprocess.CompletedProcess(komut, 0, stdout="", stderr="")
+
+    monkeypatch.setattr(sinama.sys, "platform", "win32")
+    monkeypatch.setattr(sinama, "_calistir", calistir)
+    assert sinama.pencere_sureci_var() is False
+    betik = komutlar[0][-1]
+    assert "$_.ProcessId -ne $PID" in betik and "--izleme-penceresi" in betik
+
+
+def test_tam_sinama_ekranin_canli_akisa_baglanmasini_bekler(monkeypatch):
+    """Pencere süreci var diye geçilmez: sayfa yüklenip olay akışına bağlanmalı."""
+    sinama = _sinama_modulu()
+    monkeypatch.setattr(sinama.time, "sleep", lambda _sn: None)
+    sunucu = _SaglikSunucusu([{"ekran_istemci": 0}, {"ekran_istemci": 0}, {"ekran_istemci": 1}])
+    monkeypatch.setattr(sinama, "SAGLIK_ADRESI", sunucu.adres)
+    try:
+        sinama._ekran_bekle(_CalisanSurec())
+    finally:
+        sunucu.kapat()
+    bos = _SaglikSunucusu([{"ekran_istemci": 0}])
+    monkeypatch.setattr(sinama, "SAGLIK_ADRESI", bos.adres)
+    monkeypatch.setattr(sinama, "EKRAN_BEKLEMESI_SN", 0.3)
+    try:
+        with pytest.raises(sinama.SinamaHatasi, match="canlı akışa bağlanmadı"):
+            sinama._ekran_bekle(_CalisanSurec())
+    finally:
+        bos.kapat()
+
+
+def test_tam_sinama_sonradan_kapanan_pencereyi_yakalar(monkeypatch):
+    """Yüklenemeyen pencere kendini kapatır ve panel yedek pencereye geçer; ekran
+    yine bağlanır. Görüntüden önce pencerenin hâlâ açık olduğuna bakılır."""
+    sinama = _sinama_modulu()
+    for ad in ("_saglik_bekle", "_model_bekle"):
+        monkeypatch.setattr(sinama, ad, lambda _surec: {"model": "hazir"})
+    monkeypatch.setattr(sinama, "_pencere_bekle", lambda _surec: None)
+    monkeypatch.setattr(sinama, "_ekran_bekle", lambda _surec: None)
+    monkeypatch.setattr(sinama, "_agaci_kapat", lambda _surec: None)
+    monkeypatch.setattr(sinama, "pencere_sureci_var", lambda: False)
+    monkeypatch.setattr(sinama.time, "sleep", lambda _sn: None)
+    monkeypatch.setattr(sinama.subprocess, "Popen", lambda *a, **k: _CalisanSurec())
+    with pytest.raises(sinama.SinamaHatasi, match="açıldıktan sonra kapandı"):
+        sinama.tam_sina("program", None)
 
 
 class _SaglikSunucusu:

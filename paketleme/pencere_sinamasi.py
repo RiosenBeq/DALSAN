@@ -15,16 +15,17 @@ teslim etmeden önce bunu çalıştırır; elle de çalıştırılabilir:
      yerel sunucudaki sınama sayfasını gerçekten yükleyip HAZIR yazmalı.
      Sayfanın betiği motoru sunucuya bildirir; canlı akışı (EventSource)
      olmayan bir motor sınamayı geçemez.
-  3. GOSTER: pencere öne gelirken süreç ayakta kalmalı (istenirse ekranın
-     görüntüsü bu anda alınır).
+  3. GOSTER: pencere öne gelirken süreç ayakta kalmalı ve HATA satırı
+     yazmamalı (istenirse ekranın görüntüsü bu anda alınır).
   4. Kanal kapanınca pencere kendini kapatıp 0 ile bitmeli: Kontrol Paneli
      kapanınca olan budur.
 
 `tam` - uygulamanın tamamı, kullanıcının çift tıklamasıyla aynı: Kontrol
   Paneli açılır, sistemi kendisi başlatır (ilk açılışta modeli indirir) ve
   izleme penceresini açar. /saglik yanıt verene, tespit modeli inip
-  yüklenene ("model": "hazir"), sonra pencere süreci görünene kadar
-  beklenir, ekranın görüntüsü alınır, uygulama kapatılır. Model inmez ya da
+  yüklenene ("model": "hazir"), pencere süreci görünene ve izleme ekranı
+  canlı akışa bağlanana (/saglik?ayrinti=1 "ekran_istemci") kadar
+  beklenir; pencere hâlâ açıksa ekranın görüntüsü alınır, uygulama kapatılır. Model inmez ya da
   yüklenemezse (yayın dosyası yok, özeti tutmuyor, biçimi uymuyor) paket
   tespitsiz çalışırdı: sınama bunu yakalar.
 
@@ -55,6 +56,14 @@ KAPANIS_BEKLEMESI_SN = 30
 # İlk açılışta tanıma modeli (~20-35 MB) indirilir; Kontrol Paneli 3 dakika bekler.
 SISTEM_BEKLEMESI_SN = 300
 PENCERE_BEKLEMESI_SN = 90
+# Pencere açıldıktan sonra izleme ekranının sayfası yüklenip canlı akışa bağlanmalı
+EKRAN_BEKLEMESI_SN = 90
+# Pencere sürecinin panele yazdığı hata satırı öneki
+# (masaustu/uygulama_penceresi.py HATA_ONEKI; testler ikisinin aynı olduğunu denetler)
+HATA_ONEKI = "HATA "
+# Sayfa motorunu bildirmezse canlı akış doğrulanamaz: sınama geçmez. Yalnız
+# sayfa çizmeyen sahte kütüphaneyle koşan yerel test kapatır.
+MOTOR_RAPORU_ZORUNLU = True
 SAGLIK_ADRESI = "http://127.0.0.1:8080/saglik"
 
 SAYFA = """<!doctype html>
@@ -130,12 +139,18 @@ def pencere_sina(program: str, ekran: str | None) -> None:
             satirlar.put(satir.rstrip())
         satirlar.put(None)
 
-    threading.Thread(target=oku, daemon=True).start()
+    okuyucu = threading.Thread(target=oku, daemon=True)
+    okuyucu.start()
     try:
         _hazir_bekle(surec, satirlar)
         try:
             motor = _SinamaSunucusu.motorlar.get(timeout=MOTOR_BEKLEMESI_SN)
         except queue.Empty:
+            if MOTOR_RAPORU_ZORUNLU:
+                raise SinamaHatasi(
+                    f"sayfa motorunu {MOTOR_BEKLEMESI_SN} sn içinde bildirmedi: sayfanın "
+                    "betiği çalışmıyor, canlı akış doğrulanamadı"
+                ) from None
             print(f"UYARI: sayfa motorunu {MOTOR_BEKLEMESI_SN} sn içinde bildirmedi")
         else:
             print(f"motor: {json.dumps(motor, ensure_ascii=False)}")
@@ -147,6 +162,7 @@ def pencere_sina(program: str, ekran: str | None) -> None:
         time.sleep(3)
         if surec.poll() is not None:
             raise SinamaHatasi(f"pencere öne getirilirken kapandı (kod {surec.returncode})")
+        _hata_satirlarini_denetle(satirlar)
         if ekran:
             ekran_goruntusu(ekran)
 
@@ -157,11 +173,31 @@ def pencere_sina(program: str, ekran: str | None) -> None:
             raise SinamaHatasi("kanal kapandığı halde pencere kapanmadı") from hata
         if kod != 0:
             raise SinamaHatasi(f"pencere {kod} koduyla kapandı")
+        okuyucu.join(timeout=10)
+        _hata_satirlarini_denetle(satirlar)
         print("pencere: açıldı, öne geldi, kanal kapanınca kendini kapattı")
     finally:
         if surec.poll() is None:
             surec.kill()
         sunucu.shutdown()
+
+
+def _hata_satirlarini_denetle(satirlar: queue.Queue) -> None:
+    """HAZIR'dan sonra gelen satırlar: HATA satırı sınamayı düşürür.
+
+    Süreç ayakta kalıp "HATA pencere öne getirilemedi" yazabilir; yalnız
+    sürecin yaşadığına bakmak bunu geçirirdi.
+    """
+    while True:
+        try:
+            satir = satirlar.get_nowait()
+        except queue.Empty:
+            return
+        if satir is None:
+            continue  # çıktı kapandı; kalan satırlara bakılmaya devam
+        print(f"pencere süreci: {satir}")
+        if satir.startswith(HATA_ONEKI):
+            raise SinamaHatasi(f"pencere süreci hata bildirdi: {satir[len(HATA_ONEKI) :]}")
 
 
 def _hazir_bekle(surec: subprocess.Popen, satirlar: queue.Queue) -> None:
@@ -204,11 +240,41 @@ def tam_sina(program: str, ekran: str | None) -> None:
         print(f"model: {saglik.get('model')} (sorunlar: {', '.join(saglik.get('sorunlar', []))})")
         _pencere_bekle(surec)
         print("pencere: Kontrol Paneli izleme penceresini kendiliğinden açtı")
-        time.sleep(10)  # sayfa ve canlı akış otursun
+        _ekran_bekle(surec)
+        print("ekran: izleme ekranı yüklendi, canlı akışa bağlandı")
+        time.sleep(10)  # sayfa otursun
+        if not pencere_sureci_var():
+            # Pencere yüklenemeyince kendini kapatır ve panel yedek pencereye geçer:
+            # ekran yine bağlanır ama uygulamanın kendi penceresi yoktur.
+            raise SinamaHatasi("izleme penceresi açıldıktan sonra kapandı")
         if ekran:
             ekran_goruntusu(ekran)
     finally:
         _agaci_kapat(surec)
+
+
+def _ekran_bekle(surec: subprocess.Popen) -> None:
+    """İzleme ekranının sayfası pencerede yüklenip canlı akışa bağlandı mı?
+
+    /saglik?ayrinti=1'deki "ekran_istemci" (şifresiz ilk kurulumda oturum
+    gerekmez). Yalnız pencere sürecine bakmak boş kalan bir pencereyi de
+    geçirirdi.
+    """
+    son = time.monotonic() + EKRAN_BEKLEMESI_SN
+    while time.monotonic() < son:
+        if surec.poll() is not None:
+            raise SinamaHatasi(f"uygulama {surec.returncode} koduyla kapandı")
+        try:
+            with urllib.request.urlopen(SAGLIK_ADRESI + "?ayrinti=1", timeout=3) as yanit:
+                if (json.loads(yanit.read(65536)).get("ekran_istemci") or 0) >= 1:
+                    return
+        except (urllib.error.URLError, OSError, ValueError) as hata:
+            print(f"ekran bekleniyor: {hata}")
+        time.sleep(2)
+    raise SinamaHatasi(
+        f"izleme ekranı {EKRAN_BEKLEMESI_SN} sn içinde canlı akışa bağlanmadı "
+        "(pencere açık ama sayfa yüklenmedi)"
+    )
 
 
 def _saglik_bekle(surec: subprocess.Popen) -> dict:
@@ -265,15 +331,21 @@ def _pencere_bekle(surec: subprocess.Popen) -> None:
 
 
 def pencere_sureci_var() -> bool:
-    """`--izleme-penceresi` ile açılmış bir süreç çalışıyor mu?"""
+    """`--izleme-penceresi` ile açılmış bir süreç çalışıyor mu?
+
+    Windows'ta aramayı yapan PowerShell'in kendi komut satırı da aranan metni
+    içerir: kendisi ($PID) dışarıda bırakılmazsa pencere hiç açılmasa da
+    her zaman "var" derdi.
+    """
     if sys.platform.startswith("win"):
         sonuc = _calistir(
             [
                 "powershell",
                 "-NoProfile",
                 "-Command",
-                "Get-CimInstance Win32_Process | ForEach-Object { $_.CommandLine } | "
-                "Where-Object { $_ -like '*--izleme-penceresi*' }",
+                "Get-CimInstance Win32_Process | Where-Object { $_.ProcessId -ne $PID "
+                "-and $_.CommandLine -like '*--izleme-penceresi*' } | "
+                "ForEach-Object { $_.CommandLine }",
             ],
             timeout=60,
         )
