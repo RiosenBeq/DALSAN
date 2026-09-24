@@ -17,7 +17,12 @@ from collections.abc import Callable
 from pathlib import Path
 
 from app import kaynaklar
-from app.analiz.model_adi import gorunen_model_adi, hazir_modele_donus
+from app.analiz.model_adi import (
+    YEREL_FORKLIFT_ADI,
+    gorunen_model_adi,
+    hazir_modele_donus,
+    yerel_forklift_tabani,
+)
 from app.hatalar import DalsanHata
 
 # ADR-002: Apache-2.0 lisanslı YOLOX resmi yayınları (models/indir.sh ile aynı)
@@ -93,6 +98,14 @@ def ozel_model_hatasi(model_dosyasi: Path) -> ModelIndirmeHatasi:
     gelsin aynı, markalı açıklamayı görür - ham dosya yolunu değil.
     """
     # Ekranda dosya adı GEÇMEZ (kullanıcı yazılımcı değil); tam ad günlüğe gider.
+    if yerel_forklift_tabani(model_dosyasi.name) is not None:
+        # Forklift sayfasından kurulmuş model: indirilecek yeri yok, dosyası kaybolmuş
+        return ModelIndirmeHatasi(
+            f"{gorunen_model_adi(model_dosyasi.name)} dosyası bulunamadı: silinmiş ya da "
+            "taşınmış olabilir. Forklift sayfasındaki “Modeli kur” ile yeniden kurun. "
+            f"{hazir_modele_donus()}",
+            f"Yerel forklift modeli yok: {model_dosyasi}",
+        )
     hazir_adlar = " veya ".join(gorunen_model_adi(ad) for ad in BILINEN_MODELLER)
     return ModelIndirmeHatasi(
         f"{gorunen_model_adi(model_dosyasi.name)} kendiliğinden inemez: seçili model, "
@@ -150,19 +163,48 @@ def modeli_indir(model_dosyasi: Path, ilerleme: Callable[[int, int], None] | Non
 
 
 def forklift_yedegi(model_dosyasi: Path) -> Path | None:
-    """Bu deponun yayınından inen forklift modeli kullanılamazsa geçilecek model.
+    """Forklift modeli kullanılamazsa geçilecek model.
 
-    Forklift modeli, insanı ve aracı tabanındaki hazır modelle AYNI tanır
-    (FORKLIFT_TABANI). İnmez ya da açılmazsa (internetsiz saha, bozuk dosya)
+    Forklift modeli, insanı ve aracı tabanındaki hazır modelle AYNI tanır: bu
+    deponun yayınından inen modelin tabanı FORKLIFT_TABANI'dadır, Forklift
+    sayfasından kurulan yerel modelinki adındadır (model_adi.YEREL_FORKLIFT_ADI).
+    İnmez ya da açılmazsa (internetsiz saha, bozuk ya da silinmiş dosya)
     süpervizör o hazır modelle çalışır: insan ve araç tespiti durmaz, yalnız
     forklift ayrı sınıf olarak tanınmaz (operatör, 24.09.2026: "Olan
     problemleri de çöz"). Hazır model aynı klasörde durur; forklift modeli
     değilse None.
     """
-    if model_dosyasi.name not in DALSAN_MODELLERI:
-        return None
-    taban = FORKLIFT_TABANI.get(model_dosyasi.name)
+    if model_dosyasi.name in DALSAN_MODELLERI:
+        taban = FORKLIFT_TABANI.get(model_dosyasi.name)
+    else:
+        taban = yerel_forklift_tabani(model_dosyasi.name)
     return model_dosyasi.with_name(taban) if taban else None
+
+
+def yerel_forklift_modelleri(modeller_klasoru: Path) -> dict[str, str]:
+    """Bu kurulumda Forklift sayfasından kurulmuş modeller: {dosya adı: taban}.
+
+    Kurulma sırasıyla (dosya zamanı; eşitse ad): en yenisi sondadır, kurulum
+    listesi ve Ayarlar onu en yeni sayar (FORKLIFT_TABANI'nın sırasıyla aynı kural).
+    """
+    if not modeller_klasoru.is_dir():
+        return {}
+    bulunan = []
+    for yol in modeller_klasoru.iterdir():
+        if not YEREL_FORKLIFT_ADI.fullmatch(yol.name) or not yol.is_file():
+            continue
+        try:
+            zaman = yol.stat().st_mtime
+        except OSError:
+            continue
+        bulunan.append((zaman, yol.name))
+    return {ad: yerel_forklift_tabani(ad) or "" for _, ad in sorted(bulunan)}
+
+
+def forklift_tabanlari(modeller_klasoru: Path) -> dict[str, str]:
+    """Bütün forklift modelleri ve tabanları: kayıtlı yayın modelleri, sonra bu
+    kurulumda yerelde kurulanlar (en yenisi sonda)."""
+    return {**FORKLIFT_TABANI, **yerel_forklift_modelleri(modeller_klasoru)}
 
 
 def _saat_hatasi_mi(hata: Exception) -> bool:

@@ -51,6 +51,7 @@ TASARIMDAKI_KODLAR = {
     "PPE_COLLECTION_CHANGED": "system",
     # 24.09.2026: forklift eğitimi için saha karesi toplama kapısı (şema 012)
     "FORKLIFT_COLLECTION_CHANGED": "system",
+    "FORKLIFT_MODEL_INSTALLED": "system",
     "PPE_MODEL_CHANGED": "system",
     "PPE_GATE_OVERRIDDEN": "system",
     "AUDIO_CHANNEL_DOWN": "system",

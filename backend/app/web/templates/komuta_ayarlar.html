@@ -59,7 +59,7 @@
         <input type="number" name="{{ alan.anahtar }}" value="{{ degerler[alan.anahtar] }}"
                min="{{ alan.en_az }}" max="{{ alan.en_cok }}" step="{{ alan.adim }}" required>
         {% endif %}
-        <span class="panel-notu">{{ alan.aciklama }}</span>
+        <span class="panel-notu">{{ aciklamalar.get(alan.anahtar, alan.aciklama) }}</span>
       </label>
       {% if alan.tur == 'sifre' and yonetici_sifresi_kurulu %}
       <label class="onay-satiri">

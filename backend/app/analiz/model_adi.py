@@ -14,6 +14,8 @@ LICENSE-THIRD-PARTY dosyasındadır.
 
 from __future__ import annotations
 
+import re
+
 from app import kaynaklar
 
 MARKA = "NextGen AI"
@@ -28,6 +30,20 @@ GORUNEN_ADLAR: dict[str, str] = {
 
 # Tanınmayan dosya: kullanıcı kendi eğittiği modeli koymuş olabilir.
 OZEL_MODEL_ADI = f"{MARKA} (özel model)"
+
+# Fabrikanın kendi verisiyle yerelde eğitilip Forklift sayfasından kurulan model
+# (egitim/forklift/yerel.py, web/forklift_web.py). Ad, tabanı (insanı ve aracı
+# aynı tanıyan hazır model: yolox_<boy>.onnx) ve SHA-256'nın ilk 8 hanesini
+# taşır: tabanı adından bulunur, dosya silinse ya da bozulsa da yedek bellidir.
+YEREL_FORKLIFT_ADI = re.compile(r"nextgen_forklift_(tiny|s)_yerel_([0-9a-f]{8})\.onnx")
+# Tabanın dosya adı kalıbı (teknik sabit, ekrana çıkmaz): boy -> hazır model dosyası
+YEREL_FORKLIFT_TABANI = "yolox_{boy}.onnx"
+
+
+def yerel_forklift_tabani(dosya_adi: str) -> str | None:
+    """Yerel forklift modelinin tabanının dosya adı; yerel model değilse None."""
+    eslesme = YEREL_FORKLIFT_ADI.fullmatch(dosya_adi.strip().lower())
+    return YEREL_FORKLIFT_TABANI.format(boy=eslesme.group(1)) if eslesme else None
 
 
 # Model hatalarının ortak çözüm cümlesi. Model Ayarlar'dan seçilir (.env'i
@@ -47,4 +63,11 @@ def gorunen_model_adi(dosya_adi: str) -> str:
     Windows dosya adlarında büyük/küçük harf ayrımı olmadığı için karşılaştırma
     küçük harf üzerinden yapılır; ekranda yine de ürün adı görünür.
     """
-    return GORUNEN_ADLAR.get(dosya_adi.strip().lower(), OZEL_MODEL_ADI)
+    ad = dosya_adi.strip().lower()
+    if ad in GORUNEN_ADLAR:
+        return GORUNEN_ADLAR[ad]
+    taban = yerel_forklift_tabani(ad)
+    if taban is not None:
+        surum = YEREL_FORKLIFT_ADI.fullmatch(ad).group(2)
+        return f"{GORUNEN_ADLAR.get(taban, MARKA)} + Forklift (fabrika eğitimi {surum})"
+    return OZEL_MODEL_ADI

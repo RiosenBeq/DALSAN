@@ -99,6 +99,7 @@ OLAY_KODLARI: dict[str, OlayKodu] = _tablo(
     OlayKodu("PPE_COLLECTION_CHANGED", ONEM_SISTEM, "KKD veri toplama değişti"),  # 2e
     # Forklift eğitimi için saha karesi toplama açıldı ya da kapandı (şema 012)
     OlayKodu("FORKLIFT_COLLECTION_CHANGED", ONEM_SISTEM, "Forklift veri toplama değişti"),
+    OlayKodu("FORKLIFT_MODEL_INSTALLED", ONEM_SISTEM, "Forklift modeli kuruldu"),
     OlayKodu("PPE_MODEL_CHANGED", ONEM_SISTEM, "KKD modeli değişti"),  # F3
     # Anons, kapının şartları sağlanmadan açık onayla açıldı (docs/17 §5.7)
     OlayKodu("PPE_GATE_OVERRIDDEN", ONEM_SISTEM, "KKD anonsu ölçülmeden açıldı"),  # F3

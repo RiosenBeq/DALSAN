@@ -5,8 +5,9 @@
   <h2>Forklift Eğitimi (fabrikanın kendi görüntüsüyle)</h2>
   <p class="not">Hazır model forklifti çoğu zaman “tır” olarak görür; açık veriyle yapılan iki
     eğitim, başka depolardaki forkliftlere genelleyemediği için kapılardan geçemedi. En iyi
-    sonuç bu fabrikanın kendi kameralarından gelir. Yapılacaklar üç adımdır: toplamayı açın,
-    kareleri etiketleyin, eğitim verisini indirip kapalı bir bilgisayarda eğitin.</p>
+    sonuç bu fabrikanın kendi kameralarından gelir. Fotoğraf çekmeniz ya da kod yazmanız
+    gerekmez; yapılacaklar dört adımdır: toplamayı açın, kareleri etiketleyin, eğitim
+    verisini indirip kapalı bir bilgisayarda eğitin, çıkan modeli buradan kurun.</p>
 
   {# Toplama kapısı (KVKK): sayfanın EN ÜSTÜNDE - kare toplanıp toplanmadığı
      bu sayfaya bakan herkesin ilk gördüğü şey. #}
@@ -69,6 +70,12 @@
       <code>egitim/forklift</code> adımlarıyla aynı düzendedir. Bu dosyayı internete,
       herkese açık bir depoya ya da paylaşılan bir klasöre koymayın: eğitim kapalı bir
       bilgisayarda yapılır.</p>
+    <p class="not"><b>Eğitim:</b> programın kaynak klasöründeki
+      <code>egitim\forklift\Egit-Windows.bat</code> dosyasının üstüne bu zip'i sürükleyip
+      bırakın (Python 3.12 kurulu olmalı; ayrıntı <code>egitim/forklift/YEREL-EGITIM.md</code>).
+      Gerisini o yapar; eğitim bir gün kadar sürebilir, kesilirse aynı zip'i yeniden bırakın.
+      Sonuç <code>SONUC.txt</code> dosyasında, kurulacak model <code>KURULACAK</code>
+      klasöründe olur.</p>
     {% for uyari in uyarilar %}<p class="not"><span class="rozet sari">Uyarı</span> {{ uyari }}</p>{% endfor %}
     {% if ozet.etiketli %}
     <p class="satir-form">
@@ -77,6 +84,40 @@
     </p>
     {% else %}
     <p class="bos">Henüz etiketli kare yok.</p>
+    {% endif %}
+  </section>
+
+  <section class="kart" id="model">
+    <h3>4. Modeli kur</h3>
+    {% if kurulum_mesaji %}<p class="not"><span class="rozet yesil">Tamam</span> {{ kurulum_mesaji }}
+      <a href="/ayarlar">Ayarlar'ı aç</a></p>{% endif %}
+    <p class="not">Eğitimin <code>KURULACAK</code> klasöründeki iki dosyayı seçin. Program
+      kurmadan önce denetler: ölçüm bu modele mi ait, ölçüm kapılarının hepsinden geçmiş mi,
+      model programın kendi tespit motoruyla açılıyor ve forklifti tanıyor mu. Kurulan model
+      Ayarlar'daki “Tanıma modeli” listesinde seçilebilir olur; siz seçmedikçe çalışan model
+      değişmez. Seçilen model bir gün açılamazsa sistem hazır modelle çalışmayı sürdürür.</p>
+    <form method="post" action="/forklift/model" enctype="multipart/form-data" class="dikey-form dar">
+      <label>Model (.onnx)<input type="file" name="model" accept=".onnx" required></label>
+      <label>Ölçümü (.olcum.json)<input type="file" name="olcum" accept=".json" required></label>
+      <button class="dugme">Denetle ve kur</button>
+    </form>
+    {% if modeller %}
+    <table class="kkd-model-karti">
+      <tr><th>Kurulu model</th><th>Kuruldu</th><th>Forklift bulma</th><th>Kesinlik</th>
+        <th>Yanlış forklift / kare</th><th>Durum</th></tr>
+      {% for m in modeller %}
+      <tr>
+        <td>{{ m.gorunen }}</td>
+        <td>{{ m.kurulma }}</td>
+        <td>{{ "%.2f"|format(m.fk_r) if m.fk_r is not none else "-" }}</td>
+        <td>{{ "%.2f"|format(m.fk_kesinlik) if m.fk_kesinlik is not none else "-" }}</td>
+        <td>{{ "%.3f"|format(m.fk_fp) if m.fk_fp is not none else "-" }}</td>
+        <td>{% if calisan_model == m.ad %}<span class="rozet yesil">Çalışıyor</span>
+          {% elif m.secili %}<span class="rozet sari">Seçili, açılamadı</span> sistem hazır modelle çalışıyor (Olaylar: MODEL_FALLBACK)
+          {% else %}Ayarlar'dan seçilebilir{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </table>
     {% endif %}
   </section>
 

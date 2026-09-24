@@ -30,7 +30,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from app import ayarlar as ayarlar_modulu
 from app import kaynaklar
 from app.analiz.model_adi import OZEL_MODEL_ADI, gorunen_model_adi
-from app.analiz.model_indir import BILINEN_MODELLER, FORKLIFT_TABANI
+from app.analiz.model_indir import BILINEN_MODELLER, FORKLIFT_TABANI, yerel_forklift_modelleri
 from app.hatalar import AyarHatasi, DogrulamaHatasi
 from app.olaylar import uyari_arsivi
 from app.web import erisim_izi
@@ -47,6 +47,15 @@ router = APIRouter()
 MODEL_SECENEKLERI: tuple[tuple[str, str], ...] = tuple(
     (f"models/{ad}", gorunen_model_adi(ad)) for ad in BILINEN_MODELLER
 )
+
+
+def model_secenekleri(ayarlar) -> tuple[tuple[str, str], ...]:
+    """Hazır modeller ve bu kurulumda Forklift sayfasından kurulmuş yerel forklift
+    modelleri (docs/17 §12.3-8: kapılardan geçen aday listede SEÇİLEBİLİR olur)."""
+    yereller = yerel_forklift_modelleri(ayarlar.kok_dizin / "models")
+    return MODEL_SECENEKLERI + tuple((f"models/{ad}", gorunen_model_adi(ad)) for ad in yereller)
+
+
 # Listede olmayan (kendi eğitilmiş) model kurulu: seçim kutusu onu "özel model"
 # diye gösterir ve bu değer gelirse MODEL_DOSYASI'na DOKUNULMAZ. Yoksa başka
 # bir ayarı kaydeden kullanıcının özel modeli sessizce hazır modelle değişirdi.
@@ -634,6 +643,13 @@ def ayarlar_sayfasi(istek: Request, sonuc: str = "", baglanti=Depends(baglanti_a
                 for alan in TUM_ALANLAR
                 if alan.tur == "secim"
             },
+            # Kurulu yerel forklift modeli varsa "Tanıma modeli"nin açıklaması da
+            # forkliftli modelin kural uyarısını söyler (alanın kendisi sabittir).
+            "aciklamalar": {
+                "MODEL_DOSYASI": model_aciklamasi(
+                    bool(FORKLIFT_TABANI or yerel_forklift_modelleri(ayarlar.kok_dizin / "models"))
+                )
+            },
             "yonetici_sifresi_kurulu": bool(kayitli.yonetici_sifresi),
             "sonuc_mesaji": sonuc_mesaji(sonuc)
             or (bekleyen_mesaji() if _bekleyen_degisiklik_var(ayarlar, kayitli) else ""),
@@ -666,7 +682,7 @@ async def ayarlari_kaydet(istek: Request, baglanti=Depends(baglanti_al)):
             if alan.anahtar == "MODEL_DOSYASI":
                 if deger == OZEL_MODEL_SECIMI:
                     continue  # kurulu özel model olduğu gibi kalır
-                if deger not in dict(MODEL_SECENEKLERI):
+                if deger not in dict(model_secenekleri(ayarlar)):
                     raise DogrulamaHatasi(
                         "Tanıma modeli listedeki modellerden biri olmalı. Sayfayı "
                         "yenileyip yeniden seçin.",
@@ -795,7 +811,7 @@ def _model_secimi(ayarlar) -> str:
     Tam yol ekrana (sayfa kaynağına da) yazılmaz: kullanıcı yazılımcı değil
     ve program klasörünün yeri ekranda gösterilmez.
     """
-    for deger, _ad in MODEL_SECENEKLERI:
+    for deger, _ad in model_secenekleri(ayarlar):
         if ayarlar.model_dosyasi == ayarlar.kok_dizin / deger:
             return deger
     return OZEL_MODEL_SECIMI
@@ -803,8 +819,11 @@ def _model_secimi(ayarlar) -> str:
 
 def _secenekler(ayarlar, alan: AyarAlani) -> tuple[tuple[str, str], ...]:
     """Seçim kutusunun seçenekleri; özel model kuruluysa o da listelenir."""
-    if alan.anahtar == "MODEL_DOSYASI" and _model_secimi(ayarlar) == OZEL_MODEL_SECIMI:
-        return ((OZEL_MODEL_SECIMI, f"{OZEL_MODEL_ADI} - değiştirilmez"), *alan.secenekler)
+    if alan.anahtar == "MODEL_DOSYASI":
+        secenekler = model_secenekleri(ayarlar)
+        if _model_secimi(ayarlar) == OZEL_MODEL_SECIMI:
+            return ((OZEL_MODEL_SECIMI, f"{OZEL_MODEL_ADI} - değiştirilmez"), *secenekler)
+        return secenekler
     return alan.secenekler
 
 

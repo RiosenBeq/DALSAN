@@ -22,7 +22,7 @@ import json
 
 from app import kaynaklar
 from app.analiz.model_adi import gorunen_model_adi
-from app.analiz.model_indir import FORKLIFT_TABANI
+from app.analiz.model_indir import FORKLIFT_TABANI, forklift_tabanlari
 from app.olaylar.kanallar import kanal_sagligi_ozeti
 from app.rules.motor import KALIBRASYON_GEREKTIREN
 from app.rules.tipler import SINIF_FORKLIFT, SINIF_TIR
@@ -205,22 +205,30 @@ def forklifte_bagli_kurallar(baglanti) -> list[dict]:
     ]
 
 
-def forklift_karsiliklari(model_dosyasi: str) -> list[str]:
+def forklift_karsiliklari(model_dosyasi: str, tabanlar: dict[str, str] | None = None) -> list[str]:
     """Çalışan modelin forklift karşılıkları: insanı ve aracı onunla aynı tanıyan,
-    forklifti ayrıca tanıyan kayıtlı modeller (dosya adları), kayıt sırasıyla:
-    yeni sürüm sona eklenir, en yenisi sondadır."""
-    return [ad for ad, taban in FORKLIFT_TABANI.items() if taban == model_dosyasi]
+    forklifti ayrıca tanıyan modeller (dosya adları), kayıt sırasıyla: yeni sürüm
+    sona eklenir, en yenisi sondadır. `tabanlar` verilmezse yalnız kayıtlı yayın
+    modelleri; verilirse Forklift sayfasından kurulan yerel modeller de
+    (model_indir.forklift_tabanlari)."""
+    tabanlar = FORKLIFT_TABANI if tabanlar is None else tabanlar
+    return [ad for ad, taban in tabanlar.items() if taban == model_dosyasi]
 
 
-def _en_yeni_forklift_modelleri() -> dict[str, str]:
+def _en_yeni_forklift_modelleri(tabanlar: dict[str, str]) -> dict[str, str]:
     """Her hazır model için en yeni forklift karşılığı: {taban: forklift modeli}."""
     en_yeni: dict[str, str] = {}
-    for ad, taban in FORKLIFT_TABANI.items():
+    for ad, taban in tabanlar.items():
         en_yeni[taban] = ad  # sonraki kayıt öncekinin yerini alır
     return en_yeni
 
 
-def _forklift_notu(supervizor, model_dosyasi: str) -> str:
+def _forklift_tabanlari(ayarlar) -> dict[str, str]:
+    """Kayıtlı yayın modelleri ve bu kurulumda yerelde kurulanlar (en yenisi sonda)."""
+    return forklift_tabanlari(ayarlar.kok_dizin / "models")
+
+
+def _forklift_notu(supervizor, model_dosyasi: str, tabanlar: dict[str, str]) -> str:
     """Forklift ayrı sınıf mı (docs/17 §4.2, §12.3; docs/08 R1)?
 
     Hazır model (COCO) forklifti tanımaz; çoğu zaman "tır" (araç) görür ve
@@ -241,19 +249,19 @@ def _forklift_notu(supervizor, model_dosyasi: str) -> str:
         "olarak görür ve “Tır/Araç” seçili kurallar onu araç olarak işler, ama hiç "
         "görmediği de olur."
     )
-    karsiliklar = forklift_karsiliklari(model_dosyasi)
+    karsiliklar = forklift_karsiliklari(model_dosyasi, tabanlar)
     if karsiliklar:
         return not_ + (
             f" Forklifti ayrıca tanıyan “{gorunen_model_adi(karsiliklar[-1])}” modeline "
             "Ayarlar'daki “Tanıma modeli” listesinden geçebilirsiniz; insanı ve aracı "
             "bu modelle aynı tanır."
         )
-    if FORKLIFT_TABANI:
+    if tabanlar:
         secenekler = _ve_ile(
             [
                 f"“{gorunen_model_adi(ad)}” (insanı ve aracı “{gorunen_model_adi(taban)}” "
                 "modeliyle tanır)"
-                for taban, ad in sorted(_en_yeni_forklift_modelleri().items())
+                for taban, ad in sorted(_en_yeni_forklift_modelleri(tabanlar).items())
             ]
         )
         return not_ + (
@@ -287,7 +295,9 @@ def _model_adimi(supervizor, ayarlar, baglanti=None) -> dict:
     if durum == "hazir":
         # Seçili forklift modeli kullanılamadıysa "forklift modeline geçin" önerisi
         # anlamsızdır (zaten seçili): sebep ve yedek söylenir
-        notu = getattr(supervizor, "model_uyarisi", "") or _forklift_notu(supervizor, calisan.name)
+        notu = getattr(supervizor, "model_uyarisi", "") or _forklift_notu(
+            supervizor, calisan.name, _forklift_tabanlari(ayarlar)
+        )
         aciklama = f"{ad} çalışıyor. {notu}"
         return {**ortak, "tamam": True, "hal": "", "aciklama": aciklama}
     if durum in ("indiriliyor", "yukleniyor"):
@@ -373,7 +383,9 @@ def _kalibrasyon_adimi(bekleyenler: list[dict]) -> dict:
     }
 
 
-def _forklift_kural_adimi(kurallar: list[dict], forklift_taniyor: bool) -> dict:
+def _forklift_kural_adimi(
+    kurallar: list[dict], forklift_taniyor: bool, forklift_modeli_var: bool
+) -> dict:
     """Çalışan modelle uyuşmayan araç kuralı varsa kırmızı madde (docs/17 §12.3-5).
 
     Forklift sınıflı modelde yalnız "Tır/Araç" seçili kural forklifti GÖRMEZ;
@@ -415,7 +427,7 @@ def _forklift_kural_adimi(kurallar: list[dict], forklift_taniyor: bool) -> dict:
             "“Tır/Araç”ı da işaretleyin"
             + (
                 " ya da Ayarlar'daki “Tanıma modeli” listesinden forklifti tanıyan modeli seçin."
-                if FORKLIFT_TABANI
+                if forklift_modeli_var
                 else "."
             )
         )
@@ -672,7 +684,9 @@ def _ham_adimlar(baglanti, supervizor, ayarlar) -> list[dict]:
             else forklifte_bagli_kurallar(baglanti)
         )
         if uyumsuz:
-            adimlar.append(_forklift_kural_adimi(uyumsuz, forklift_taniyor))
+            adimlar.append(
+                _forklift_kural_adimi(uyumsuz, forklift_taniyor, bool(_forklift_tabanlari(ayarlar)))
+            )
     # Numaraya göre sırala: şifre adımı yukarıda anonsun ÖNÜNE yazıldı ama
     # ekranda kurulum sırasına göre (…6, 7) görünmeli.
     return sorted(adimlar, key=lambda a: a["no"])

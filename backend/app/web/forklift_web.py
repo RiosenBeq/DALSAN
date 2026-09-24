@@ -1,10 +1,12 @@
-"""Forklift sayfası: sahadan kare toplama, etiketleme ve eğitim verisi.
+"""Forklift sayfası: sahadan kare toplama, etiketleme, eğitim verisi ve model kurma.
 
 Operatör, 24.09.2026: "gidip fabrikadan daha çok görüntü çekip mi yükleyeyim ve
 sadece yüklesem yeter mi". Cevap bu sayfadır: kapı açılınca (KVKK onayıyla)
 program forklift görünen kareleri kameralardan kendisi toplar; kullanıcı her
 karede önerilen kutuları "Forklift / Transpalet / Değil" diye işaretler, eksik
-forklifti fareyle çizer; eğitim verisi tek düğmeyle zip olarak iner.
+forklifti fareyle çizer; eğitim verisi tek düğmeyle zip olarak iner. Kapalı
+bilgisayardaki eğitimin (egitim/forklift/yerel.py) çıkardığı model yine bu
+sayfadan, denetlenerek kurulur (app/egitim/forklift_kurulum.py).
 Ayrıntılar ve saklama kuralları: app/egitim/forklift_verisi.py.
 """
 
@@ -12,14 +14,19 @@ from __future__ import annotations
 
 import json
 import os
+import secrets
 import tempfile
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, Form, Request
+from fastapi import APIRouter, Depends, Form, Request, UploadFile
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse, Response
 from starlette.background import BackgroundTask
+from starlette.concurrency import run_in_threadpool
 
-from app import zaman
+from app import kaynaklar, zaman
+from app.analiz.model_adi import YEREL_FORKLIFT_ADI, gorunen_model_adi
+from app.analiz.tespit import ModelHatasi, Tespitci
+from app.egitim import forklift_kurulum as fk
 from app.egitim import forklift_verisi as fv
 from app.hatalar import DogrulamaHatasi
 from app.loglama import log_al
@@ -33,14 +40,39 @@ _log = log_al("forklift")
 
 # Tümünü silme onayı: yanlışlıkla basılan düğme haftaların etiketini silmesin.
 SILME_ONAY_METNI = "Toplanan bütün forklift karelerini ve etiketlerini sil"
+_PARCA = 1024 * 1024
+
+
+def modeller_klasoru(ayarlar) -> Path:
+    """Hazır modellerin klasörü (MODEL_DOSYASI=models/...); yerel model de oraya kurulur."""
+    return ayarlar.kok_dizin / "models"
+
+
+def _kurulum_mesaji(kuruldu: str, zaten: str) -> str:
+    """Kurulumdan dönüşte tek satır. Ad, yerel model adı değilse yazılmaz."""
+    ad = kuruldu or zaten
+    if not YEREL_FORKLIFT_ADI.fullmatch(ad):
+        return ""
+    gorunen = gorunen_model_adi(ad)
+    if zaten:
+        return f"“{gorunen}” zaten kurulu."
+    return (
+        f"“{gorunen}” kuruldu. Kullanmak için Ayarlar'daki “Tanıma modeli” listesinden "
+        f"seçip kaydedin; sonra {kaynaklar.baslatma_tarifi(cumle_basi=False)}. Açılamazsa "
+        "sistem hazır modelle çalışmayı sürdürür."
+    )
 
 
 @router.get("/forklift", response_class=HTMLResponse)
-def forklift_sayfasi(istek: Request, baglanti=Depends(baglanti_al)):
+def forklift_sayfasi(
+    istek: Request, kuruldu: str = "", zaten: str = "", baglanti=Depends(baglanti_al)
+):
     ayarlar = istek.app.state.ayarlar
     ozet = fv.ozet(baglanti)
     kareler = fv.etiketli_kareler(baglanti)
     bolme = fv.gun_bolmesi(k.gun for k in kareler)
+    supervizor = getattr(istek.app.state, "supervizor", None)
+    calisan = getattr(supervizor, "calisan_model", None)
     return sablonlar.TemplateResponse(
         istek,
         "forklift.html",
@@ -56,8 +88,85 @@ def forklift_sayfasi(istek: Request, baglanti=Depends(baglanti_al)):
             "sinir_doldu": ozet["toplam"] >= ayarlar.forklift_ornek_en_cok,
             "uyarilar": fv.uyarilar(kareler, bolme) if kareler else [],
             "test_gunu": sum(1 for kume in bolme.values() if kume == "test"),
+            "kurulum_mesaji": _kurulum_mesaji(kuruldu, zaten),
+            "modeller": fk.kurulu_modeller(modeller_klasoru(ayarlar), ayarlar.model_dosyasi),
+            "calisan_model": calisan.name if calisan is not None else None,
         },
     )
+
+
+async def _sinirli_yaz(dosya: UploadFile, hedef: Path, sinir: int, ne: str) -> None:
+    """Yüklemeyi parça parça yazar; sınır aşılırsa ya da dosya boşsa durur."""
+    yazilan = 0
+    with hedef.open("wb") as cikti:
+        while parca := await dosya.read(_PARCA):
+            yazilan += len(parca)
+            if yazilan > sinir:
+                raise fk.KurulumHatasi(
+                    f"{ne} beklenenden çok büyük (en fazla {sinir // (1024 * 1024)} MB). "
+                    "KURULACAK klasöründeki dosyayı seçtiğinizden emin olun."
+                )
+            cikti.write(parca)
+    if yazilan == 0:
+        raise fk.KurulumHatasi(f"{ne} boş. KURULACAK klasöründeki dosyayı seçin.")
+
+
+@router.post("/forklift/model")
+async def model_kur(
+    istek: Request,
+    model: UploadFile | None = None,
+    olcum: UploadFile | None = None,
+    baglanti=Depends(baglanti_al),
+):
+    """Kapalı bilgisayardaki eğitimin modelini (.onnx) ve ölçümünü (.olcum.json)
+    denetleyip kurar (app/egitim/forklift_kurulum.py). Seçim değişmez."""
+    if model is None or olcum is None or not model.filename or not olcum.filename:
+        raise fk.KurulumHatasi(
+            "İki dosyayı da seçin: model (.onnx) ve ölçümü (.olcum.json). İkisi de eğitim "
+            "klasöründeki KURULACAK'ta yan yanadır."
+        )
+    ayarlar = istek.app.state.ayarlar
+    klasor = modeller_klasoru(ayarlar)
+    klasor.mkdir(parents=True, exist_ok=True)
+    gecici = klasor / f".kurulum-{secrets.token_hex(4)}.onnx.part"
+    gecici_olcum = gecici.with_suffix(".json.part")
+
+    def modeli_ac(yol: Path) -> Tespitci:
+        # Ürünün kendi motoru, çalışan analizi yormasın diye tek iş parçacığıyla
+        return Tespitci(yol, "cpu", is_parcacigi=1)
+
+    try:
+        await _sinirli_yaz(model, gecici, fk.EN_BUYUK_MODEL_BAYT, "Model dosyası")
+        await _sinirli_yaz(olcum, gecici_olcum, fk.EN_BUYUK_OLCUM_BAYT, "Ölçüm dosyası")
+        olcum_baytlari = gecici_olcum.read_bytes()
+        try:
+            ad, yeni = await run_in_threadpool(fk.kur, gecici, olcum_baytlari, klasor, modeli_ac)
+        except ModelHatasi as hata:
+            raise fk.KurulumHatasi(
+                f"Model dosyası açılamadı; kurulmadı. {hata.kullanici_mesaji}",
+                hata.teknik_ayrinti,
+            ) from hata
+    except OSError as hata:
+        raise fk.KurulumHatasi(
+            f"Model kaydedilemedi: {hata.strerror or 'disk hatası'}. Diskte yer olduğundan "
+            "emin olun.",
+            f"forklift modeli yazılamadı: {hata!r}",
+        ) from hata
+    finally:
+        gecici.unlink(missing_ok=True)
+        gecici_olcum.unlink(missing_ok=True)
+    if not yeni:
+        return RedirectResponse(f"/forklift?zaten={ad}#model", status_code=303)
+    gorunen = gorunen_model_adi(ad)
+    sistem_olayi_yaz(
+        baglanti,
+        f"Forklift modeli kuruldu: {gorunen}. Ayarlar'daki “Tanıma modeli” listesinden "
+        "seçilebilir; seçilmedikçe çalışan model değişmez.",
+        detaylar={"model": ad},
+        kod="FORKLIFT_MODEL_INSTALLED",
+    )
+    _log.info(f"Forklift modeli kuruldu: {gorunen}", extra={"ayrinti": f"dosya: {klasor / ad}"})
+    return RedirectResponse(f"/forklift?kuruldu={ad}#model", status_code=303)
 
 
 @router.post("/forklift/toplama")
