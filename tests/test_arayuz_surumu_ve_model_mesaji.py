@@ -14,6 +14,8 @@ import ssl
 import urllib.error
 from pathlib import Path
 
+import pytest
+
 KOK = Path(__file__).resolve().parents[1]
 SABLON_DIZINI = KOK / "backend" / "app" / "web" / "templates"
 STATIK_DIZINI = KOK / "backend" / "app" / "web" / "static"
@@ -98,6 +100,18 @@ def test_indirme_hatasi_gunlugunde_tam_adres_duruyor():
         _, teknik, adres = _metinler(hata)
         assert adres in teknik, "Tam indirme adresi günlüğe yazılmalı"
         assert "models/yolox_tiny.onnx" in teknik, "Hedef dosya günlüğe yazılmalı"
+
+
+@pytest.mark.parametrize("kod", [404, 410])
+def test_yayinda_olmayan_dosya_internet_sorunu_sayilmaz(kod):
+    """Sunucu 404/410 dediyse internet çalışıyordur: kullanıcı modemle uğraşmasın,
+    başka model seçip yeniden başlatsın; adres yine yalnız günlükte."""
+    hata = urllib.error.HTTPError("https://ornek/x.onnx", kod, "Not Found", None, None)
+    kullanici, teknik, adres = _metinler(hata)
+    assert "yayın yerinde bulunamadı" in kullanici
+    assert "İnternet bağlantısını kontrol" not in kullanici
+    assert "“Tanıma modeli”" in kullanici and "yeniden başlatın" in kullanici
+    assert "http" not in kullanici.lower() and adres in teknik
 
 
 def test_sertifika_hatasi_dogru_teshisi_koruyor():

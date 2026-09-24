@@ -205,6 +205,15 @@ def _indirme_hata_metinleri(adres: str, model_dosyasi: Path, hata: Exception) ->
             "trafiğini denetleyen bir güvenlik duvarı da bu hatayı verir; bu durumda "
             "bilgi işlem biriminden yardım isteyin."
         )
+    elif isinstance(hata, urllib.error.HTTPError) and hata.code in (404, 410):
+        # Sunucu cevap verdi: internet çalışıyor, dosya yayın yerinde yok
+        # (yayın kaldırılmış ya da taşınmış). "İnterneti kontrol edin" burada
+        # yanlış yere yollar; başka modele geçmek sistemi hemen çalıştırır.
+        kullanici_mesaji = (
+            f"{MARKA} indirilemedi: model dosyası yayın yerinde bulunamadı (internet "
+            "bağlantısı çalışıyor). Ayarlar'daki “Tanıma modeli” listesinden başka bir "
+            "model seçip Kontrol Panelinden yeniden başlatın ve destek ekibine haber verin."
+        )
     else:
         kullanici_mesaji = (
             f"{MARKA} indirilemedi. İnternet bağlantısını kontrol edip "
