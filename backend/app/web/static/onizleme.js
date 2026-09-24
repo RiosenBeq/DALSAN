@@ -148,6 +148,8 @@
 
       satir.appendChild(sayimGrubu("İçeride", sayim.anlik_tr || {}, sayim.anlik_toplam));
       satir.appendChild(sayimGrubu("Giren", sayim.giren_tr || {}, sayim.giren_toplam));
+      // Sınıf başına zirve: toplamların zirvesi ayrı tutulmadığı için boşken 0
+      satir.appendChild(sayimGrubu("En çok", sayim.zirve_tr || {}, 0));
       bolgeSayimKutusu.appendChild(satir);
     });
   }

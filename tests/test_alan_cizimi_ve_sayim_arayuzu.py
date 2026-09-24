@@ -149,6 +149,36 @@ def test_durum_json_bolge_sayimlarini_tasir(istemci, bolgeli_kamera):
     assert "bolge_sayimlari" in veri
 
 
+def test_en_cok_sayisi_ekrana_gider(istemci, bolgeli_kamera):
+    """ "En çok" (aynı anda görülen en yüksek sayı) sayfada anlatılıyor ama
+    eskiden hesaplanıp ekrana hiç basılmıyordu (belge denetimi 24.09.2026)."""
+    import types
+
+    istemci.app.state.supervizor = types.SimpleNamespace(
+        kamera_durumu=lambda _kid: {
+            "durum": "calisiyor",
+            "sayim": {},
+            "bolge_sayimlari": [
+                {
+                    "bolge_id": 1,
+                    "anlik": {"person": 1},
+                    "giren": {"person": 4},
+                    "zirve": {"person": 3},
+                    "anlik_toplam": 1,
+                    "giren_toplam": 4,
+                }
+            ],
+        }
+    )
+    try:
+        veri = istemci.get(f"/kameralar/{bolgeli_kamera}/durum.json").json()
+    finally:
+        istemci.app.state.supervizor = None
+    assert veri["bolge_sayimlari"][0]["zirve_tr"] == {"İnsan": 3}
+    betik = (STATIK / "onizleme.js").read_text(encoding="utf-8")
+    assert 'sayimGrubu("En çok", sayim.zirve_tr' in betik
+
+
 def test_sayac_sifirlama_analiz_kapaliyken_dogruyu_soyler(istemci, bolgeli_kamera):
     """Analiz çalışmıyorken 'sıfırlandı' demek yalan olurdu."""
     veri = istemci.post(f"/kameralar/{bolgeli_kamera}/sayac-sifirla").json()

@@ -340,6 +340,7 @@ def _sayimlari_adlandir(baglanti, kamera_id: int, sayimlar: list[dict]) -> list[
                 "tip_adi": BOLGE_TIPLERI.get(tip, tip),
                 "anlik_tr": {SINIFLAR.get(s, s): n for s, n in sayim.get("anlik", {}).items()},
                 "giren_tr": {SINIFLAR.get(s, s): n for s, n in sayim.get("giren", {}).items()},
+                "zirve_tr": {SINIFLAR.get(s, s): n for s, n in sayim.get("zirve", {}).items()},
             }
         )
     return zenginlestirilmis
